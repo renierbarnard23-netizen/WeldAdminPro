@@ -1,0 +1,30 @@
+﻿# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.cache
+
+# Build outputs
+bin/
+obj/
+artifacts/
+dist/
+
+# Rider
+.idea/
+
+# Dotnet local settings
+*.db
+*.local
+appsettings.*.json
+
+# NuGet
+*.nupkg
+.nuget/
+
+# VS Code
+.vscode/
+
+# Temporary files
+*.log
