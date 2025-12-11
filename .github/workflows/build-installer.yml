@@ -1,0 +1,100 @@
+﻿name: Build Installer — Inno Setup
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-installer:
+    name: Build Windows Installer (Inno Setup)
+    runs-on: windows-latest
+    needs: build-windows    # expects your existing build job called build-windows that uploads the publish artifact
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download published artifact (from build)
+        uses: actions/download-artifact@v4
+        with:
+          name: weldadmin-ui-windows
+          path: artifacts
+
+      - name: Prepare installer workspace
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path installer\source | Out-Null
+          if (Test-Path "artifacts\publish\WeldAdminPro.UI") {
+            Copy-Item -Path "artifacts\publish\WeldAdminPro.UI\*" -Destination installer\source -Recurse -Force
+          } else {
+            Write-Error "Publish folder not found at artifacts\publish\WeldAdminPro.UI"
+            exit 1
+          }
+
+      - name: Ensure Inno Setup is available (Chocolatey)
+        shell: powershell
+        run: |
+          choco install innosetup -y --no-progress
+
+      - name: Prepare .iss for build (set SourcePublish)
+        shell: powershell
+        run: |
+          $template = "$Env:GITHUB_WORKSPACE\.github\installer_templates\WeldAdminProInstaller.iss"
+          if (-not (Test-Path $template)) {
+            Write-Error "ISS template missing at $template"
+            exit 1
+          }
+          $issText = Get-Content -Raw -Path $template
+          # Replace placeholder with the actual source folder path (escape backslashes for Inno)
+          $sourcePublish = "$Env:GITHUB_WORKSPACE\installer\source"
+          $issText = $issText -replace "{#SourcePublish}", ($sourcePublish -replace "\\","\\")
+          $outIss = "$Env:GITHUB_WORKSPACE\installer\WeldAdminProInstaller.iss"
+          $issText | Set-Content -Path $outIss -Encoding UTF8
+          Write-Host "Wrote ISS to $outIss"
+
+      - name: Compile installer (Inno Setup)
+        shell: powershell
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            Write-Error "ISCC.exe not found at $iscc"
+            exit 1
+          }
+          $iss = "$Env:GITHUB_WORKSPACE\installer\WeldAdminProInstaller.iss"
+          $outputDir = "$Env:GITHUB_WORKSPACE\Output"
+          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+          & $iscc /O"$outputDir" $iss
+          Write-Host "Inno Setup compile finished"
+
+      - name: (Optional) Code-sign installer (conditioned on secrets)
+        if: ${{ secrets.SIGNING_PFX_BASE64 && secrets.SIGNING_PFX_PASSWORD }}
+        shell: powershell
+        env:
+          PFX_BASE64: ${{ secrets.SIGNING_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
+        run: |
+          Write-Host "Writing signing PFX to disk..."
+          [IO.File]::WriteAllBytes("signing.pfx", [Convert]::FromBase64String($env:PFX_BASE64))
+          $installer = Get-ChildItem -Path "$Env:GITHUB_WORKSPACE\Output" -Filter "WeldAdminPro_Installer_*.exe" -Recurse | Select-Object -First 1
+          if (-not $installer) { Write-Error "Installer not found for signing"; exit 1 }
+          $signtool = "C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe"
+          if (-not (Test-Path $signtool)) { Write-Error "signtool not found at $signtool"; exit 1 }
+          & $signtool sign /f signing.pfx /p $env:PFX_PASSWORD /tr http://timestamp.digicert.com /td SHA256 /fd SHA256 $installer.FullName
+          Write-Host "Signing complete"
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WeldAdminPro-installer
+          path: |
+            Output\WeldAdminPro_Installer_*.exe
+            Output\*.exe
+
