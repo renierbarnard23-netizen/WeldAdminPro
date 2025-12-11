@@ -1,0 +1,45 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using Microsoft.EntityFrameworkCore;
+using WeldAdminPro.Data;
+
+namespace WeldAdminPro.UI
+{
+    public partial class App : Application
+    {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+
+            try
+            {
+                // Build DbContextOptions (simple local sqlite file)
+                var options = new DbContextOptionsBuilder<WeldAdminDbContext>()
+                    .UseSqlite("Data Source=weldadmin.db")
+                    .Options;
+
+                // Ensure DB is created and apply migrations (if any)
+                using (var db = new WeldAdminDbContext(options))
+                {
+                    // If you prefer migrations, comment the EnsureCreated and use db.Database.Migrate();
+                    db.Database.Migrate();
+
+                    // Seed sample data synchronously
+                    DataSeeder.Seed(db);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to initialize database: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Shutdown(-1);
+                return;
+            }
+
+            // Start main window
+            var main = new MainWindow();
+            main.Show();
+        }
+    }
+}

@@ -1,0 +1,112 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using WeldAdminPro.Core.Models;
+using WeldAdminPro.UI.Services;
+
+namespace WeldAdminPro.UI.ViewModels
+{
+// DUPLICATE COMMENTED:     public partial class ProjectsViewModel
+// DUPLICATE COMMENTED:     {
+// DUPLICATE COMMENTED:         private readonly UserStateService _state = new UserStateService();
+// DUPLICATE COMMENTED: 
+// DUPLICATE COMMENTED:         private Project? _selectedProject;
+// DUPLICATE COMMENTED:         /// <summary>
+// DUPLICATE COMMENTED:         /// Selected project in the list. Setting this will persist the selection so it can be restored next run.
+// DUPLICATE COMMENTED:         /// </summary>
+// DUPLICATE COMMENTED:         public Project? SelectedProject
+// DUPLICATE COMMENTED:         {
+// DUPLICATE COMMENTED:             get => _selectedProject;
+// DUPLICATE COMMENTED:             set
+// DUPLICATE COMMENTED:             {
+// DUPLICATE COMMENTED:                 if (SetProperty(ref _selectedProject, value))
+// DUPLICATE COMMENTED:                 {
+// DUPLICATE COMMENTED:                     SaveSelectedProjectAsync();
+// DUPLICATE COMMENTED:                 }
+// DUPLICATE COMMENTED:             }
+// DUPLICATE COMMENTED:         }
+// DUPLICATE COMMENTED: 
+// DUPLICATE COMMENTED:         private async void SaveSelectedProjectAsync()
+// DUPLICATE COMMENTED:         {
+// DUPLICATE COMMENTED:             try
+// DUPLICATE COMMENTED:             {
+// DUPLICATE COMMENTED:                 if (SelectedProject == null)
+// DUPLICATE COMMENTED:                 {
+// DUPLICATE COMMENTED:                     _state.SetSelectedProjectId(null);
+// DUPLICATE COMMENTED:                     return;
+// DUPLICATE COMMENTED:                 }
+// DUPLICATE COMMENTED: 
+// DUPLICATE COMMENTED:                 // prefer Id property if present, otherwise fall back to ProjectNumber
+// DUPLICATE COMMENTED:                 var id = TryGetProjectIdentifier(SelectedProject);
+// DUPLICATE COMMENTED:                 if (!string.IsNullOrEmpty(id))
+// DUPLICATE COMMENTED:                     _state.SetSelectedProjectId(id);
+// DUPLICATE COMMENTED:             }
+// DUPLICATE COMMENTED:             catch { }
+// DUPLICATE COMMENTED:         }
+// DUPLICATE COMMENTED: 
+// DUPLICATE COMMENTED:         private static string? TryGetProjectIdentifier(Project p)
+// DUPLICATE COMMENTED:         {
+// DUPLICATE COMMENTED:             try
+// DUPLICATE COMMENTED:             {
+// DUPLICATE COMMENTED:                 var t = p.GetType();
+// DUPLICATE COMMENTED:                 var idProp = t.GetProperty("Id") ?? t.GetProperty("IdString") ?? t.GetProperty("ProjectId");
+// DUPLICATE COMMENTED:                 if (idProp != null)
+// DUPLICATE COMMENTED:                 {
+// DUPLICATE COMMENTED:                     var v = idProp.GetValue(p);
+// DUPLICATE COMMENTED:                     if (v != null) return v.ToString();
+// DUPLICATE COMMENTED:                 }
+// DUPLICATE COMMENTED: 
+// DUPLICATE COMMENTED:                 var pn = t.GetProperty("ProjectNumber") ?? t.GetProperty("Number");
+// DUPLICATE COMMENTED:                 if (pn != null)
+// DUPLICATE COMMENTED:                 {
+// DUPLICATE COMMENTED:                     var v = pn.GetValue(p);
+// DUPLICATE COMMENTED:                     if (v != null) return v.ToString();
+// DUPLICATE COMMENTED:                 }
+// DUPLICATE COMMENTED: 
+// DUPLICATE COMMENTED:                 // last resort - use Title + StartDate as a crude key
+// DUPLICATE COMMENTED:                 var title = t.GetProperty("Title")?.GetValue(p)?.ToString() ?? "";
+// DUPLICATE COMMENTED:                 var sd = t.GetProperty("StartDate")?.GetValue(p)?.ToString() ?? "";
+// DUPLICATE COMMENTED:                 return (title + "|" + sd).Trim();
+// DUPLICATE COMMENTED:             }
+// DUPLICATE COMMENTED:             catch
+// DUPLICATE COMMENTED:             {
+// DUPLICATE COMMENTED:                 return null;
+// DUPLICATE COMMENTED:             }
+// DUPLICATE COMMENTED:         }
+// DUPLICATE COMMENTED: 
+// DUPLICATE COMMENTED:         /// <summary>
+// DUPLICATE COMMENTED:         /// After RefreshAsync has repopulated Projects, attempt to restore previously selected project.
+// DUPLICATE COMMENTED:         /// </summary>
+// DUPLICATE COMMENTED:         private void TryRestoreSelectedProject()
+// DUPLICATE COMMENTED:         {
+// DUPLICATE COMMENTED:             try
+// DUPLICATE COMMENTED:             {
+// DUPLICATE COMMENTED:                 var savedId = _state.GetSelectedProjectId();
+// DUPLICATE COMMENTED:                 if (string.IsNullOrEmpty(savedId)) return;
+// DUPLICATE COMMENTED: 
+// DUPLICATE COMMENTED:                 var match = Projects.FirstOrDefault(p =>
+// DUPLICATE COMMENTED:                 {
+// DUPLICATE COMMENTED:                     var id = TryGetProjectIdentifier(p);
+// DUPLICATE COMMENTED:                     return !string.IsNullOrEmpty(id) && id == savedId;
+// DUPLICATE COMMENTED:                 });
+// DUPLICATE COMMENTED: 
+// DUPLICATE COMMENTED:                 if (match != null)
+// DUPLICATE COMMENTED:                 {
+// DUPLICATE COMMENTED:                     // ensure selection is set on UI thread
+// DUPLICATE COMMENTED:                     App.Current.Dispatcher.Invoke(() =>
+// DUPLICATE COMMENTED:                     {
+// DUPLICATE COMMENTED:                         SelectedProject = match;
+// DUPLICATE COMMENTED:                     });
+// DUPLICATE COMMENTED:                 }
+// DUPLICATE COMMENTED:             }
+// DUPLICATE COMMENTED:             catch { }
+// DUPLICATE COMMENTED:         }
+// DUPLICATE COMMENTED: 
+// DUPLICATE COMMENTED:         // call TryRestoreSelectedProject at the end of RefreshAsync
+// DUPLICATE COMMENTED:         private void OnRefreshCompleted()
+// DUPLICATE COMMENTED:         {
+// DUPLICATE COMMENTED:             TryRestoreSelectedProject();
+// DUPLICATE COMMENTED:         }
+// DUPLICATE COMMENTED:     }
+}
+

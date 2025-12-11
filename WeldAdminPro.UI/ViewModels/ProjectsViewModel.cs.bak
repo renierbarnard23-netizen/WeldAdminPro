@@ -1,0 +1,120 @@
+﻿using System;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.EntityFrameworkCore;
+using WeldAdminPro.Core.Models;
+using WeldAdminPro.Data;
+
+namespace WeldAdminPro.UI.ViewModels
+{
+    public class ProjectsViewModel : ObservableObject
+    {
+        private readonly WeldAdminDbContext _db;
+        private readonly Services.ExcelExportService _excel;
+
+        public ObservableCollection<Project> Projects { get; } = new ObservableCollection<Project>();
+
+        private string _filter = string.Empty;
+        public string Filter
+        {
+            get => _filter;
+            set
+            {
+                SetProperty(ref _filter, value);
+                _ = RefreshAsync();
+            }
+        }
+
+        public IAsyncRelayCommand RefreshCommand { get; }
+        public IAsyncRelayCommand ExportExcelCommand { get; }
+
+        public ProjectsViewModel()
+        {
+            // build a short-lived DbContext using default connection string used in App.xaml.cs
+            var options = new DbContextOptionsBuilder<WeldAdminDbContext>()
+                .UseSqlite("Data Source=weldadmin.db")
+                .Options;
+
+            _db = new WeldAdminDbContext(options);
+            _excel = new Services.ExcelExportService();
+
+            RefreshCommand = new AsyncRelayCommand(RefreshAsync);
+            ExportExcelCommand = new AsyncRelayCommand(ExportExcelAsync);
+
+            // initial load (fire and forget)
+            _ = RefreshAsync();
+        }
+
+        private async Task RefreshAsync()
+        {
+            var q = _db.Projects.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(Filter))
+            {
+                var f = Filter.Trim();
+                q = q.Where(p => p.ProjectNumber.Contains(f) || p.Title.Contains(f) || p.Client.Contains(f));
+            }
+
+            var list = await q.OrderBy(p => p.ProjectNumber).ToListAsync();
+
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                Projects.Clear();
+                foreach (var p in list) Projects.Add(p);
+            });
+        }
+
+        private async Task ExportExcelAsync()
+{
+    // Pass actual StartDate as DateTime? so Excel receives typed date cells.
+    var rows = Projects.Select(p => new
+    {
+        p.ProjectNumber,
+        p.Title,
+        p.Client,
+        StartDate = p.StartDate,              // DateTime? (typed)
+        p.DatabookVersion
+    }).ToList();
+
+    await _excel.ExportProjectsAsync(rows, "ProjectsExport.xlsx");
+
+// inside ProjectsViewModel class (add near Projects collection)
+private Project? _selectedProject;
+public Project? SelectedProject
+{
+    get => _selectedProject;
+    set
+    {
+        if (SetProperty(ref _selectedProject, value))
+        {
+            // persist selected project id to global app state to be saved by MainViewModel
+            AppState.LastViewedProjectId = value?.Id;
+        }
+    }
+}
+
+// in constructor, after initial _ = RefreshAsync(); add:
+// attempt to set selection from AppState once first load completes
+_ = Task.Run(async () =>
+{
+    await Task.Delay(200); // give initial load a moment
+    if (AppState.LastViewedProjectId.HasValue)
+    {
+        await RefreshAsync();
+        var found = Projects.FirstOrDefault(p => p.Id == AppState.LastViewedProjectId.Value);
+        if (found != null)
+        {
+            App.Current.Dispatcher.Invoke(() => SelectedProject = found);
+        }
+    }
+});
+
+
+}
+
+    }
+}

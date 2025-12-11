@@ -1,0 +1,98 @@
+﻿using System;
+using System.Threading;
+using System.Windows;
+using Microsoft.EntityFrameworkCore;
+using WeldAdminPro.Data;
+
+namespace WeldAdminPro.UI
+{
+    public partial class App : Application
+    {
+        private Mutex? _singleInstanceMutex;
+
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            // Single-instance guard
+            bool createdNew;
+            var mutexName = "WeldAdminPro_SingleInstance_{A8E1A6C2-3C6F-4F0A-9B9D-9F3B6E8F1D2B}"; // GUID to avoid collisions
+            try
+            {
+                _singleInstanceMutex = new Mutex(true, mutexName, out createdNew);
+                if (!createdNew)
+                {
+                    MessageBox.Show("WeldAdmin Pro is already running.", "Already running", MessageBoxButton.OK, MessageBoxImage.Information);
+                    Shutdown(0);
+                    return;
+                }
+            }
+            catch
+            {
+                // if mutex fails for any reason, continue (non-fatal)
+            }
+
+            base.OnStartup(e);
+
+            void Log(string msg)
+            {
+                try
+                {
+                    Console.WriteLine(msg);
+                    var path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "weldadmin-init.log");
+                    System.IO.File.AppendAllText(path, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {msg}{Environment.NewLine}");
+                }
+                catch { }
+            }
+
+            Log("WeldAdminPro starting: initializing DB...");
+
+            try
+            {
+                var options = new DbContextOptionsBuilder<WeldAdminDbContext>()
+                    .UseSqlite("Data Source=weldadmin.db")
+                    .Options;
+
+                Log("Creating WeldAdminDbContext (using Data Source=weldadmin.db)...");
+                using (var db = new WeldAdminDbContext(options))
+                {
+                    Log("Calling db.Database.Migrate() ...");
+                    db.Database.Migrate();
+                    Log("db.Database.Migrate() finished successfully.");
+
+                    Log("Calling DataSeeder.Seed(db) ...");
+                    try
+                    {
+                        DataSeeder.Seed(db);
+                        Log("DataSeeder.Seed finished.");
+                    }
+                    catch (Exception seedEx)
+                    {
+                        Log("DataSeeder.Seed threw: " + seedEx.ToString());
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log("Failed to initialize database: " + ex.ToString());
+                MessageBox.Show($"Failed to initialize database: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Shutdown(-1);
+                return;
+            }
+
+            Log("Database init OK. Launching MainWindow...");
+
+            var main = new MainWindow();
+            main.Show();
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            base.OnExit(e);
+            try
+            {
+                _singleInstanceMutex?.ReleaseMutex();
+                _singleInstanceMutex?.Dispose();
+            }
+            catch { }
+        }
+    }
+}

@@ -1,0 +1,96 @@
+﻿<Window x:Class="WeldAdminPro.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:WeldAdminPro.UI.ViewModels"
+        mc:Ignorable="d"
+        Title="WeldAdmin Pro" Height="680" Width="1100">
+
+    <Window.DataContext>
+        <vm:MainViewModel />
+    </Window.DataContext>
+
+    <Window.Resources>
+        <!-- Nav item template: small icon + title -->
+        <DataTemplate x:Key="NavItemTemplate" DataType="{x:Type vm:NavItem}">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4">
+                <TextBlock Text="{Binding Icon}" FontSize="16" Margin="4,0,10,0" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" FontSize="13"/>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- Item container style for ListBoxItem -->
+        <Style TargetType="ListBoxItem" x:Key="NavListBoxItem">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="4 4"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" CornerRadius="6" Background="Transparent">
+                            <ContentPresenter Margin="6" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FF34495E"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FF1ABC9C"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="260"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Left navigation column -->
+        <Border Grid.Column="0" Background="#FF2C3E50" Padding="12">
+            <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12" VerticalAlignment="Top">
+                    <TextBlock Text="WeldAdmin Pro" Foreground="White" FontSize="18" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Nav list -->
+                <ListBox ItemsSource="{Binding NavItems}"
+                         ItemTemplate="{StaticResource NavItemTemplate}"
+                         ItemContainerStyle="{StaticResource NavListBoxItem}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Foreground="White"
+                         SelectedItem="{Binding SelectedNavItem, Mode=TwoWay}"
+                         Margin="0,0,0,8"
+                         />
+
+                <!-- Footer anchored to bottom -->
+                <Border DockPanel.Dock="Bottom" Background="#002C3E50" Padding="8" CornerRadius="6" Margin="0,8,0,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,4">
+                            <TextBlock Text="Version:" Foreground="White" FontSize="11" Opacity="0.8" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding Version}" Foreground="White" FontSize="11"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,4">
+                            <TextBlock Text="DB:" Foreground="White" FontSize="11" Opacity="0.8" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding DbStatus}" Foreground="White" FontSize="11"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                            <TextBlock Text="Last sync:" Foreground="White" FontSize="11" Opacity="0.8" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding LastSync}" Foreground="White" FontSize="11"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </DockPanel>
+        </Border>
+
+        <ContentControl Grid.Column="1" Content="{Binding CurrentView}" />
+    </Grid>
+</Window>

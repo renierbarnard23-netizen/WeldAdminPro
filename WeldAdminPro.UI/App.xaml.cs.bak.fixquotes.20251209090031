@@ -1,0 +1,63 @@
+﻿using System;
+using System.Threading;
+using System.Windows;
+
+namespace WeldAdminPro.UI
+{
+    public partial class App : Application
+    {
+        private const string MutexName = "Global\\WeldAdminPro_UI_Singleton_Mutex_v1";
+        private static Mutex? _mutex;
+
+        private void App_OnStartup(object sender, StartupEventArgs e)
+        {
+            bool createdNew = false;
+            try
+            {
+                _mutex = new Mutex(true, MutexName, out createdNew);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($""Failed to create single-instance mutex: {ex.Message}"", ""Startup error"", MessageBoxButton.OK, MessageBoxImage.Warning);
+                createdNew = true;
+            }
+
+            if (!createdNew)
+            {
+                // Already running — notify user and exit
+                MessageBox.Show(""WeldAdmin Pro is already running."", ""Already running"", MessageBoxButton.OK, MessageBoxImage.Information);
+                _mutex?.Close();
+                _mutex = null;
+                Shutdown();
+                return;
+            }
+
+            // Optional: dispatcher exception hook
+            this.DispatcherUnhandledException += (s, args) =>
+            {
+                MessageBox.Show($""Unhandled exception: {args.Exception.Message}"", ""Unhandled Error"", MessageBoxButton.OK, MessageBoxImage.Error);
+                args.Handled = true;
+            };
+
+            // instantiate and show main window
+            var main = new MainWindow();
+            this.MainWindow = main;
+            main.Show();
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            base.OnExit(e);
+            try
+            {
+                if (_mutex != null)
+                {
+                    _mutex.ReleaseMutex();
+                    _mutex.Dispose();
+                }
+            }
+            catch { /* ignore */ }
+            _mutex = null;
+        }
+    }
+}

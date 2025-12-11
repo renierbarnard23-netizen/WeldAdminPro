@@ -1,0 +1,65 @@
+﻿using System;
+using System.Threading;
+using System.Windows;
+
+namespace WeldAdminPro.UI
+{
+    public partial class App : Application
+    {
+        // Use a unique name per app; include your company/app name
+        private const string MutexName = "Global\\WeldAdminPro_UI_Singleton_Mutex_v1";
+        private static Mutex? _mutex;
+
+        private void App_OnStartup(object sender, StartupEventArgs e)
+        {
+            bool createdNew;
+            try
+            {
+                _mutex = new Mutex(true, MutexName, out createdNew);
+            }
+            catch (Exception ex)
+            {
+                // In very rare cases creating the mutex can fail; log if you have logging, else continue
+                MessageBox.Show($"Failed to create single-instance mutex: {ex.Message}", "Startup error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                createdNew = true;
+            }
+
+            if (!createdNew)
+            {
+                // Another instance is running — bring it to foreground if you implement it,
+                // otherwise just exit quietly.
+                MessageBox.Show("WeldAdmin Pro is already running.", "Already running", MessageBoxButton.OK, MessageBoxImage.Information);
+                // Ensure cleanup
+                _mutex?.Close();
+                _mutex = null;
+                Shutdown(); // stop this second instance
+                return;
+            }
+
+            // Optional: subscribe to unhandled exceptions for nicer diagnostics
+            this.DispatcherUnhandledException += (s, args) =>
+            {
+                // show a message and prevent automatic crash handling if desired
+                MessageBox.Show($"Unhandled exception: {args.Exception.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                args.Handled = true;
+            };
+
+            // Create and show your main window (if you previously used StartupUri, instantiate MainWindow here)
+            var main = new MainWindow();
+            this.MainWindow = main;
+            main.Show();
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            base.OnExit(e);
+            try
+            {
+                _mutex?.ReleaseMutex();
+                _mutex?.Dispose();
+            }
+            catch { /* ignore */ }
+            _mutex = null;
+        }
+    }
+}

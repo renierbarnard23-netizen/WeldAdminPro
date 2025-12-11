@@ -1,0 +1,172 @@
+﻿using System;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Input;
+// File: WeldAdminPro.UI\ViewModels/MainWindowViewModel.cs
+using CommunityToolkit.Mvvm.ComponentModel;
+
+namespace WeldAdminPro.UI.ViewModels
+{
+    // Minimal placeholder; extend later with real logic
+    public class MainWindowViewModel : ObservableObject
+    {
+        public string Title => "WeldAdmin Pro";
+    }
+}
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using WeldAdminPro.Core.Models;
+using WeldAdminPro.Data;
+
+namespace WeldAdminPro.UI.ViewModels
+{
+    public class NavItem
+    {
+        public string Label { get; set; } = string.Empty;
+        public string Glyph { get; set; } = string.Empty; // set to MDL2 glyph (e.g. "\uE8B7")
+        public IRelayCommand? Command { get; set; }
+        public object? Tag { get; set; }
+    }
+
+    public class MainViewModel : ObservableObject
+    {
+        private const string PersistFile = "lastnav.json"; // persisted in app working dir
+        private object? _currentView;
+        public object? CurrentView { get => _currentView; set => SetProperty(ref _currentView, value); }
+
+        public ObservableCollection<NavItem> NavItems { get; } = new ObservableCollection<NavItem>();
+
+        private NavItem? _selectedNavItem;
+        public NavItem? SelectedNavItem
+        {
+            get => _selectedNavItem;
+            set
+            {
+                if (SetProperty(ref _selectedNavItem, value) && value != null)
+                {
+                    // invoke selection action
+                    value.Command?.Execute(null);
+                    PersistSelectedNav(value);
+                }
+            }
+        }
+
+        public IRelayCommand<int> ActivateNavItemByIndexCommand { get; }
+        public string AppVersion { get; } = $"v{System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}";
+        private string _dbStatus = "DB: unknown";
+        public string DbStatus { get => _dbStatus; set => SetProperty(ref _dbStatus, value); }
+
+        private string _lastMigrationDisplay = "Migration: unknown";
+        public string LastMigrationDisplay { get => _lastMigrationDisplay; set => SetProperty(ref _lastMigrationDisplay, value); }
+
+        public MainViewModel()
+        {
+            // build nav items with Glyphs (Segoe MDL2 codes)
+            NavItems.Add(new NavItem { Label = "Projects", Glyph = "\uE8B7", Command = new RelayCommand(ShowProjects) });       // Folder
+            NavItems.Add(new NavItem { Label = "Databook", Glyph = "\uE8D2", Command = new RelayCommand(ShowDatabook) });     // Book (example)
+            NavItems.Add(new NavItem { Label = "QCPs", Glyph = "\uE8A5", Command = new RelayCommand(ShowQcp) });              // Document / list
+            NavItems.Add(new NavItem { Label = "Inspections", Glyph = "\uE774", Command = new RelayCommand(ShowInspections) });// Search / inspect
+            NavItems.Add(new NavItem { Label = "Reports", Glyph = "\uE9D9", Command = new RelayCommand(ShowReports) });       // Report
+
+            ActivateNavItemByIndexCommand = new RelayCommand<int>(i =>
+            {
+                if (i >= 0 && i < NavItems.Count) SelectedNavItem = NavItems[i];
+            });
+
+            // restore previously selected nav (if any)
+            TryRestoreSelectedNav();
+
+            // update DB status/migration info async (fire-and-forget)
+            _ = RefreshDbInfoAsync();
+        }
+
+        private void ShowProjects() => CurrentView = new Views.ProjectsView();
+        private void ShowDatabook() => CurrentView = "Databook view placeholder";
+        private void ShowQcp() => CurrentView = "QCP view placeholder";
+        private void ShowInspections() => CurrentView = "Inspections view placeholder";
+        private void ShowReports() => CurrentView = "Reports view placeholder";
+
+        private void PersistSelectedNav(NavItem nav)
+        {
+            try
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(new { Selected = NavItems.IndexOf(nav) });
+                File.WriteAllText(PersistFile, json);
+            }
+            catch { /* swallow */ }
+        }
+
+        private void TryRestoreSelectedNav()
+        {
+            try
+            {
+                if (File.Exists(PersistFile))
+                {
+                    var txt = File.ReadAllText(PersistFile);
+                    var doc = System.Text.Json.JsonDocument.Parse(txt);
+                    if (doc.RootElement.TryGetProperty("Selected", out var sel) && sel.GetInt32() is int index && index >= 0 && index < NavItems.Count)
+                    {
+                        SelectedNavItem = NavItems[index];
+                        return;
+                    }
+                }
+            }
+            catch { /* ignore */ }
+
+            // default to first
+            if (NavItems.Count > 0) SelectedNavItem = NavItems[0];
+        }
+
+        private async Task RefreshDbInfoAsync()
+        {
+            try
+            {
+                var dbPath = "weldadmin.db";
+                if (!File.Exists(dbPath))
+                {
+                    DbStatus = "DB: not found";
+                    LastMigrationDisplay = "Migration: none";
+                    return;
+                }
+
+                // read the __EFMigrationsHistory table and determine latest migration id
+                var connString = $"Data Source={dbPath}";
+                using (var conn = new SqliteConnection(connString))
+                {
+                    await conn.OpenAsync();
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = "SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId DESC LIMIT 1;";
+                        var obj = await cmd.ExecuteScalarAsync();
+                        if (obj != null)
+                        {
+                            var migrationId = obj.ToString() ?? "";
+                            LastMigrationDisplay = "Migration: " + migrationId;
+                        }
+                        else
+                        {
+                            LastMigrationDisplay = "Migration: none";
+                        }
+                    }
+
+                    // small DB health quick check
+                    using (var cmd2 = conn.CreateCommand())
+                    {
+                        cmd2.CommandText = "SELECT COUNT(name) FROM sqlite_master WHERE type='table';";
+                        var count = Convert.ToInt32(await cmd2.ExecuteScalarAsync());
+                        DbStatus = $"DB: OK ({count} objects)";
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                DbStatus = "DB: error";
+                LastMigrationDisplay = "Migration: error";
+            }
+        }
+    }
+}
+

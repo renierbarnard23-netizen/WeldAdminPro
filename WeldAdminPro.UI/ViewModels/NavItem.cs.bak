@@ -1,0 +1,10 @@
+﻿namespace WeldAdminPro.UI.ViewModels
+{
+    public class NavItem
+    {
+        public string Key { get; set; } = string.Empty;    // identifier e.g. "projects"
+        public string Title { get; set; } = string.Empty;  // visible text
+        public string Icon { get; set; } = string.Empty;   // small glyph (emoji or glyph)
+        public override string ToString() => Title;
+    }
+}

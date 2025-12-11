@@ -1,0 +1,20 @@
+<!--
+  Safe placeholder for: WeldAdminPro.UI\ViewModels\MainWindow.xaml
+
+  This file replaces an invalid XAML that attached Window.InputBindings to a Grid
+  (which causes MC3015). The real MainWindow is under Views/MainWindow.xaml.
+  Keep this file as a tiny, valid UserControl so the build won't pick up the bad
+  markup under ViewModels.
+-->
+<UserControl x:Class="WeldAdminPro.UI.ViewModels.MainWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WeldAdminPro.UI.ViewModels"
+             Height="0" Width="0">
+
+  <UserControl.DataContext>
+    <vm:MainViewModel />
+  </UserControl.DataContext>
+
+  <!-- Intentionally empty: placeholder to avoid invalid attached properties in ViewModels folder -->
+</UserControl>

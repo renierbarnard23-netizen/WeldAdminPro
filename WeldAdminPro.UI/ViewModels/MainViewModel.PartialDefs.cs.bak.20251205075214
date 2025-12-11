@@ -1,0 +1,21 @@
+// Added by assistant to provide missing partial-method definitions referenced in the build logs.
+// Place this file in: WeldAdminPro.UI\ViewModels\MainViewModel.PartialDefs.cs
+// This file defines the "defining" partial methods for MainViewModel so implementing partials compile.
+using System;
+namespace WeldAdminPro.UI.ViewModels
+{
+    public partial class MainViewModel
+    {
+        // Defining (empty) partial method for selection changed (NavItem? oldItem, NavItem? newItem)
+        partial void OnSelectedNavItemChanged(WeldAdminPro.UI.ViewModels.NavItem? oldItem, WeldAdminPro.UI.ViewModels.NavItem? newItem)
+        {
+            // Intentionally left blank — this is the defining declaration so the implementing declaration compiles.
+        }
+
+        // Defining (empty) partial method for selected project id changed (string? oldId, string? newId)
+        partial void OnSelectedProjectIdChanged(string? oldId, string? newId)
+        {
+            // Intentionally left blank
+        }
+    }
+}

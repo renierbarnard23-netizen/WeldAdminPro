@@ -1,0 +1,28 @@
+// File: WeldAdminPro.Data/WeldAdminProDbContext.cs
+using Microsoft.EntityFrameworkCore;
+using System;
+
+namespace WeldAdminPro.Data
+{
+    public class WeldAdminProDbContext : DbContext
+    {
+        public WeldAdminProDbContext(DbContextOptions<WeldAdminProDbContext> options) : base(options) { }
+
+        // EF entity sets expected by UserRepository (ensure entity types exist or add them)
+        public DbSet<User>? Users { get; set; }
+
+        // If you don't yet have the User entity, add a minimal one (see below)
+    }
+
+    // Minimal User entity (add this only if you don't have a User entity already)
+    public class User
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string? DisplayName { get; set; }
+        public string? Email { get; set; }
+        public string? PasswordHash { get; set; }
+        public string? Role { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}

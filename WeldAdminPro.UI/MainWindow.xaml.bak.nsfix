@@ -1,0 +1,150 @@
+﻿<Window x:Class="WeldAdminPro.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:WeldAdminPro.UI.ViewModels;assembly=WeldAdminPro.UI"
+        mc:Ignorable="d"
+        Title="WeldAdmin Pro" Height="700" Width="1100">
+
+    <Window.DataContext>
+        <vm:MainViewModel />
+    </Window.DataContext>
+
+        <!-- Nav item template: glyph (MDL2) + title (Title or Label) -->
+        <DataTemplate x:Key="NavItemTemplate" DataType="{x:Type vm:NavItem}">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4">
+                <!-- Glyph: use Segoe MDL2 Assets for icons; empty glyph renders as blank -->
+                <TextBlock Text="{Binding Glyph}"
+                           FontFamily="Segoe MDL2 Assets"
+                           FontSize="16"
+                           Margin="4,0,10,0"
+                           VerticalAlignment="Center"
+                           Foreground="White"/>
+
+                <!-- Title (prefer Title, fall back to Label) -->
+                <Grid>
+                    <TextBlock x:Name="TitleText"
+                               Text="{Binding Title}"
+                               VerticalAlignment="Center"
+                               FontSize="13"
+                               Foreground="White" />
+
+                    <TextBlock x:Name="LabelText"
+                               Text="{Binding Label}"
+                               VerticalAlignment="Center"
+                               FontSize="13"
+                               Foreground="White"
+                               Visibility="Collapsed" />
+                </Grid>
+
+                <DataTemplate.Triggers>
+                    <!-- If Title is empty, show Label instead -->
+                    <DataTrigger Binding="{Binding Title}" Value="">
+                        <Setter TargetName="TitleText" Property="Visibility" Value="Collapsed"/>
+                        <Setter TargetName="LabelText" Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- Item container style for ListBoxItem (nav) -->
+        <Style TargetType="ListBoxItem" x:Key="NavListBoxItem">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="4 4"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" CornerRadius="6" Background="Transparent">
+                            <!-- Forward Content & Template so DataTemplate is applied correctly -->
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Margin="6"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FF34495E"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FF1ABC9C"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Custom ListBox template to avoid overlay rectangles that intercept clicks -->
+        <ControlTemplate x:Key="NavListBoxTemplate" TargetType="ListBox">
+            <Border Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    SnapsToDevicePixels="True">
+                <ScrollViewer Focusable="false" Padding="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <ItemsPresenter/>
+                </ScrollViewer>
+            </Border>
+        </ControlTemplate>
+
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="260"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Left navigation column -->
+        <Border Grid.Column="0" Background="#FF2C3E50" Padding="12">
+            <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12" VerticalAlignment="Top">
+                    <TextBlock Text="WeldAdmin Pro" Foreground="White" FontSize="18" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- replace the left navigation block with this ListBox -->
+		<ListBox Grid.Column="0"
+         	  	ItemsSource="{Binding NavItems}"
+       			ItemTemplate="{StaticResource NavItemTemplate}"
+       		  	ItemContainerStyle="{StaticResource NavListBoxItem}"
+         		Template="{StaticResource NavListBoxTemplate}"
+         		Background="Transparent"
+         		BorderThickness="0"
+         		Foreground="White"
+         		SelectedItem="{Binding SelectedNavItem, Mode=TwoWay}"
+         Margin="0,0,0,8"/>
+
+
+                <!-- Footer anchored to bottom -->
+                <Border DockPanel.Dock="Bottom" Background="#002C3E50" Padding="8" CornerRadius="6" Margin="0,8,0,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,4">
+                            <TextBlock Text="Version:" Foreground="White" FontSize="11" Opacity="0.8" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding Version}" Foreground="White" FontSize="11"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,4">
+                            <TextBlock Text="DB:" Foreground="White" FontSize="11" Opacity="0.8" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding DbStatus}" Foreground="White" FontSize="11"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                            <TextBlock Text="Last sync:" Foreground="White" FontSize="11" Opacity="0.8" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding LastSync}" Foreground="White" FontSize="11"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </DockPanel>
+        </Border>
+
+        <ContentControl Grid.Column="1" Content="{Binding CurrentView}" />
+    </Grid>
+</Window>
+
+
+
+
+
+
