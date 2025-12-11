@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   build-installer:
+    # top-level job — no `needs:` here (must exist for valid workflow)
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: windows-latest
     timeout-minutes: 40
@@ -30,7 +31,7 @@ jobs:
       - name: Prepare installer workspace
         shell: powershell
         run: |
-          $src = Join-Path $Env:GITHUB_WORKSPACE 'artifacts\WeldAdminPro.UI'
+          $src = Join-Path $Env:GITHUB_WORKSPACE 'artifacts\publish\WeldAdminPro.UI'
           $dst = Join-Path $Env:GITHUB_WORKSPACE 'installer\source'
           Remove-Item -Recurse -Force $dst -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Force -Path $dst | Out-Null
@@ -96,7 +97,7 @@ jobs:
             'C:\Program Files (x86)\Inno Setup 6\ISCC.exe',
             'C:\Program Files\Inno Setup 6\ISCC.exe',
             'C:\Program Files (x86)\Inno Setup 5\ISCC.exe',
-            'C:\Program Files\Inno Setup 5\ISCC.exe'
+            'C:\Program Files (x86)\Inno Setup 5\ISCC.exe'
           )
           foreach ($p in $candidates) {
             if (Test-Path $p) {
