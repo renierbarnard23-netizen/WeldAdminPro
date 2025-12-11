@@ -1,1 +1,131 @@
-﻿<PASTE THE YAML ABOVE HERE EXACTLY AS IS>
+﻿name: Build Installer — Inno Setup (robust)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-installer:
+    name: Build Windows Installer (Inno Setup)
+    runs-on: windows-latest
+    needs: build-windows
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download published artifact (from build)
+        uses: actions/download-artifact@v4
+        with:
+          name: weldadmin-ui-windows
+          path: artifacts
+
+      - name: Prepare installer workspace
+        shell: powershell
+        run: |
+           = Join-Path  'artifacts\publish\WeldAdminPro.UI'
+           = Join-Path  'installer\source'
+          Remove-Item -Recurse -Force  -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path  | Out-Null
+          if (-not (Test-Path )) {
+            Write-Error "Publish folder not found at: "
+            exit 1
+          }
+          Copy-Item -Path (Join-Path  '*') -Destination  -Recurse -Force
+          Write-Host "Copied publish contents to installer workspace: "
+
+      - name: Prepare .iss (replace placeholder if any)
+        shell: powershell
+        run: |
+           = Join-Path  '.github\installer_templates\WeldAdminProInstaller.iss'
+           = Join-Path  'installer\WeldAdminProInstaller.iss'
+          if (-not (Test-Path )) { Write-Error "ISS template missing: "; exit 1 }
+           = Get-Content -Raw -Path 
+           = Join-Path  'installer\source'
+           =  -replace "\{#SourcePublish\}", ( -replace '\\','\\')
+           | Set-Content -Path  -Encoding UTF8
+          Write-Host "Wrote ISS to: "
+
+      - name: Try install Inno Setup with winget (fast path)
+        shell: powershell
+        run: |
+          Write-Host "Attempting winget install of Inno Setup..."
+          try {
+            winget install --id=jrsoftware.InnoSetup --accept-package-agreements --accept-source-agreements --silent
+             = True
+          } catch {
+            Write-Host "winget install failed or not available: "
+             = False
+          }
+          Set-Variable -Name WINGET_OK -Value  -Scope Global
+
+      - name: Fallback — download & run Inno Setup installer (if winget failed)
+        if: always()
+        shell: powershell
+        run: |
+          if ( -eq 'True' -or ) { Write-Host "winget succeeded earlier; skipping fallback."; exit 0 }
+           = Join-Path  'installer_temp'
+          Remove-Item -Recurse -Force  -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path  | Out-Null
+           = 'https://jrsoftware.org/download.php/is.exe'
+           = Join-Path  'is.exe'
+          Write-Host "Downloading Inno Setup installer..."
+          Invoke-WebRequest -Uri  -OutFile 
+          Write-Host "Running silent install..."
+          &  /VERYSILENT /SUPPRESSMSGBOXES /DIR="\inno"
+          if (-not (Test-Path "\inno\ISCC.exe")) {
+             = Get-ChildItem -Path  -Filter ISCC.exe -Recurse | Select-Object -First 1
+            if () {
+              Set-Variable -Name ISCC_PATH -Value .FullName -Scope Global
+            }
+          } else {
+            Set-Variable -Name ISCC_PATH -Value "\inno\ISCC.exe" -Scope Global
+          }
+
+      - name: Locate ISCC.exe
+        shell: powershell
+        run: |
+           = @(
+            'C:\Program Files (x86)\Inno Setup 6\ISCC.exe',
+            'C:\Program Files\Inno Setup 6\ISCC.exe',
+            'C:\Program Files (x86)\Inno Setup 5\ISCC.exe',
+            'C:\Program Files\Inno Setup 5\ISCC.exe'
+          )
+          foreach ( in ) {
+            if (Test-Path ) {
+              Set-Variable -Name ISCC_PATH -Value  -Scope Global
+              break
+            }
+          }
+          if (-not (Get-Variable -Name ISCC_PATH -Scope Global -ErrorAction SilentlyContinue)) {
+             = Get-ChildItem -Path 'C:\Program Files*' -Filter ISCC.exe -Recurse | Select-Object -First 1
+            if () {
+              Set-Variable -Name ISCC_PATH -Value .FullName -Scope Global
+            }
+          }
+          if (-not ) { Write-Error "ISCC.exe not found." ; exit 1 }
+          Write-Host "Using ISCC at: "
+
+      - name: Compile installer (Inno Setup)
+        shell: powershell
+        run: |
+           = Join-Path  'installer\WeldAdminProInstaller.iss'
+           = Join-Path  'Output'
+          New-Item -ItemType Directory -Force -Path  | Out-Null
+          &  /O"" 
+          if (0 -ne 0) { Write-Error "ISCC failed: 0" ; exit 0 }
+          Write-Host "Installer compiled."
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WeldAdminPro-installer
+          path: Output/*.exe
