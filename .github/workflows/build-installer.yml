@@ -1,11 +1,11 @@
 ﻿name: Build Installer — Inno Setup (robust)
 
 on:
+  workflow_run:
+    workflows: ["Build Windows WPF Package"]
+    types:
+      - completed
   workflow_dispatch: {}
-  push:
-    branches: [ main ]
-    tags:
-      - "v*.*.*"
 
 permissions:
   contents: read
@@ -13,16 +13,15 @@ permissions:
 
 jobs:
   build-installer:
-    name: Build Windows Installer (Inno Setup)
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: windows-latest
-    needs: build-windows
     timeout-minutes: 40
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download published artifact (from build)
+      - name: Download published artifact (from build job)
         uses: actions/download-artifact@v4
         with:
           name: weldadmin-ui-windows
@@ -31,7 +30,7 @@ jobs:
       - name: Prepare installer workspace
         shell: powershell
         run: |
-          $src = Join-Path $Env:GITHUB_WORKSPACE 'artifacts\publish\WeldAdminPro.UI'
+          $src = Join-Path $Env:GITHUB_WORKSPACE 'artifacts\WeldAdminPro.UI'
           $dst = Join-Path $Env:GITHUB_WORKSPACE 'installer\source'
           Remove-Item -Recurse -Force $dst -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Force -Path $dst | Out-Null
@@ -123,6 +122,21 @@ jobs:
           & $ISCC_PATH /O"$out" $iss
           if ($LASTEXITCODE -ne 0) { Write-Error "ISCC failed: $LASTEXITCODE" ; exit $LASTEXITCODE }
           Write-Host "Installer compiled."
+
+      - name: (Optional) Code-sign installer (if secrets present)
+        if: ${{ secrets.SIGNING_PFX_BASE64 && secrets.SIGNING_PFX_PASSWORD }}
+        shell: powershell
+        env:
+          PFX_BASE64: ${{ secrets.SIGNING_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
+        run: |
+          [IO.File]::WriteAllBytes("signing.pfx", [Convert]::FromBase64String($env:PFX_BASE64))
+          $installer = Get-ChildItem -Path "$Env:GITHUB_WORKSPACE\Output" -Filter "WeldAdminPro_Installer_*.exe" -Recurse | Select-Object -First 1
+          if (-not $installer) { Write-Error "Installer not found for signing"; exit 1 }
+          $signtool = "C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe"
+          if (-not (Test-Path $signtool)) { Write-Error "signtool not found at $signtool"; exit 1 }
+          & $signtool sign /f signing.pfx /p $env:PFX_PASSWORD /tr http://timestamp.digicert.com /td SHA256 /fd SHA256 $installer.FullName
+          Write-Host "Signing complete"
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
