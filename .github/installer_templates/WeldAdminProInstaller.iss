@@ -17,8 +17,7 @@ DisableProgramGroupPage=no
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "..\..\installer\source\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
-
+Source: "..\..\WeldAdminPro.UI\bin\Release\net8.0-windows\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
 
 [Icons]
 Name: "{group}\WeldAdminPro"; Filename: "{app}\WeldAdminPro.UI.exe"
