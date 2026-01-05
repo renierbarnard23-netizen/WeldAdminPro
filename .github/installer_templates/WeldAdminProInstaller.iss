@@ -17,9 +17,8 @@ DisableProgramGroupPage=no
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-; The installer will package everything under the SourcePublish folder.
-; This placeholder will be replaced when building on the runner.
-Source: "C:\\users\\renie\\documents\\weldadminpro\\installer\\source\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
+Source: "..\..\installer\source\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
+
 
 [Icons]
 Name: "{group}\WeldAdminPro"; Filename: "{app}\WeldAdminPro.UI.exe"
