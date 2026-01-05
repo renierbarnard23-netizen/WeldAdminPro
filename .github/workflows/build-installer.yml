@@ -1,146 +1,40 @@
-﻿name: Build Installer — Inno Setup (robust)
+﻿name: Build WeldAdmin Pro Installer
 
 on:
-  workflow_run:
-    workflows: ["Build Windows WPF Package"]
-    types:
-      - completed
-  workflow_dispatch: {}
-
-permissions:
-  contents: read
-  id-token: write
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
-  build-installer:
-    # top-level job — no `needs:` here (must exist for valid workflow)
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  installer:
     runs-on: windows-latest
-    timeout-minutes: 40
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Download published artifact (from build job)
-        uses: actions/download-artifact@v4
-        with:
-          name: weldadmin-ui-windows
-          path: artifacts
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
 
-      - name: Prepare installer workspace
-        shell: powershell
-        run: |
-          $src = Join-Path $Env:GITHUB_WORKSPACE 'artifacts\publish\WeldAdminPro.UI'
-          $dst = Join-Path $Env:GITHUB_WORKSPACE 'installer\source'
-          Remove-Item -Recurse -Force $dst -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Force -Path $dst | Out-Null
-          if (-not (Test-Path $src)) {
-            Write-Error "Publish folder not found at: $src"
-            exit 1
-          }
-          Copy-Item -Path (Join-Path $src '*') -Destination $dst -Recurse -Force
-          Write-Host "Copied publish contents to installer workspace: $dst"
+    - name: Restore NuGet packages
+      run: dotnet restore WeldAdminPro.sln
 
-      - name: Prepare .iss (replace placeholder if any)
-        shell: powershell
-        run: |
-          $template = Join-Path $Env:GITHUB_WORKSPACE '.github\installer_templates\WeldAdminProInstaller.iss'
-          $outIss = Join-Path $Env:GITHUB_WORKSPACE 'installer\WeldAdminProInstaller.iss'
-          if (-not (Test-Path $template)) { Write-Error "ISS template missing: $template"; exit 1 }
-          $issText = Get-Content -Raw -Path $template
-          $sourcePublish = Join-Path $Env:GITHUB_WORKSPACE 'installer\source'
-          $issText = $issText -replace "\{#SourcePublish\}", ($sourcePublish -replace '\\','\\')
-          $issText | Set-Content -Path $outIss -Encoding UTF8
-          Write-Host "Wrote ISS to: $outIss"
+    - name: Build solution (Release)
+      run: dotnet build WeldAdminPro.sln --configuration Release --no-restore
 
-      - name: Try install Inno Setup with winget (fast path)
-        shell: powershell
-        run: |
-          Write-Host "Attempting winget install of Inno Setup..."
-          try {
-            winget install --id=jrsoftware.InnoSetup --accept-package-agreements --accept-source-agreements --silent
-            $wingetOk = $true
-          } catch {
-            Write-Host "winget install failed or not available: $_"
-            $wingetOk = $false
-          }
-          Set-Variable -Name WINGET_OK -Value $wingetOk -Scope Global
+    - name: Install Inno Setup
+      run: |
+        choco install innosetup --yes
 
-      - name: Fallback — download & run Inno Setup installer (if winget failed)
-        if: always()
-        shell: powershell
-        run: |
-          if ($env:WINGET_OK -eq 'True' -or $WINGET_OK) { Write-Host "winget succeeded earlier; skipping fallback."; exit 0 }
-          $tmp = Join-Path $Env:GITHUB_WORKSPACE 'installer_temp'
-          Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Force -Path $tmp | Out-Null
-          $url = 'https://jrsoftware.org/download.php/is.exe'
-          $installer = Join-Path $tmp 'is.exe'
-          Write-Host "Downloading Inno Setup installer..."
-          Invoke-WebRequest -Uri $url -OutFile $installer
-          Write-Host "Running silent install..."
-          & $installer /VERYSILENT /SUPPRESSMSGBOXES /DIR="$tmp\inno"
-          if (-not (Test-Path "$tmp\inno\ISCC.exe")) {
-            $found = Get-ChildItem -Path $tmp -Filter ISCC.exe -Recurse | Select-Object -First 1
-            if ($found) {
-              Set-Variable -Name ISCC_PATH -Value $found.FullName -Scope Global
-            }
-          } else {
-            Set-Variable -Name ISCC_PATH -Value "$tmp\inno\ISCC.exe" -Scope Global
-          }
+    - name: Build installer
+      run: |
+        "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" weldadmin_installer.iss
 
-      - name: Locate ISCC.exe
-        shell: powershell
-        run: |
-          $candidates = @(
-            'C:\Program Files (x86)\Inno Setup 6\ISCC.exe',
-            'C:\Program Files\Inno Setup 6\ISCC.exe',
-            'C:\Program Files (x86)\Inno Setup 5\ISCC.exe',
-            'C:\Program Files (x86)\Inno Setup 5\ISCC.exe'
-          )
-          foreach ($p in $candidates) {
-            if (Test-Path $p) {
-              Set-Variable -Name ISCC_PATH -Value $p -Scope Global
-              break
-            }
-          }
-          if (-not (Get-Variable -Name ISCC_PATH -Scope Global -ErrorAction SilentlyContinue)) {
-            $found = Get-ChildItem -Path 'C:\Program Files*' -Filter ISCC.exe -Recurse | Select-Object -First 1
-            if ($found) {
-              Set-Variable -Name ISCC_PATH -Value $found.FullName -Scope Global
-            }
-          }
-          if (-not $ISCC_PATH) { Write-Error "ISCC.exe not found." ; exit 1 }
-          Write-Host "Using ISCC at: $ISCC_PATH"
-
-      - name: Compile installer (Inno Setup)
-        shell: powershell
-        run: |
-          $iss = Join-Path $Env:GITHUB_WORKSPACE 'installer\WeldAdminProInstaller.iss'
-          $out = Join-Path $Env:GITHUB_WORKSPACE 'Output'
-          New-Item -ItemType Directory -Force -Path $out | Out-Null
-          & $ISCC_PATH /O"$out" $iss
-          if ($LASTEXITCODE -ne 0) { Write-Error "ISCC failed: $LASTEXITCODE" ; exit $LASTEXITCODE }
-          Write-Host "Installer compiled."
-
-      - name: (Optional) Code-sign installer (if secrets present)
-        if: ${{ secrets.SIGNING_PFX_BASE64 && secrets.SIGNING_PFX_PASSWORD }}
-        shell: powershell
-        env:
-          PFX_BASE64: ${{ secrets.SIGNING_PFX_BASE64 }}
-          PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
-        run: |
-          [IO.File]::WriteAllBytes("signing.pfx", [Convert]::FromBase64String($env:PFX_BASE64))
-          $installer = Get-ChildItem -Path "$Env:GITHUB_WORKSPACE\Output" -Filter "WeldAdminPro_Installer_*.exe" -Recurse | Select-Object -First 1
-          if (-not $installer) { Write-Error "Installer not found for signing"; exit 1 }
-          $signtool = "C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe"
-          if (-not (Test-Path $signtool)) { Write-Error "signtool not found at $signtool"; exit 1 }
-          & $signtool sign /f signing.pfx /p $env:PFX_PASSWORD /tr http://timestamp.digicert.com /td SHA256 /fd SHA256 $installer.FullName
-          Write-Host "Signing complete"
-
-      - name: Upload installer artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: WeldAdminPro-installer
-          path: Output/*.exe
+    - name: Upload installer artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: WeldAdminPro-Installer
+        path: |
+          Output/*.exe
