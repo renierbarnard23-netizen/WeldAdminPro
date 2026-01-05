@@ -30,17 +30,14 @@ jobs:
     - name: Build installer
       shell: pwsh
       run: |
-        Write-Host "Current directory:"
-        Get-Location
+        Write-Host "Listing installer source folder:"
+        Get-ChildItem .\installer\source
 
-        Write-Host "Listing repo root:"
-        Get-ChildItem
-
-        if (!(Test-Path ".\weldadmin_installer.iss")) {
-          throw "weldadmin_installer.iss not found in repo root"
+        if (!(Test-Path ".\installer\source\weldadmin_installer.iss")) {
+          throw "Installer script not found at installer/source/weldadmin_installer.iss"
         }
 
-        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ".\weldadmin_installer.iss"
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ".\installer\source\weldadmin_installer.iss"
 
     - name: Upload installer artifact
       uses: actions/upload-artifact@v4
