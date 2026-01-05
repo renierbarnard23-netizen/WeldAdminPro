@@ -10,37 +10,15 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-
-    - name: Restore NuGet packages
-      run: dotnet restore WeldAdminPro.sln
-
-    - name: Build solution (Release)
-      run: dotnet build WeldAdminPro.sln --configuration Release --no-restore
-
-    - name: Install Inno Setup
-      run: choco install innosetup --yes
-
-    - name: Build installer
+    - name: Locate Inno Setup script
       shell: pwsh
       run: |
-        Write-Host "Listing installer source folder:"
-        Get-ChildItem .\installer\source
-
-        if (!(Test-Path ".\installer\source\weldadmin_installer.iss")) {
-          throw "Installer script not found at installer/source/weldadmin_installer.iss"
+        Write-Host "Repo tree (installer folder):"
+        if (Test-Path ".\installer") {
+          Get-ChildItem .\installer -Recurse
+        } else {
+          Write-Host "installer folder does NOT exist"
         }
 
-        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ".\installer\source\weldadmin_installer.iss"
-
-    - name: Upload installer artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: WeldAdminPro-Installer
-        path: Output/*.exe
+        Write-Host "Searching for .iss files:"
+        Get-ChildItem -Recurse -Filter *.iss
