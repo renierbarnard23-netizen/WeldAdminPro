@@ -1,0 +1,3 @@
+   - WeldAdminPro.Core (class library)
+   - WeldAdminPro.Data (class library)
+   - WeldAdminPro.UI (WPF app)

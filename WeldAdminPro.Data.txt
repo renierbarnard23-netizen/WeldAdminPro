@@ -1,0 +1,62 @@
+// Domain models (simplified)
+public class Project
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string ProjectNumber { get; set; }
+    public string Title { get; set; }
+    public string Client { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public string DatabookVersion { get; set; }
+    public ICollection<Document> Documents { get; set; } = new List<Document>();
+}
+
+public class Document
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ProjectId { get; set; }
+    public Project Project { get; set; }
+    public string DocType { get; set; } // e.g. WPS, PQR, QCP
+    public string Title { get; set; }
+    public string DocumentNumber { get; set; }
+    public string Revision { get; set; }
+    public string Status { get; set; }
+    public DateTime UploadedAt { get; set; }
+    public string UploadedBy { get; set; }
+    public string FilePath { get; set; } // stored file path
+}
+
+public class Wps
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ProjectId { get; set; }
+    public Project Project { get; set; }
+    public string WpsNumber { get; set; }
+    public string Revision { get; set; }
+    public string BaseMaterial { get; set; }
+    public string FillerMaterial { get; set; }
+    public string Process { get; set; }
+    public string Position { get; set; }
+    public string Preheat { get; set; }
+    public string PostHeat { get; set; }
+    public string Author { get; set; }
+    public string ApprovedBy { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+}
+
+// DbContext
+public class WeldAdminDbContext : DbContext
+{
+    public WeldAdminDbContext(DbContextOptions<WeldAdminDbContext> opts) : base(opts) { }
+
+    public DbSet<Project> Projects { get; set; }
+    public DbSet<Document> Documents { get; set; }
+    public DbSet<Wps> Wpss { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Project>().HasIndex(p => p.ProjectNumber).IsUnique();
+        modelBuilder.Entity<Document>().HasIndex(d => new { d.ProjectId, d.DocumentNumber });
+        base.OnModelCreating(modelBuilder);
+    }
+}

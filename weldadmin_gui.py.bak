@@ -1,0 +1,428 @@
+"""
+weldadmin_gui.py
+----------------
+Advanced WeldAdmin Pro desktop GUI (PyQt5)
+
+Features:
+- Tabs for WPS / PQR / WPQ records
+- Browse, Parse, Import buttons
+- Background parsing and importing using ThreadPoolExecutor
+- Status bar and progress indicator
+- Uses your project helper modules:
+    - weldadmin_auto_map.parse_pdf_to_model(path) -> {'table': 'pqr', 'record': {...}}
+    - weldadmin_import_to_db.import_pdf_to_db(path) -> {'table': 'pqr', 'record': {...}, 'id': 123}
+"""
+
+import os
+import sys
+import concurrent.futures
+from typing import Dict, Any
+from PyQt5.QtCore import Qt, QTimer, QSize
+
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QFileDialog, QMessageBox, QLabel,
+    QLineEdit, QPlainTextEdit, QPushButton, QFormLayout, QVBoxLayout,
+    QHBoxLayout, QTabWidget, QSizePolicy, QToolBar, QAction, QStatusBar,
+    QDialog, QDialogButtonBox, QProgressBar, QStyle
+)
+
+# Import your project's parsing/import functions
+# Ensure these modules are in the same folder as this GUI or installed in your venv
+try:
+    from weldadmin_auto_map import parse_pdf_to_model
+except Exception:
+    def parse_pdf_to_model(path):
+        raise RuntimeError("parse_pdf_to_model not available. Ensure weldadmin_auto_map.py is present.")
+
+try:
+    from weldadmin_import_to_db import import_pdf_to_db, ensure_tables
+except Exception:
+    def import_pdf_to_db(path):
+        raise RuntimeError("import_pdf_to_db not available. Ensure weldadmin_import_to_db.py is present.")
+    def ensure_tables():
+        return
+
+# Thread pool for background tasks
+_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=2)
+
+
+class WelcomeDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Welcome to WeldAdmin Pro")
+        self.setModal(True)
+        self.resize(480, 220)
+        layout = QVBoxLayout(self)
+
+        title = QLabel("<h2>WeldAdmin Pro</h2>", self)
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+
+        info = QLabel(
+            "<p>Welcome. Use the buttons to import or parse PDF welding documents (WPS/PQR/WPQ)."
+            " OCR and parsing run in the background to keep the UI responsive.</p>", self
+        )
+        info.setWordWrap(True)
+        layout.addWidget(info)
+
+        btns = QDialogButtonBox(QDialogButtonBox.Ok)
+        btns.accepted.connect(self.accept)
+        layout.addWidget(btns)
+
+
+class WeldAdminGUI(QMainWindow):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("WeldAdmin Pro - OCR Import GUI")
+        self.resize(1100, 760)
+
+        self.current_pdf_path: str = ""
+        self.current_model: Dict[str, Any] = {"table": None, "record": {}}
+
+        # ensure DB tables exist (no-op if imported function missing)
+        try:
+            ensure_tables()
+        except Exception:
+            pass
+
+        self._build_ui()
+        QTimer.singleShot(50, self._show_welcome)
+
+    def _show_welcome(self):
+        dlg = WelcomeDialog(self)
+        dlg.exec_()
+
+    def _build_ui(self) -> None:
+        central = QWidget(self)
+        self.setCentralWidget(central)
+        main_layout = QVBoxLayout(central)
+
+        self._build_menu_toolbar()
+
+        # Top controls
+        top_layout = QHBoxLayout()
+        self.pdf_path_edit = QLineEdit()
+        self.pdf_path_edit.setPlaceholderText("Select a PDF (WPS / PQR / WPQ)...")
+        browse_btn = QPushButton("Browse PDF...")
+        browse_btn.clicked.connect(self.on_browse_clicked)
+
+        self.load_btn = QPushButton("Parse/Preview")
+        self.load_btn.clicked.connect(self.on_load_clicked)
+
+        self.import_btn = QPushButton("Import to DB")
+        self.import_btn.clicked.connect(self.on_import_clicked)
+
+        top_layout.addWidget(self.pdf_path_edit)
+        top_layout.addWidget(browse_btn)
+        top_layout.addWidget(self.load_btn)
+        top_layout.addWidget(self.import_btn)
+        main_layout.addLayout(top_layout)
+
+        # Info row
+        info_layout = QHBoxLayout()
+        self.label_detected = QLabel("Detected: (none)")
+        info_layout.addWidget(self.label_detected)
+        info_layout.addStretch()
+        main_layout.addLayout(info_layout)
+
+        # Tabs for WPS / PQR / WPQ
+        self.tabs = QTabWidget()
+        self.tabs.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self._setup_wps_tab()
+        self._setup_pqr_tab()
+        self._setup_wpq_tab()
+        main_layout.addWidget(self.tabs)
+
+        # Status bar + progress bar
+        self.status = QStatusBar()
+        self.setStatusBar(self.status)
+        self.progress = QProgressBar()
+        self.progress.setMaximum(0)
+        self.progress.setVisible(False)
+        self.status.addPermanentWidget(self.progress)
+
+    def _build_menu_toolbar(self):
+        menubar = self.menuBar()
+        file_menu = menubar.addMenu("&File")
+        tools_menu = menubar.addMenu("&Tools")
+        help_menu = menubar.addMenu("&Help")
+
+        style = QApplication.style()
+
+        act_open = QAction(style.standardIcon(QStyle.SP_DialogOpenButton), "Open PDF...", self)
+        act_open.triggered.connect(self._menu_open_pdf)
+        file_menu.addAction(act_open)
+
+        act_import_db = QAction(style.standardIcon(QStyle.SP_DialogSaveButton), "Import to DB", self)
+        act_import_db.triggered.connect(self._menu_import_db)
+        file_menu.addAction(act_import_db)
+
+        file_menu.addSeparator()
+        act_exit = QAction(style.standardIcon(QStyle.SP_DialogCloseButton), "Exit", self)
+        act_exit.triggered.connect(self.close)
+        file_menu.addAction(act_exit)
+
+        act_refresh = QAction(style.standardIcon(QStyle.SP_BrowserReload), "Reload last PDF", self)
+        act_refresh.triggered.connect(self._menu_reload_last)
+        tools_menu.addAction(act_refresh)
+
+        act_about = QAction(style.standardIcon(QStyle.SP_MessageBoxInformation), "About", self)
+        act_about.triggered.connect(self._menu_about)
+        help_menu.addAction(act_about)
+
+        toolbar = QToolBar("Main")
+        toolbar.setIconSize(style.standardIcon(QStyle.SP_DialogOpenButton).actualSize(QSize(24, 24)))
+        self.addToolBar(toolbar)
+        toolbar.addAction(act_open)
+        toolbar.addAction(act_import_db)
+        toolbar.addAction(act_refresh)
+        toolbar.addAction(act_about)
+
+    def _setup_wps_tab(self) -> None:
+        tab = QWidget()
+        layout = QFormLayout(tab)
+        self.wps_fields: Dict[str, QLineEdit] = {}
+        def add_field(key: str, label: str):
+            edit = QLineEdit()
+            edit.setReadOnly(False)
+            self.wps_fields[key] = edit
+            layout.addRow(label + ":", edit)
+        add_field("wps_number", "WPS Number")
+        add_field("pqr_number", "PQR Number")
+        add_field("code_standard", "Code / Standard")
+        add_field("construction_code", "Construction Code")
+        add_field("thickness_range_text", "Thickness Range (text)")
+        add_field("thickness_min_mm", "Thickness Min (mm)")
+        add_field("thickness_max_mm", "Thickness Max (mm)")
+        add_field("outside_diameter_range_text", "Outside Diameter Range")
+        add_field("joint_type", "Joint Type")
+        self.tabs.addTab(tab, "WPS")
+
+    def _setup_pqr_tab(self) -> None:
+        tab = QWidget()
+        layout = QFormLayout(tab)
+        self.pqr_fields: Dict[str, Any] = {}
+        def add_line(key: str, label: str):
+            edit = QLineEdit()
+            self.pqr_fields[key] = edit
+            layout.addRow(label + ":", edit)
+        add_line("pqr_number", "PQR Number")
+        add_line("wps_number", "WPS Number")
+        add_line("code_standard", "Code / Standard")
+        add_line("pqr_date", "PQR Date")
+        add_line("wps_date", "WPS Date")
+        add_line("process", "Process")
+        add_line("position", "Position")
+        add_line("joint_type", "Joint Type")
+        base_mat_edit = QPlainTextEdit()
+        base_mat_edit.setFixedHeight(80)
+        self.pqr_fields["base_material_spec"] = base_mat_edit
+        layout.addRow("Base Material Spec:", base_mat_edit)
+        add_line("base_material_thickness_mm", "Base Material Thickness (mm)")
+        add_line("welder_name", "Welder Name")
+        add_line("welder_id", "Welder ID")
+        add_line("stamp_number", "Stamp Number")
+        add_line("test_lab", "Test Lab")
+        add_line("test_report_no", "Test Report No.")
+        self.tabs.addTab(tab, "PQR")
+
+    def _setup_wpq_tab(self) -> None:
+        tab = QWidget()
+        layout = QFormLayout(tab)
+        self.wpq_fields: Dict[str, Any] = {}
+        def add_line(key: str, label: str):
+            edit = QLineEdit()
+            self.wpq_fields[key] = edit
+            layout.addRow(label + ":", edit)
+        add_line("certificate_no", "Certificate No.")
+        add_line("wpq_record_no", "WPQ Record No.")
+        add_line("welder_name", "Welder Name")
+        add_line("welder_id", "Welder ID")
+        add_line("qualified_to", "Qualified To")
+        add_line("stamp_number", "Stamp Number")
+        add_line("wps_number", "WPS Number")
+        add_line("process", "Process")
+        add_line("position", "Position")
+        base_mat_edit = QPlainTextEdit()
+        base_mat_edit.setFixedHeight(80)
+        self.wpq_fields["base_material_spec"] = base_mat_edit
+        layout.addRow("Base Material Spec:", base_mat_edit)
+        add_line("test_date", "Test Date")
+        add_line("date_issued", "Date Issued")
+        job_knowledge_edit = QLineEdit()
+        self.wpq_fields["job_knowledge"] = job_knowledge_edit
+        layout.addRow("Job Knowledge:", job_knowledge_edit)
+        self.tabs.addTab(tab, "WPQ")
+
+    # UI helpers
+    def _set_busy(self, busy: bool) -> None:
+        self.load_btn.setEnabled(not busy)
+        self.import_btn.setEnabled(not busy)
+        self.progress.setVisible(busy)
+        if busy:
+            self.status.showMessage("Working...")
+        else:
+            self.status.clearMessage()
+
+    def _run_in_main_thread(self, fn, *args, **kwargs) -> None:
+        QTimer.singleShot(0, lambda: fn(*args, **kwargs))
+
+    # Menu action callbacks
+    def _menu_open_pdf(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Select PDF to import", "", "PDF Files (*.pdf)")
+        if path:
+            self.pdf_path_edit.setText(path)
+            self.on_load_clicked()
+
+    def _menu_import_db(self):
+        path = self.pdf_path_edit.text().strip()
+        if not path:
+            path, _ = QFileDialog.getOpenFileName(self, "Select PDF to import", "", "PDF Files (*.pdf)")
+        if path:
+            self.pdf_path_edit.setText(path)
+            self.on_import_clicked()
+
+    def _menu_reload_last(self):
+        if self.current_pdf_path:
+            self.pdf_path_edit.setText(self.current_pdf_path)
+            self.on_load_clicked()
+        else:
+            QMessageBox.information(self, "Info", "No recent PDF loaded.")
+
+    def _menu_about(self):
+        QMessageBox.information(self, "About", "WeldAdmin Pro - OCR import GUI\nBuilt with PyQt5.")
+
+    # Button events
+    def on_browse_clicked(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, "Select PDF", "", "PDF Files (*.pdf);;All Files (*)")
+        if path:
+            self.pdf_path_edit.setText(path)
+
+    def on_load_clicked(self) -> None:
+        path = self.pdf_path_edit.text().strip()
+        if not path or not os.path.isfile(path):
+            QMessageBox.warning(self, "No file", "Please select a valid PDF.")
+            return
+        self._set_busy(True)
+        future = _EXECUTOR.submit(self._background_parse, path)
+        future.add_done_callback(lambda fut: self._run_in_main_thread(self._on_load_done, fut, path))
+
+    def _background_parse(self, path: str) -> Dict[str, Any]:
+        """Run parse_pdf_to_model (wrapper) in background."""
+        try:
+            model = parse_pdf_to_model(path)
+            return {"ok": True, "model": model}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    def _on_load_done(self, future, path: str) -> None:
+        try:
+            result = future.result()
+        except Exception as e:
+            QMessageBox.critical(self, "Parse Error", f"Background exception: {e}")
+            self._set_busy(False)
+            return
+
+        if not result.get("ok"):
+            QMessageBox.critical(self, "Parse Error", result.get("error", "Unknown"))
+            self._set_busy(False)
+            return
+
+        model = result.get("model", {})
+        table = model.get("table")
+        record = model.get("record", {}) if isinstance(model, dict) else {}
+
+        self.label_detected.setText(f"Detected: {table or 'Unknown'}")
+        self.current_model = {"table": table, "record": record}
+        self.current_pdf_path = path
+
+        # populate appropriate tab
+        if table and table.lower() == "wps":
+            self._populate_wps(record)
+            self.tabs.setCurrentIndex(0)
+        elif table and table.lower() == "pqr":
+            self._populate_pqr(record)
+            self.tabs.setCurrentIndex(1)
+        elif table and table.lower() in ("wpq", "wpqr"):
+            self._populate_wpq(record)
+            self.tabs.setCurrentIndex(2)
+
+        self._set_busy(False)
+
+    def on_import_clicked(self) -> None:
+        path = self.pdf_path_edit.text().strip()
+        if not path or not os.path.isfile(path):
+            QMessageBox.warning(self, "No file", "Please select a valid PDF to import.")
+            return
+        self._set_busy(True)
+        future = _EXECUTOR.submit(self._background_import, path)
+        future.add_done_callback(lambda fut: self._run_in_main_thread(self._on_import_done, fut, path))
+
+    def _background_import(self, path: str) -> Dict[str, Any]:
+        try:
+            res = import_pdf_to_db(path)
+            return {"ok": True, "result": res}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    def _on_import_done(self, future, path: str) -> None:
+        try:
+            result = future.result()
+        except Exception as e:
+            QMessageBox.critical(self, "Import Error", f"Background exception: {e}")
+            self._set_busy(False)
+            return
+
+        if not result.get("ok"):
+            QMessageBox.critical(self, "Import Error", result.get("error", "Unknown"))
+            self._set_busy(False)
+            return
+
+        res = result.get("result") or {}
+        QMessageBox.information(self, "Imported", f"Imported as {res.get('table', 'unknown')}.")
+
+        # update UI with imported record (if provided)
+        table = res.get("table")
+        record = res.get("record", {})
+        if table and table.lower() == "wps":
+            self._populate_wps(record)
+            self.tabs.setCurrentIndex(0)
+        elif table and table.lower() == "pqr":
+            self._populate_pqr(record)
+            self.tabs.setCurrentIndex(1)
+        elif table and table.lower() in ("wpq", "wpqr"):
+            self._populate_wpq(record)
+            self.tabs.setCurrentIndex(2)
+
+        self._set_busy(False)
+
+    # Populate helpers
+    def _populate_wps(self, rec: Dict[str, Any]) -> None:
+        for key, widget in self.wps_fields.items():
+            widget.setText(str(rec.get(key, "")) if rec.get(key) is not None else "")
+
+    def _populate_pqr(self, rec: Dict[str, Any]) -> None:
+        for key, widget in self.pqr_fields.items():
+            if isinstance(widget, QPlainTextEdit):
+                widget.setPlainText(str(rec.get(key, "")) if rec.get(key) is not None else "")
+            else:
+                widget.setText(str(rec.get(key, "")) if rec.get(key) is not None else "")
+
+    def _populate_wpq(self, rec: Dict[str, Any]) -> None:
+        for key, widget in self.wpq_fields.items():
+            if isinstance(widget, QPlainTextEdit):
+                widget.setPlainText(str(rec.get(key, "")) if rec.get(key) is not None else "")
+            else:
+                widget.setText(str(rec.get(key, "")) if rec.get(key) is not None else "")
+
+
+def main() -> None:
+    app = QApplication(sys.argv)
+    window = WeldAdminGUI()
+    window.show()
+    sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()

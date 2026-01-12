@@ -1,0 +1,178 @@
+@page "/projects"
+@layout MainLayout
+@inject ProjectRepository ProjectRepo
+
+<h3 class="mb-3">Projects</h3>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <strong>Add New Project</strong>
+    </div>
+    <div class="card-body">
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="alert alert-success">@successMessage</div>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        <div class="mb-3">
+            <label class="form-label">Project No</label>
+            <input class="form-control"
+                   @bind="newProject.ProjectNumber" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input class="form-control"
+                   @bind="newProject.Title" />
+        </div>
+
+        <button class="btn btn-primary"
+                disabled="@isSaving"
+                @onclick="CreateProject">
+            @(isSaving ? "Saving..." : "Create Project")
+        </button>
+    </div>
+</div>
+
+@if (projects.Count == 0)
+{
+    <p>No projects found.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Project No</th>
+                <th>Title</th>
+                <th>Created</th>
+                <th style="width:200px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in projects)
+            {
+                <tr>
+                    @if (editingProject == p)
+                    {
+                        <td>
+                            <input class="form-control"
+                                   @bind="p.ProjectNumber" />
+                        </td>
+                        <td>
+                            <input class="form-control"
+                                   @bind="p.Title" />
+                        </td>
+                        <td>@p.CreatedAt</td>
+                        <td>
+                            <button class="btn btn-success btn-sm me-2"
+                                    @onclick="() => SaveEdit(p)">
+                                Save
+                            </button>
+                            <button class="btn btn-secondary btn-sm"
+                                    @onclick="CancelEdit">
+                                Cancel
+                            </button>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>@p.ProjectNumber</td>
+                        <td>@p.Title</td>
+                        <td>@p.CreatedAt</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm me-2"
+                                    @onclick="() => EditProject(p)">
+                                Edit
+                            </button>
+                            <button class="btn btn-danger btn-sm"
+                                    @onclick="() => DeleteProject(p)">
+                                Delete
+                            </button>
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Project> projects = new();
+    private Project newProject = new();
+    private Project? editingProject = null;
+
+    private bool isSaving = false;
+    private string successMessage = "";
+    private string errorMessage = "";
+
+    protected override void OnInitialized()
+    {
+        LoadProjects();
+    }
+
+    private void LoadProjects()
+    {
+        projects = ProjectRepo.GetAll();
+    }
+
+    private void CreateProject()
+    {
+        errorMessage = "";
+        successMessage = "";
+
+        if (string.IsNullOrWhiteSpace(newProject.ProjectNumber) ||
+            string.IsNullOrWhiteSpace(newProject.Title))
+        {
+            errorMessage = "Project Number and Title are required.";
+            return;
+        }
+
+        try
+        {
+            isSaving = true;
+            ProjectRepo.Create(newProject);
+            successMessage = "Project created successfully.";
+            newProject = new Project();
+            LoadProjects();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void EditProject(Project project)
+    {
+        editingProject = project;
+    }
+
+    private void CancelEdit()
+    {
+        editingProject = null;
+        LoadProjects();
+    }
+
+    private void SaveEdit(Project project)
+    {
+        ProjectRepo.Update(project);
+        editingProject = null;
+        LoadProjects();
+    }
+
+    private void DeleteProject(Project project)
+    {
+        ProjectRepo.Delete(project.ProjectNumber);
+        LoadProjects();
+    }
+}

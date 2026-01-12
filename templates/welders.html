@@ -1,0 +1,26 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+  <h3>Welders</h3>
+  <div>
+    <a class="btn btn-secondary" href="{{ url_for('welders_assign') }}">Assign Qualification</a>
+    <a class="btn btn-primary" href="{{ url_for('welders_new') }}">New Welder</a>
+  </div>
+</div>
+<table class="table table-striped">
+  <thead><tr><th>Name</th><th>Employee No</th><th>Qualifications</th></tr></thead>
+  <tbody>
+  {% for w in welders %}
+    <tr>
+      <td>{{ w.name }}</td><td>{{ w.employee_no or '-' }}</td>
+      <td>
+        {% for wq in w.qualifications %}
+          <div>{{ wq.qualification.type }} {{ wq.qualification.code }} — re-eval {{ wq.reeval_date or '-' }}</div>
+        {% endfor %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

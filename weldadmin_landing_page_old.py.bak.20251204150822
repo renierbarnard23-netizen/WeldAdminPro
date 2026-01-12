@@ -1,0 +1,434 @@
+"""WeldAdmin Pro — Landing Page
+
+This module defines the initial landing page for WeldAdmin Pro.
+It is designed to run with PySide6 on your local machine, but it will now
+fail **gracefully** with a clear message if PySide6 is not available
+(instead of crashing with ModuleNotFoundError).
+
+Current behaviour
+-----------------
+- Overall theme:
+  * Background: black
+  * Text: orange
+- Left sidebar with navigation sections and dropdowns (combo boxes):
+  * Customer Info
+      - Existing Customers
+      - New Customer
+  * ISO
+      - ISO 9001
+      - ISO 3834
+      - ISO 14001
+  * Welding Documents
+      - WPS
+      - PQR
+      - WPQR
+  * Stock Control
+      - New Stock  (with Add button to add more items to the dropdown)
+      - Current Stock  (with Add button to add more items to the dropdown)
+  * Machines
+      - Welding machines
+      - Small grinder
+      - Big grinder
+      - Drill
+      - Magnetic drill
+      - Add button to add more machine types to the dropdown
+- Centre area:
+  * Black background with centred Tetracube logo
+  * Below the logo, a title + description that update whenever you
+    choose an item from any of the sidebar dropdowns. This is the
+    placeholder for showing "what documents are in that tab".
+
+Notes for usage
+---------------
+- To run the GUI, make sure PySide6 is installed in your environment:
+    pip install PySide6
+- Ensure that the Tetracube logo image is present in the same directory
+  as this script, with the exact filename: "Tetracube_Logo.jpg".
+- When PySide6 is not installed, running this file will simply print an
+  informative error message and exit.
+
+Simple sanity tests are included at the bottom of the file; they can be
+run by setting the environment variable RUN_WELDADMIN_TESTS=1.
+"""
+
+from __future__ import annotations
+
+import os
+import sys
+from typing import Optional
+
+# ---------------------------------------------------------------------------
+# Optional PySide6 import with graceful fallback
+# ---------------------------------------------------------------------------
+
+PYSIDE_AVAILABLE = True
+try:
+    from PySide6.QtWidgets import (
+        QApplication,
+        QWidget,
+        QLabel,
+        QVBoxLayout,
+        QHBoxLayout,
+        QFrame,
+        QPushButton,
+        QComboBox,
+        QInputDialog,
+    )
+    from PySide6.QtGui import QPixmap
+    from PySide6.QtCore import Qt
+except ModuleNotFoundError:
+    PYSIDE_AVAILABLE = False
+    # We don't define dummy Qt classes here to avoid confusion –
+    # when PySide6 is missing we simply do not create the GUI.
+
+
+# ---------------------------------------------------------------------------
+# Helper functions
+# ---------------------------------------------------------------------------
+
+def is_pyside_available() -> bool:
+    """Return True if PySide6 imported successfully, else False.
+
+    This function is also used by the basic tests at the bottom of
+    the file, so we can verify behaviour in environments without PySide6.
+    """
+
+    return PYSIDE_AVAILABLE
+
+
+def get_logo_path(preferred_name: str = "Tetracube_Logo.jpg") -> Optional[str]:
+    """Return the absolute path to the Tetracube logo if it exists.
+
+    Parameters
+    ----------
+    preferred_name:
+        The filename we expect the logo to have. By default this is
+        "Tetracube_Logo.jpg" in the current working directory.
+
+    Returns
+    -------
+    Optional[str]
+        Absolute path to the logo file if it exists, otherwise ``None``.
+    """
+
+    candidate = os.path.abspath(preferred_name)
+    return candidate if os.path.exists(candidate) else None
+
+
+# ---------------------------------------------------------------------------
+# GUI definition (only when PySide6 is available)
+# ---------------------------------------------------------------------------
+
+if PYSIDE_AVAILABLE:
+
+    class LandingPage(QWidget):
+        """Main landing page for WeldAdmin Pro.
+
+        Layout:
+        - Left sidebar: sections with dropdowns (combo boxes) for
+          Customer Info, ISO, Welding Documents, Stock Control, Machines.
+        - Centre area: black background with the Tetracube logo and
+          a dynamic text area that updates based on the selected dropdown
+          option.
+        """
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.setWindowTitle("WeldAdmin Pro — Landing Page")
+            self.setMinimumSize(1100, 700)
+
+            # Set a global dark theme for the window
+            self.setStyleSheet(
+                "background-color: black; color: orange; font-family: Segoe UI, Arial;"
+            )
+
+            # === Main layout ===
+            main_layout = QHBoxLayout(self)
+
+            # --- Left Sidebar ---
+            sidebar = QFrame()
+            sidebar.setStyleSheet(
+                "background-color: #000000; color: orange; border-right: 1px solid #444;"
+            )
+            sidebar.setFixedWidth(280)
+
+            sidebar_layout = QVBoxLayout(sidebar)
+            sidebar_layout.setContentsMargins(15, 20, 15, 20)
+            sidebar_layout.setSpacing(18)
+
+            # Helper to style labels and combos
+            def make_section_label(text: str) -> QLabel:
+                lbl = QLabel(text)
+                lbl.setStyleSheet("font-size: 16px; font-weight: bold;")
+                return lbl
+
+            def style_combo(combo: QComboBox) -> None:
+                combo.setStyleSheet(
+                    "QComboBox {"
+                    "  background-color: #111;"
+                    "  color: orange;"
+                    "  padding: 4px;"
+                    "  border: 1px solid #444;"
+                    "}"
+                    "QComboBox QAbstractItemView {"
+                    "  background-color: #111;"
+                    "  color: orange;"
+                    "  selection-background-color: #222;"
+                    "}"
+                )
+
+            def style_button(btn: QPushButton) -> None:
+                btn.setStyleSheet(
+                    "QPushButton {"
+                    "  background-color: #111;"
+                    "  color: orange;"
+                    "  padding: 6px 10px;"
+                    "  border: 1px solid #444;"
+                    "  border-radius: 3px;"
+                    "}"
+                    "QPushButton:hover {"
+                    "  background-color: #222;"
+                    "}"
+                )
+
+            # ---- Customer Info section ----
+            lbl_customer = make_section_label("Customer Info")
+            self.combo_customer = QComboBox()
+            self.combo_customer.addItems(["Select option", "Existing Customers", "New Customer"])
+            style_combo(self.combo_customer)
+            self.combo_customer.currentTextChanged.connect(
+                lambda text: self._on_selection("Customer Info", text)
+            )
+
+            sidebar_layout.addWidget(lbl_customer)
+            sidebar_layout.addWidget(self.combo_customer)
+
+            # ---- ISO section ----
+            lbl_iso = make_section_label("ISO")
+            self.combo_iso = QComboBox()
+            self.combo_iso.addItems(["Select ISO", "ISO 9001", "ISO 3834", "ISO 14001"])
+            style_combo(self.combo_iso)
+            self.combo_iso.currentTextChanged.connect(
+                lambda text: self._on_selection("ISO", text)
+            )
+
+            sidebar_layout.addWidget(lbl_iso)
+            sidebar_layout.addWidget(self.combo_iso)
+
+            # ---- Welding Documents section ----
+            lbl_weld = make_section_label("Welding Documents")
+            self.combo_weld = QComboBox()
+            self.combo_weld.addItems(["Select document", "WPS", "PQR", "WPQR"])
+            style_combo(self.combo_weld)
+            self.combo_weld.currentTextChanged.connect(
+                lambda text: self._on_selection("Welding Documents", text)
+            )
+
+            sidebar_layout.addWidget(lbl_weld)
+            sidebar_layout.addWidget(self.combo_weld)
+
+            # ---- Stock Control section ----
+            lbl_stock = make_section_label("Stock Control")
+            self.combo_new_stock = QComboBox()
+            self.combo_new_stock.addItem("New Stock")
+            style_combo(self.combo_new_stock)
+
+            btn_add_new_stock = QPushButton("Add New Stock Item")
+            style_button(btn_add_new_stock)
+            btn_add_new_stock.clicked.connect(
+                lambda: self._add_item_to_combo("New Stock Item", self.combo_new_stock)
+            )
+
+            self.combo_current_stock = QComboBox()
+            self.combo_current_stock.addItem("Current Stock")
+            style_combo(self.combo_current_stock)
+
+            btn_add_current_stock = QPushButton("Add Current Stock Item")
+            style_button(btn_add_current_stock)
+            btn_add_current_stock.clicked.connect(
+                lambda: self._add_item_to_combo("Current Stock Item", self.combo_current_stock)
+            )
+
+            self.combo_new_stock.currentTextChanged.connect(
+                lambda text: self._on_selection("Stock Control - New Stock", text)
+            )
+            self.combo_current_stock.currentTextChanged.connect(
+                lambda text: self._on_selection("Stock Control - Current Stock", text)
+            )
+
+            sidebar_layout.addWidget(lbl_stock)
+            sidebar_layout.addWidget(self.combo_new_stock)
+            sidebar_layout.addWidget(btn_add_new_stock)
+            sidebar_layout.addWidget(self.combo_current_stock)
+            sidebar_layout.addWidget(btn_add_current_stock)
+
+            # ---- Machines section ----
+            lbl_machines = make_section_label("Machines")
+            self.combo_machines = QComboBox()
+            self.combo_machines.addItems(
+                [
+                    "Select machine",
+                    "Welding machines",
+                    "Small grinder",
+                    "Big grinder",
+                    "Drill",
+                    "Magnetic drill",
+                ]
+            )
+            style_combo(self.combo_machines)
+
+            btn_add_machine = QPushButton("Add Machine Type")
+            style_button(btn_add_machine)
+            btn_add_machine.clicked.connect(
+                lambda: self._add_item_to_combo("Machine Type", self.combo_machines)
+            )
+
+            self.combo_machines.currentTextChanged.connect(
+                lambda text: self._on_selection("Machines", text)
+            )
+
+            sidebar_layout.addWidget(lbl_machines)
+            sidebar_layout.addWidget(self.combo_machines)
+            sidebar_layout.addWidget(btn_add_machine)
+
+            sidebar_layout.addStretch()
+
+            # --- Main Centre Area ---
+            center = QFrame()
+            center.setStyleSheet("background-color: black; color: orange;")
+            center_layout = QVBoxLayout(center)
+            center_layout.setContentsMargins(40, 40, 40, 40)
+            center_layout.setSpacing(20)
+
+            # Tetracube Logo
+            self.logo_label = QLabel()
+            self.logo_label.setAlignment(Qt.AlignCenter)
+
+            logo_path = get_logo_path("Tetracube_Logo.jpg")
+            if logo_path is not None:
+                pix = QPixmap(logo_path).scaled(
+                    400,
+                    400,
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation,
+                )
+                self.logo_label.setPixmap(pix)
+            else:
+                self.logo_label.setText("Tetracube Logo Here")
+                self.logo_label.setStyleSheet("font-size: 28px; color: orange;")
+
+            # Dynamic content labels
+            self.content_title = QLabel("Welcome to WeldAdmin Pro")
+            self.content_title.setAlignment(Qt.AlignCenter)
+            self.content_title.setStyleSheet("font-size: 22px; font-weight: bold;")
+
+            self.content_body = QLabel(
+                "Select an option from the dropdowns on the left to "
+                "view the related information here."
+            )
+            self.content_body.setAlignment(Qt.AlignCenter)
+            self.content_body.setWordWrap(True)
+            self.content_body.setStyleSheet("font-size: 14px;")
+
+            center_layout.addStretch()
+            center_layout.addWidget(self.logo_label)
+            center_layout.addSpacing(10)
+            center_layout.addWidget(self.content_title)
+            center_layout.addWidget(self.content_body)
+            center_layout.addStretch()
+
+            # Add sidebar + centre to main layout
+            main_layout.addWidget(sidebar)
+            main_layout.addWidget(center)
+
+        # --------------------------- Helpers ----------------------------
+
+        def _on_selection(self, category: str, text: str) -> None:
+            """Update centre content when a sidebar dropdown option is chosen.
+
+            Placeholder behaviour:
+            - Ignores placeholder entries like "Select option".
+            - Updates the title and description labels to reflect
+              the chosen category and option.
+            """
+
+            if not text or text.lower().startswith("select"):
+                return
+
+            title = f"{category}: {text}"
+            body = (
+                f"You selected '{text}' under '{category}'. "
+                "This area will later show the related documents "
+                "or management screens for that choice."
+            )
+
+            self.content_title.setText(title)
+            self.content_body.setText(body)
+
+        def _add_item_to_combo(self, label: str, combo: QComboBox) -> None:
+            """Prompt the user for a new item and add it to a combo box."""
+
+            text, ok = QInputDialog.getText(
+                self,
+                f"Add {label}",
+                f"Enter {label.lower()} name:",
+            )
+            if ok and text.strip():
+                combo.addItem(text.strip())
+
+
+# ---------------------------------------------------------------------------
+# Simple sanity tests
+# ---------------------------------------------------------------------------
+
+
+def _run_sanity_tests() -> None:
+    """Run small internal tests.
+
+    These are intentionally lightweight so they can run in environments
+    without PySide6. They don't create any windows; they only test the
+    helper functions and module-level flags.
+    """
+
+    # Test 1: availability flag is boolean
+    assert isinstance(is_pyside_available(), bool), "PYSIDE_AVAILABLE must be bool"
+
+    # Test 2: get_logo_path returns either None or an existing path
+    path = get_logo_path("Tetracube_Logo.jpg")
+    if path is not None:
+        assert os.path.exists(path), "If get_logo_path returns a path, it must exist."
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+
+def main() -> None:
+    """Entry point for running the landing page.
+
+    If PySide6 is missing, a clear error message is printed and the process
+    exits with a non-zero status code to make debugging easier.
+    """
+
+    if not PYSIDE_AVAILABLE:
+        sys.stderr.write(
+            "Error: PySide6 is not installed or not available in this environment.\n"
+        )
+        sys.stderr.write(
+            "Install it with: pip install PySide6  (inside your active environment)\n"
+        )
+        sys.exit(1)
+
+    app = QApplication(sys.argv)
+    window = LandingPage()  # type: ignore[name-defined]
+    window.show()
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    # Optionally run tests if requested
+    if os.environ.get("RUN_WELDADMIN_TESTS") == "1":
+        _run_sanity_tests()
+
+    main()

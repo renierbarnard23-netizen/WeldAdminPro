@@ -1,0 +1,17 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h3>{{ action }}</h3>
+<form method="post">
+  {{ form.hidden_tag() }}
+  <div class="row g-3">
+    <div class="col-md-6">{{ form.title.label }} {{ form.title(class="form-control") }}</div>
+    <div class="col-md-3">{{ form.job_type.label }} {{ form.job_type(class="form-select") }}</div>
+    <div class="col-md-3">{{ form.client.label }} {{ form.client(class="form-control") }}</div>
+    <div class="col-md-3">{{ form.start_date.label }} {{ form.start_date(class="form-control") }}</div>
+    <div class="col-md-3">{{ form.due_date.label }} {{ form.due_date(class="form-control") }}</div>
+    <div class="col-12">{{ form.description.label }} {{ form.description(class="form-control", rows="4") }}</div>
+  </div>
+  <button class="btn btn-primary mt-3">Save</button>
+</form>
+{% endblock %}

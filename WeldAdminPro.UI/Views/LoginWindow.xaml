@@ -1,45 +1,51 @@
 <Window x:Class="WeldAdminPro.UI.Views.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:vm="clr-namespace:WeldAdminPro.UI.ViewModels"
-        mc:Ignorable="d"
         Title="WeldAdmin Pro - Login"
-        Height="320"
+        Height="260"
         Width="420"
-        WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize"
-        Loaded="LoginWindow_Loaded">
+        WindowStartupLocation="CenterScreen">
 
-    <!-- NOTE: DataContext intentionally NOT set here. It will be provided by DI in App.xaml.cs -->
-
-    <Grid Margin="18">
+    <Grid Margin="20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/> <!-- Username label -->
+            <RowDefinition Height="Auto"/> <!-- Username box -->
+            <RowDefinition Height="Auto"/> <!-- Password label -->
+            <RowDefinition Height="Auto"/> <!-- Password box -->
+            <RowDefinition Height="Auto"/> <!-- Buttons -->
+            <RowDefinition Height="*"/>    <!-- Error -->
         </Grid.RowDefinitions>
 
-        <TextBlock Text="Welcome to WeldAdmin Pro" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+        <TextBlock Text="Username"/>
+        <TextBox x:Name="UsernameBox"
+                 Grid.Row="1"
+                 Height="28"/>
 
-        <StackPanel Grid.Row="1" Margin="0,6" Orientation="Vertical">
-            <Label Content="Username"/>
-            <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Width="320"/>
+        <TextBlock Grid.Row="2"
+                   Text="Password"
+                   Margin="0,10,0,0"/>
 
-            <Label Content="Password" Margin="0,8,0,0"/>
-            <!-- PasswordBox cannot bind to ViewModel securely; we'll forward it from code-behind -->
-            <PasswordBox x:Name="PwdBox" Width="320" PasswordChanged="PwdBox_PasswordChanged"/>
+        <PasswordBox x:Name="PasswordBox"
+                     Grid.Row="3"
+                     Height="28"/>
 
-            <CheckBox Content="Remember me" IsChecked="{Binding RememberMe}" Margin="0,8,0,0"/>
+        <StackPanel Grid.Row="4"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,15,0,0">
+            <Button Content="Login"
+                    Width="90"
+                    Margin="0,0,10,0"
+                    Click="Login_Click"/>
+
+            <Button Content="Exit"
+                    Width="90"
+                    Click="Exit_Click"/>
         </StackPanel>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Content="Login" Width="100" Margin="6,0" Command="{Binding LoginCommand}"/>
-            <Button Content="Cancel" Width="100" Margin="6,0" Click="Cancel_Click"/>
-        </StackPanel>
-
-        <TextBlock Grid.Row="3" Text="{Binding StatusMessage}" Foreground="Red" Margin="2,12,0,0" TextWrapping="Wrap"/>
+        <TextBlock x:Name="ErrorText"
+                   Grid.Row="5"
+                   Foreground="Red"
+                   Margin="0,10,0,0"/>
     </Grid>
 </Window>

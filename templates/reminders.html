@@ -1,0 +1,29 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h3>Reminders</h3>
+<form method="post" class="mb-3">
+  {{ form.hidden_tag() }}
+  <div class="row g-3">
+    <div class="col-md-5">{{ form.title.label }} {{ form.title(class="form-control") }}</div>
+    <div class="col-md-3">{{ form.due_date.label }} {{ form.due_date(class="form-control") }}</div>
+    <div class="col-md-2">{{ form.link_type.label }} {{ form.link_type(class="form-select") }}</div>
+    <div class="col-md-2">{{ form.link_id.label }} {{ form.link_id(class="form-control") }}</div>
+  </div>
+  <button class="btn btn-primary mt-3">Add Reminder</button>
+</form>
+<table class="table table-striped">
+  <thead><tr><th>Title</th><th>Due</th><th>Linked To</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for r in items %}
+    <tr>
+      <td>{{ r.title }}</td>
+      <td>{{ r.due_date }}</td>
+      <td>{{ r.link_type or '-' }} {{ r.link_id or '' }}</td>
+      <td>{{ "Done" if r.is_done else "Open" }}</td>
+      <td>{% if not r.is_done %}<a class="btn btn-sm btn-success" href="{{ url_for('reminders_done', rid=r.id) }}">Done</a>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

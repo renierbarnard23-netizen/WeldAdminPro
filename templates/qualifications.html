@@ -1,0 +1,25 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+  <h3>Qualifications</h3>
+  <div>
+    <a class="btn btn-secondary me-2" href="{{ url_for('smart_upload') }}">Smart Upload (OCR)</a>
+    <a class="btn btn-primary" href="{{ url_for('qualifications_new') }}">New</a>
+  </div>
+</div>
+<form class="my-3"><div class="input-group"><input name="q" class="form-control" placeholder="Search code, process, material, filler, gas, positions..." value="{{ q or '' }}"><button class="btn btn-outline-secondary">Search</button></div></form>
+
+<table class="table table-striped">
+  <thead><tr><th>Type</th><th>Code</th><th>Process</th><th>Material</th><th>Filler</th><th>Positions</th><th>Issue</th><th>Expiry</th><th>File</th></tr></thead>
+  <tbody>
+  {% for q in quals %}
+    <tr>
+      <td>{{ q.type }}</td><td>{{ q.code }}</td><td>{{ q.process or '-' }}</td><td>{{ q.material or '-' }}</td><td>{{ q.filler or '-' }}</td><td>{{ q.positions or '-' }}</td>
+      <td>{{ q.issue_date or '-' }}</td><td>{{ q.expiry_date or '-' }}</td>
+      <td>{% if q.file_path %}<a href="{{ url_for('uploads', filename=q.file_path.split('/')[-1]) }}">Download</a>{% else %}-{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

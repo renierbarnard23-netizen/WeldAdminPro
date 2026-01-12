@@ -1,5 +1,7 @@
 ﻿<Application x:Class="WeldAdminPro.UI.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- No StartupUri and no Startup event handler — startup is handled in App.OnStartup -->
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="Views/MainWindow.xaml">
+    <Application.Resources>
+    </Application.Resources>
 </Application>

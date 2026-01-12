@@ -1,7 +1,0 @@
-<DataGrid Grid.Row="1"
-          ItemsSource="{Binding Projects}"
-          AutoGenerateColumns="False"
-          IsReadOnly="True"
-          SelectedItem="{Binding SelectedProject, Mode=TwoWay}">
-    ...
-</DataGrid>

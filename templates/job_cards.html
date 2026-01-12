@@ -1,0 +1,26 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h3>Job Cards — {{ job.title }}</h3>
+<form method="post" class="mb-3">
+  {{ form.hidden_tag() }}
+  <div class="row g-3">
+    <div class="col-md-5">{{ form.task.label }} {{ form.task(class="form-control") }}</div>
+    <div class="col-md-3">{{ form.assigned_to.label }} {{ form.assigned_to(class="form-control") }}</div>
+    <div class="col-md-2">{{ form.start_time.label }} {{ form.start_time(class="form-control") }}</div>
+    <div class="col-md-2">{{ form.end_time.label }} {{ form.end_time(class="form-control") }}</div>
+    <div class="col-12">{{ form.notes.label }} {{ form.notes(class="form-control", rows="3") }}</div>
+  </div>
+  <button class="btn btn-primary mt-2">Add</button>
+</form>
+<table class="table table-striped">
+  <thead><tr><th>#</th><th>Task</th><th>Assigned</th><th>Start</th><th>End</th><th>Notes</th></tr></thead>
+  <tbody>
+  {% for c in cards %}
+    <tr>
+      <td>{{ c.id }}</td><td>{{ c.task }}</td><td>{{ c.assigned_to or '-' }}</td><td>{{ c.start_time or '-' }}</td><td>{{ c.end_time or '-' }}</td><td>{{ c.notes or '' }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

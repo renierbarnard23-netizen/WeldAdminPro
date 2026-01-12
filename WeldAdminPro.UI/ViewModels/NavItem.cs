@@ -1,58 +1,13 @@
-using System;
-using System.Windows.Input;
-using CommunityToolkit.Mvvm.ComponentModel;
-
 namespace WeldAdminPro.UI.ViewModels
 {
     /// <summary>
-    /// Canonical NavItem used by left nav.
-    /// Use FontFamily="Segoe MDL2 Assets" and set Glyph to a MDL2 code like "\uE700".
-    /// This class exposes both Title and Label (Label kept for backwards compatibility).
+    /// Simple navigation item for left menu
     /// </summary>
-// DUPLICATE COMMENTED:     public class NavItem : ObservableObject
-// DUPLICATE COMMENTED:     {
-// DUPLICATE COMMENTED:         public NavItem() { }
-// DUPLICATE COMMENTED: 
-// DUPLICATE COMMENTED:         public NavItem(string title, string glyph = "", ICommand? command = null)
-// DUPLICATE COMMENTED:         {
-// DUPLICATE COMMENTED:             Id = Guid.NewGuid().ToString();
-// DUPLICATE COMMENTED:             Title = title;
-// DUPLICATE COMMENTED:             Label = title; // keep Label in sync by default
-// DUPLICATE COMMENTED:             Glyph = glyph;
-// DUPLICATE COMMENTED:             Command = command;
-// DUPLICATE COMMENTED:         }
-// DUPLICATE COMMENTED: 
-// DUPLICATE COMMENTED:         public string Id { get; set; } = Guid.NewGuid().ToString();
-// DUPLICATE COMMENTED: 
-// DUPLICATE COMMENTED:         /// <summary>
-// DUPLICATE COMMENTED:         /// Human-friendly title (preferred new name).
-// DUPLICATE COMMENTED:         /// </summary>
-// DUPLICATE COMMENTED:         public string Title { get; set; } = string.Empty;
-// DUPLICATE COMMENTED: 
-// DUPLICATE COMMENTED:         /// <summary>
-// DUPLICATE COMMENTED:         /// Backwards-compatible Label property (some code still sets Label).
-// DUPLICATE COMMENTED:         /// Setting Label does NOT update Title automatically unless you explicitly do so.
-// DUPLICATE COMMENTED:         /// </summary>
-// DUPLICATE COMMENTED:         private string _label = string.Empty;
-// DUPLICATE COMMENTED:         public string Label
-// DUPLICATE COMMENTED:         {
-// DUPLICATE COMMENTED:             get => _label;
-// DUPLICATE COMMENTED:             set => SetProperty(ref _label, value);
-// DUPLICATE COMMENTED:         }
-// DUPLICATE COMMENTED: 
-// DUPLICATE COMMENTED:         /// <summary>
-// DUPLICATE COMMENTED:         /// MDL2 glyph (as string) or font glyph char. Use FontFamily="Segoe MDL2 Assets" in XAML.
-// DUPLICATE COMMENTED:         /// Example glyphs you can use: "\uE8A5" (Book), "\uE82D" (View), "\uE8F1" (Document), "\uE8B8" (Report).
-// DUPLICATE COMMENTED:         /// </summary>
-// DUPLICATE COMMENTED:         public string Glyph { get; set; } = string.Empty;
-// DUPLICATE COMMENTED: 
-// DUPLICATE COMMENTED:         public ICommand? Command { get; set; }
-// DUPLICATE COMMENTED: 
-// DUPLICATE COMMENTED:         private bool _isSelected;
-// DUPLICATE COMMENTED:         public bool IsSelected
-// DUPLICATE COMMENTED:         {
-// DUPLICATE COMMENTED:             get => _isSelected;
-// DUPLICATE COMMENTED:             set => SetProperty(ref _isSelected, value);
-// DUPLICATE COMMENTED:         }
-// DUPLICATE COMMENTED:     }
+    public class NavItem
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Glyph { get; set; } = string.Empty;
+    }
 }

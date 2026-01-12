@@ -1,77 +1,17 @@
 <Window x:Class="WeldAdminPro.UI.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:viewmodels="clr-namespace:WeldAdminPro.UI.ViewModels"
-        mc:Ignorable="d"
         Title="WeldAdmin Pro"
-        Height="720"
-        Width="1280">
-
-    <!-- InputBindings must be on Window (not Grid). -->
-    <Window.InputBindings>
-        <KeyBinding Key="D1" Modifiers="Alt" Command="{Binding NavToProjectsCommand}" />
-        <KeyBinding Key="D2" Modifiers="Alt" Command="{Binding NavToDatabookCommand}" />
-        <KeyBinding Key="D3" Modifiers="Alt" Command="{Binding NavToSettingsCommand}" />
-    </Window.InputBindings>
-
-    <Window.DataContext>
-        <viewmodels:MainViewModel />
-    </Window.DataContext>
+        Height="450"
+        Width="800">
 
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="240"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
-
-        <!-- Left navigation -->
-        <Border Grid.Column="0" Background="#1f1f1f">
-            <DockPanel LastChildFill="True">
-                <TextBlock Text="WeldAdmin" FontWeight="Bold" Foreground="White" Margin="12" DockPanel.Dock="Top"/>
-                <ListBox x:Name="NavListBox"
-                         ItemsSource="{Binding NavItems}"
-                         SelectedItem="{Binding SelectedNavItem, Mode=TwoWay}"
-                         BorderThickness="0"
-                         Background="#1f1f1f"
-                         Foreground="White"
-                         Margin="6"
-                         HorizontalContentAlignment="Stretch">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Margin="6">
-                                <TextBlock FontFamily="Segoe MDL2 Assets"
-                                           FontSize="16"
-                                           Text="{Binding Glyph}"
-                                           Margin="0,0,10,0"
-                                           VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </DockPanel>
-        </Border>
-
-        <!-- Right content -->
-        <Grid Grid.Column="1" Margin="20">  <!-- use Margin instead of Padding to avoid unsupported attribute -->
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-
-            <!-- Search / filter box -->
-            <TextBox Width="320"
-                     Height="30"
-                     Margin="0 0 0 12"
-                     HorizontalAlignment="Left"
-                     Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}">
-                <TextBox.ToolTip>Type to filter projects</TextBox.ToolTip>
-            </TextBox>
-
-            <ContentControl Grid.Row="1"
-                            Content="{Binding CurrentView}" />
-        </Grid>
+        <Button Content="Open Projects"
+                Width="160"
+                Height="45"
+                Click="OpenProjects_Click"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"/>
     </Grid>
+
 </Window>

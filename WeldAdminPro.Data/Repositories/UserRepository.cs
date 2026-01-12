@@ -1,76 +1,7 @@
-﻿// Place this file in: WeldAdminPro.Data\Repositories\UserRepository.cs
-// Assumptions made (adjust names if your project uses different ones):
-// - Your EF DbContext is named `WeldAdminProDbContext` and lives in WeldAdminPro.Data
-// - Your EF User entity is named `User` and has properties matching the DB columns: Id, Username, DisplayName, PasswordHash, Role, Email, CreatedAt
-// - If your types differ, search/replace the type names below accordingly.
-
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using WeldAdminPro.Core.Models;
-
-namespace WeldAdminPro.Data.Repositories
+﻿namespace WeldAdminPro.Data.Repositories
 {
-    // Lightweight DTO used by the UI layer's IUserRepository contract
-    public record UserDto(int Id, string Username, string? DisplayName, string? PasswordHash, string? Role, string? Email);
-
-    public interface IUserRepository
+    // Temporarily disabled until Users are implemented in DbContext
+    public class UserRepository
     {
-        Task<UserDto?> GetByUsernameAsync(string username);
-        Task<UserDto?> GetByIdAsync(int id);
-        Task<int> CreateAsync(string username, string displayName, string email, string passwordHash, string role);
-    }
-
-    public class UserRepository : IUserRepository
-    {
-        private readonly WeldAdminProDbContext _db;
-
-        public UserRepository(WeldAdminProDbContext db)
-        {
-            _db = db;
-        }
-
-        public async Task<UserDto?> GetByUsernameAsync(string username)
-        {
-            if (string.IsNullOrWhiteSpace(username)) return null;
-
-            var u = await _db.Users.AsNoTracking()
-                       .FirstOrDefaultAsync(x => x.Username == username);
-
-            if (u == null) return null;
-            return new UserDto(u.Id, u.Username, u.DisplayName, u.PasswordHash, u.Role, u.Email);
-        }
-
-        public async Task<UserDto?> GetByIdAsync(int id)
-        {
-            var u = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
-            if (u == null) return null;
-            return new UserDto(u.Id, u.Username, u.DisplayName, u.PasswordHash, u.Role, u.Email);
-        }
-
-        public async Task<int> CreateAsync(string username, string displayName, string email, string passwordHash, string role)
-        {
-            var ent = new User
-            {
-                Username = username,
-                DisplayName = displayName,
-                Email = email,
-                PasswordHash = passwordHash,
-                Role = role
-            };
-
-            _db.Users.Add(ent);
-            await _db.SaveChangesAsync();
-            return ent.Id;
-        }
     }
 }
-
-/* Integration notes:
-1) If your DbContext or User entity have different names, rename `WeldAdminProDbContext` and `User` accordingly.
-2) Register in DI from your UI project's startup (App_OnStartup or host builder):
-   services.AddScoped<WeldAdminPro.Data.Repositories.IUserRepository, WeldAdminPro.Data.Repositories.UserRepository>();
-3) In the LoginViewModel wiring (from the canvas doc):
-   vm.UserRepo = serviceProvider.GetRequiredService<WeldAdminPro.Data.Repositories.IUserRepository>();
-4) This repository returns a UserDto to decouple UI from EF entities. If you prefer to return the EF entity directly, change return types.
-*/
-

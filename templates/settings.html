@@ -1,0 +1,17 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h3>Settings</h3>
+<div class="mb-3">
+  <p><strong>Current log location:</strong>
+     {% if log_path %}<code>{{ log_path }}</code>{% else %}<span class="text-muted">Console only (no file log)</span>{% endif %}
+  </p>
+</div>
+<form method="post">
+  <input type="hidden" name="action" value="clear_log">
+  <button class="btn btn-outline-danger">Clear Log (rotate)</button>
+</form>
+<div class="mt-3 alert alert-info">
+  <div>Clearing the log rotates it to a <code>.bak</code> file with a timestamp (if writable), then recreates an empty log.</div>
+</div>
+{% endblock %}

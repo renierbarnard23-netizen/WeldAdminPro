@@ -1,0 +1,27 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h3>BOM — {{ job.title }}</h3>
+<form method="post" class="mb-3">
+  {{ form.hidden_tag() }}
+  <div class="row g-3">
+    <div class="col-md-4">{{ form.item.label }} {{ form.item(class="form-control") }}</div>
+    <div class="col-md-3">{{ form.spec.label }} {{ form.spec(class="form-control") }}</div>
+    <div class="col-md-2">{{ form.qty.label }} {{ form.qty(class="form-control") }}</div>
+    <div class="col-md-1">{{ form.unit.label }} {{ form.unit(class="form-control") }}</div>
+    <div class="col-md-2 form-check d-flex align-items-center">{{ form.is_consumable(class="form-check-input me-2") }} <label class="form-check-label">Consumable</label></div>
+  </div>
+  <button class="btn btn-primary mt-2">Add</button>
+</form>
+<table class="table table-striped">
+  <thead><tr><th>Item</th><th>Spec</th><th>Qty</th><th>Unit</th><th>Type</th></tr></thead>
+  <tbody>
+  {% for it in items %}
+    <tr>
+      <td>{{ it.item }}</td><td>{{ it.spec or '-' }}</td><td>{{ it.qty }}</td><td>{{ it.unit }}</td>
+      <td>{{ "Consumable" if it.is_consumable else "Material" }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

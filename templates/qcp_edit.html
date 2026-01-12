@@ -1,0 +1,16 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h3>Edit QCP — {{ job.title }}</h3>
+<form method="post">
+  {{ form.hidden_tag() }}
+  <div class="mb-2">{{ form.title.label }} {{ form.title(class="form-control") }}</div>
+  <div class="mb-2">{{ form.standard_refs.label }} {{ form.standard_refs(class="form-control") }}</div>
+  <label>QCP Body (JSON)</label>
+  <textarea name="body" class="form-control" rows="18">{{ form.body.data }}</textarea>
+  <button class="btn btn-primary mt-2">Save</button>
+</form>
+<div class="alert alert-info mt-3">
+  <strong>Tip:</strong> The QCP JSON supports <code>index</code> (list of sections) and <code>steps</code> (ITP rows). Adjust to match ASME / ISO 3834 / SANS 347 requirements used on your project.
+</div>
+{% endblock %}

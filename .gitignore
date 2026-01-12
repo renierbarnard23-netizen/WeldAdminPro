@@ -1,42 +1,33 @@
-﻿# .gitignore for WeldAdminPro
-
-# Local DBs and runtime
-*.db
-*.sqlite
-data.sqlite
-
-# .env and secrets
-.env
-.env.local
-.env.*.local
-
-# Build outputs
+﻿# Build output
 bin/
 obj/
-publish/
-dist/
-artifacts/
-*.zip
+build/
+Output/
+installer_artifacts*/
+installer/
+weldadmin_artifact_unpack/
 
-# Visual Studio / Rider / VSCode
+# Executables & binaries
+*.exe
+*.dll
+*.pdb
+*.deps.json
+*.runtimeconfig.json
+
+# User-specific
+.env
+.env.*
+*.log
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# IDE
 .vs/
-.idea/
-*.user
-*.suo
 .vscode/
 
 # Python
 __pycache__/
 *.pyc
-
-# Logs and temp
-*.log
-*.tmp
-
-# NuGet
-*.nupkg
-.nuget/
-
-# OS
-Thumbs.db
-.DS_Store
