@@ -7,16 +7,27 @@ namespace WeldAdminPro.UI.Views
         public MainWindow()
         {
             InitializeComponent();
+            MainContent.Content = new ProjectsView();
         }
 
-        private void OpenProjects_Click(object sender, RoutedEventArgs e)
+        private void Home_Click(object sender, RoutedEventArgs e)
         {
-            var projectsView = new ProjectsView
-            {
-                Owner = this
-            };
+            MainContent.Content = new HomeView();
+        }
 
-            projectsView.Show();
+        private void Projects_Click(object sender, RoutedEventArgs e)
+        {
+            MainContent.Content = new ProjectsView();
+        }
+
+        private void Reports_Click(object sender, RoutedEventArgs e)
+        {
+            MainContent.Content = new ReportsView();
+        }
+
+        private void Exit_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
         }
     }
 }

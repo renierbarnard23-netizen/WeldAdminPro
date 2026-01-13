@@ -14,9 +14,6 @@ namespace WeldAdminPro.UI.ViewModels
         public event Action? RequestClose;
 
         [ObservableProperty]
-        private string projectNumber;
-
-        [ObservableProperty]
         private string projectName;
 
         public IRelayCommand SaveCommand { get; }
@@ -27,8 +24,7 @@ namespace WeldAdminPro.UI.ViewModels
             _repo = new ProjectRepository();
             _project = project;
 
-            projectNumber = project.ProjectNumber;
-            projectName = project.Title;
+            projectName = project.ProjectName;
 
             SaveCommand = new RelayCommand(Save);
             CancelCommand = new RelayCommand(() => RequestClose?.Invoke());
@@ -36,7 +32,7 @@ namespace WeldAdminPro.UI.ViewModels
 
         private void Save()
         {
-            _project.Title = ProjectName;
+            _project.ProjectName = ProjectName;
             _repo.Update(_project);
             RequestClose?.Invoke();
         }

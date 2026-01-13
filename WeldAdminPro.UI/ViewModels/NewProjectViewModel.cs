@@ -1,25 +1,40 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using WeldAdminPro.Data.Repositories;
+using System;
+using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.UI.ViewModels
 {
     public partial class NewProjectViewModel : ObservableObject
     {
-        private readonly ProjectRepository _repo;
-
-        //public NewProjectViewModel(ProjectRepository repo)
-        //{
-            //_repo = repo;
-        //}
-
         [ObservableProperty]
-        private string projectName;
+        private Project project = new();
 
-        [RelayCommand]
+        public event Action<Project>? ProjectCreated;
+        public event Action? RequestClose;
+
+        public NewProjectViewModel()
+        {
+            // Auto-generate project number when window opens
+            Project.ProjectNumber = $"PRJ-{DateTime.Now:yyyyMMdd-HHmmss}";
+        }
+
+        [RelayCommand] // ✅ ONLY ONCE
         private void Save()
         {
-            // Save logic
+            if (string.IsNullOrWhiteSpace(Project.ProjectName))
+                return; // optional validation
+
+            Project.Id = Guid.NewGuid();
+
+            ProjectCreated?.Invoke(Project);
+            RequestClose?.Invoke();
+        }
+
+        [RelayCommand]
+        private void Cancel()
+        {
+            RequestClose?.Invoke();
         }
     }
 }

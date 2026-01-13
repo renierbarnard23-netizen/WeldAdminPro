@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
 using WeldAdminPro.Core.Models;
 
@@ -10,77 +8,157 @@ namespace WeldAdminPro.Data.Repositories
         private readonly string _connectionString =
             "Data Source=weldadmin.db";
 
+        public ProjectRepository()
+        {
+            EnsureDatabase();
+        }
+
+        private void EnsureDatabase()
+{
+    using var connection = new SqliteConnection(_connectionString);
+    connection.Open();
+
+    var cmd = connection.CreateCommand();
+
+    cmd.CommandText =
+"""
+CREATE TABLE IF NOT EXISTS Projects (
+    Id TEXT PRIMARY KEY,
+    ProjectNumber TEXT NOT NULL,
+    ProjectName TEXT NOT NULL,
+    StartDate TEXT,
+    EndDate TEXT
+);
+""";
+
+
+    cmd.ExecuteNonQuery();
+
+    // ADD ProjectNumber column if it does not exist
+    try
+    {
+        cmd.CommandText = "ALTER TABLE Projects ADD COLUMN ProjectNumber TEXT;";
+        cmd.ExecuteNonQuery();
+    }
+    catch (SqliteException)
+    {
+        // Column already exists – safe to ignore
+    }
+}
+
+
         public List<Project> GetAll()
         {
-            var projects = new List<Project>();
+            var list = new List<Project>();
 
-            using var conn = new SqliteConnection(_connectionString);
-            conn.Open();
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
 
-            var cmd = conn.CreateCommand();
+            var cmd = connection.CreateCommand();
             cmd.CommandText =
-                @"SELECT Id, ProjectName, CreatedAt
-                  FROM Projects";
+"""
+SELECT
+    Id,
+    ProjectNumber,
+    ProjectName,
+    StartDate,
+    EndDate
+FROM Projects;
+""";
+
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                projects.Add(new Project
-                {
-                    Id = Guid.Parse(reader.GetString(0)),
-                    ProjectName = reader.GetString(1),
-                    CreatedAt = reader.GetString(2)
-                });
+                list.Add(new Project
+{
+    Id = Guid.Parse(reader.GetString(0)),
+    ProjectNumber = reader.GetString(1),
+    ProjectName = reader.GetString(2),
+    StartDate = reader.IsDBNull(3) ? null : DateTime.Parse(reader.GetString(3)),
+    EndDate = reader.IsDBNull(4) ? null : DateTime.Parse(reader.GetString(4))
+});
             }
 
-            return projects;
+            return list;
         }
+public void Update(Project project)
+{
+    using var connection = new SqliteConnection(_connectionString);
+    connection.Open();
 
-        public void Add(Project project)
-        {
-            using var conn = new SqliteConnection(_connectionString);
-            conn.Open();
+    var cmd = connection.CreateCommand();
+    cmd.CommandText =
+    """
+    UPDATE Projects
+    SET
+        ProjectName = $name,
+        StartDate = $start,
+        EndDate = $end
+    WHERE Id = $id;
+    """;
 
-            var cmd = conn.CreateCommand();
-            cmd.CommandText =
-                @"INSERT INTO Projects (Id, ProjectName, CreatedAt)
-                  VALUES ($id, $name, $created)";
+    cmd.Parameters.AddWithValue("$id", project.Id.ToString());
+    cmd.Parameters.AddWithValue("$name", project.ProjectName);
 
-            cmd.Parameters.AddWithValue("$id", project.Id.ToString());
-            cmd.Parameters.AddWithValue("$name", project.ProjectName);
-            cmd.Parameters.AddWithValue("$created", project.CreatedAt);
+    cmd.Parameters.AddWithValue(
+        "$start",
+        project.StartDate.HasValue
+            ? project.StartDate.Value.ToString("o")
+            : DBNull.Value
+    );
 
-            cmd.ExecuteNonQuery();
-        }
+    cmd.Parameters.AddWithValue(
+        "$end",
+        project.EndDate.HasValue
+            ? project.EndDate.Value.ToString("o")
+            : DBNull.Value
+    );
 
-        public void Update(Project project)
-        {
-            using var conn = new SqliteConnection(_connectionString);
-            conn.Open();
+    cmd.ExecuteNonQuery();
+}
 
-            var cmd = conn.CreateCommand();
-            cmd.CommandText =
-                @"UPDATE Projects
-                  SET ProjectName = $name
-                  WHERE Id = $id";
 
-            cmd.Parameters.AddWithValue("$name", project.ProjectName);
-            cmd.Parameters.AddWithValue("$id", project.Id.ToString());
+public void Add(Project project)
+{
+    using var connection = new SqliteConnection(_connectionString);
+    connection.Open();
 
-            cmd.ExecuteNonQuery();
-        }
+    var cmd = connection.CreateCommand();
+    cmd.CommandText =
+    """
+    INSERT INTO Projects (
+        Id,
+        ProjectNumber,
+        ProjectName,
+        StartDate,
+        EndDate
+    )
+    VALUES (
+        $id,
+        $number,
+        $name,
+        $start,
+        $end
+    );
+    """;
 
-        public void Delete(Guid id)
-        {
-            using var conn = new SqliteConnection(_connectionString);
-            conn.Open();
+    // 🔒 GUARANTEED VALUES
+    cmd.Parameters.AddWithValue("$id", project.Id.ToString());
+    cmd.Parameters.AddWithValue("$number", project.ProjectNumber ?? "");
+    cmd.Parameters.AddWithValue("$name", project.ProjectName ?? "");
+    cmd.Parameters.AddWithValue(
+        "$start",
+        project.StartDate.HasValue ? project.StartDate.Value.ToString("o") : DBNull.Value
+    );
+    cmd.Parameters.AddWithValue(
+        "$end",
+        project.EndDate.HasValue ? project.EndDate.Value.ToString("o") : DBNull.Value
+    );
 
-            var cmd = conn.CreateCommand();
-            cmd.CommandText =
-                "DELETE FROM Projects WHERE Id = $id";
+    cmd.ExecuteNonQuery();
+}
 
-            cmd.Parameters.AddWithValue("$id", id.ToString());
-            cmd.ExecuteNonQuery();
-        }
     }
+
 }

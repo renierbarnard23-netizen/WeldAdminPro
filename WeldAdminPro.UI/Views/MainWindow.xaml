@@ -1,17 +1,23 @@
 <Window x:Class="WeldAdminPro.UI.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:WeldAdminPro.UI.Views"
         Title="WeldAdmin Pro"
-        Height="450"
-        Width="800">
+        Height="700"
+        Width="1100">
 
-    <Grid>
-        <Button Content="Open Projects"
-                Width="160"
-                Height="45"
-                Click="OpenProjects_Click"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"/>
-    </Grid>
+    <DockPanel>
 
+        <!-- TOP MENU -->
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="Home" Click="Home_Click"/>
+            <MenuItem Header="Projects" Click="Projects_Click"/>
+            <MenuItem Header="Reports" Click="Reports_Click"/>
+            <MenuItem Header="Exit" Click="Exit_Click"/>
+        </Menu>
+
+        <!-- MAIN CONTENT HOST -->
+        <ContentControl x:Name="MainContent"/>
+        
+    </DockPanel>
 </Window>

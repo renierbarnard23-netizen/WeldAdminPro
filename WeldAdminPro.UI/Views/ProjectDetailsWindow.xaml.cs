@@ -1,16 +1,14 @@
 using System.Windows;
-using WeldAdminPro.Core.Models;
+using WeldAdminPro.UI.ViewModels;
 
 namespace WeldAdminPro.UI.Views
 {
     public partial class ProjectDetailsWindow : Window
     {
-        public ProjectDetailsWindow(Project project)
+        public ProjectDetailsWindow(ProjectDetailsViewModel vm)
         {
             InitializeComponent();
-
-            TitleText.Text = project.ProjectName;
-            DetailsGrid.ItemsSource = new[] { project };
+            DataContext = vm;
         }
     }
 }
