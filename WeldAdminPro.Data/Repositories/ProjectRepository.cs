@@ -18,33 +18,37 @@ namespace WeldAdminPro.Data.Repositories
     using var connection = new SqliteConnection(_connectionString);
     connection.Open();
 
-    var cmd = connection.CreateCommand();
+    // Create table if it does not exist (legacy DBs may miss columns)
+    var createCmd = connection.CreateCommand();
+    createCmd.CommandText =
+    """
+    CREATE TABLE IF NOT EXISTS Projects (
+        Id TEXT PRIMARY KEY,
+        ProjectName TEXT NOT NULL,
+        StartDate TEXT,
+        EndDate TEXT
+    );
+    """;
+    createCmd.ExecuteNonQuery();
 
-    cmd.CommandText =
-"""
-CREATE TABLE IF NOT EXISTS Projects (
-    Id TEXT PRIMARY KEY,
-    ProjectNumber TEXT NOT NULL,
-    ProjectName TEXT NOT NULL,
-    StartDate TEXT,
-    EndDate TEXT
-);
-""";
+    // Add ProjectNumber if missing
+    var addProjectNumberCmd = connection.CreateCommand();
+    addProjectNumberCmd.CommandText =
+    """
+    ALTER TABLE Projects ADD COLUMN ProjectNumber TEXT;
+    """;
 
-
-    cmd.ExecuteNonQuery();
-
-    // ADD ProjectNumber column if it does not exist
     try
     {
-        cmd.CommandText = "ALTER TABLE Projects ADD COLUMN ProjectNumber TEXT;";
-        cmd.ExecuteNonQuery();
+        addProjectNumberCmd.ExecuteNonQuery();
     }
-    catch (SqliteException)
+    catch
     {
-        // Column already exists – safe to ignore
+        // Column already exists → safe to ignore
     }
 }
+
+
 
 
         public List<Project> GetAll()

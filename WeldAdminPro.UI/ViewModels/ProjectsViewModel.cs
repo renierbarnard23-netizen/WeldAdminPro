@@ -36,24 +36,25 @@ namespace WeldAdminPro.UI.ViewModels
         }
 
         private void OpenNewProject()
-        {
-            var vm = new NewProjectViewModel();
+{
+    var vm = new NewProjectViewModel();
 
-            var window = new NewProjectWindow(vm)
-            {
-                Owner = Application.Current.MainWindow
-            };
+    var window = new NewProjectWindow(vm)
+    {
+        Owner = Application.Current.MainWindow
+    };
 
-            vm.ProjectCreated += project =>
-            {
-                _repo.Add(project);
-                Projects.Add(project);
-            };
+    vm.ProjectCreated += project =>
+    {
+        _repo.Add(project);
 
-            vm.RequestClose += () => window.Close();
+        // 🔄 Reload from DB to guarantee sync
+        LoadProjects();
+    };
 
-            window.ShowDialog();
-        }
+    window.ShowDialog();
+}
+
 
         private void OpenSelectedProject()
         {

@@ -14,7 +14,16 @@ namespace WeldAdminPro.UI.ViewModels
         public event Action? RequestClose;
 
         [ObservableProperty]
+        private string projectNumber;
+
+        [ObservableProperty]
         private string projectName;
+
+        [ObservableProperty]
+        private DateTime? startDate;
+
+        [ObservableProperty]
+        private DateTime? endDate;
 
         public IRelayCommand SaveCommand { get; }
         public IRelayCommand CancelCommand { get; }
@@ -24,7 +33,10 @@ namespace WeldAdminPro.UI.ViewModels
             _repo = new ProjectRepository();
             _project = project;
 
-            projectName = project.ProjectName;
+            ProjectNumber = project.ProjectNumber;
+            ProjectName = project.ProjectName;
+            StartDate = project.StartDate;
+            EndDate = project.EndDate;
 
             SaveCommand = new RelayCommand(Save);
             CancelCommand = new RelayCommand(() => RequestClose?.Invoke());
@@ -33,6 +45,9 @@ namespace WeldAdminPro.UI.ViewModels
         private void Save()
         {
             _project.ProjectName = ProjectName;
+            _project.StartDate = StartDate;
+            _project.EndDate = EndDate;
+
             _repo.Update(_project);
             RequestClose?.Invoke();
         }
