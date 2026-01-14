@@ -12,36 +12,67 @@ namespace WeldAdminPro.UI.ViewModels
     {
         private readonly StockRepository _repo;
 
+        // =========================
+        // Observable properties
+        // =========================
+
         [ObservableProperty]
         private ObservableCollection<StockItem> items = new();
 
         [ObservableProperty]
         private StockItem? selectedItem;
 
+        // =========================
+        // Commands
+        // =========================
+
         public IRelayCommand NewItemCommand { get; }
         public IRelayCommand EditItemCommand { get; }
+        public IRelayCommand StockInCommand { get; }
+        public IRelayCommand StockOutCommand { get; }
+
+        // =========================
+        // Constructor
+        // =========================
 
         public StockViewModel()
         {
             _repo = new StockRepository();
+
             LoadItems();
 
             NewItemCommand = new RelayCommand(OpenNewItem);
             EditItemCommand = new RelayCommand(OpenEditItem, () => SelectedItem != null);
+            StockInCommand = new RelayCommand(OpenStockIn, () => SelectedItem != null);
+            StockOutCommand = new RelayCommand(OpenStockOut, () => SelectedItem != null);
         }
 
-        // 🔑 THIS IS WHAT ENABLES THE EDIT BUTTON
+        // =========================
+        // Selection change handler
+        // =========================
+
         partial void OnSelectedItemChanged(StockItem? value)
         {
             EditItemCommand.NotifyCanExecuteChanged();
+            StockInCommand.NotifyCanExecuteChanged();
+            StockOutCommand.NotifyCanExecuteChanged();
         }
 
-        private void LoadItems()
-{
-    Items = new ObservableCollection<StockItem>(_repo.GetAll());
-    SelectedItem = null;
-}
+        // =========================
+        // Data loading (CRITICAL FIX)
+        // =========================
 
+        private void LoadItems()
+        {
+            // 🔑 MUST clear selection FIRST to force DataGrid refresh
+            SelectedItem = null;
+
+            Items = new ObservableCollection<StockItem>(_repo.GetAll());
+        }
+
+        // =========================
+        // New / Edit stock
+        // =========================
 
         private void OpenNewItem()
         {
@@ -73,6 +104,38 @@ namespace WeldAdminPro.UI.ViewModels
             };
 
             vm.ItemCreated += LoadItems;
+            vm.RequestClose += () => window.Close();
+
+            window.ShowDialog();
+        }
+
+        // =========================
+        // Stock transactions
+        // =========================
+
+        private void OpenStockIn()
+        {
+            OpenTransaction(true);
+        }
+
+        private void OpenStockOut()
+        {
+            OpenTransaction(false);
+        }
+
+        private void OpenTransaction(bool isStockIn)
+        {
+            if (SelectedItem == null)
+                return;
+
+            var vm = new StockTransactionViewModel(SelectedItem, isStockIn);
+
+            var window = new StockTransactionWindow(vm)
+            {
+                Owner = Application.Current.MainWindow
+            };
+
+            vm.TransactionCompleted += LoadItems;
             vm.RequestClose += () => window.Close();
 
             window.ShowDialog();

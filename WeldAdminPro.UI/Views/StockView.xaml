@@ -19,6 +19,16 @@
             <Button Content="Edit Stock Item"
                     Width="150"
                     Command="{Binding EditItemCommand}" />
+<Button Content="Stock IN"
+        Width="120"
+        Margin="5"
+        Command="{Binding StockInCommand}" />
+
+<Button Content="Stock OUT"
+        Width="120"
+        Margin="5"
+        Command="{Binding StockOutCommand}" />
+
         </StackPanel>
 
         <DataGrid ItemsSource="{Binding Items}"
