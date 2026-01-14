@@ -7,8 +7,7 @@ namespace WeldAdminPro.Data.Repositories
 {
     public class StockRepository
     {
-        private readonly string _connectionString =
-            "Data Source=weldadmin.db";
+        private readonly string _connectionString = "Data Source=weldadmin.db";
 
         public StockRepository()
         {
@@ -61,22 +60,43 @@ namespace WeldAdminPro.Data.Repositories
         }
 
         public void Add(StockItem item)
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+{
+    using var connection = new SqliteConnection(_connectionString);
+    connection.Open();
 
-            var cmd = connection.CreateCommand();
-            cmd.CommandText =
-                "INSERT INTO StockItems (Id, ItemCode, Description, Quantity, Unit) " +
-                "VALUES ($id, $code, $desc, $qty, $unit);";
+    var cmd = connection.CreateCommand();
+    cmd.CommandText =
+        "INSERT INTO StockItems (Id, ItemCode, Description, Quantity, Unit) " +
+        "VALUES ($id, $code, $desc, $qty, $unit);";
 
-            cmd.Parameters.AddWithValue("$id", item.Id.ToString());
-            cmd.Parameters.AddWithValue("$code", item.ItemCode);
-            cmd.Parameters.AddWithValue("$desc", item.Description);
-            cmd.Parameters.AddWithValue("$qty", item.Quantity);
-            cmd.Parameters.AddWithValue("$unit", item.Unit);
+    cmd.Parameters.AddWithValue("$id", item.Id.ToString());
+    cmd.Parameters.AddWithValue("$code", item.ItemCode);
+    cmd.Parameters.AddWithValue("$desc", item.Description);
+    cmd.Parameters.AddWithValue("$qty", item.Quantity);
+    cmd.Parameters.AddWithValue("$unit", item.Unit);
 
-            cmd.ExecuteNonQuery();
-        }
+    cmd.ExecuteNonQuery();
+}
+
+        public void Update(StockItem item)
+{
+    using var connection = new SqliteConnection(_connectionString);
+    connection.Open();
+
+    var cmd = connection.CreateCommand();
+    cmd.CommandText =
+        "UPDATE StockItems SET " +
+        "Description = $desc, " +
+        "Quantity = $qty, " +
+        "Unit = $unit " +
+        "WHERE Id = $id;";
+
+    cmd.Parameters.AddWithValue("$id", item.Id.ToString());
+    cmd.Parameters.AddWithValue("$desc", item.Description);
+    cmd.Parameters.AddWithValue("$qty", item.Quantity);
+    cmd.Parameters.AddWithValue("$unit", item.Unit);
+
+    cmd.ExecuteNonQuery();
+}
     }
 }

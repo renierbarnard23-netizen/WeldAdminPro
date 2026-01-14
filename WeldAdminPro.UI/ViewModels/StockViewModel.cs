@@ -15,7 +15,11 @@ namespace WeldAdminPro.UI.ViewModels
         [ObservableProperty]
         private ObservableCollection<StockItem> items = new();
 
+        [ObservableProperty]
+        private StockItem? selectedItem;
+
         public IRelayCommand NewItemCommand { get; }
+        public IRelayCommand EditItemCommand { get; }
 
         public StockViewModel()
         {
@@ -23,14 +27,21 @@ namespace WeldAdminPro.UI.ViewModels
             LoadItems();
 
             NewItemCommand = new RelayCommand(OpenNewItem);
+            EditItemCommand = new RelayCommand(OpenEditItem, () => SelectedItem != null);
+        }
+
+        // 🔑 THIS IS WHAT ENABLES THE EDIT BUTTON
+        partial void OnSelectedItemChanged(StockItem? value)
+        {
+            EditItemCommand.NotifyCanExecuteChanged();
         }
 
         private void LoadItems()
-        {
-            Items.Clear();
-            foreach (var item in _repo.GetAll())
-                Items.Add(item);
-        }
+{
+    Items = new ObservableCollection<StockItem>(_repo.GetAll());
+    SelectedItem = null;
+}
+
 
         private void OpenNewItem()
         {
@@ -38,13 +49,30 @@ namespace WeldAdminPro.UI.ViewModels
 
             var window = new NewStockItemWindow(vm)
             {
-                Owner = Application.Current.MainWindow
+                Owner = Application.Current.MainWindow,
+                Title = "New Stock Item"
             };
 
-            // Reload list after save
             vm.ItemCreated += LoadItems;
+            vm.RequestClose += () => window.Close();
 
-            // Close dialog
+            window.ShowDialog();
+        }
+
+        private void OpenEditItem()
+        {
+            if (SelectedItem == null)
+                return;
+
+            var vm = new NewStockItemViewModel(SelectedItem);
+
+            var window = new NewStockItemWindow(vm)
+            {
+                Owner = Application.Current.MainWindow,
+                Title = "Edit Stock Item"
+            };
+
+            vm.ItemCreated += LoadItems;
             vm.RequestClose += () => window.Close();
 
             window.ShowDialog();

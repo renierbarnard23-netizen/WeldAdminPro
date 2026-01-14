@@ -7,22 +7,39 @@
 
     <DockPanel Margin="10">
 
-        <Button Content="New Stock Item"
-                DockPanel.Dock="Top"
-                Width="150"
-                Margin="0,0,0,10"
-                Command="{Binding NewItemCommand}"/>
+        <StackPanel Orientation="Horizontal"
+                    DockPanel.Dock="Top"
+                    Margin="0,0,0,10">
+
+            <Button Content="New Stock Item"
+                    Width="150"
+                    Margin="0,0,10,0"
+                    Command="{Binding NewItemCommand}" />
+
+            <Button Content="Edit Stock Item"
+                    Width="150"
+                    Command="{Binding EditItemCommand}" />
+        </StackPanel>
 
         <DataGrid ItemsSource="{Binding Items}"
+                  SelectedItem="{Binding SelectedItem}"
                   AutoGenerateColumns="False"
                   IsReadOnly="True">
 
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Item Code" Binding="{Binding ItemCode}"/>
-                <DataGridTextColumn Header="Description" Binding="{Binding Description}"/>
-                <DataGridTextColumn Header="Unit" Binding="{Binding Unit}"/>
-            </DataGrid.Columns>
+                <DataGridTextColumn Header="Item Code"
+                                    Binding="{Binding ItemCode}" />
 
+                <DataGridTextColumn Header="Description"
+                                    Binding="{Binding Description}" />
+
+                <DataGridTextColumn Header="Quantity"
+                                    Binding="{Binding Quantity}" />
+
+                <DataGridTextColumn Header="Unit"
+                                    Binding="{Binding Unit}" />
+            </DataGrid.Columns>
         </DataGrid>
+
     </DockPanel>
 </UserControl>
