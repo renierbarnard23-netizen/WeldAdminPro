@@ -4,13 +4,12 @@ namespace WeldAdminPro.Core.Models
 {
     public class StockItem
     {
-        public Guid Id { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
 
-        public string ItemCode { get; set; } = "";   // ✅ REQUIRED
-        public string ItemName { get; set; } = "";
-        public string Description { get; set; } = "";
+        public string ItemCode { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Unit { get; set; } = string.Empty;
 
-        public int Quantity { get; set; }
-        public string Unit { get; set; } = "";
+        public int Quantity { get; set; } = 0;
     }
 }

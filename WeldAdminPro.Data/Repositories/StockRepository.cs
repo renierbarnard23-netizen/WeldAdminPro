@@ -20,8 +20,8 @@ namespace WeldAdminPro.Data.Repositories
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
-            var createCmd = connection.CreateCommand();
-            createCmd.CommandText =
+            var cmd = connection.CreateCommand();
+            cmd.CommandText =
                 "CREATE TABLE IF NOT EXISTS StockItems (" +
                 "Id TEXT PRIMARY KEY, " +
                 "ItemCode TEXT NOT NULL, " +
@@ -30,28 +30,7 @@ namespace WeldAdminPro.Data.Repositories
                 "Unit TEXT" +
                 ");";
 
-            createCmd.ExecuteNonQuery();
-
-            // Safe column add (existing DBs)
-            TryAddColumn(connection, "ItemCode", "TEXT");
-            TryAddColumn(connection, "Description", "TEXT");
-            TryAddColumn(connection, "Quantity", "INTEGER");
-            TryAddColumn(connection, "Unit", "TEXT");
-        }
-
-        private void TryAddColumn(SqliteConnection connection, string columnName, string columnType)
-        {
-            var cmd = connection.CreateCommand();
-            cmd.CommandText = $"ALTER TABLE StockItems ADD COLUMN {columnName} {columnType};";
-
-            try
-            {
-                cmd.ExecuteNonQuery();
-            }
-            catch
-            {
-                // Column exists → ignore
-            }
+            cmd.ExecuteNonQuery();
         }
 
         public List<StockItem> GetAll()
@@ -91,7 +70,7 @@ namespace WeldAdminPro.Data.Repositories
                 "INSERT INTO StockItems (Id, ItemCode, Description, Quantity, Unit) " +
                 "VALUES ($id, $code, $desc, $qty, $unit);";
 
-            cmd.Parameters.AddWithValue("$id", item.Id);
+            cmd.Parameters.AddWithValue("$id", item.Id.ToString());
             cmd.Parameters.AddWithValue("$code", item.ItemCode);
             cmd.Parameters.AddWithValue("$desc", item.Description);
             cmd.Parameters.AddWithValue("$qty", item.Quantity);
