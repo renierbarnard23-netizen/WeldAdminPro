@@ -1,4 +1,6 @@
 using Microsoft.Data.Sqlite;
+using System;
+using System.Collections.Generic;
 using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Data.Repositories
@@ -18,44 +20,41 @@ namespace WeldAdminPro.Data.Repositories
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
-            // ---- STOCK ITEMS TABLE ----
-            var createItems = connection.CreateCommand();
-            createItems.CommandText =
-            """
-            CREATE TABLE IF NOT EXISTS StockItems (
-                Id TEXT PRIMARY KEY,
-                StockCode TEXT NOT NULL,
-                Description TEXT NOT NULL,
-                Category TEXT,
-                Unit TEXT,
-                MinimumLevel REAL,
-                IsActive INTEGER
-            );
-            """;
-            createItems.ExecuteNonQuery();
+            var createCmd = connection.CreateCommand();
+            createCmd.CommandText =
+                "CREATE TABLE IF NOT EXISTS StockItems (" +
+                "Id TEXT PRIMARY KEY, " +
+                "ItemCode TEXT NOT NULL, " +
+                "Description TEXT, " +
+                "Quantity INTEGER NOT NULL, " +
+                "Unit TEXT" +
+                ");";
 
-            // ---- STOCK MOVEMENTS TABLE ----
-            var createMovements = connection.CreateCommand();
-            createMovements.CommandText =
-            """
-            CREATE TABLE IF NOT EXISTS StockMovements (
-                Id TEXT PRIMARY KEY,
-                StockItemId TEXT NOT NULL,
-                MovementType TEXT NOT NULL,
-                Quantity REAL NOT NULL,
-                MovementDate TEXT NOT NULL,
-                Reference TEXT,
-                Notes TEXT
-            );
-            """;
-            createMovements.ExecuteNonQuery();
+            createCmd.ExecuteNonQuery();
+
+            // Safe column add (existing DBs)
+            TryAddColumn(connection, "ItemCode", "TEXT");
+            TryAddColumn(connection, "Description", "TEXT");
+            TryAddColumn(connection, "Quantity", "INTEGER");
+            TryAddColumn(connection, "Unit", "TEXT");
         }
 
-        // ===============================
-        // STOCK ITEMS
-        // ===============================
+        private void TryAddColumn(SqliteConnection connection, string columnName, string columnType)
+        {
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = $"ALTER TABLE StockItems ADD COLUMN {columnName} {columnType};";
 
-        public List<StockItem> GetAllItems()
+            try
+            {
+                cmd.ExecuteNonQuery();
+            }
+            catch
+            {
+                // Column exists → ignore
+            }
+        }
+
+        public List<StockItem> GetAll()
         {
             var list = new List<StockItem>();
 
@@ -64,17 +63,7 @@ namespace WeldAdminPro.Data.Repositories
 
             var cmd = connection.CreateCommand();
             cmd.CommandText =
-            """
-            SELECT
-                Id,
-                StockCode,
-                Description,
-                Category,
-                Unit,
-                MinimumLevel,
-                IsActive
-            FROM StockItems;
-            """;
+                "SELECT Id, ItemCode, Description, Quantity, Unit FROM StockItems;";
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
@@ -82,122 +71,33 @@ namespace WeldAdminPro.Data.Repositories
                 list.Add(new StockItem
                 {
                     Id = Guid.Parse(reader.GetString(0)),
-                    StockCode = reader.GetString(1),
-                    Description = reader.GetString(2),
-                    Category = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                    Unit = reader.IsDBNull(4) ? "" : reader.GetString(4),
-                    MinimumLevel = reader.IsDBNull(5) ? 0 : reader.GetDouble(5),
-                    IsActive = reader.GetInt32(6) == 1
+                    ItemCode = reader.GetString(1),
+                    Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                    Quantity = reader.GetInt32(3),
+                    Unit = reader.IsDBNull(4) ? "" : reader.GetString(4)
                 });
             }
 
             return list;
         }
 
-        public void AddItem(StockItem item)
+        public void Add(StockItem item)
         {
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
             var cmd = connection.CreateCommand();
             cmd.CommandText =
-            """
-            INSERT INTO StockItems (
-                Id,
-                StockCode,
-                Description,
-                Category,
-                Unit,
-                MinimumLevel,
-                IsActive
-            )
-            VALUES (
-                $id,
-                $code,
-                $desc,
-                $cat,
-                $unit,
-                $min,
-                $active
-            );
-            """;
+                "INSERT INTO StockItems (Id, ItemCode, Description, Quantity, Unit) " +
+                "VALUES ($id, $code, $desc, $qty, $unit);";
 
-            cmd.Parameters.AddWithValue("$id", item.Id.ToString());
-            cmd.Parameters.AddWithValue("$code", item.StockCode);
+            cmd.Parameters.AddWithValue("$id", item.Id);
+            cmd.Parameters.AddWithValue("$code", item.ItemCode);
             cmd.Parameters.AddWithValue("$desc", item.Description);
-            cmd.Parameters.AddWithValue("$cat", item.Category);
+            cmd.Parameters.AddWithValue("$qty", item.Quantity);
             cmd.Parameters.AddWithValue("$unit", item.Unit);
-            cmd.Parameters.AddWithValue("$min", item.MinimumLevel);
-            cmd.Parameters.AddWithValue("$active", item.IsActive ? 1 : 0);
 
             cmd.ExecuteNonQuery();
-        }
-
-        // ===============================
-        // STOCK MOVEMENTS
-        // ===============================
-
-        public void AddMovement(StockMovement movement)
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            var cmd = connection.CreateCommand();
-            cmd.CommandText =
-            """
-            INSERT INTO StockMovements (
-                Id,
-                StockItemId,
-                MovementType,
-                Quantity,
-                MovementDate,
-                Reference,
-                Notes
-            )
-            VALUES (
-                $id,
-                $item,
-                $type,
-                $qty,
-                $date,
-                $ref,
-                $notes
-            );
-            """;
-
-            cmd.Parameters.AddWithValue("$id", movement.Id.ToString());
-            cmd.Parameters.AddWithValue("$item", movement.StockItemId.ToString());
-            cmd.Parameters.AddWithValue("$type", movement.MovementType);
-            cmd.Parameters.AddWithValue("$qty", movement.Quantity);
-            cmd.Parameters.AddWithValue("$date", movement.MovementDate.ToString("o"));
-            cmd.Parameters.AddWithValue("$ref", movement.Reference ?? "");
-            cmd.Parameters.AddWithValue("$notes", movement.Notes ?? "");
-
-            cmd.ExecuteNonQuery();
-        }
-
-        public double GetCurrentStock(Guid stockItemId)
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            var cmd = connection.CreateCommand();
-            cmd.CommandText =
-            """
-            SELECT IFNULL(SUM(
-                CASE
-                    WHEN MovementType = 'IN' THEN Quantity
-                    WHEN MovementType = 'OUT' THEN -Quantity
-                    ELSE Quantity
-                END
-            ), 0)
-            FROM StockMovements
-            WHERE StockItemId = $id;
-            """;
-
-            cmd.Parameters.AddWithValue("$id", stockItemId.ToString());
-
-            return Convert.ToDouble(cmd.ExecuteScalar());
         }
     }
 }

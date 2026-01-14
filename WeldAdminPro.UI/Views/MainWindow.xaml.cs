@@ -24,6 +24,11 @@ namespace WeldAdminPro.UI.Views
         {
             MainContent.Content = new ReportsView();
         }
+	private void Stock_Click(object sender, RoutedEventArgs e)
+	{
+    	    MainContent.Content = new StockView();
+	}
+
 
         private void Exit_Click(object sender, RoutedEventArgs e)
         {

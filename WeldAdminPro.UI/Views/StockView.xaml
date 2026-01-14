@@ -1,0 +1,28 @@
+<UserControl x:Class="WeldAdminPro.UI.Views.StockView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d">
+
+    <DockPanel Margin="10">
+
+        <Button Content="New Stock Item"
+                DockPanel.Dock="Top"
+                Width="150"
+                Margin="0,0,0,10"
+                Command="{Binding NewItemCommand}"/>
+
+        <DataGrid ItemsSource="{Binding Items}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True">
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Item Code" Binding="{Binding ItemCode}"/>
+                <DataGridTextColumn Header="Description" Binding="{Binding Description}"/>
+                <DataGridTextColumn Header="Unit" Binding="{Binding Unit}"/>
+            </DataGrid.Columns>
+
+        </DataGrid>
+    </DockPanel>
+</UserControl>

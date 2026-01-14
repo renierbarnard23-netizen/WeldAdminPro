@@ -6,14 +6,11 @@ namespace WeldAdminPro.Core.Models
     {
         public Guid Id { get; set; }
 
-        public string StockCode { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
+        public string ItemCode { get; set; } = "";   // ✅ REQUIRED
+        public string ItemName { get; set; } = "";
+        public string Description { get; set; } = "";
 
-        public string Category { get; set; } = string.Empty;
-        public string Unit { get; set; } = string.Empty;
-
-        public double MinimumLevel { get; set; }
-
-        public bool IsActive { get; set; } = true;
+        public int Quantity { get; set; }
+        public string Unit { get; set; } = "";
     }
 }
