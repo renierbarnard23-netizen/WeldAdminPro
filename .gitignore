@@ -1,33 +1,18 @@
 ﻿# Build output
 bin/
 obj/
-build/
-Output/
-installer_artifacts*/
-installer/
-weldadmin_artifact_unpack/
-
-# Executables & binaries
-*.exe
-*.dll
-*.pdb
-*.deps.json
-*.runtimeconfig.json
 
 # User-specific
-.env
-.env.*
+*.user
+*.suo
+*.rsuser
+
+# Database (CRITICAL)
+weldadmin.db
+
+# Logs
 *.log
 
-# Backup files
-*.bak
-*.backup
-*.old
-
-# IDE
-.vs/
-.vscode/
-
-# Python
-__pycache__/
-*.pyc
+# OS
+.DS_Store
+Thumbs.db
