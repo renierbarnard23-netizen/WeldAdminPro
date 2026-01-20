@@ -16,3 +16,16 @@ weldadmin.db
 # OS
 .DS_Store
 Thumbs.db
+# Publish / installer artifacts
+publish/
+dist/
+build/
+Output/
+artifacts/
+installer/
+installer_artifacts*/
+weldadmin-ui-windows/
+
+# Python leftovers (safe)
+__pycache__/
+.env
