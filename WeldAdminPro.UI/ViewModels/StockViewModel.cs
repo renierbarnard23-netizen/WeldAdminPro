@@ -39,12 +39,22 @@ namespace WeldAdminPro.UI.ViewModels
         {
             _repo = new StockRepository();
 
-            LoadItems();
+            Reload();
 
             NewItemCommand = new RelayCommand(OpenNewItem);
             EditItemCommand = new RelayCommand(OpenEditItem, () => SelectedItem != null);
             StockInCommand = new RelayCommand(OpenStockIn, () => SelectedItem != null);
             StockOutCommand = new RelayCommand(OpenStockOut, () => SelectedItem != null);
+        }
+
+        // =========================
+        // SINGLE SOURCE OF TRUTH
+        // =========================
+
+        public void Reload()
+        {
+            SelectedItem = null; // force DataGrid refresh
+            Items = new ObservableCollection<StockItem>(_repo.GetAll());
         }
 
         // =========================
@@ -56,18 +66,6 @@ namespace WeldAdminPro.UI.ViewModels
             EditItemCommand.NotifyCanExecuteChanged();
             StockInCommand.NotifyCanExecuteChanged();
             StockOutCommand.NotifyCanExecuteChanged();
-        }
-
-        // =========================
-        // Data loading (CRITICAL FIX)
-        // =========================
-
-        private void LoadItems()
-        {
-            // 🔑 MUST clear selection FIRST to force DataGrid refresh
-            SelectedItem = null;
-
-            Items = new ObservableCollection<StockItem>(_repo.GetAll());
         }
 
         // =========================
@@ -84,8 +82,8 @@ namespace WeldAdminPro.UI.ViewModels
                 Title = "New Stock Item"
             };
 
-            vm.ItemCreated += LoadItems;
-            vm.RequestClose += () => window.Close();
+            vm.ItemCreated += Reload;
+            vm.RequestClose += window.Close;
 
             window.ShowDialog();
         }
@@ -103,8 +101,8 @@ namespace WeldAdminPro.UI.ViewModels
                 Title = "Edit Stock Item"
             };
 
-            vm.ItemCreated += LoadItems;
-            vm.RequestClose += () => window.Close();
+            vm.ItemCreated += Reload;
+            vm.RequestClose += window.Close;
 
             window.ShowDialog();
         }
@@ -113,15 +111,8 @@ namespace WeldAdminPro.UI.ViewModels
         // Stock transactions
         // =========================
 
-        private void OpenStockIn()
-        {
-            OpenTransaction(true);
-        }
-
-        private void OpenStockOut()
-        {
-            OpenTransaction(false);
-        }
+        private void OpenStockIn() => OpenTransaction(true);
+        private void OpenStockOut() => OpenTransaction(false);
 
         private void OpenTransaction(bool isStockIn)
         {
@@ -135,8 +126,9 @@ namespace WeldAdminPro.UI.ViewModels
                 Owner = Application.Current.MainWindow
             };
 
-            vm.TransactionCompleted += LoadItems;
-            vm.RequestClose += () => window.Close();
+            // 🔑 CRITICAL FIX
+            vm.TransactionCompleted += Reload;
+            vm.RequestClose += window.Close;
 
             window.ShowDialog();
         }

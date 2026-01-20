@@ -14,7 +14,7 @@ namespace WeldAdminPro.UI.ViewModels
 
         public StockItem Item { get; }
 
-        // 🔑 STRING binding avoids WPF int binding failures
+        // String binding avoids WPF numeric binding issues
         [ObservableProperty]
         private string quantityText = string.Empty;
 
@@ -40,39 +40,34 @@ namespace WeldAdminPro.UI.ViewModels
         }
 
         private void Save()
-        {
-            if (!int.TryParse(QuantityText, out int qty) || qty <= 0)
-            {
-                MessageBox.Show("Quantity must be greater than zero.");
-                return;
-            }
+{
+    if (!int.TryParse(QuantityText, out int qty) || qty <= 0)
+    {
+        MessageBox.Show("Quantity must be greater than zero.");
+        return;
+    }
 
-            // 🔒 Stock OUT validation
-            if (!_isStockIn)
-            {
-                if (Item.Quantity < qty)
-                {
-                    MessageBox.Show("Insufficient stock for Stock OUT.");
-                    return;
-                }
+    if (!_isStockIn && Item.Quantity < qty)
+    {
+        MessageBox.Show("Insufficient stock for Stock OUT.");
+        return;
+    }
 
-                qty = -qty;
-            }
+    var tx = new StockTransaction
+    {
+        Id = Guid.NewGuid(),
+        StockItemId = Item.Id,
+        TransactionDate = DateTime.Now,
+        Quantity = qty,
+        Type = _isStockIn ? "IN" : "OUT",
+        Reference = Reference
+    };
 
-            var tx = new StockTransaction
-            {
-                Id = Guid.NewGuid(),
-                StockItemId = Item.Id,
-                TransactionDate = DateTime.Now,
-                Quantity = qty,
-                Type = _isStockIn ? "IN" : "OUT",
-                Reference = Reference
-            };
+    _repo.AddTransaction(tx);
 
-            _repo.AddTransaction(tx);
+    TransactionCompleted?.Invoke();
+    RequestClose?.Invoke();
+}
 
-            TransactionCompleted?.Invoke();
-            RequestClose?.Invoke();
-        }
     }
 }

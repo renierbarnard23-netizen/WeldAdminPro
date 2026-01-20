@@ -5,7 +5,48 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d">
 
-    <Grid Margin="10">
+    <UserControl.Resources>
+
+        <!-- Quantity colouring -->
+        <Style x:Key="QuantityStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Type}" Value="IN">
+                    <Setter Property="Foreground" Value="Green"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Type}" Value="OUT">
+                    <Setter Property="Foreground" Value="Red"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Balance colouring -->
+        <Style x:Key="BalanceStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RunningBalance}" Value="-1">
+                    <Setter Property="Foreground" Value="Red"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+    </UserControl.Resources>
+
+    <DockPanel Margin="10">
+
+        <!-- 🔄 REFRESH BUTTON -->
+        <StackPanel DockPanel.Dock="Top"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,0,0,5">
+
+            <Button Content="Refresh"
+                    Width="90"
+                    Command="{Binding RefreshCommand}" />
+        </StackPanel>
+
+        <!-- TRANSACTION GRID -->
         <DataGrid ItemsSource="{Binding Transactions}"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
@@ -16,55 +57,39 @@
 
             <DataGrid.Columns>
 
-                <!-- Date -->
                 <DataGridTextColumn Header="Date"
-                                    Binding="{Binding TransactionDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}" />
+                                    Binding="{Binding TransactionDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}"
+                                    Width="140"/>
 
-                <!-- Item Code -->
                 <DataGridTextColumn Header="Item Code"
-                                    Binding="{Binding ItemCode}" />
+                                    Binding="{Binding ItemCode}"
+                                    Width="80"/>
 
-                <!-- Description -->
                 <DataGridTextColumn Header="Description"
-                                    Binding="{Binding ItemDescription}" />
+                                    Binding="{Binding ItemDescription}"
+                                    Width="*"/>
 
-                <!-- Type -->
                 <DataGridTextColumn Header="Type"
-                                    Binding="{Binding Type}" />
+                                    Binding="{Binding Type}"
+                                    Width="60"/>
 
-                <!-- Quantity (colour coded + sign) -->
                 <DataGridTextColumn Header="Quantity"
-                                    Binding="{Binding QuantityDisplay}">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Foreground"
-                                    Value="{Binding QuantityColor}" />
-                            <Setter Property="FontWeight"
-                                    Value="SemiBold" />
-                            <Setter Property="HorizontalAlignment"
-                                    Value="Center" />
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
+                                    Binding="{Binding QuantityDisplay}"
+                                    Width="80"
+                                    ElementStyle="{StaticResource QuantityStyle}"/>
 
-                <!-- Running Balance (bold) -->
                 <DataGridTextColumn Header="Balance"
-                                    Binding="{Binding RunningBalance}">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="FontWeight"
-                                    Value="Bold" />
-                            <Setter Property="HorizontalAlignment"
-                                    Value="Center" />
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
+                                    Binding="{Binding RunningBalance}"
+                                    Width="90"
+                                    ElementStyle="{StaticResource BalanceStyle}"/>
 
-                <!-- Reference -->
                 <DataGridTextColumn Header="Reference"
-                                    Binding="{Binding Reference}" />
+                                    Binding="{Binding Reference}"
+                                    Width="150"/>
 
             </DataGrid.Columns>
+
         </DataGrid>
-    </Grid>
+
+    </DockPanel>
 </UserControl>
