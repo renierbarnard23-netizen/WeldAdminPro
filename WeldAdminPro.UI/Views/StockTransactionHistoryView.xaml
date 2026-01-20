@@ -16,30 +16,55 @@
 
             <DataGrid.Columns>
 
-    <DataGridTextColumn Header="Date"
-                        Binding="{Binding TransactionDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}" />
+                <!-- Date -->
+                <DataGridTextColumn Header="Date"
+                                    Binding="{Binding TransactionDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}" />
 
-    <DataGridTextColumn Header="Item Code"
-                        Binding="{Binding ItemCode}" />
+                <!-- Item Code -->
+                <DataGridTextColumn Header="Item Code"
+                                    Binding="{Binding ItemCode}" />
 
-    <DataGridTextColumn Header="Description"
-                        Binding="{Binding ItemDescription}" />
+                <!-- Description -->
+                <DataGridTextColumn Header="Description"
+                                    Binding="{Binding ItemDescription}" />
 
-    <DataGridTextColumn Header="Type"
-                        Binding="{Binding Type}" />
+                <!-- Type -->
+                <DataGridTextColumn Header="Type"
+                                    Binding="{Binding Type}" />
 
-    <DataGridTextColumn Header="Quantity"
-                        Binding="{Binding Quantity}" />
+                <!-- Quantity (colour coded + sign) -->
+                <DataGridTextColumn Header="Quantity"
+                                    Binding="{Binding QuantityDisplay}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground"
+                                    Value="{Binding QuantityColor}" />
+                            <Setter Property="FontWeight"
+                                    Value="SemiBold" />
+                            <Setter Property="HorizontalAlignment"
+                                    Value="Center" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
 
-    <DataGridTextColumn Header="Balance"
-                    Binding="{Binding RunningBalance}" />
+                <!-- Running Balance (bold) -->
+                <DataGridTextColumn Header="Balance"
+                                    Binding="{Binding RunningBalance}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontWeight"
+                                    Value="Bold" />
+                            <Setter Property="HorizontalAlignment"
+                                    Value="Center" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
 
-    <DataGridTextColumn Header="Reference"
-                        Binding="{Binding Reference}" />
+                <!-- Reference -->
+                <DataGridTextColumn Header="Reference"
+                                    Binding="{Binding Reference}" />
 
-</DataGrid.Columns>
-
-
+            </DataGrid.Columns>
         </DataGrid>
     </Grid>
 </UserControl>
