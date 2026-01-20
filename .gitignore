@@ -1,6 +1,7 @@
 ﻿# Build output
 bin/
 obj/
+.vs/
 
 # User-specific
 *.user

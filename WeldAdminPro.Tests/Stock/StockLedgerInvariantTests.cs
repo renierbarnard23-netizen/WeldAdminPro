@@ -32,4 +32,30 @@ public class StockLedgerInvariantTests
         Assert.NotNull(lastLedger);
         Assert.Equal(reloadedItem.Quantity, lastLedger.RunningBalance);
     }
+[Fact]
+public void Ledger_Should_Not_Allow_Negative_Running_Balance()
+{
+    // Arrange
+    var repo = TestStockRepositoryFactory.Create();
+
+    var item = new StockItem
+    {
+        ItemCode = "NEG-TEST",
+        Description = "Negative balance test",
+        Quantity = 5
+    };
+
+    repo.StockItems.Add(item);
+    repo.SaveChanges();
+
+    // Act
+    repo.AddStockOut(item.Id, 10, "Attempt to overdraw");
+
+    var lastLedger = repo.StockLedger.GetLastEntry(item.Id);
+
+    // Assert
+    Assert.NotNull(lastLedger);
+    Assert.True(lastLedger.RunningBalance >= 0,
+        "Ledger balance must never be negative");
+}
 }

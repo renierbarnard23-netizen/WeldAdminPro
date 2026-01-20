@@ -5,6 +5,8 @@ using System.Linq;
 using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Core.Utilities;
+
 
 namespace WeldAdminPro.UI.ViewModels
 {
@@ -58,10 +60,11 @@ namespace WeldAdminPro.UI.ViewModels
             foreach (var tx in transactions)
             {
                 if (!runningBalances.ContainsKey(tx.StockItemId))
-                    runningBalances[tx.StockItemId] = 0;
-
-                runningBalances[tx.StockItemId] +=
-                    tx.Type == "IN" ? tx.Quantity : -tx.Quantity;
+                    runningBalances[tx.StockItemId] =
+    LedgerBalanceCalculator.CalculateNext(
+        runningBalances[tx.StockItemId],
+        tx.IsIn ? tx.Quantity : 0,
+        tx.IsOut ? tx.Quantity : 0);
 
                 tx.RunningBalance = runningBalances[tx.StockItemId];
             }
