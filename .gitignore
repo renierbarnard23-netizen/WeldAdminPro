@@ -25,6 +25,7 @@ artifacts/
 installer/
 installer_artifacts*/
 weldadmin-ui-windows/
+weldadmin_artifact_unpack/
 
 # Python leftovers (safe)
 __pycache__/
