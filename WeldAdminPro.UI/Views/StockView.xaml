@@ -3,53 +3,71 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:views="clr-namespace:WeldAdminPro.UI.Views"
              mc:Ignorable="d">
 
-    <DockPanel Margin="10">
+    <TabControl Margin="10">
 
-        <StackPanel Orientation="Horizontal"
-                    DockPanel.Dock="Top"
-                    Margin="0,0,0,10">
+        <!-- TAB 1: EXISTING STOCK ITEMS (UNCHANGED) -->
+        <TabItem Header="Stock Items">
 
-            <Button Content="New Stock Item"
-                    Width="150"
-                    Margin="0,0,10,0"
-                    Command="{Binding NewItemCommand}" />
+            <DockPanel>
 
-            <Button Content="Edit Stock Item"
-                    Width="150"
-                    Command="{Binding EditItemCommand}" />
-<Button Content="Stock IN"
-        Width="120"
-        Margin="5"
-        Command="{Binding StockInCommand}" />
+                <StackPanel Orientation="Horizontal"
+                            DockPanel.Dock="Top"
+                            Margin="0,0,0,10">
 
-<Button Content="Stock OUT"
-        Width="120"
-        Margin="5"
-        Command="{Binding StockOutCommand}" />
+                    <Button Content="New Stock Item"
+                            Width="150"
+                            Margin="0,0,10,0"
+                            Command="{Binding NewItemCommand}" />
 
-        </StackPanel>
+                    <Button Content="Edit Stock Item"
+                            Width="150"
+                            Command="{Binding EditItemCommand}" />
 
-        <DataGrid ItemsSource="{Binding Items}"
-                  SelectedItem="{Binding SelectedItem}"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True">
+                    <Button Content="Stock IN"
+                            Width="120"
+                            Margin="5"
+                            Command="{Binding StockInCommand}" />
 
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Item Code"
-                                    Binding="{Binding ItemCode}" />
+                    <Button Content="Stock OUT"
+                            Width="120"
+                            Margin="5"
+                            Command="{Binding StockOutCommand}" />
 
-                <DataGridTextColumn Header="Description"
-                                    Binding="{Binding Description}" />
+                </StackPanel>
 
-                <DataGridTextColumn Header="Quantity"
-                                    Binding="{Binding Quantity}" />
+                <DataGrid ItemsSource="{Binding Items}"
+                          SelectedItem="{Binding SelectedItem}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True">
 
-                <DataGridTextColumn Header="Unit"
-                                    Binding="{Binding Unit}" />
-            </DataGrid.Columns>
-        </DataGrid>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Item Code"
+                                            Binding="{Binding ItemCode}" />
 
-    </DockPanel>
+                        <DataGridTextColumn Header="Description"
+                                            Binding="{Binding Description}" />
+
+                        <DataGridTextColumn Header="Quantity"
+                                            Binding="{Binding Quantity}" />
+
+                        <DataGridTextColumn Header="Unit"
+                                            Binding="{Binding Unit}" />
+                    </DataGrid.Columns>
+
+                </DataGrid>
+
+            </DockPanel>
+
+        </TabItem>
+
+        <!-- TAB 2: TRANSACTION HISTORY (NEW, READ-ONLY) -->
+        <TabItem Header="Transaction History">
+            <views:StockTransactionHistoryView />
+        </TabItem>
+
+    </TabControl>
+
 </UserControl>

@@ -44,33 +44,75 @@ namespace WeldAdminPro.Data.Repositories
                 ");";
             cmd.ExecuteNonQuery();
         }
+public List<StockItem> GetAll()
+{
+    var list = new List<StockItem>();
 
-        public List<StockItem> GetAll()
+    using var connection = new SqliteConnection(_connectionString);
+    connection.Open();
+
+    var cmd = connection.CreateCommand();
+    cmd.CommandText =
+        "SELECT Id, ItemCode, Description, Quantity, Unit FROM StockItems;";
+
+    using var reader = cmd.ExecuteReader();
+    while (reader.Read())
+    {
+        list.Add(new StockItem
         {
-            var list = new List<StockItem>();
+            Id = Guid.Parse(reader.GetString(0)),
+            ItemCode = reader.GetString(1),
+            Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
+            Quantity = reader.GetInt32(3),
+            Unit = reader.IsDBNull(4) ? "" : reader.GetString(4)
+        });
+    }
 
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+    return list;
+}
+        public List<StockTransaction> GetAllTransactions()
+{
+    var list = new List<StockTransaction>();
 
-            var cmd = connection.CreateCommand();
-            cmd.CommandText =
-                "SELECT Id, ItemCode, Description, Quantity, Unit FROM StockItems;";
+    using var connection = new SqliteConnection(_connectionString);
+    connection.Open();
 
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                list.Add(new StockItem
-                {
-                    Id = Guid.Parse(reader.GetString(0)),
-                    ItemCode = reader.GetString(1),
-                    Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                    Quantity = reader.GetInt32(3),
-                    Unit = reader.IsDBNull(4) ? "" : reader.GetString(4)
-                });
-            }
+    var cmd = connection.CreateCommand();
+    cmd.CommandText =
+        "SELECT " +
+        "t.Id, " +
+        "t.StockItemId, " +
+        "t.TransactionDate, " +
+        "t.Quantity, " +
+        "t.Type, " +
+        "t.Reference, " +
+        "i.ItemCode, " +
+        "i.Description " +
+        "FROM StockTransactions t " +
+        "JOIN StockItems i ON i.Id = t.StockItemId " +
+        "ORDER BY t.TransactionDate DESC;";
 
-            return list;
-        }
+    using var reader = cmd.ExecuteReader();
+    while (reader.Read())
+    {
+        list.Add(new StockTransaction
+        {
+            Id = Guid.Parse(reader.GetString(0)),
+            StockItemId = Guid.Parse(reader.GetString(1)),
+            TransactionDate = DateTime.Parse(reader.GetString(2)),
+            Quantity = reader.GetInt32(3),
+            Type = reader.GetString(4),
+            Reference = reader.IsDBNull(5) ? "" : reader.GetString(5),
+
+            // Convenience properties (do NOT affect DB)
+            ItemCode = reader.GetString(6),
+            ItemDescription = reader.GetString(7)
+        });
+    }
+
+    return list;
+}
+
 
         public void Add(StockItem item)
         {

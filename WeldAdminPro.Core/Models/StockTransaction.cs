@@ -10,5 +10,8 @@ namespace WeldAdminPro.Core.Models
         public int Quantity { get; set; }      // +IN / -OUT
         public string Type { get; set; } = ""; // IN or OUT
         public string Reference { get; set; } = "";
+	public string ItemCode { get; set; } = "";
+	public string ItemDescription { get; set; } = "";
+	public int RunningBalance { get; set; }
     }
 }
