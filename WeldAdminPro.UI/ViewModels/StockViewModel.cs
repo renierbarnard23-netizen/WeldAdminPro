@@ -13,6 +13,7 @@ namespace WeldAdminPro.UI.ViewModels
 	public partial class StockViewModel : ObservableObject
 	{
 		private readonly StockRepository _repo;
+		private readonly CategoryRepository _categoryRepo;
 
 		// =========================
 		// Observable properties
@@ -25,47 +26,24 @@ namespace WeldAdminPro.UI.ViewModels
 		private StockItem? selectedItem;
 
 		// =========================
-		// Category filter (manual)
+		// Categories (dynamic)
 		// =========================
 
-		public ObservableCollection<string> Categories { get; } =
-			new()
-			{
-				"All",
-				"Uncategorised",
-				"Electrodes",
-				"Gas",
-				"Abrasives",
-				"PPE"
-			};
+		[ObservableProperty]
+		private ObservableCollection<string> categories = new();
 
+		[ObservableProperty]
 		private string selectedCategory = "All";
-		public string SelectedCategory
-		{
-			get => selectedCategory;
-			set
-			{
-				if (SetProperty(ref selectedCategory, value))
-				{
-					Reload();
-				}
-			}
-		}
 
 		// =========================
-		// Undo delete (session-only)
+		// Undo delete/edit
 		// =========================
 
 		private StockItem? _lastDeletedItem;
+		private StockItem? _lastEditedBefore;
 
 		[ObservableProperty]
 		private bool canUndoDelete;
-
-		// =========================
-		// Undo edit (session-only)
-		// =========================
-
-		private StockItem? _lastEditedBefore;
 
 		[ObservableProperty]
 		private bool canUndoEdit;
@@ -89,7 +67,9 @@ namespace WeldAdminPro.UI.ViewModels
 		public StockViewModel()
 		{
 			_repo = new StockRepository();
+			_categoryRepo = new CategoryRepository();
 
+			LoadCategories();
 			Reload();
 
 			NewItemCommand = new RelayCommand(OpenNewItem);
@@ -102,7 +82,30 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// Reload & filtering (FIXED)
+		// Category loading
+		// =========================
+
+		public void LoadCategories()
+		{
+			Categories.Clear();
+			Categories.Add("All");
+
+			foreach (var cat in _categoryRepo.GetAllActive())
+			{
+				Categories.Add(cat.Name);
+			}
+
+			if (!Categories.Contains(SelectedCategory))
+				SelectedCategory = "All";
+		}
+
+		partial void OnSelectedCategoryChanged(string value)
+		{
+			Reload();
+		}
+
+		// =========================
+		// Reload stock items
 		// =========================
 
 		public void Reload()
@@ -111,28 +114,15 @@ namespace WeldAdminPro.UI.ViewModels
 
 			var allItems = _repo.GetAll();
 
-			// Normalise empty category
-			foreach (var item in allItems)
-			{
-				if (string.IsNullOrWhiteSpace(item.Category))
-					item.Category = "Uncategorised";
-			}
-
 			if (SelectedCategory != "All")
 			{
 				allItems = allItems
-					.Where(i =>
-						string.Equals(i.Category, SelectedCategory,
-									  StringComparison.OrdinalIgnoreCase))
+					.Where(i => i.Category == SelectedCategory)
 					.ToList();
 			}
 
 			Items = new ObservableCollection<StockItem>(allItems);
 		}
-
-		// =========================
-		// Selection change handler
-		// =========================
 
 		partial void OnSelectedItemChanged(StockItem? value)
 		{
@@ -140,16 +130,6 @@ namespace WeldAdminPro.UI.ViewModels
 			StockInCommand.NotifyCanExecuteChanged();
 			StockOutCommand.NotifyCanExecuteChanged();
 			DeleteStockItemCommand.NotifyCanExecuteChanged();
-		}
-
-		partial void OnCanUndoDeleteChanged(bool value)
-		{
-			UndoDeleteCommand.NotifyCanExecuteChanged();
-		}
-
-		partial void OnCanUndoEditChanged(bool value)
-		{
-			UndoEditCommand.NotifyCanExecuteChanged();
 		}
 
 		// =========================
@@ -166,9 +146,13 @@ namespace WeldAdminPro.UI.ViewModels
 				Title = "New Stock Item"
 			};
 
-			vm.ItemCreated += Reload;
-			vm.RequestClose += window.Close;
+			vm.ItemCreated += () =>
+			{
+				LoadCategories();
+				Reload();
+			};
 
+			vm.RequestClose += window.Close;
 			window.ShowDialog();
 		}
 
@@ -198,16 +182,16 @@ namespace WeldAdminPro.UI.ViewModels
 			vm.ItemCreated += () =>
 			{
 				CanUndoEdit = true;
+				LoadCategories();
 				Reload();
 			};
 
 			vm.RequestClose += window.Close;
-
 			window.ShowDialog();
 		}
 
 		// =========================
-		// Stock transactions
+		// Transactions
 		// =========================
 
 		private void OpenStockIn() => OpenTransaction(true);
@@ -215,8 +199,6 @@ namespace WeldAdminPro.UI.ViewModels
 
 		private void OpenTransaction(bool isStockIn)
 		{
-			ClearEditUndo();
-
 			if (SelectedItem == null)
 				return;
 
@@ -229,12 +211,11 @@ namespace WeldAdminPro.UI.ViewModels
 
 			vm.TransactionCompleted += Reload;
 			vm.RequestClose += window.Close;
-
 			window.ShowDialog();
 		}
 
 		// =========================
-		// Delete stock item
+		// Delete / Undo
 		// =========================
 
 		private void DeleteSelectedStockItem()
@@ -243,32 +224,18 @@ namespace WeldAdminPro.UI.ViewModels
 				return;
 
 			if (MessageBox.Show(
-					$"Delete stock item '{SelectedItem.ItemCode}'?",
-					"Confirm Delete",
-					MessageBoxButton.YesNo,
-					MessageBoxImage.Warning) != MessageBoxResult.Yes)
+				$"Delete '{SelectedItem.ItemCode}'?",
+				"Confirm Delete",
+				MessageBoxButton.YesNo,
+				MessageBoxImage.Warning) != MessageBoxResult.Yes)
 				return;
 
-			try
-			{
-				ClearEditUndo();
+			_lastDeletedItem = SelectedItem;
+			CanUndoDelete = true;
 
-				_lastDeletedItem = SelectedItem;
-				CanUndoDelete = true;
-
-				_repo.DeleteStockItem(SelectedItem.Id);
-				Reload();
-			}
-			catch (InvalidOperationException ex)
-			{
-				MessageBox.Show(ex.Message, "Delete blocked",
-					MessageBoxButton.OK, MessageBoxImage.Warning);
-			}
+			_repo.DeleteStockItem(SelectedItem.Id);
+			Reload();
 		}
-
-		// =========================
-		// Undo delete
-		// =========================
 
 		private void UndoLastDelete()
 		{
@@ -276,16 +243,11 @@ namespace WeldAdminPro.UI.ViewModels
 				return;
 
 			_repo.Add(_lastDeletedItem);
-
 			_lastDeletedItem = null;
 			CanUndoDelete = false;
 
 			Reload();
 		}
-
-		// =========================
-		// Undo edit
-		// =========================
 
 		private void UndoLastEdit()
 		{
@@ -293,17 +255,10 @@ namespace WeldAdminPro.UI.ViewModels
 				return;
 
 			_repo.Update(_lastEditedBefore);
-
 			_lastEditedBefore = null;
 			CanUndoEdit = false;
 
 			Reload();
-		}
-
-		private void ClearEditUndo()
-		{
-			_lastEditedBefore = null;
-			CanUndoEdit = false;
 		}
 	}
 }

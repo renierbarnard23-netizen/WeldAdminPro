@@ -49,11 +49,15 @@
                             Margin="0,0,10,0"
                             Command="{Binding UndoDeleteCommand}"
                             Background="LightGray" />
-
 					<Button Content="Undo Edit"
                             Width="80"
                             Command="{Binding UndoEditCommand}"
                             Background="LightGray" />
+
+					<Button Content="Manage Categories"
+                            Width="134"
+                            Margin="0,0,10,0"
+                            Click="ManageCategories_Click" Height="50"/>
 
 				</StackPanel>
 
@@ -78,7 +82,8 @@
 
 							<ComboBox ItemsSource="{Binding Categories}"
                                       SelectedItem="{Binding SelectedCategory}"
-                                      Margin="0,0,0,10"/>
+                                      Width="152"/>
+
 
 						</StackPanel>
 					</Border>
