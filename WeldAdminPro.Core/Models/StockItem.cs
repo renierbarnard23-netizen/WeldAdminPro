@@ -4,16 +4,27 @@ namespace WeldAdminPro.Core.Models
 {
 	public class StockItem
 	{
-		public Guid Id { get; set; } = Guid.NewGuid();
-
-		public string ItemCode { get; set; } = string.Empty;
-		public string Description { get; set; } = string.Empty;
-
+		public Guid Id { get; set; }
+		public string ItemCode { get; set; } = "";
+		public string Description { get; set; } = "";
 		public int Quantity { get; set; }
+		public string Unit { get; set; } = "";
+		public string Category { get; set; } = "Uncategorised";
 
-		public string Unit { get; set; } = string.Empty;
+		// =========================
+		// Low stock settings
+		// =========================
 
-		// ✅ NEW
-		public string Category { get; set; } = string.Empty;
+		/// <summary>
+		/// Default low-stock threshold.
+		/// Can be made configurable later.
+		/// </summary>
+		public int LowStockThreshold { get; set; } = 10;
+
+		public bool IsLowStock =>
+			Quantity > 0 && Quantity <= LowStockThreshold;
+
+		public bool IsOutOfStock =>
+			Quantity <= 0;
 	}
 }

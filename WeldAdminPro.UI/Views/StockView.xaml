@@ -114,6 +114,26 @@
                                                 Width="*" />
 
 						</DataGrid.Columns>
+						<DataGrid.RowStyle>
+							<Style TargetType="DataGridRow">
+								<Style.Triggers>
+
+									<!-- OUT OF STOCK -->
+									<DataTrigger Binding="{Binding IsOutOfStock}" Value="True">
+										<Setter Property="Background" Value="#FFDD6B6B"/>
+										<Setter Property="Foreground" Value="Black"/>
+									</DataTrigger>
+
+									<!-- LOW STOCK -->
+									<DataTrigger Binding="{Binding IsLowStock}" Value="True">
+										<Setter Property="Background" Value="#FFFFE08A"/>
+										<Setter Property="Foreground" Value="Black"/>
+									</DataTrigger>
+
+								</Style.Triggers>
+							</Style>
+						</DataGrid.RowStyle>
+
 
 					</DataGrid>
 				</Grid>
