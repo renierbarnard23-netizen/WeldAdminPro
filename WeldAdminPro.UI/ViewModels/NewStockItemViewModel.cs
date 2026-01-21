@@ -1,8 +1,7 @@
-using System;
-using System.Collections.ObjectModel;
-using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System;
+using System.Collections.ObjectModel;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
@@ -10,49 +9,76 @@ namespace WeldAdminPro.UI.ViewModels
 {
 	public partial class NewStockItemViewModel : ObservableObject
 	{
-		private readonly StockRepository _repo = new();
+		private readonly StockRepository _stockRepo = new();
+		private readonly CategoryRepository _categoryRepo = new();
 
 		public event Action? ItemCreated;
 		public event Action? RequestClose;
 
+		// =========================
+		// Stock item
+		// =========================
+
 		[ObservableProperty]
-		private StockItem item = null!;
+		private StockItem item;
 
-		public ObservableCollection<string> Categories { get; } =
-			new()
-			{
-				"Electrodes",
-				"Gas",
-				"Abrasives",
-				"PPE"
-			};
+		// =========================
+		// Categories (dynamic)
+		// =========================
 
-		// NEW ITEM
+		[ObservableProperty]
+		private ObservableCollection<string> categories = new();
+
+		// =========================
+		// Constructors
+		// =========================
+
 		public NewStockItemViewModel()
 		{
 			Item = new StockItem
 			{
 				Id = Guid.NewGuid(),
-				Quantity = 0,
 				Category = "Uncategorised"
 			};
+
+			LoadCategories();
 		}
 
-		// EDIT ITEM
 		public NewStockItemViewModel(StockItem existing)
 		{
 			Item = existing;
-			Item.Category ??= "Uncategorised";
+			LoadCategories();
 		}
+
+		// =========================
+		// Load categories
+		// =========================
+
+		private void LoadCategories()
+		{
+			Categories.Clear();
+
+			foreach (var cat in _categoryRepo.GetAllActive())
+			{
+				Categories.Add(cat.Name);
+			}
+
+			// Safety fallback
+			if (!Categories.Contains(Item.Category))
+				Item.Category = "Uncategorised";
+		}
+
+		// =========================
+		// Save
+		// =========================
 
 		[RelayCommand]
 		private void Save()
 		{
-			// New item = not yet in DB
-			if (_repo.GetAll().All(i => i.Id != Item.Id))
-				_repo.Add(Item);
+			if (Item.Id == Guid.Empty)
+				_stockRepo.Add(Item);
 			else
-				_repo.Update(Item);
+				_stockRepo.Update(Item);
 
 			ItemCreated?.Invoke();
 			RequestClose?.Invoke();
