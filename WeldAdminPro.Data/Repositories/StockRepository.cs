@@ -41,7 +41,7 @@ namespace WeldAdminPro.Data.Repositories
 				"Reference TEXT);";
 			cmd.ExecuteNonQuery();
 
-			// Safe migration for existing DBs
+			// Safe migration for existing databases
 			cmd.CommandText = "ALTER TABLE StockItems ADD COLUMN Category TEXT;";
 			try
 			{
@@ -49,7 +49,7 @@ namespace WeldAdminPro.Data.Repositories
 			}
 			catch (SqliteException)
 			{
-				// Column already exists
+				// Column already exists – ignore
 			}
 		}
 
@@ -78,7 +78,9 @@ namespace WeldAdminPro.Data.Repositories
 					Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
 					Quantity = reader.GetInt32(3),
 					Unit = reader.IsDBNull(4) ? "" : reader.GetString(4),
-					Category = reader.IsDBNull(5) ? "" : reader.GetString(5)
+					Category = reader.IsDBNull(5) || string.IsNullOrWhiteSpace(reader.GetString(5))
+						? "Uncategorised"
+						: reader.GetString(5)
 				});
 			}
 
@@ -108,7 +110,9 @@ namespace WeldAdminPro.Data.Repositories
 				Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
 				Quantity = reader.GetInt32(3),
 				Unit = reader.IsDBNull(4) ? "" : reader.GetString(4),
-				Category = reader.IsDBNull(5) ? "" : reader.GetString(5)
+				Category = reader.IsDBNull(5) || string.IsNullOrWhiteSpace(reader.GetString(5))
+					? "Uncategorised"
+					: reader.GetString(5)
 			};
 		}
 
@@ -127,7 +131,7 @@ namespace WeldAdminPro.Data.Repositories
 			cmd.Parameters.AddWithValue("$desc", item.Description);
 			cmd.Parameters.AddWithValue("$qty", item.Quantity);
 			cmd.Parameters.AddWithValue("$unit", item.Unit);
-			cmd.Parameters.AddWithValue("$cat", item.Category);
+			cmd.Parameters.AddWithValue("$cat", item.Category ?? "Uncategorised");
 
 			cmd.ExecuteNonQuery();
 		}
@@ -150,7 +154,7 @@ namespace WeldAdminPro.Data.Repositories
 			cmd.Parameters.AddWithValue("$desc", item.Description);
 			cmd.Parameters.AddWithValue("$qty", item.Quantity);
 			cmd.Parameters.AddWithValue("$unit", item.Unit);
-			cmd.Parameters.AddWithValue("$cat", item.Category);
+			cmd.Parameters.AddWithValue("$cat", item.Category ?? "Uncategorised");
 
 			cmd.ExecuteNonQuery();
 		}
@@ -165,7 +169,7 @@ namespace WeldAdminPro.Data.Repositories
 				"SELECT COUNT(1) FROM StockTransactions WHERE StockItemId = $id;";
 			checkCmd.Parameters.AddWithValue("$id", itemId.ToString());
 
-			long transactionCount = (long)checkCmd.ExecuteScalar();
+			long transactionCount = (long)checkCmd.ExecuteScalar()!;
 
 			if (transactionCount > 0)
 				throw new InvalidOperationException(
@@ -244,6 +248,7 @@ namespace WeldAdminPro.Data.Repositories
 			txCmd.Parameters.AddWithValue("$qty", tx.Quantity);
 			txCmd.Parameters.AddWithValue("$type", tx.Type);
 			txCmd.Parameters.AddWithValue("$ref", tx.Reference);
+
 			txCmd.ExecuteNonQuery();
 
 			var stockCmd = connection.CreateCommand();
@@ -253,6 +258,7 @@ namespace WeldAdminPro.Data.Repositories
 			int delta = tx.Type == "IN" ? tx.Quantity : -tx.Quantity;
 			stockCmd.Parameters.AddWithValue("$delta", delta);
 			stockCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
+
 			stockCmd.ExecuteNonQuery();
 
 			transaction.Commit();

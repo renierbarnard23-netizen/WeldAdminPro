@@ -2,6 +2,7 @@ using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
@@ -24,6 +25,34 @@ namespace WeldAdminPro.UI.ViewModels
 		private StockItem? selectedItem;
 
 		// =========================
+		// Category filter (manual)
+		// =========================
+
+		public ObservableCollection<string> Categories { get; } =
+			new()
+			{
+				"All",
+				"Uncategorised",
+				"Electrodes",
+				"Gas",
+				"Abrasives",
+				"PPE"
+			};
+
+		private string selectedCategory = "All";
+		public string SelectedCategory
+		{
+			get => selectedCategory;
+			set
+			{
+				if (SetProperty(ref selectedCategory, value))
+				{
+					Reload();
+				}
+			}
+		}
+
+		// =========================
 		// Undo delete (session-only)
 		// =========================
 
@@ -37,7 +66,6 @@ namespace WeldAdminPro.UI.ViewModels
 		// =========================
 
 		private StockItem? _lastEditedBefore;
-		private StockItem? _lastEditedAfter;
 
 		[ObservableProperty]
 		private bool canUndoEdit;
@@ -54,7 +82,6 @@ namespace WeldAdminPro.UI.ViewModels
 		public IRelayCommand UndoDeleteCommand { get; }
 		public IRelayCommand UndoEditCommand { get; }
 
-
 		// =========================
 		// Constructor
 		// =========================
@@ -69,20 +96,38 @@ namespace WeldAdminPro.UI.ViewModels
 			EditItemCommand = new RelayCommand(OpenEditItem, () => SelectedItem != null);
 			StockInCommand = new RelayCommand(OpenStockIn, () => SelectedItem != null);
 			StockOutCommand = new RelayCommand(OpenStockOut, () => SelectedItem != null);
-			DeleteStockItemCommand = new RelayCommand(DeleteSelectedStockItem, CanDeleteStockItem);
+			DeleteStockItemCommand = new RelayCommand(DeleteSelectedStockItem, () => SelectedItem != null);
 			UndoDeleteCommand = new RelayCommand(UndoLastDelete, () => CanUndoDelete);
 			UndoEditCommand = new RelayCommand(UndoLastEdit, () => CanUndoEdit);
-
 		}
 
 		// =========================
-		// SINGLE SOURCE OF TRUTH
+		// Reload & filtering (FIXED)
 		// =========================
 
 		public void Reload()
 		{
 			SelectedItem = null;
-			Items = new ObservableCollection<StockItem>(_repo.GetAll());
+
+			var allItems = _repo.GetAll();
+
+			// Normalise empty category
+			foreach (var item in allItems)
+			{
+				if (string.IsNullOrWhiteSpace(item.Category))
+					item.Category = "Uncategorised";
+			}
+
+			if (SelectedCategory != "All")
+			{
+				allItems = allItems
+					.Where(i =>
+						string.Equals(i.Category, SelectedCategory,
+									  StringComparison.OrdinalIgnoreCase))
+					.ToList();
+			}
+
+			Items = new ObservableCollection<StockItem>(allItems);
 		}
 
 		// =========================
@@ -101,11 +146,11 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			UndoDeleteCommand.NotifyCanExecuteChanged();
 		}
+
 		partial void OnCanUndoEditChanged(bool value)
 		{
 			UndoEditCommand.NotifyCanExecuteChanged();
 		}
-
 
 		// =========================
 		// New / Edit stock
@@ -132,14 +177,14 @@ namespace WeldAdminPro.UI.ViewModels
 			if (SelectedItem == null)
 				return;
 
-			// Capture BEFORE snapshot
-			var beforeEdit = new StockItem
+			_lastEditedBefore = new StockItem
 			{
 				Id = SelectedItem.Id,
 				ItemCode = SelectedItem.ItemCode,
 				Description = SelectedItem.Description,
 				Quantity = SelectedItem.Quantity,
-				Unit = SelectedItem.Unit
+				Unit = SelectedItem.Unit,
+				Category = SelectedItem.Category
 			};
 
 			var vm = new NewStockItemViewModel(SelectedItem);
@@ -152,37 +197,13 @@ namespace WeldAdminPro.UI.ViewModels
 
 			vm.ItemCreated += () =>
 			{
-				// Capture AFTER snapshot
-				_lastEditedBefore = beforeEdit;
-				_lastEditedAfter = SelectedItem;
-
 				CanUndoEdit = true;
-
 				Reload();
 			};
 
 			vm.RequestClose += window.Close;
 
 			window.ShowDialog();
-		}
-		private void UndoLastEdit()
-		{
-			if (_lastEditedBefore == null)
-				return;
-
-			_repo.Update(_lastEditedBefore);
-
-			_lastEditedBefore = null;
-			_lastEditedAfter = null;
-			CanUndoEdit = false;
-
-			Reload();
-		}
-		private void ClearEditUndo()
-		{
-			_lastEditedBefore = null;
-			_lastEditedAfter = null;
-			CanUndoEdit = false;
 		}
 
 		// =========================
@@ -194,6 +215,8 @@ namespace WeldAdminPro.UI.ViewModels
 
 		private void OpenTransaction(bool isStockIn)
 		{
+			ClearEditUndo();
+
 			if (SelectedItem == null)
 				return;
 
@@ -211,31 +234,25 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// Delete stock item (SAFE)
+		// Delete stock item
 		// =========================
-
-		private bool CanDeleteStockItem()
-		{
-			return SelectedItem != null;
-		}
 
 		private void DeleteSelectedStockItem()
 		{
 			if (SelectedItem == null)
 				return;
 
-			var result = MessageBox.Show(
-				$"Are you sure you want to delete stock item '{SelectedItem.ItemCode}'?",
-				"Confirm Delete",
-				MessageBoxButton.YesNo,
-				MessageBoxImage.Warning);
-
-			if (result != MessageBoxResult.Yes)
+			if (MessageBox.Show(
+					$"Delete stock item '{SelectedItem.ItemCode}'?",
+					"Confirm Delete",
+					MessageBoxButton.YesNo,
+					MessageBoxImage.Warning) != MessageBoxResult.Yes)
 				return;
 
 			try
 			{
-				// Store for undo (session only)
+				ClearEditUndo();
+
 				_lastDeletedItem = SelectedItem;
 				CanUndoDelete = true;
 
@@ -244,16 +261,13 @@ namespace WeldAdminPro.UI.ViewModels
 			}
 			catch (InvalidOperationException ex)
 			{
-				MessageBox.Show(
-					ex.Message,
-					"Delete Stock Item",
-					MessageBoxButton.OK,
-					MessageBoxImage.Warning);
+				MessageBox.Show(ex.Message, "Delete blocked",
+					MessageBoxButton.OK, MessageBoxImage.Warning);
 			}
 		}
 
 		// =========================
-		// Undo delete (session-only)
+		// Undo delete
 		// =========================
 
 		private void UndoLastDelete()
@@ -267,6 +281,29 @@ namespace WeldAdminPro.UI.ViewModels
 			CanUndoDelete = false;
 
 			Reload();
+		}
+
+		// =========================
+		// Undo edit
+		// =========================
+
+		private void UndoLastEdit()
+		{
+			if (_lastEditedBefore == null)
+				return;
+
+			_repo.Update(_lastEditedBefore);
+
+			_lastEditedBefore = null;
+			CanUndoEdit = false;
+
+			Reload();
+		}
+
+		private void ClearEditUndo()
+		{
+			_lastEditedBefore = null;
+			CanUndoEdit = false;
 		}
 	}
 }
