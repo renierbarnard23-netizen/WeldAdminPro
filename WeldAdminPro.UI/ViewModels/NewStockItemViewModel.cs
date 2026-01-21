@@ -14,19 +14,27 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly StockRepository _repo = new();
 		private readonly CategoryRepository _categoryRepo = new();
 
+		// =========================
+		// STATE
+		// =========================
 		private readonly bool _isEditMode;
+
+		public bool IsEditMode => _isEditMode;
 
 		public event Action? ItemCreated;
 		public event Action? RequestClose;
 
+		// =========================
+		// BINDINGS
+		// =========================
 		[ObservableProperty]
-		private StockItem item;
+		private StockItem item = null!;
 
 		[ObservableProperty]
 		private ObservableCollection<string> categories = new();
 
 		// =========================
-		// NEW ITEM
+		// NEW ITEM CONSTRUCTOR
 		// =========================
 		public NewStockItemViewModel()
 		{
@@ -43,7 +51,7 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// EDIT ITEM
+		// EDIT ITEM CONSTRUCTOR
 		// =========================
 		public NewStockItemViewModel(StockItem existing)
 		{
@@ -63,8 +71,11 @@ namespace WeldAdminPro.UI.ViewModels
 			foreach (var cat in _categoryRepo.GetAllActive())
 				Categories.Add(cat.Name);
 
-			if (string.IsNullOrWhiteSpace(Item.Category))
+			if (string.IsNullOrWhiteSpace(Item.Category) ||
+				!Categories.Contains(Item.Category))
+			{
 				Item.Category = "Uncategorised";
+			}
 		}
 
 		// =========================
@@ -96,7 +107,8 @@ namespace WeldAdminPro.UI.ViewModels
 			if (string.IsNullOrWhiteSpace(Item.Category))
 				Item.Category = "Uncategorised";
 
-			// Duplicate Item Code check
+			// -------- Duplicate Code Check --------
+
 			var existingCodes = _repo.GetAll()
 				.Where(i => i.Id != Item.Id)
 				.Select(i => i.ItemCode)

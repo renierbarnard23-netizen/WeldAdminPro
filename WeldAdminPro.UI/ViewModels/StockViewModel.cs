@@ -76,10 +76,16 @@ namespace WeldAdminPro.UI.ViewModels
 			EditItemCommand = new RelayCommand(OpenEditItem, () => SelectedItem != null);
 			StockInCommand = new RelayCommand(OpenStockIn, () => SelectedItem != null);
 			StockOutCommand = new RelayCommand(OpenStockOut, () => SelectedItem != null);
-			DeleteStockItemCommand = new RelayCommand(DeleteSelectedStockItem, () => SelectedItem != null);
+			DeleteStockItemCommand = new RelayCommand(DeleteSelectedStockItem, () => CanDeleteSelectedItem);
 			UndoDeleteCommand = new RelayCommand(UndoLastDelete, () => CanUndoDelete);
 			UndoEditCommand = new RelayCommand(UndoLastEdit, () => CanUndoEdit);
 		}
+		private void OnCategoriesChanged()
+		{
+			LoadCategories();
+			Reload();
+		}
+
 
 		// =========================
 		// Category loading
@@ -131,6 +137,7 @@ namespace WeldAdminPro.UI.ViewModels
 			StockOutCommand.NotifyCanExecuteChanged();
 			DeleteStockItemCommand.NotifyCanExecuteChanged();
 		}
+
 
 		// =========================
 		// New / Edit stock
@@ -265,5 +272,8 @@ namespace WeldAdminPro.UI.ViewModels
 
 			Reload();
 		}
+		public bool CanDeleteSelectedItem =>
+		SelectedItem != null && !_repo.HasTransactions(SelectedItem.Id);
+
 	}
 }

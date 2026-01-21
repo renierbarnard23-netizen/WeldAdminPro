@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 using WeldAdminPro.Core.Models;
@@ -14,27 +14,29 @@ namespace WeldAdminPro.Data.Repositories
 			EnsureDatabase();
 		}
 
+		// =========================
+		// DB INIT
+		// =========================
 		private void EnsureDatabase()
 		{
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
 			var cmd = connection.CreateCommand();
-
 			cmd.CommandText =
 				"CREATE TABLE IF NOT EXISTS Categories (" +
 				"Id TEXT PRIMARY KEY, " +
 				"Name TEXT NOT NULL UNIQUE, " +
 				"IsActive INTEGER NOT NULL);";
-
 			cmd.ExecuteNonQuery();
+
+			AddIfMissing("Uncategorised");
 		}
 
 		// =========================
-		// READ
+		// GET
 		// =========================
-
-		public List<Category> GetAllActive()
+		public IEnumerable<Category> GetAll()
 		{
 			var list = new List<Category>();
 
@@ -43,79 +45,125 @@ namespace WeldAdminPro.Data.Repositories
 
 			var cmd = connection.CreateCommand();
 			cmd.CommandText =
-				"SELECT Id, Name, IsActive FROM Categories WHERE IsActive = 1 ORDER BY Name;";
+				"SELECT Id, Name, IsActive FROM Categories ORDER BY Name;";
 
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
 			{
-				list.Add(new Category
-				{
-					Id = Guid.Parse(reader.GetString(0)),
-					Name = reader.GetString(1),
-					IsActive = reader.GetInt32(2) == 1
-				});
+				list.Add(ReadCategory(reader));
+			}
+
+			return list;
+		}
+
+		public IEnumerable<Category> GetAllActive()
+		{
+			var list = new List<Category>();
+
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			var cmd = connection.CreateCommand();
+			cmd.CommandText =
+				"SELECT Id, Name, IsActive FROM Categories " +
+				"WHERE IsActive = 1 ORDER BY Name;";
+
+			using var reader = cmd.ExecuteReader();
+			while (reader.Read())
+			{
+				list.Add(ReadCategory(reader));
 			}
 
 			return list;
 		}
 
 		// =========================
-		// SAFETY CHECK
+		// ADD
 		// =========================
-
-		public bool IsCategoryInUse(string categoryName)
+		public void Add(Category category)
 		{
+			if (string.IsNullOrWhiteSpace(category.Name))
+				return;
+
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
 			var cmd = connection.CreateCommand();
 			cmd.CommandText =
-				"SELECT COUNT(1) FROM StockItems WHERE Category = $cat;";
-			cmd.Parameters.AddWithValue("$cat", categoryName);
+				"INSERT OR IGNORE INTO Categories (Id, Name, IsActive) " +
+				"VALUES ($id, $name, 1);";
 
-			return (long)cmd.ExecuteScalar() > 0;
+			cmd.Parameters.AddWithValue(
+				"$id",
+				category.Id == Guid.Empty
+					? Guid.NewGuid().ToString()
+					: category.Id.ToString());
+
+			cmd.Parameters.AddWithValue("$name", category.Name.Trim());
+			cmd.ExecuteNonQuery();
 		}
-
-		// =========================
-		// WRITE
-		// =========================
 
 		public void Add(string name)
 		{
+			Add(new Category
+			{
+				Id = Guid.NewGuid(),
+				Name = name,
+				IsActive = true
+			});
+		}
+
+		private void AddIfMissing(string name)
+		{
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
 			var cmd = connection.CreateCommand();
 			cmd.CommandText =
-				"INSERT INTO Categories (Id, Name, IsActive) VALUES ($id, $name, 1);";
+				"INSERT OR IGNORE INTO Categories (Id, Name, IsActive) " +
+				"VALUES ($id, $name, 1);";
 
 			cmd.Parameters.AddWithValue("$id", Guid.NewGuid().ToString());
 			cmd.Parameters.AddWithValue("$name", name);
-
 			cmd.ExecuteNonQuery();
 		}
 
-		public void Rename(Guid id, string newName)
+		// =========================
+		// UPDATE / RENAME
+		// =========================
+		public void Update(Category category)
 		{
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
 			var cmd = connection.CreateCommand();
 			cmd.CommandText =
-				"UPDATE Categories SET Name = $name WHERE Id = $id;";
+				"UPDATE Categories SET Name = $name, IsActive = $active " +
+				"WHERE Id = $id;";
 
-			cmd.Parameters.AddWithValue("$id", id.ToString());
-			cmd.Parameters.AddWithValue("$name", newName);
+			cmd.Parameters.AddWithValue("$id", category.Id.ToString());
+			cmd.Parameters.AddWithValue("$name", category.Name);
+			cmd.Parameters.AddWithValue("$active", category.IsActive ? 1 : 0);
 
 			cmd.ExecuteNonQuery();
 		}
 
-		public void Disable(Guid id, string name)
+		// UI compatibility
+		public void Rename(Guid id, string newName)
 		{
-			if (IsCategoryInUse(name))
-				throw new InvalidOperationException(
-					"This category is in use by stock items and cannot be disabled.");
+			Update(new Category
+			{
+				Id = id,
+				Name = newName,
+				IsActive = true
+			});
+		}
 
+		// =========================
+		// SOFT DELETE / DISABLE
+		// =========================
+		public void Deactivate(Guid id)
+		{
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
@@ -125,6 +173,38 @@ namespace WeldAdminPro.Data.Repositories
 
 			cmd.Parameters.AddWithValue("$id", id.ToString());
 			cmd.ExecuteNonQuery();
+		}
+
+		// UI compatibility (bool)
+		public void Disable(Guid id, bool isActive)
+		{
+			if (!isActive)
+				Deactivate(id);
+		}
+
+		// UI compatibility (string — legacy signature)
+		public void Disable(Guid id, string _)
+		{
+			Deactivate(id);
+		}
+
+		// Legacy / simple call
+		public void Disable(Guid id)
+		{
+			Deactivate(id);
+		}
+
+		// =========================
+		// MAP
+		// =========================
+		private static Category ReadCategory(SqliteDataReader reader)
+		{
+			return new Category
+			{
+				Id = Guid.Parse(reader.GetString(0)),
+				Name = reader.GetString(1),
+				IsActive = reader.GetInt32(2) == 1
+			};
 		}
 	}
 }

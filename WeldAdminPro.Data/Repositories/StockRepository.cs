@@ -45,6 +45,20 @@ namespace WeldAdminPro.Data.Repositories
 			cmd.CommandText = "ALTER TABLE StockItems ADD COLUMN Category TEXT;";
 			try { cmd.ExecuteNonQuery(); } catch { }
 		}
+		public bool HasTransactions(Guid stockItemId)
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			var cmd = connection.CreateCommand();
+			cmd.CommandText =
+				"SELECT COUNT(1) FROM StockTransactions WHERE StockItemId = $id;";
+			cmd.Parameters.AddWithValue("$id", stockItemId.ToString());
+
+			long count = (long)cmd.ExecuteScalar();
+			return count > 0;
+		}
+
 
 
 		// =========================
