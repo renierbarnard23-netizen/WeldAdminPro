@@ -28,7 +28,7 @@ namespace WeldAdminPro.Data.Repositories
 				"Description TEXT, " +
 				"Quantity INTEGER NOT NULL, " +
 				"Unit TEXT, " +
-				"Category TEXT);";
+				"Category TEXT NOT NULL DEFAULT 'Uncategorised');";
 			cmd.ExecuteNonQuery();
 
 			cmd.CommandText =
@@ -41,17 +41,11 @@ namespace WeldAdminPro.Data.Repositories
 				"Reference TEXT);";
 			cmd.ExecuteNonQuery();
 
-			// Safe migration for existing databases
+			// Safe migration
 			cmd.CommandText = "ALTER TABLE StockItems ADD COLUMN Category TEXT;";
-			try
-			{
-				cmd.ExecuteNonQuery();
-			}
-			catch (SqliteException)
-			{
-				// Column already exists – ignore
-			}
+			try { cmd.ExecuteNonQuery(); } catch { }
 		}
+
 
 		// =========================
 		// STOCK ITEMS
