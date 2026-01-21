@@ -33,6 +33,29 @@ public class StockLedgerInvariantTests
         Assert.Equal(reloadedItem.Quantity, lastLedger.RunningBalance);
     }
 [Fact]
+public void StockOut_Should_Be_Blocked_When_Quantity_Exceeds_Available()
+{
+    // Arrange
+    var repo = TestStockRepositoryFactory.Create();
+
+    var item = new StockItem
+    {
+        ItemCode = "UX-TEST",
+        Description = "UX stock out test",
+        Quantity = 5
+    };
+
+    repo.StockItems.Add(item);
+    repo.SaveChanges();
+
+    // Act + Assert
+    Assert.Throws<InvalidOperationException>(() =>
+    {
+        repo.AddStockOut(item.Id, 10, "Attempt invalid stock out");
+    });
+}
+
+[Fact]
 public void Ledger_Should_Not_Allow_Negative_Running_Balance()
 {
     // Arrange
