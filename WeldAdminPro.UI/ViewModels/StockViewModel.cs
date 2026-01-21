@@ -1,3 +1,4 @@
+using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -30,6 +31,7 @@ namespace WeldAdminPro.UI.ViewModels
         public IRelayCommand EditItemCommand { get; }
         public IRelayCommand StockInCommand { get; }
         public IRelayCommand StockOutCommand { get; }
+        public IRelayCommand DeleteStockItemCommand { get; }
 
         // =========================
         // Constructor
@@ -45,6 +47,7 @@ namespace WeldAdminPro.UI.ViewModels
             EditItemCommand = new RelayCommand(OpenEditItem, () => SelectedItem != null);
             StockInCommand = new RelayCommand(OpenStockIn, () => SelectedItem != null);
             StockOutCommand = new RelayCommand(OpenStockOut, () => SelectedItem != null);
+            DeleteStockItemCommand = new RelayCommand(DeleteSelectedStockItem, CanDeleteStockItem);
         }
 
         // =========================
@@ -66,6 +69,7 @@ namespace WeldAdminPro.UI.ViewModels
             EditItemCommand.NotifyCanExecuteChanged();
             StockInCommand.NotifyCanExecuteChanged();
             StockOutCommand.NotifyCanExecuteChanged();
+            DeleteStockItemCommand.NotifyCanExecuteChanged();
         }
 
         // =========================
@@ -131,6 +135,44 @@ namespace WeldAdminPro.UI.ViewModels
             vm.RequestClose += window.Close;
 
             window.ShowDialog();
+        }
+
+        // =========================
+        // Delete stock item (SAFE)
+        // =========================
+
+        private bool CanDeleteStockItem()
+        {
+            return SelectedItem != null;
+        }
+
+        private void DeleteSelectedStockItem()
+        {
+            if (SelectedItem == null)
+                return;
+
+            var result = MessageBox.Show(
+                $"Are you sure you want to delete stock item '{SelectedItem.ItemCode}'?",
+                "Confirm Delete",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
+            try
+            {
+                _repo.DeleteStockItem(SelectedItem.Id);
+                Reload();
+            }
+            catch (InvalidOperationException ex)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    "Delete Stock Item",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
     }
 }
