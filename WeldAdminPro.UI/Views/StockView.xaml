@@ -8,7 +8,9 @@
 
 	<TabControl Margin="10">
 
+		<!-- ===================== -->
 		<!-- TAB 1: STOCK ITEMS -->
+		<!-- ===================== -->
 		<TabItem Header="Stock Items">
 
 			<DockPanel>
@@ -38,26 +40,24 @@
                             Margin="0,0,10,0"
                             Command="{Binding StockOutCommand}" />
 
+					<!-- SINGLE, VALID DELETE BUTTON -->
 					<Button Content="Delete"
                             Width="100"
                             Margin="0,0,10,0"
                             Command="{Binding DeleteStockItemCommand}"
-                            Background="LightGray" />
+                            Background="LightGray"
+                            ToolTip="Cannot delete items with transaction history" />
 
-					<Button Content="Undo Delete"
-                            Width="100"
-                            Margin="0,0,10,0"
-                            Command="{Binding UndoDeleteCommand}"
-                            Background="LightGray" />
 					<Button Content="Undo Edit"
                             Width="80"
+                            Margin="0,0,10,0"
                             Command="{Binding UndoEditCommand}"
                             Background="LightGray" />
 
 					<Button Content="Manage Categories"
-                            Width="134"
-                            Margin="0,0,10,0"
-                            Click="ManageCategories_Click" Height="50"/>
+                            Width="140"
+                            Height="40"
+                            Click="ManageCategories_Click" />
 
 				</StackPanel>
 
@@ -82,9 +82,7 @@
 
 							<ComboBox ItemsSource="{Binding Categories}"
                                       SelectedItem="{Binding SelectedCategory}"
-                                      Width="152"/>
-
-
+                                      Width="160"/>
 						</StackPanel>
 					</Border>
 
@@ -114,6 +112,7 @@
                                                 Width="*" />
 
 						</DataGrid.Columns>
+
 						<DataGrid.RowStyle>
 							<Style TargetType="DataGridRow">
 								<Style.Triggers>
@@ -134,19 +133,18 @@
 							</Style>
 						</DataGrid.RowStyle>
 
-
 					</DataGrid>
 				</Grid>
 
 			</DockPanel>
-
 		</TabItem>
 
-		<!-- TAB 2: TRANSACTION HISTORY -->
+		<!-- ===================== -->
+		<!-- TAB 2: TRANSACTIONS -->
+		<!-- ===================== -->
 		<TabItem Header="Transaction History">
 			<views:StockTransactionHistoryView />
 		</TabItem>
 
 	</TabControl>
-
 </UserControl>
