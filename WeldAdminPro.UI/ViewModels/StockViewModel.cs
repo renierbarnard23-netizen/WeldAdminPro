@@ -59,6 +59,8 @@ namespace WeldAdminPro.UI.ViewModels
 		public IRelayCommand DeleteStockItemCommand { get; }
 		public IRelayCommand UndoDeleteCommand { get; }
 		public IRelayCommand UndoEditCommand { get; }
+		public IRelayCommand ViewHistoryCommand { get; }
+
 
 		// =========================
 		// Constructor
@@ -79,12 +81,16 @@ namespace WeldAdminPro.UI.ViewModels
 			DeleteStockItemCommand = new RelayCommand(DeleteSelectedStockItem, () => CanDeleteSelectedItem);
 			UndoDeleteCommand = new RelayCommand(UndoLastDelete, () => CanUndoDelete);
 			UndoEditCommand = new RelayCommand(UndoLastEdit, () => CanUndoEdit);
+			ViewHistoryCommand = new RelayCommand(OpenHistory, () => SelectedItem != null);
 		}
+
 		private void OnCategoriesChanged()
 		{
 			LoadCategories();
 			Reload();
 		}
+		
+
 
 
 		// =========================
@@ -109,6 +115,20 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			Reload();
 		}
+		private void OpenHistory()
+		{
+			if (SelectedItem == null)
+				return;
+
+			var window = new StockTransactionHistoryWindow(SelectedItem)
+			{
+				Owner = Application.Current.MainWindow
+			};
+
+			window.ShowDialog();
+		}
+
+
 
 		// =========================
 		// Reload stock items
@@ -136,7 +156,9 @@ namespace WeldAdminPro.UI.ViewModels
 			StockInCommand.NotifyCanExecuteChanged();
 			StockOutCommand.NotifyCanExecuteChanged();
 			DeleteStockItemCommand.NotifyCanExecuteChanged();
+			ViewHistoryCommand.NotifyCanExecuteChanged();
 		}
+
 
 
 		// =========================

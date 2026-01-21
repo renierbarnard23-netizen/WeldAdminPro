@@ -19,6 +19,8 @@ namespace WeldAdminPro.UI.ViewModels
 		private ObservableCollection<Category> categories = new();
 
 		[ObservableProperty]
+		[NotifyPropertyChangedFor(nameof(ToggleCategoryText))]
+		[NotifyPropertyChangedFor(nameof(CanToggleCategory))]
 		private Category? selectedCategory;
 
 		[ObservableProperty]
@@ -39,7 +41,8 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			Categories.Clear();
 
-			foreach (var cat in _repo.GetAllActive())
+			// 🔑 Load ALL categories (active + inactive)
+			foreach (var cat in _repo.GetAll())
 				Categories.Add(cat);
 		}
 
@@ -54,36 +57,44 @@ namespace WeldAdminPro.UI.ViewModels
 
 			var name = NewCategoryName.Trim();
 
-			// Persist to database
+			// Add OR re-enable
 			_repo.Add(name);
 
-			// Immediately update UI
-			Categories.Add(new Category
-			{
-				Id = Guid.NewGuid(),
-				Name = name,
-				IsActive = true
-			});
+			Load(); // authoritative refresh
 
 			NewCategoryName = string.Empty;
 		}
+
+		// =========================
+		// TOGGLE ACTIVE (ENABLE / DISABLE)
+		// =========================
+		[RelayCommand]
 		private void ToggleActive()
 		{
 			if (SelectedCategory == null)
 				return;
 
-			if (!SelectedCategory.IsActive)
+			if (SelectedCategory.Name == "Uncategorised")
 			{
-				_repo.Add(SelectedCategory.Name); // re-enable
+				MessageBox.Show(
+					"The 'Uncategorised' category cannot be disabled.",
+					"Action Not Allowed",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning);
+				return;
+			}
+
+			if (SelectedCategory.IsActive)
+			{
+				_repo.Disable(SelectedCategory.Id, SelectedCategory.Name);
 			}
 			else
 			{
-				_repo.Disable(SelectedCategory.Id, SelectedCategory.Name);
+				_repo.Add(SelectedCategory.Name); // re-enable
 			}
 
 			Load();
 		}
-
 
 		// =========================
 		// RENAME CATEGORY
@@ -104,26 +115,15 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// DISABLE CATEGORY
+		// UI HELPERS
 		// =========================
-		[RelayCommand]
-		private void DisableCategory()
-		{
-			if (SelectedCategory == null)
-				return;
+		public string ToggleCategoryText =>
+			SelectedCategory == null
+				? "Enable / Disable Category"
+				: SelectedCategory.IsActive
+					? "Disable Category"
+					: "Enable Category";
 
-			if (SelectedCategory.Name == "Uncategorised")
-			{
-				MessageBox.Show(
-					"The 'Uncategorised' category cannot be disabled.",
-					"Action Not Allowed",
-					MessageBoxButton.OK,
-					MessageBoxImage.Warning);
-				return;
-			}
-
-			_repo.Disable(SelectedCategory.Id, SelectedCategory.Name);
-			Load();
-		}
+		public bool CanToggleCategory => SelectedCategory != null;
 	}
 }

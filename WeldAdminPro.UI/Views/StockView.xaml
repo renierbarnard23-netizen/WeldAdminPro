@@ -21,28 +21,28 @@
                             Margin="0,0,0,10">
 
 					<Button Content="New Stock Item"
-                            Width="150"
+                            Width="110"
                             Margin="0,0,10,0"
-                            Command="{Binding NewItemCommand}" />
+                            Command="{Binding NewItemCommand}" Click="Button_Click" />
 
 					<Button Content="Edit Stock Item"
-                            Width="150"
+                            Width="110"
                             Margin="0,0,10,0"
                             Command="{Binding EditItemCommand}" />
 
 					<Button Content="Stock IN"
-                            Width="120"
+                            Width="80"
                             Margin="0,0,10,0"
                             Command="{Binding StockInCommand}" />
 
 					<Button Content="Stock OUT"
-                            Width="120"
+                            Width="90"
                             Margin="0,0,10,0"
                             Command="{Binding StockOutCommand}" />
 
 					<!-- SINGLE, VALID DELETE BUTTON -->
 					<Button Content="Delete"
-                            Width="100"
+                            Width="80"
                             Margin="0,0,10,0"
                             Command="{Binding DeleteStockItemCommand}"
                             Background="LightGray"
@@ -58,6 +58,13 @@
                             Width="140"
                             Height="40"
                             Click="ManageCategories_Click" />
+
+					<Button Content="View History"
+							Width="80"
+							Margin="0,0,10,0"
+							Command="{Binding ViewHistoryCommand}" />
+
+
 
 				</StackPanel>
 
@@ -142,9 +149,7 @@
 		<!-- ===================== -->
 		<!-- TAB 2: TRANSACTIONS -->
 		<!-- ===================== -->
-		<TabItem Header="Transaction History">
-			<views:StockTransactionHistoryView />
-		</TabItem>
+		
 
 	</TabControl>
 </UserControl>

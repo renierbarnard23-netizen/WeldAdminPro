@@ -54,8 +54,9 @@
 
 				<Separator />
 
-				<Button Content="Enable / Disable Category"
+				<Button Content="{Binding ToggleCategoryText}"
         Command="{Binding ToggleActiveCommand}"
+        IsEnabled="{Binding CanToggleCategory}"
         Foreground="White"
         Background="Firebrick"/>
 
