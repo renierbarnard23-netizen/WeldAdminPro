@@ -33,6 +33,16 @@ namespace WeldAdminPro.UI.ViewModels
 		private bool canUndoDelete;
 
 		// =========================
+		// Undo edit (session-only)
+		// =========================
+
+		private StockItem? _lastEditedBefore;
+		private StockItem? _lastEditedAfter;
+
+		[ObservableProperty]
+		private bool canUndoEdit;
+
+		// =========================
 		// Commands
 		// =========================
 
@@ -42,6 +52,8 @@ namespace WeldAdminPro.UI.ViewModels
 		public IRelayCommand StockOutCommand { get; }
 		public IRelayCommand DeleteStockItemCommand { get; }
 		public IRelayCommand UndoDeleteCommand { get; }
+		public IRelayCommand UndoEditCommand { get; }
+
 
 		// =========================
 		// Constructor
@@ -59,6 +71,8 @@ namespace WeldAdminPro.UI.ViewModels
 			StockOutCommand = new RelayCommand(OpenStockOut, () => SelectedItem != null);
 			DeleteStockItemCommand = new RelayCommand(DeleteSelectedStockItem, CanDeleteStockItem);
 			UndoDeleteCommand = new RelayCommand(UndoLastDelete, () => CanUndoDelete);
+			UndoEditCommand = new RelayCommand(UndoLastEdit, () => CanUndoEdit);
+
 		}
 
 		// =========================
@@ -87,6 +101,11 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			UndoDeleteCommand.NotifyCanExecuteChanged();
 		}
+		partial void OnCanUndoEditChanged(bool value)
+		{
+			UndoEditCommand.NotifyCanExecuteChanged();
+		}
+
 
 		// =========================
 		// New / Edit stock
@@ -113,6 +132,16 @@ namespace WeldAdminPro.UI.ViewModels
 			if (SelectedItem == null)
 				return;
 
+			// Capture BEFORE snapshot
+			var beforeEdit = new StockItem
+			{
+				Id = SelectedItem.Id,
+				ItemCode = SelectedItem.ItemCode,
+				Description = SelectedItem.Description,
+				Quantity = SelectedItem.Quantity,
+				Unit = SelectedItem.Unit
+			};
+
 			var vm = new NewStockItemViewModel(SelectedItem);
 
 			var window = new NewStockItemWindow(vm)
@@ -121,10 +150,39 @@ namespace WeldAdminPro.UI.ViewModels
 				Title = "Edit Stock Item"
 			};
 
-			vm.ItemCreated += Reload;
+			vm.ItemCreated += () =>
+			{
+				// Capture AFTER snapshot
+				_lastEditedBefore = beforeEdit;
+				_lastEditedAfter = SelectedItem;
+
+				CanUndoEdit = true;
+
+				Reload();
+			};
+
 			vm.RequestClose += window.Close;
 
 			window.ShowDialog();
+		}
+		private void UndoLastEdit()
+		{
+			if (_lastEditedBefore == null)
+				return;
+
+			_repo.Update(_lastEditedBefore);
+
+			_lastEditedBefore = null;
+			_lastEditedAfter = null;
+			CanUndoEdit = false;
+
+			Reload();
+		}
+		private void ClearEditUndo()
+		{
+			_lastEditedBefore = null;
+			_lastEditedAfter = null;
+			CanUndoEdit = false;
 		}
 
 		// =========================

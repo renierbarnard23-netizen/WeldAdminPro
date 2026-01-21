@@ -43,6 +43,21 @@
                             Foreground="Black"
                             Background="lightGray"/>
 
+					<Button Content="Undo Delete"
+                            Command="{Binding UndoDeleteCommand}"
+                            Width="100"
+                            Margin="5"
+                            Foreground="Black"
+                            Background="Lightgray"/>
+
+					<Button Content="Undo Edit"
+                            Command="{Binding UndoEditCommand}"
+                            Width="80"
+                            Margin="5"
+                            Foreground="Black"
+                            Background="Lightgray"/>
+
+
 
 				</StackPanel>
 
