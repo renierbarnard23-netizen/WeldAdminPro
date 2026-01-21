@@ -36,7 +36,15 @@
                             Margin="5"
                             Command="{Binding StockOutCommand}" />
 
-                </StackPanel>
+					<Button Content="Delete"
+                            Command="{Binding DeleteStockItemCommand}"
+                            Width="100"
+                            Margin="5"
+                            Foreground="Black"
+                            Background="lightGray"/>
+
+
+				</StackPanel>
 
                 <DataGrid ItemsSource="{Binding Items}"
                           SelectedItem="{Binding SelectedItem}"
