@@ -5,141 +5,126 @@ using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Data.Repositories
 {
-    public class CategoryRepository
-    {
-        private readonly string _connectionString = "Data Source=weldadmin.db";
+	public class CategoryRepository
+	{
+		private readonly string _connectionString = "Data Source=weldadmin.db";
 
-        public CategoryRepository()
-        {
-            EnsureDatabase();
-        }
+		public CategoryRepository()
+		{
+			EnsureDatabase();
+		}
 
-        private void EnsureDatabase()
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+		private void EnsureDatabase()
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
 
-            var cmd = connection.CreateCommand();
+			var cmd = connection.CreateCommand();
 
-            cmd.CommandText =
-                "CREATE TABLE IF NOT EXISTS Categories (" +
-                "Id TEXT PRIMARY KEY, " +
-                "Name TEXT NOT NULL UNIQUE, " +
-                "IsActive INTEGER NOT NULL);";
+			cmd.CommandText =
+				"CREATE TABLE IF NOT EXISTS Categories (" +
+				"Id TEXT PRIMARY KEY, " +
+				"Name TEXT NOT NULL UNIQUE, " +
+				"IsActive INTEGER NOT NULL);";
 
-            cmd.ExecuteNonQuery();
+			cmd.ExecuteNonQuery();
+		}
 
-            // Ensure Uncategorised exists
-            cmd.CommandText =
-                "INSERT OR IGNORE INTO Categories (Id, Name, IsActive) " +
-                "VALUES ('00000000-0000-0000-0000-000000000000', 'Uncategorised', 1);";
+		// =========================
+		// READ
+		// =========================
 
-            cmd.ExecuteNonQuery();
-        }
+		public List<Category> GetAllActive()
+		{
+			var list = new List<Category>();
 
-        // =========================
-        // READ
-        // =========================
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
 
-        public List<Category> GetAll()
-        {
-            var list = new List<Category>();
+			var cmd = connection.CreateCommand();
+			cmd.CommandText =
+				"SELECT Id, Name, IsActive FROM Categories WHERE IsActive = 1 ORDER BY Name;";
 
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+			using var reader = cmd.ExecuteReader();
+			while (reader.Read())
+			{
+				list.Add(new Category
+				{
+					Id = Guid.Parse(reader.GetString(0)),
+					Name = reader.GetString(1),
+					IsActive = reader.GetInt32(2) == 1
+				});
+			}
 
-            var cmd = connection.CreateCommand();
-            cmd.CommandText =
-                "SELECT Id, Name, IsActive FROM Categories ORDER BY Name;";
+			return list;
+		}
 
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                list.Add(new Category
-                {
-                    Id = Guid.Parse(reader.GetString(0)),
-                    Name = reader.GetString(1),
-                    IsActive = reader.GetInt32(2) == 1
-                });
-            }
+		// =========================
+		// SAFETY CHECK
+		// =========================
 
-            return list;
-        }
+		public bool IsCategoryInUse(string categoryName)
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
 
-        public List<Category> GetAllActive()
-        {
-            var list = new List<Category>();
+			var cmd = connection.CreateCommand();
+			cmd.CommandText =
+				"SELECT COUNT(1) FROM StockItems WHERE Category = $cat;";
+			cmd.Parameters.AddWithValue("$cat", categoryName);
 
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+			return (long)cmd.ExecuteScalar() > 0;
+		}
 
-            var cmd = connection.CreateCommand();
-            cmd.CommandText =
-                "SELECT Id, Name, IsActive FROM Categories " +
-                "WHERE IsActive = 1 ORDER BY Name;";
+		// =========================
+		// WRITE
+		// =========================
 
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                list.Add(new Category
-                {
-                    Id = Guid.Parse(reader.GetString(0)),
-                    Name = reader.GetString(1),
-                    IsActive = true
-                });
-            }
+		public void Add(string name)
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
 
-            return list;
-        }
+			var cmd = connection.CreateCommand();
+			cmd.CommandText =
+				"INSERT INTO Categories (Id, Name, IsActive) VALUES ($id, $name, 1);";
 
-        // =========================
-        // WRITE
-        // =========================
+			cmd.Parameters.AddWithValue("$id", Guid.NewGuid().ToString());
+			cmd.Parameters.AddWithValue("$name", name);
 
-        public void Add(string name)
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+			cmd.ExecuteNonQuery();
+		}
 
-            var cmd = connection.CreateCommand();
-            cmd.CommandText =
-                "INSERT INTO Categories (Id, Name, IsActive) " +
-                "VALUES ($id, $name, 1);";
+		public void Rename(Guid id, string newName)
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
 
-            cmd.Parameters.AddWithValue("$id", Guid.NewGuid().ToString());
-            cmd.Parameters.AddWithValue("$name", name);
+			var cmd = connection.CreateCommand();
+			cmd.CommandText =
+				"UPDATE Categories SET Name = $name WHERE Id = $id;";
 
-            cmd.ExecuteNonQuery();
-        }
+			cmd.Parameters.AddWithValue("$id", id.ToString());
+			cmd.Parameters.AddWithValue("$name", newName);
 
-        public void Rename(Guid id, string newName)
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+			cmd.ExecuteNonQuery();
+		}
 
-            var cmd = connection.CreateCommand();
-            cmd.CommandText =
-                "UPDATE Categories SET Name = $name WHERE Id = $id;";
+		public void Disable(Guid id, string name)
+		{
+			if (IsCategoryInUse(name))
+				throw new InvalidOperationException(
+					"This category is in use by stock items and cannot be disabled.");
 
-            cmd.Parameters.AddWithValue("$id", id.ToString());
-            cmd.Parameters.AddWithValue("$name", newName);
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
 
-            cmd.ExecuteNonQuery();
-        }
+			var cmd = connection.CreateCommand();
+			cmd.CommandText =
+				"UPDATE Categories SET IsActive = 0 WHERE Id = $id;";
 
-        public void SetActive(Guid id, bool isActive)
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            var cmd = connection.CreateCommand();
-            cmd.CommandText =
-                "UPDATE Categories SET IsActive = $active WHERE Id = $id;";
-
-            cmd.Parameters.AddWithValue("$id", id.ToString());
-            cmd.Parameters.AddWithValue("$active", isActive ? 1 : 0);
-
-            cmd.ExecuteNonQuery();
-        }
-    }
+			cmd.Parameters.AddWithValue("$id", id.ToString());
+			cmd.ExecuteNonQuery();
+		}
+	}
 }
