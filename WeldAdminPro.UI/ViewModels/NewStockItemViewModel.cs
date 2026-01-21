@@ -14,19 +14,11 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly StockRepository _repo = new();
 		private readonly CategoryRepository _categoryRepo = new();
 
-		// =========================
-		// STATE
-		// =========================
 		private readonly bool _isEditMode;
-
-		public bool IsEditMode => _isEditMode;
 
 		public event Action? ItemCreated;
 		public event Action? RequestClose;
 
-		// =========================
-		// BINDINGS
-		// =========================
 		[ObservableProperty]
 		private StockItem item = null!;
 
@@ -34,7 +26,7 @@ namespace WeldAdminPro.UI.ViewModels
 		private ObservableCollection<string> categories = new();
 
 		// =========================
-		// NEW ITEM CONSTRUCTOR
+		// NEW ITEM
 		// =========================
 		public NewStockItemViewModel()
 		{
@@ -51,7 +43,7 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// EDIT ITEM CONSTRUCTOR
+		// EDIT ITEM
 		// =========================
 		public NewStockItemViewModel(StockItem existing)
 		{
@@ -71,21 +63,17 @@ namespace WeldAdminPro.UI.ViewModels
 			foreach (var cat in _categoryRepo.GetAllActive())
 				Categories.Add(cat.Name);
 
-			if (string.IsNullOrWhiteSpace(Item.Category) ||
-				!Categories.Contains(Item.Category))
-			{
-				Item.Category = "Uncategorised";
-			}
+			if (!Categories.Contains(Item.Category))
+				Categories.Add(Item.Category);
 		}
 
 		// =========================
-		// SAVE WITH VALIDATION
+		// SAVE
 		// =========================
 		[RelayCommand]
 		private void Save()
 		{
 			// -------- Validation --------
-
 			if (string.IsNullOrWhiteSpace(Item.ItemCode))
 			{
 				MessageBox.Show("Item Code is required.", "Validation Error");
@@ -107,8 +95,10 @@ namespace WeldAdminPro.UI.ViewModels
 			if (string.IsNullOrWhiteSpace(Item.Category))
 				Item.Category = "Uncategorised";
 
-			// -------- Duplicate Code Check --------
+			// -------- Ensure Category Exists --------
+			_categoryRepo.Add(Item.Category);
 
+			// -------- Duplicate Item Code --------
 			var existingCodes = _repo.GetAll()
 				.Where(i => i.Id != Item.Id)
 				.Select(i => i.ItemCode)
@@ -125,7 +115,6 @@ namespace WeldAdminPro.UI.ViewModels
 			}
 
 			// -------- Persist --------
-
 			if (_isEditMode)
 				_repo.Update(Item);
 			else

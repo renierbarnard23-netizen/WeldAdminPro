@@ -1,8 +1,8 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Windows;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
@@ -12,6 +12,9 @@ namespace WeldAdminPro.UI.ViewModels
 	{
 		private readonly CategoryRepository _repo = new();
 
+		// =========================
+		// BINDINGS
+		// =========================
 		[ObservableProperty]
 		private ObservableCollection<Category> categories = new();
 
@@ -19,11 +22,14 @@ namespace WeldAdminPro.UI.ViewModels
 		private Category? selectedCategory;
 
 		[ObservableProperty]
-		private string newCategoryName = "";
+		private string newCategoryName = string.Empty;
 
 		[ObservableProperty]
-		private string renameCategoryName = "";
+		private string renameCategoryName = string.Empty;
 
+		// =========================
+		// INIT
+		// =========================
 		public CategoryManagementViewModel()
 		{
 			Load();
@@ -31,50 +37,93 @@ namespace WeldAdminPro.UI.ViewModels
 
 		private void Load()
 		{
-			Categories = new ObservableCollection<Category>(_repo.GetAllActive());
+			Categories.Clear();
+
+			foreach (var cat in _repo.GetAllActive())
+				Categories.Add(cat);
 		}
 
+		// =========================
+		// ADD CATEGORY
+		// =========================
 		[RelayCommand]
-		private void Add()
+		private void AddCategory()
 		{
 			if (string.IsNullOrWhiteSpace(NewCategoryName))
 				return;
 
-			_repo.Add(NewCategoryName.Trim());
-			NewCategoryName = "";
-			Load();
+			var name = NewCategoryName.Trim();
+
+			// Persist to database
+			_repo.Add(name);
+
+			// Immediately update UI
+			Categories.Add(new Category
+			{
+				Id = Guid.NewGuid(),
+				Name = name,
+				IsActive = true
+			});
+
+			NewCategoryName = string.Empty;
 		}
-
-		[RelayCommand]
-		private void Rename()
-		{
-			if (SelectedCategory == null || string.IsNullOrWhiteSpace(RenameCategoryName))
-				return;
-
-			_repo.Rename(SelectedCategory.Id, RenameCategoryName.Trim());
-			RenameCategoryName = "";
-			Load();
-		}
-
-		[RelayCommand]
-		private void Disable()
+		private void ToggleActive()
 		{
 			if (SelectedCategory == null)
 				return;
 
-			try
+			if (!SelectedCategory.IsActive)
+			{
+				_repo.Add(SelectedCategory.Name); // re-enable
+			}
+			else
 			{
 				_repo.Disable(SelectedCategory.Id, SelectedCategory.Name);
-				Load();
 			}
-			catch (InvalidOperationException ex)
+
+			Load();
+		}
+
+
+		// =========================
+		// RENAME CATEGORY
+		// =========================
+		[RelayCommand]
+		private void RenameCategory()
+		{
+			if (SelectedCategory == null)
+				return;
+
+			if (string.IsNullOrWhiteSpace(RenameCategoryName))
+				return;
+
+			_repo.Rename(SelectedCategory.Id, RenameCategoryName.Trim());
+
+			RenameCategoryName = string.Empty;
+			Load();
+		}
+
+		// =========================
+		// DISABLE CATEGORY
+		// =========================
+		[RelayCommand]
+		private void DisableCategory()
+		{
+			if (SelectedCategory == null)
+				return;
+
+			if (SelectedCategory.Name == "Uncategorised")
 			{
 				MessageBox.Show(
-					ex.Message,
-					"Category In Use",
+					"The 'Uncategorised' category cannot be disabled.",
+					"Action Not Allowed",
 					MessageBoxButton.OK,
 					MessageBoxImage.Warning);
+				return;
 			}
+
+			_repo.Disable(SelectedCategory.Id, SelectedCategory.Name);
+			Load();
 		}
 	}
 }

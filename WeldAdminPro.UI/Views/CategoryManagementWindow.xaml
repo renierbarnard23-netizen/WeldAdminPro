@@ -54,10 +54,11 @@
 
 				<Separator />
 
-				<Button Content="Disable Category"
-                        Command="{Binding DisableCategoryCommand}"
-                        Foreground="White"
-                        Background="Firebrick"/>
+				<Button Content="Enable / Disable Category"
+        Command="{Binding ToggleActiveCommand}"
+        Foreground="White"
+        Background="Firebrick"/>
+
 			</StackPanel>
 		</Grid>
 

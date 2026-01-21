@@ -49,9 +49,7 @@ namespace WeldAdminPro.Data.Repositories
 
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
-			{
 				list.Add(ReadCategory(reader));
-			}
 
 			return list;
 		}
@@ -70,9 +68,7 @@ namespace WeldAdminPro.Data.Repositories
 
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
-			{
 				list.Add(ReadCategory(reader));
-			}
 
 			return list;
 		}
@@ -105,12 +101,19 @@ namespace WeldAdminPro.Data.Repositories
 
 		public void Add(string name)
 		{
-			Add(new Category
-			{
-				Id = Guid.NewGuid(),
-				Name = name,
-				IsActive = true
-			});
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			var cmd = connection.CreateCommand();
+			cmd.CommandText =
+				"INSERT INTO Categories (Id, Name, IsActive) " +
+				"VALUES ($id, $name, 1) " +
+				"ON CONFLICT(Name) DO UPDATE SET IsActive = 1;";
+
+			cmd.Parameters.AddWithValue("$id", Guid.NewGuid().ToString());
+			cmd.Parameters.AddWithValue("$name", name.Trim());
+
+			cmd.ExecuteNonQuery();
 		}
 
 		private void AddIfMissing(string name)
@@ -148,7 +151,6 @@ namespace WeldAdminPro.Data.Repositories
 			cmd.ExecuteNonQuery();
 		}
 
-		// UI compatibility
 		public void Rename(Guid id, string newName)
 		{
 			Update(new Category
@@ -160,9 +162,25 @@ namespace WeldAdminPro.Data.Repositories
 		}
 
 		// =========================
-		// SOFT DELETE / DISABLE
+		// DISABLE (WITH USAGE CHECK)
 		// =========================
-		public void Deactivate(Guid id)
+		public void Disable(Guid id, string categoryName)
+		{
+			if (IsCategoryInUse(categoryName))
+			{
+				throw new InvalidOperationException(
+					"This category is currently used by one or more stock items and cannot be disabled.");
+			}
+
+			Deactivate(id);
+		}
+
+		public void Disable(Guid id)
+		{
+			Deactivate(id);
+		}
+
+		private void Deactivate(Guid id)
 		{
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
@@ -175,23 +193,21 @@ namespace WeldAdminPro.Data.Repositories
 			cmd.ExecuteNonQuery();
 		}
 
-		// UI compatibility (bool)
-		public void Disable(Guid id, bool isActive)
+		// =========================
+		// USAGE CHECK
+		// =========================
+		private bool IsCategoryInUse(string categoryName)
 		{
-			if (!isActive)
-				Deactivate(id);
-		}
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
 
-		// UI compatibility (string — legacy signature)
-		public void Disable(Guid id, string _)
-		{
-			Deactivate(id);
-		}
+			var cmd = connection.CreateCommand();
+			cmd.CommandText =
+				"SELECT COUNT(*) FROM StockItems WHERE Category = $name;";
+			cmd.Parameters.AddWithValue("$name", categoryName);
 
-		// Legacy / simple call
-		public void Disable(Guid id)
-		{
-			Deactivate(id);
+			var count = Convert.ToInt32(cmd.ExecuteScalar());
+			return count > 0;
 		}
 
 		// =========================
