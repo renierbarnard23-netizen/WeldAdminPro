@@ -2,6 +2,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Windows;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
@@ -10,6 +12,7 @@ namespace WeldAdminPro.UI.ViewModels
 	public partial class NewStockItemViewModel : ObservableObject
 	{
 		private readonly StockRepository _repo = new();
+		private readonly CategoryRepository _categoryRepo = new();
 
 		private readonly bool _isEditMode;
 
@@ -19,16 +22,8 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private StockItem item;
 
-		public ObservableCollection<string> Categories { get; } =
-			new()
-			{
-				"Electrodes",
-				"Gas",
-				"Abrasives",
-				"PPE",
-				"Medical",
-				"Uncategorised"
-			};
+		[ObservableProperty]
+		private ObservableCollection<string> categories = new();
 
 		// =========================
 		// NEW ITEM
@@ -43,6 +38,8 @@ namespace WeldAdminPro.UI.ViewModels
 				Quantity = 0,
 				Category = "Uncategorised"
 			};
+
+			LoadCategories();
 		}
 
 		// =========================
@@ -52,22 +49,75 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			_isEditMode = true;
 			Item = existing;
+
+			LoadCategories();
 		}
 
 		// =========================
-		// SAVE
+		// CATEGORY LOAD
+		// =========================
+		private void LoadCategories()
+		{
+			Categories.Clear();
+
+			foreach (var cat in _categoryRepo.GetAllActive())
+				Categories.Add(cat.Name);
+
+			if (string.IsNullOrWhiteSpace(Item.Category))
+				Item.Category = "Uncategorised";
+		}
+
+		// =========================
+		// SAVE WITH VALIDATION
 		// =========================
 		[RelayCommand]
 		private void Save()
 		{
+			// -------- Validation --------
+
+			if (string.IsNullOrWhiteSpace(Item.ItemCode))
+			{
+				MessageBox.Show("Item Code is required.", "Validation Error");
+				return;
+			}
+
+			if (string.IsNullOrWhiteSpace(Item.Description))
+			{
+				MessageBox.Show("Description is required.", "Validation Error");
+				return;
+			}
+
+			if (Item.Quantity < 0)
+			{
+				MessageBox.Show("Quantity cannot be negative.", "Validation Error");
+				return;
+			}
+
+			if (string.IsNullOrWhiteSpace(Item.Category))
+				Item.Category = "Uncategorised";
+
+			// Duplicate Item Code check
+			var existingCodes = _repo.GetAll()
+				.Where(i => i.Id != Item.Id)
+				.Select(i => i.ItemCode)
+				.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+			if (existingCodes.Contains(Item.ItemCode))
+			{
+				MessageBox.Show(
+					"An item with this Item Code already exists.",
+					"Duplicate Item Code",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning);
+				return;
+			}
+
+			// -------- Persist --------
+
 			if (_isEditMode)
-			{
 				_repo.Update(Item);
-			}
 			else
-			{
 				_repo.Add(Item);
-			}
 
 			ItemCreated?.Invoke();
 			RequestClose?.Invoke();
