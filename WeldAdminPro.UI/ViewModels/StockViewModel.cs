@@ -9,170 +9,206 @@ using WeldAdminPro.UI.Views;
 
 namespace WeldAdminPro.UI.ViewModels
 {
-    public partial class StockViewModel : ObservableObject
-    {
-        private readonly StockRepository _repo;
+	public partial class StockViewModel : ObservableObject
+	{
+		private readonly StockRepository _repo;
 
-        // =========================
-        // Observable properties
-        // =========================
+		// =========================
+		// Observable properties
+		// =========================
 
-        [ObservableProperty]
-        private ObservableCollection<StockItem> items = new();
+		[ObservableProperty]
+		private ObservableCollection<StockItem> items = new();
 
-        [ObservableProperty]
-        private StockItem? selectedItem;
+		[ObservableProperty]
+		private StockItem? selectedItem;
 
-        // =========================
-        // Commands
-        // =========================
+		// =========================
+		// Undo delete (session-only)
+		// =========================
 
-        public IRelayCommand NewItemCommand { get; }
-        public IRelayCommand EditItemCommand { get; }
-        public IRelayCommand StockInCommand { get; }
-        public IRelayCommand StockOutCommand { get; }
-        public IRelayCommand DeleteStockItemCommand { get; }
+		private StockItem? _lastDeletedItem;
 
-        // =========================
-        // Constructor
-        // =========================
+		[ObservableProperty]
+		private bool canUndoDelete;
 
-        public StockViewModel()
-        {
-            _repo = new StockRepository();
+		// =========================
+		// Commands
+		// =========================
 
-            Reload();
+		public IRelayCommand NewItemCommand { get; }
+		public IRelayCommand EditItemCommand { get; }
+		public IRelayCommand StockInCommand { get; }
+		public IRelayCommand StockOutCommand { get; }
+		public IRelayCommand DeleteStockItemCommand { get; }
+		public IRelayCommand UndoDeleteCommand { get; }
 
-            NewItemCommand = new RelayCommand(OpenNewItem);
-            EditItemCommand = new RelayCommand(OpenEditItem, () => SelectedItem != null);
-            StockInCommand = new RelayCommand(OpenStockIn, () => SelectedItem != null);
-            StockOutCommand = new RelayCommand(OpenStockOut, () => SelectedItem != null);
-            DeleteStockItemCommand = new RelayCommand(DeleteSelectedStockItem, CanDeleteStockItem);
-        }
+		// =========================
+		// Constructor
+		// =========================
 
-        // =========================
-        // SINGLE SOURCE OF TRUTH
-        // =========================
+		public StockViewModel()
+		{
+			_repo = new StockRepository();
 
-        public void Reload()
-        {
-            SelectedItem = null; // force DataGrid refresh
-            Items = new ObservableCollection<StockItem>(_repo.GetAll());
-        }
+			Reload();
 
-        // =========================
-        // Selection change handler
-        // =========================
+			NewItemCommand = new RelayCommand(OpenNewItem);
+			EditItemCommand = new RelayCommand(OpenEditItem, () => SelectedItem != null);
+			StockInCommand = new RelayCommand(OpenStockIn, () => SelectedItem != null);
+			StockOutCommand = new RelayCommand(OpenStockOut, () => SelectedItem != null);
+			DeleteStockItemCommand = new RelayCommand(DeleteSelectedStockItem, CanDeleteStockItem);
+			UndoDeleteCommand = new RelayCommand(UndoLastDelete, () => CanUndoDelete);
+		}
 
-        partial void OnSelectedItemChanged(StockItem? value)
-        {
-            EditItemCommand.NotifyCanExecuteChanged();
-            StockInCommand.NotifyCanExecuteChanged();
-            StockOutCommand.NotifyCanExecuteChanged();
-            DeleteStockItemCommand.NotifyCanExecuteChanged();
-        }
+		// =========================
+		// SINGLE SOURCE OF TRUTH
+		// =========================
 
-        // =========================
-        // New / Edit stock
-        // =========================
+		public void Reload()
+		{
+			SelectedItem = null;
+			Items = new ObservableCollection<StockItem>(_repo.GetAll());
+		}
 
-        private void OpenNewItem()
-        {
-            var vm = new NewStockItemViewModel();
+		// =========================
+		// Selection change handler
+		// =========================
 
-            var window = new NewStockItemWindow(vm)
-            {
-                Owner = Application.Current.MainWindow,
-                Title = "New Stock Item"
-            };
+		partial void OnSelectedItemChanged(StockItem? value)
+		{
+			EditItemCommand.NotifyCanExecuteChanged();
+			StockInCommand.NotifyCanExecuteChanged();
+			StockOutCommand.NotifyCanExecuteChanged();
+			DeleteStockItemCommand.NotifyCanExecuteChanged();
+		}
 
-            vm.ItemCreated += Reload;
-            vm.RequestClose += window.Close;
+		partial void OnCanUndoDeleteChanged(bool value)
+		{
+			UndoDeleteCommand.NotifyCanExecuteChanged();
+		}
 
-            window.ShowDialog();
-        }
+		// =========================
+		// New / Edit stock
+		// =========================
 
-        private void OpenEditItem()
-        {
-            if (SelectedItem == null)
-                return;
+		private void OpenNewItem()
+		{
+			var vm = new NewStockItemViewModel();
 
-            var vm = new NewStockItemViewModel(SelectedItem);
+			var window = new NewStockItemWindow(vm)
+			{
+				Owner = Application.Current.MainWindow,
+				Title = "New Stock Item"
+			};
 
-            var window = new NewStockItemWindow(vm)
-            {
-                Owner = Application.Current.MainWindow,
-                Title = "Edit Stock Item"
-            };
+			vm.ItemCreated += Reload;
+			vm.RequestClose += window.Close;
 
-            vm.ItemCreated += Reload;
-            vm.RequestClose += window.Close;
+			window.ShowDialog();
+		}
 
-            window.ShowDialog();
-        }
+		private void OpenEditItem()
+		{
+			if (SelectedItem == null)
+				return;
 
-        // =========================
-        // Stock transactions
-        // =========================
+			var vm = new NewStockItemViewModel(SelectedItem);
 
-        private void OpenStockIn() => OpenTransaction(true);
-        private void OpenStockOut() => OpenTransaction(false);
+			var window = new NewStockItemWindow(vm)
+			{
+				Owner = Application.Current.MainWindow,
+				Title = "Edit Stock Item"
+			};
 
-        private void OpenTransaction(bool isStockIn)
-        {
-            if (SelectedItem == null)
-                return;
+			vm.ItemCreated += Reload;
+			vm.RequestClose += window.Close;
 
-            var vm = new StockTransactionViewModel(SelectedItem, isStockIn);
+			window.ShowDialog();
+		}
 
-            var window = new StockTransactionWindow(vm)
-            {
-                Owner = Application.Current.MainWindow
-            };
+		// =========================
+		// Stock transactions
+		// =========================
 
-            // 🔑 CRITICAL FIX
-            vm.TransactionCompleted += Reload;
-            vm.RequestClose += window.Close;
+		private void OpenStockIn() => OpenTransaction(true);
+		private void OpenStockOut() => OpenTransaction(false);
 
-            window.ShowDialog();
-        }
+		private void OpenTransaction(bool isStockIn)
+		{
+			if (SelectedItem == null)
+				return;
 
-        // =========================
-        // Delete stock item (SAFE)
-        // =========================
+			var vm = new StockTransactionViewModel(SelectedItem, isStockIn);
 
-        private bool CanDeleteStockItem()
-        {
-            return SelectedItem != null;
-        }
+			var window = new StockTransactionWindow(vm)
+			{
+				Owner = Application.Current.MainWindow
+			};
 
-        private void DeleteSelectedStockItem()
-        {
-            if (SelectedItem == null)
-                return;
+			vm.TransactionCompleted += Reload;
+			vm.RequestClose += window.Close;
 
-            var result = MessageBox.Show(
-                $"Are you sure you want to delete stock item '{SelectedItem.ItemCode}'?",
-                "Confirm Delete",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
+			window.ShowDialog();
+		}
 
-            if (result != MessageBoxResult.Yes)
-                return;
+		// =========================
+		// Delete stock item (SAFE)
+		// =========================
 
-            try
-            {
-                _repo.DeleteStockItem(SelectedItem.Id);
-                Reload();
-            }
-            catch (InvalidOperationException ex)
-            {
-                MessageBox.Show(
-                    ex.Message,
-                    "Delete Stock Item",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-            }
-        }
-    }
+		private bool CanDeleteStockItem()
+		{
+			return SelectedItem != null;
+		}
+
+		private void DeleteSelectedStockItem()
+		{
+			if (SelectedItem == null)
+				return;
+
+			var result = MessageBox.Show(
+				$"Are you sure you want to delete stock item '{SelectedItem.ItemCode}'?",
+				"Confirm Delete",
+				MessageBoxButton.YesNo,
+				MessageBoxImage.Warning);
+
+			if (result != MessageBoxResult.Yes)
+				return;
+
+			try
+			{
+				// Store for undo (session only)
+				_lastDeletedItem = SelectedItem;
+				CanUndoDelete = true;
+
+				_repo.DeleteStockItem(SelectedItem.Id);
+				Reload();
+			}
+			catch (InvalidOperationException ex)
+			{
+				MessageBox.Show(
+					ex.Message,
+					"Delete Stock Item",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning);
+			}
+		}
+
+		// =========================
+		// Undo delete (session-only)
+		// =========================
+
+		private void UndoLastDelete()
+		{
+			if (_lastDeletedItem == null)
+				return;
+
+			_repo.Add(_lastDeletedItem);
+
+			_lastDeletedItem = null;
+			CanUndoDelete = false;
+
+			Reload();
+		}
+	}
 }
