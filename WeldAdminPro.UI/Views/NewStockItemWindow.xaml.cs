@@ -3,14 +3,22 @@ using WeldAdminPro.UI.ViewModels;
 
 namespace WeldAdminPro.UI.Views
 {
-    public partial class NewStockItemWindow : Window
-    {
-        public NewStockItemWindow(NewStockItemViewModel vm)
-        {
-            InitializeComponent();
-            DataContext = vm;
+	public partial class NewStockItemWindow : Window
+	{
+		private readonly NewStockItemViewModel _vm;
 
-            vm.RequestClose += () => Close();
-        }
-    }
+		public NewStockItemWindow(NewStockItemViewModel vm)
+		{
+			InitializeComponent();
+			DataContext = vm;
+			_vm = vm;
+
+			Activated += OnActivated;
+		}
+
+		private void OnActivated(object? sender, System.EventArgs e)
+		{
+			_vm.RefreshCategories();
+		}
+	}
 }

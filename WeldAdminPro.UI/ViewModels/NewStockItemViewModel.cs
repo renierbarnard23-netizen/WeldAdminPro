@@ -49,6 +49,20 @@ namespace WeldAdminPro.UI.ViewModels
 			Item = existing;
 			LoadCategories();
 		}
+		public void RefreshCategories()
+		{
+			Categories.Clear();
+
+			foreach (var cat in _categoryRepo.GetAllActive())
+			{
+				Categories.Add(cat.Name);
+			}
+
+			// Safety fallback
+			if (!Categories.Contains(Item.Category))
+				Item.Category = "Uncategorised";
+		}
+
 
 		// =========================
 		// Load categories
