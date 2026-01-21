@@ -5,8 +5,6 @@ using System.Linq;
 using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
-using WeldAdminPro.Core.Utilities;
-
 
 namespace WeldAdminPro.UI.ViewModels
 {
@@ -37,36 +35,25 @@ namespace WeldAdminPro.UI.ViewModels
                                            .OrderBy(t => t.TransactionDate)
                                            .ToList();
 
-            // Get current stock balances
+            // Get current stock quantities (SOURCE OF TRUTH)
             var stockItems = _repository.GetAll()
                                         .ToDictionary(i => i.Id, i => i.Quantity);
 
-            // Calculate opening balances
-            var openingBalances = new Dictionary<Guid, int>();
+            // Running balance tracker (start from CURRENT quantity)
+            var runningBalances = new Dictionary<Guid, int>(stockItems);
 
-            foreach (var item in stockItems)
-            {
-                int totalMovement = transactions
-                    .Where(t => t.StockItemId == item.Key)
-                    .Sum(t => t.Type == "IN" ? t.Quantity : -t.Quantity);
-
-                openingBalances[item.Key] = item.Value - totalMovement;
-            }
-
-            // Running balance tracker
-            var runningBalances = new Dictionary<Guid, int>(openingBalances);
-
-            // Replay transactions forward
-            foreach (var tx in transactions)
+            // Walk transactions BACKWARDS so latest balance matches stock item quantity
+            foreach (var tx in transactions.OrderByDescending(t => t.TransactionDate))
             {
                 if (!runningBalances.ContainsKey(tx.StockItemId))
-                    runningBalances[tx.StockItemId] =
-    LedgerBalanceCalculator.CalculateNext(
-        runningBalances[tx.StockItemId],
-        tx.IsIn ? tx.Quantity : 0,
-        tx.IsOut ? tx.Quantity : 0);
+                    runningBalances[tx.StockItemId] = 0;
 
+                // Balance AFTER this transaction
                 tx.RunningBalance = runningBalances[tx.StockItemId];
+
+                // Reverse this transaction to get previous balance
+                runningBalances[tx.StockItemId] -=
+                    tx.Type == "IN" ? tx.Quantity : -tx.Quantity;
             }
 
             // Display newest first
