@@ -212,11 +212,17 @@ namespace WeldAdminPro.Data.Repositories
 
 			var cmd = connection.CreateCommand();
 			cmd.CommandText =
-				"SELECT t.Id, t.StockItemId, t.TransactionDate, t.Quantity, t.Type, t.Reference, " +
-				"i.ItemCode, i.Description " +
-				"FROM StockTransactions t " +
-				"JOIN StockItems i ON i.Id = t.StockItemId " +
-				"ORDER BY t.TransactionDate DESC;";
+	"SELECT " +
+	"t.Id, " +
+	"t.StockItemId, " +
+	"t.TransactionDate, " +
+	"t.Quantity, " +
+	"t.TransactionType AS Type, " +
+	"'' AS Reference " +
+	"FROM StockTransactions t " +
+	"ORDER BY t.TransactionDate DESC;";
+
+
 
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
@@ -228,14 +234,13 @@ namespace WeldAdminPro.Data.Repositories
 					TransactionDate = DateTime.Parse(reader.GetString(2)),
 					Quantity = reader.GetInt32(3),
 					Type = reader.GetString(4),
-					Reference = reader.IsDBNull(5) ? "" : reader.GetString(5),
-					ItemCode = reader.GetString(6),
-					ItemDescription = reader.GetString(7)
+					Reference = reader.IsDBNull(5) ? "" : reader.GetString(5)
 				});
 			}
 
 			return list;
 		}
+
 
 		public void AddTransaction(StockTransaction tx)
 		{
