@@ -1,12 +1,14 @@
 ﻿using System;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.UI.Views;
+using System.ComponentModel;
+using System.Windows.Data;
 
 namespace WeldAdminPro.UI.ViewModels
 {
@@ -15,9 +17,9 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly StockRepository _repo;
 		private readonly CategoryRepository _categoryRepo;
 
-		// =========================
-		// Observable properties
-		// =========================
+		// =====================================================
+		// Observable Properties
+		// =====================================================
 
 		[ObservableProperty]
 		private ObservableCollection<StockItem> items = new();
@@ -25,9 +27,58 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private StockItem? selectedItem;
 
-		// =========================
-		// Categories (dynamic)
-		// =========================
+		// =====================================================
+		// CollectionView (FILTERING)
+		// =====================================================
+
+		private ICollectionView? _itemsView;
+
+		public ICollectionView ItemsView
+		{
+			get
+			{
+				if (_itemsView == null)
+				{
+					_itemsView = CollectionViewSource.GetDefaultView(Items);
+					_itemsView.Filter = FilterStockItems;
+				}
+				return _itemsView;
+			}
+		}
+
+		// =====================================================
+		// Low Stock Filter
+		// =====================================================
+
+		private bool _showLowStockOnly;
+		public bool ShowLowStockOnly
+		{
+			get => _showLowStockOnly;
+			set
+			{
+				if (_showLowStockOnly != value)
+				{
+					_showLowStockOnly = value;
+					OnPropertyChanged(nameof(ShowLowStockOnly));
+					ItemsView.Refresh();
+				}
+			}
+		}
+
+		private bool FilterStockItems(object obj)
+		{
+			if (obj is not StockItem item)
+				return false;
+
+			if (!ShowLowStockOnly)
+				return true;
+
+			return item.IsLowStock || item.IsOutOfStock;
+		}
+
+		// =====================================================
+		// Categories
+		// =====================================================
 
 		[ObservableProperty]
 		private ObservableCollection<string> categories = new();
@@ -35,9 +86,9 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private string selectedCategory = "All";
 
-		// =========================
-		// Undo delete/edit
-		// =========================
+		// =====================================================
+		// Undo support
+		// =====================================================
 
 		private StockItem? _lastDeletedItem;
 		private StockItem? _lastEditedBefore;
@@ -48,9 +99,9 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private bool canUndoEdit;
 
-		// =========================
+		// =====================================================
 		// Commands
-		// =========================
+		// =====================================================
 
 		public IRelayCommand NewItemCommand { get; }
 		public IRelayCommand EditItemCommand { get; }
@@ -61,10 +112,9 @@ namespace WeldAdminPro.UI.ViewModels
 		public IRelayCommand UndoEditCommand { get; }
 		public IRelayCommand ViewHistoryCommand { get; }
 
-
-		// =========================
+		// =====================================================
 		// Constructor
-		// =========================
+		// =====================================================
 
 		public StockViewModel()
 		{
@@ -84,18 +134,9 @@ namespace WeldAdminPro.UI.ViewModels
 			ViewHistoryCommand = new RelayCommand(OpenHistory, () => SelectedItem != null);
 		}
 
-		private void OnCategoriesChanged()
-		{
-			LoadCategories();
-			Reload();
-		}
-		
-
-
-
-		// =========================
-		// Category loading
-		// =========================
+		// =====================================================
+		// Categories
+		// =====================================================
 
 		public void LoadCategories()
 		{
@@ -103,9 +144,7 @@ namespace WeldAdminPro.UI.ViewModels
 			Categories.Add("All");
 
 			foreach (var cat in _categoryRepo.GetAllActive())
-			{
 				Categories.Add(cat.Name);
-			}
 
 			if (!Categories.Contains(SelectedCategory))
 				SelectedCategory = "All";
@@ -115,6 +154,11 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			Reload();
 		}
+
+		// =====================================================
+		// History
+		// =====================================================
+
 		private void OpenHistory()
 		{
 			if (SelectedItem == null)
@@ -128,11 +172,9 @@ namespace WeldAdminPro.UI.ViewModels
 			window.ShowDialog();
 		}
 
-
-
-		// =========================
-		// Reload stock items
-		// =========================
+		// =====================================================
+		// Reload
+		// =====================================================
 
 		public void Reload()
 		{
@@ -148,6 +190,10 @@ namespace WeldAdminPro.UI.ViewModels
 			}
 
 			Items = new ObservableCollection<StockItem>(allItems);
+
+			// 🔑 Reset view so filters reapply
+			_itemsView = null;
+			OnPropertyChanged(nameof(ItemsView));
 		}
 
 		partial void OnSelectedItemChanged(StockItem? value)
@@ -159,11 +205,9 @@ namespace WeldAdminPro.UI.ViewModels
 			ViewHistoryCommand.NotifyCanExecuteChanged();
 		}
 
-
-
-		// =========================
-		// New / Edit stock
-		// =========================
+		// =====================================================
+		// New / Edit
+		// =====================================================
 
 		private void OpenNewItem()
 		{
@@ -178,13 +222,9 @@ namespace WeldAdminPro.UI.ViewModels
 			vm.ItemCreated += () =>
 			{
 				LoadCategories();
-
-				// 🔑 CRITICAL FIX:
 				SelectedCategory = "All";
-
 				Reload();
 			};
-
 
 			vm.RequestClose += window.Close;
 			window.ShowDialog();
@@ -202,7 +242,9 @@ namespace WeldAdminPro.UI.ViewModels
 				Description = SelectedItem.Description,
 				Quantity = SelectedItem.Quantity,
 				Unit = SelectedItem.Unit,
-				Category = SelectedItem.Category
+				Category = SelectedItem.Category,
+				MinLevel = SelectedItem.MinLevel,
+				MaxLevel = SelectedItem.MaxLevel
 			};
 
 			var vm = new NewStockItemViewModel(SelectedItem);
@@ -224,9 +266,9 @@ namespace WeldAdminPro.UI.ViewModels
 			window.ShowDialog();
 		}
 
-		// =========================
+		// =====================================================
 		// Transactions
-		// =========================
+		// =====================================================
 
 		private void OpenStockIn() => OpenTransaction(true);
 		private void OpenStockOut() => OpenTransaction(false);
@@ -245,12 +287,13 @@ namespace WeldAdminPro.UI.ViewModels
 
 			vm.TransactionCompleted += Reload;
 			vm.RequestClose += window.Close;
+
 			window.ShowDialog();
 		}
 
-		// =========================
+		// =====================================================
 		// Delete / Undo
-		// =========================
+		// =====================================================
 
 		private void DeleteSelectedStockItem()
 		{
@@ -294,8 +337,8 @@ namespace WeldAdminPro.UI.ViewModels
 
 			Reload();
 		}
-		public bool CanDeleteSelectedItem =>
-		SelectedItem != null && !_repo.HasTransactions(SelectedItem.Id);
 
+		public bool CanDeleteSelectedItem =>
+			SelectedItem != null && !_repo.HasTransactions(SelectedItem.Id);
 	}
 }

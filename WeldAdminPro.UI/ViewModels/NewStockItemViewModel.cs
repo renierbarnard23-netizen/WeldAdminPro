@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.ObjectModel;
@@ -26,6 +26,44 @@ namespace WeldAdminPro.UI.ViewModels
 		private ObservableCollection<string> categories = new();
 
 		// =========================
+		// VALIDATION : MIN / MAX (PER ITEM)
+		// =========================
+		private bool ValidateMinMaxLevels()
+		{
+			if (Item.MinLevel < 0)
+			{
+				MessageBox.Show(
+					"Minimum stock level cannot be negative.",
+					"Validation Error",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning);
+				return false;
+			}
+
+			if (Item.MaxLevel < 0)
+			{
+				MessageBox.Show(
+					"Maximum stock level cannot be negative.",
+					"Validation Error",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning);
+				return false;
+			}
+
+			if (Item.MaxLevel > 0 && Item.MaxLevel < Item.MinLevel)
+			{
+				MessageBox.Show(
+					"Maximum stock level cannot be less than the minimum level.",
+					"Validation Error",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning);
+				return false;
+			}
+
+			return true;
+		}
+
+		// =========================
 		// NEW ITEM
 		// =========================
 		public NewStockItemViewModel()
@@ -36,6 +74,8 @@ namespace WeldAdminPro.UI.ViewModels
 			{
 				Id = Guid.NewGuid(),
 				Quantity = 0,
+				MinLevel = 0,   // per-item minimum
+				MaxLevel = 0,   // per-item maximum
 				Category = "Uncategorised"
 			};
 
@@ -76,21 +116,37 @@ namespace WeldAdminPro.UI.ViewModels
 			// -------- Validation --------
 			if (string.IsNullOrWhiteSpace(Item.ItemCode))
 			{
-				MessageBox.Show("Item Code is required.", "Validation Error");
+				MessageBox.Show(
+					"Item Code is required.",
+					"Validation Error",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning);
 				return;
 			}
 
 			if (string.IsNullOrWhiteSpace(Item.Description))
 			{
-				MessageBox.Show("Description is required.", "Validation Error");
+				MessageBox.Show(
+					"Description is required.",
+					"Validation Error",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning);
 				return;
 			}
 
 			if (Item.Quantity < 0)
 			{
-				MessageBox.Show("Quantity cannot be negative.", "Validation Error");
+				MessageBox.Show(
+					"Quantity cannot be negative.",
+					"Validation Error",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning);
 				return;
 			}
+
+			// 👉 Min / Max validation (PER ITEM)
+			if (!ValidateMinMaxLevels())
+				return;
 
 			if (string.IsNullOrWhiteSpace(Item.Category))
 				Item.Category = "Uncategorised";

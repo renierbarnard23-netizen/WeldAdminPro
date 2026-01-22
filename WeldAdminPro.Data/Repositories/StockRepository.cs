@@ -21,6 +21,9 @@ namespace WeldAdminPro.Data.Repositories
 
 			var cmd = connection.CreateCommand();
 
+			// =========================
+			// STOCK ITEMS TABLE
+			// =========================
 			cmd.CommandText =
 				"CREATE TABLE IF NOT EXISTS StockItems (" +
 				"Id TEXT PRIMARY KEY, " +
@@ -28,9 +31,14 @@ namespace WeldAdminPro.Data.Repositories
 				"Description TEXT, " +
 				"Quantity INTEGER NOT NULL, " +
 				"Unit TEXT, " +
-				"Category TEXT NOT NULL DEFAULT 'Uncategorised');";
+				"Category TEXT NOT NULL DEFAULT 'Uncategorised', " +
+				"MinLevel INTEGER NOT NULL DEFAULT 0, " +
+				"MaxLevel INTEGER NOT NULL DEFAULT 0);";
 			cmd.ExecuteNonQuery();
 
+			// =========================
+			// TRANSACTIONS TABLE
+			// =========================
 			cmd.CommandText =
 				"CREATE TABLE IF NOT EXISTS StockTransactions (" +
 				"Id TEXT PRIMARY KEY, " +
@@ -41,10 +49,19 @@ namespace WeldAdminPro.Data.Repositories
 				"Reference TEXT);";
 			cmd.ExecuteNonQuery();
 
-			// Safe migration
-			cmd.CommandText = "ALTER TABLE StockItems ADD COLUMN Category TEXT;";
+			// =========================
+			// SAFE MIGRATIONS
+			// =========================
+			TryAddColumn(cmd, "StockItems", "MinLevel", "INTEGER NOT NULL DEFAULT 0");
+			TryAddColumn(cmd, "StockItems", "MaxLevel", "INTEGER NOT NULL DEFAULT 0");
+		}
+
+		private void TryAddColumn(SqliteCommand cmd, string table, string column, string definition)
+		{
+			cmd.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {definition};";
 			try { cmd.ExecuteNonQuery(); } catch { }
 		}
+
 		public bool HasTransactions(Guid stockItemId)
 		{
 			using var connection = new SqliteConnection(_connectionString);
@@ -59,8 +76,6 @@ namespace WeldAdminPro.Data.Repositories
 			return count > 0;
 		}
 
-
-
 		// =========================
 		// STOCK ITEMS
 		// =========================
@@ -74,7 +89,8 @@ namespace WeldAdminPro.Data.Repositories
 
 			var cmd = connection.CreateCommand();
 			cmd.CommandText =
-				"SELECT Id, ItemCode, Description, Quantity, Unit, Category FROM StockItems;";
+				"SELECT Id, ItemCode, Description, Quantity, Unit, Category, MinLevel, MaxLevel " +
+				"FROM StockItems;";
 
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
@@ -88,7 +104,9 @@ namespace WeldAdminPro.Data.Repositories
 					Unit = reader.IsDBNull(4) ? "" : reader.GetString(4),
 					Category = reader.IsDBNull(5) || string.IsNullOrWhiteSpace(reader.GetString(5))
 						? "Uncategorised"
-						: reader.GetString(5)
+						: reader.GetString(5),
+					MinLevel = reader.GetInt32(6),
+					MaxLevel = reader.GetInt32(7)
 				});
 			}
 
@@ -102,7 +120,7 @@ namespace WeldAdminPro.Data.Repositories
 
 			var cmd = connection.CreateCommand();
 			cmd.CommandText =
-				"SELECT Id, ItemCode, Description, Quantity, Unit, Category " +
+				"SELECT Id, ItemCode, Description, Quantity, Unit, Category, MinLevel, MaxLevel " +
 				"FROM StockItems WHERE Id = $id;";
 
 			cmd.Parameters.AddWithValue("$id", id.ToString());
@@ -120,7 +138,9 @@ namespace WeldAdminPro.Data.Repositories
 				Unit = reader.IsDBNull(4) ? "" : reader.GetString(4),
 				Category = reader.IsDBNull(5) || string.IsNullOrWhiteSpace(reader.GetString(5))
 					? "Uncategorised"
-					: reader.GetString(5)
+					: reader.GetString(5),
+				MinLevel = reader.GetInt32(6),
+				MaxLevel = reader.GetInt32(7)
 			};
 		}
 
@@ -131,8 +151,9 @@ namespace WeldAdminPro.Data.Repositories
 
 			var cmd = connection.CreateCommand();
 			cmd.CommandText =
-				"INSERT INTO StockItems (Id, ItemCode, Description, Quantity, Unit, Category) " +
-				"VALUES ($id, $code, $desc, $qty, $unit, $cat);";
+				"INSERT INTO StockItems " +
+				"(Id, ItemCode, Description, Quantity, Unit, Category, MinLevel, MaxLevel) " +
+				"VALUES ($id, $code, $desc, $qty, $unit, $cat, $min, $max);";
 
 			cmd.Parameters.AddWithValue("$id", item.Id.ToString());
 			cmd.Parameters.AddWithValue("$code", item.ItemCode);
@@ -140,6 +161,8 @@ namespace WeldAdminPro.Data.Repositories
 			cmd.Parameters.AddWithValue("$qty", item.Quantity);
 			cmd.Parameters.AddWithValue("$unit", item.Unit);
 			cmd.Parameters.AddWithValue("$cat", item.Category ?? "Uncategorised");
+			cmd.Parameters.AddWithValue("$min", item.MinLevel);
+			cmd.Parameters.AddWithValue("$max", item.MaxLevel);
 
 			cmd.ExecuteNonQuery();
 		}
@@ -152,17 +175,23 @@ namespace WeldAdminPro.Data.Repositories
 			var cmd = connection.CreateCommand();
 			cmd.CommandText =
 				"UPDATE StockItems SET " +
+				"ItemCode = $code, " +
 				"Description = $desc, " +
 				"Quantity = $qty, " +
 				"Unit = $unit, " +
-				"Category = $cat " +
+				"Category = $cat, " +
+				"MinLevel = $min, " +
+				"MaxLevel = $max " +
 				"WHERE Id = $id;";
 
 			cmd.Parameters.AddWithValue("$id", item.Id.ToString());
+			cmd.Parameters.AddWithValue("$code", item.ItemCode);
 			cmd.Parameters.AddWithValue("$desc", item.Description);
 			cmd.Parameters.AddWithValue("$qty", item.Quantity);
 			cmd.Parameters.AddWithValue("$unit", item.Unit);
 			cmd.Parameters.AddWithValue("$cat", item.Category ?? "Uncategorised");
+			cmd.Parameters.AddWithValue("$min", item.MinLevel);
+			cmd.Parameters.AddWithValue("$max", item.MaxLevel);
 
 			cmd.ExecuteNonQuery();
 		}
