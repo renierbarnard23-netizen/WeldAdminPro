@@ -9,6 +9,8 @@ using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.UI.Views;
 using System.ComponentModel;
 using System.Windows.Data;
+using Microsoft.Win32;
+using System.IO;
 
 namespace WeldAdminPro.UI.ViewModels
 {
@@ -47,7 +49,7 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =====================================================
-		// Low Stock Filter
+		// Low Stock + Search Filters
 		// =====================================================
 
 		private bool _showLowStockOnly;
@@ -65,15 +67,39 @@ namespace WeldAdminPro.UI.ViewModels
 			}
 		}
 
+		[ObservableProperty]
+		private string searchText = string.Empty;
+
 		private bool FilterStockItems(object obj)
 		{
 			if (obj is not StockItem item)
 				return false;
 
-			if (!ShowLowStockOnly)
-				return true;
+			// ---- Low stock filter ----
+			if (ShowLowStockOnly && !(item.IsLowStock || item.IsOutOfStock))
+				return false;
 
-			return item.IsLowStock || item.IsOutOfStock;
+			// ---- Search filter ----
+			if (!string.IsNullOrWhiteSpace(SearchText))
+			{
+				var text = SearchText.Trim();
+
+				bool matchesCode =
+					item.ItemCode.Contains(text, StringComparison.OrdinalIgnoreCase);
+
+				bool matchesDescription =
+					item.Description.Contains(text, StringComparison.OrdinalIgnoreCase);
+
+				if (!matchesCode && !matchesDescription)
+					return false;
+			}
+
+			return true;
+		}
+
+		partial void OnSearchTextChanged(string value)
+		{
+			ItemsView.Refresh();
 		}
 
 		// =====================================================
@@ -111,6 +137,7 @@ namespace WeldAdminPro.UI.ViewModels
 		public IRelayCommand UndoDeleteCommand { get; }
 		public IRelayCommand UndoEditCommand { get; }
 		public IRelayCommand ViewHistoryCommand { get; }
+		public IRelayCommand ExportLowStockCommand { get; }
 
 		// =====================================================
 		// Constructor
@@ -132,6 +159,7 @@ namespace WeldAdminPro.UI.ViewModels
 			UndoDeleteCommand = new RelayCommand(UndoLastDelete, () => CanUndoDelete);
 			UndoEditCommand = new RelayCommand(UndoLastEdit, () => CanUndoEdit);
 			ViewHistoryCommand = new RelayCommand(OpenHistory, () => SelectedItem != null);
+			ExportLowStockCommand = new RelayCommand(ExportLowStock);
 		}
 
 		// =====================================================
@@ -191,7 +219,6 @@ namespace WeldAdminPro.UI.ViewModels
 
 			Items = new ObservableCollection<StockItem>(allItems);
 
-			// 🔑 Reset view so filters reapply
 			_itemsView = null;
 			OnPropertyChanged(nameof(ItemsView));
 		}
@@ -340,5 +367,68 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public bool CanDeleteSelectedItem =>
 			SelectedItem != null && !_repo.HasTransactions(SelectedItem.Id);
+
+		// =====================================================
+		// EXPORT LOW STOCK
+		// =====================================================
+
+		private void ExportLowStock()
+		{
+			var itemsToExport = ItemsView
+				.Cast<StockItem>()
+				.Where(i => i.IsLowStock || i.IsOutOfStock)
+				.ToList();
+
+			if (!itemsToExport.Any())
+			{
+				MessageBox.Show(
+					"There are no low or out-of-stock items to export.",
+					"Export",
+					MessageBoxButton.OK,
+					MessageBoxImage.Information);
+				return;
+			}
+
+			var dialog = new SaveFileDialog
+			{
+				FileName = $"LowStock_{DateTime.Now:yyyyMMdd_HHmm}",
+				DefaultExt = ".csv",
+				Filter = "CSV files (*.csv)|*.csv"
+			};
+
+			if (dialog.ShowDialog() != true)
+				return;
+
+			using var writer = new StreamWriter(dialog.FileName);
+
+			writer.WriteLine("ItemCode,Description,Quantity,Unit,MinLevel,MaxLevel,ReorderQuantity,Category");
+
+			foreach (var item in itemsToExport)
+			{
+				writer.WriteLine(
+					$"{Escape(item.ItemCode)}," +
+					$"{Escape(item.Description)}," +
+					$"{item.Quantity}," +
+					$"{Escape(item.Unit)}," +
+					$"{item.MinLevel}," +
+					$"{item.MaxLevel}," +
+					$"{item.SuggestedReorderQuantity}," +
+					$"{Escape(item.Category)}");
+			}
+
+			MessageBox.Show(
+				$"Low-stock report exported successfully:\n{dialog.FileName}",
+				"Export Complete",
+				MessageBoxButton.OK,
+				MessageBoxImage.Information);
+		}
+
+		private static string Escape(string value)
+		{
+			if (string.IsNullOrWhiteSpace(value))
+				return "";
+
+			return $"\"{value.Replace("\"", "\"\"")}\"";
+		}
 	}
 }

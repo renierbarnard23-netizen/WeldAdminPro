@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d">
+             mc:Ignorable="d" Width="953">
 
 	<TabControl Margin="10">
 
@@ -14,66 +14,92 @@
 
 			<DockPanel Width="875">
 
-				<!-- TOP BUTTON BAR -->
-				<StackPanel Orientation="Horizontal"
-                            DockPanel.Dock="Top"
-                            Margin="0,0,0,10">
+				<!-- ===================== -->
+				<!-- TOP TOOLBAR -->
+				<!-- ===================== -->
+				<Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="Auto"/>
+						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="Auto"/>
+					</Grid.ColumnDefinitions>
 
-					<Button Content="New Stock Item"
-                            Width="110"
-                            Margin="0,0,10,0"
-                            Command="{Binding NewItemCommand}" />
+					<!-- LEFT: ACTION BUTTONS -->
+					<StackPanel Grid.Column="0"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
 
-					<Button Content="Edit Stock Item"
-                            Width="110"
-                            Margin="0,0,10,0"
-                            Command="{Binding EditItemCommand}" />
+						<Button Content="New"
+                                Width="54"
+                                Margin="0,0,5,0"
+                                Command="{Binding NewItemCommand}" />
 
-					<Button Content="Stock IN"
-                            Width="80"
-                            Margin="0,0,10,0"
-                            Command="{Binding StockInCommand}" />
+						<Button Content="Edit"
+                                Width="48"
+                                Margin="0,0,5,0"
+                                Command="{Binding EditItemCommand}" />
 
-					<Button Content="Stock OUT"
-                            Width="90"
-                            Margin="0,0,10,0"
-                            Command="{Binding StockOutCommand}" />
+						<Button Content="Stock IN"
+                                Width="62"
+                                Margin="0,0,5,0"
+                                Command="{Binding StockInCommand}" />
 
-					<Button Content="Delete"
-                            Width="80"
-                            Margin="0,0,10,0"
-                            Command="{Binding DeleteStockItemCommand}"
-                            Background="LightGray"
-                            ToolTip="Cannot delete items with transaction history" />
+						<Button Content="Stock OUT"
+                                Width="75"
+                                Margin="0,0,5,0"
+                                Command="{Binding StockOutCommand}" />
 
-					<Button Content="Undo Edit"
-                            Width="80"
-                            Margin="0,0,10,0"
-                            Command="{Binding UndoEditCommand}"
-                            Background="LightGray" />
+						<Button Content="Delete"
+                                Width="58"
+                                Margin="0,0,5,0"
+                                Command="{Binding DeleteStockItemCommand}"
+                                Background="LightGray"
+                                ToolTip="Cannot delete items with transaction history" />
 
-					<Button Content="Manage Categories"
-                            Width="140"
-                            Height="40"
-                            Margin="0,0,10,0"
-                            Click="ManageCategories_Click" />
+						<Button Content="Undo"
+                                Width="45"
+                                Margin="0,0,5,0"
+                                Command="{Binding UndoEditCommand}"
+                                Background="LightGray" />
 
-					<Button Content="View History"
-                            Width="80"
-                            Margin="0,0,15,0"
-                            Command="{Binding ViewHistoryCommand}" />
+						<Button Content="Categories"
+                                Width="78"
+                                Margin="0,0,5,0"
+                                Click="ManageCategories_Click" />
 
-					<!-- ✅ LOW-STOCK FILTER -->
-					<CheckBox Content="Show low stock only"
-                              VerticalAlignment="Center"
-                              IsChecked="{Binding ShowLowStockOnly}" />
-				</StackPanel>
+						<Button Content="History"
+                                Width="62"
+                                Command="{Binding ViewHistoryCommand}" />
+					</StackPanel>
 
+					<!-- CENTER: SEARCH -->
+					<StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"/>
+
+					<!-- RIGHT: FILTERS -->
+					<StackPanel Grid.Column="2"
+            Orientation="Horizontal"
+            VerticalAlignment="Center"/>
+					<CheckBox Content="Low stock only"
+              VerticalAlignment="Center"
+              Margin="5,0,135,0"
+              IsChecked="{Binding ShowLowStockOnly}" Grid.Column="1" />
+					<Button Content="Export Low Stock"
+            Command="{Binding ExportLowStockCommand}" Grid.Column="1" Margin="145,0,93,0" />
+
+				</Grid>
+
+				<!-- ===================== -->
 				<!-- MAIN CONTENT -->
+				<!-- ===================== -->
 				<Grid>
 					<Grid.ColumnDefinitions>
 						<ColumnDefinition Width="200"/>
-						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="497*"/>
+						<ColumnDefinition Width="96*"/>
+						<ColumnDefinition Width="82*"/>
 					</Grid.ColumnDefinitions>
 
 					<!-- LEFT FILTER PANEL -->
@@ -99,7 +125,7 @@
                               ItemsSource="{Binding ItemsView}"
                               SelectedItem="{Binding SelectedItem}"
                               AutoGenerateColumns="False"
-                              IsReadOnly="True">
+                              IsReadOnly="True" Grid.ColumnSpan="3">
 
 						<DataGrid.Columns>
 
