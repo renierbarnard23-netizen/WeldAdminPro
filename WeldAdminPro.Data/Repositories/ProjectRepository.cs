@@ -5,15 +5,17 @@ namespace WeldAdminPro.Data.Repositories
 {
     public class ProjectRepository
     {
-        private readonly string _connectionString =
-            "Data Source=weldadmin.db";
+		private readonly string _connectionString;
 
-        public ProjectRepository()
-        {
-            EnsureDatabase();
-        }
+		public ProjectRepository()
+		{
+			var dbPath = DatabasePath.Get();
+			_connectionString = $"Data Source={dbPath}";
+			EnsureDatabase();
+		}
 
-        private void EnsureDatabase()
+
+		private void EnsureDatabase()
 {
     using var connection = new SqliteConnection(_connectionString);
     connection.Open();

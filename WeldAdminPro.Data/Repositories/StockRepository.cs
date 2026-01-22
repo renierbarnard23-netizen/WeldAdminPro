@@ -7,10 +7,12 @@ namespace WeldAdminPro.Data.Repositories
 {
 	public class StockRepository
 	{
-		private readonly string _connectionString = "Data Source=weldadmin.db";
+		private readonly string _connectionString;
 
 		public StockRepository()
 		{
+			var dbPath = DatabasePath.Get();
+			_connectionString = $"Data Source={dbPath}";
 			EnsureDatabase();
 		}
 
@@ -52,12 +54,18 @@ namespace WeldAdminPro.Data.Repositories
 
 			var cmd = connection.CreateCommand();
 			cmd.CommandText =
-				"SELECT COUNT(1) FROM StockTransactions WHERE StockItemId = $id;";
+			"""
+    SELECT COUNT(*)
+    FROM StockTransactions
+    WHERE StockItemId = $id;
+    """;
+
 			cmd.Parameters.AddWithValue("$id", stockItemId.ToString());
 
-			long count = (long)cmd.ExecuteScalar();
+			var count = Convert.ToInt32(cmd.ExecuteScalar());
 			return count > 0;
 		}
+
 
 
 

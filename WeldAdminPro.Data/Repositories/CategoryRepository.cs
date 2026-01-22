@@ -7,12 +7,14 @@ namespace WeldAdminPro.Data.Repositories
 {
 	public class CategoryRepository
 	{
-		private readonly string _connectionString = "Data Source=weldadmin.db";
+		private readonly string _connectionString;
 
 		public CategoryRepository()
 		{
-			EnsureDatabase();
+			var dbPath = DatabasePath.Get();
+			_connectionString = $"Data Source={dbPath}";
 		}
+
 
 		// =========================
 		// DB INIT
