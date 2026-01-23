@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System;
 using System.Collections.ObjectModel;
 using System.Windows;
 using WeldAdminPro.Core.Models;
@@ -11,64 +12,102 @@ namespace WeldAdminPro.UI.ViewModels
 	{
 		private readonly CategoryRepository _repo = new();
 
-		public ObservableCollection<Category> Categories { get; } = new();
+		// =========================
+		// Properties
+		// =========================
+
+		[ObservableProperty]
+		private ObservableCollection<Category> categories = new();
 
 		[ObservableProperty]
 		private Category? selectedCategory;
 
 		[ObservableProperty]
-		private string newCategoryName = "";
+		private string newCategoryName = string.Empty;
+
+		// =========================
+		// Constructor
+		// =========================
 
 		public CategoryManagementViewModel()
 		{
-			Load();
+			LoadCategories();
 		}
 
-		private void Load()
+		private void LoadCategories()
 		{
-			Categories.Clear();
-			foreach (var c in _repo.GetAll())
-				Categories.Add(c);
+			Categories = new ObservableCollection<Category>(_repo.GetAll());
+			SelectedCategory = null;
 		}
+
+		// =========================
+		// Commands
+		// =========================
 
 		[RelayCommand]
-		private void Add()
+		private void AddCategory()
 		{
 			if (string.IsNullOrWhiteSpace(NewCategoryName))
 				return;
 
-			_repo.Add(NewCategoryName);
-			NewCategoryName = "";
-			Load();
+			_repo.Add(NewCategoryName.Trim());
+			NewCategoryName = string.Empty;
+
+			LoadCategories();
 		}
 
-		[RelayCommand(CanExecute = nameof(HasSelection))]
-		private void Enable()
+		[RelayCommand]
+		private void DisableCategory()
 		{
-			_repo.SetActive(SelectedCategory!.Id, true);
-			Load();
-		}
-
-		[RelayCommand(CanExecute = nameof(HasSelection))]
-		private void Disable()
-		{
-			_repo.SetActive(SelectedCategory!.Id, false);
-			Load();
-		}
-
-		[RelayCommand(CanExecute = nameof(CanDelete))]
-		private void Delete()
-		{
-			if (MessageBox.Show("Delete category?",
-				"Confirm", MessageBoxButton.YesNo) != MessageBoxResult.Yes)
+			if (SelectedCategory == null)
 				return;
 
-			_repo.Delete(SelectedCategory!.Id);
-			Load();
+			try
+			{
+				_repo.Disable(SelectedCategory);
+				LoadCategories();
+			}
+			catch (InvalidOperationException ex)
+			{
+				MessageBox.Show(
+					ex.Message,
+					"Category In Use",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning);
+			}
 		}
 
-		private bool HasSelection() => SelectedCategory != null;
-		private bool CanDelete() => SelectedCategory != null &&
-			SelectedCategory.Name != "Uncategorised";
+		[RelayCommand]
+		private void EnableCategory()
+		{
+			if (SelectedCategory == null)
+				return;
+
+			SelectedCategory.IsActive = true;
+			_repo.Update(SelectedCategory);
+
+			LoadCategories();
+		}
+
+		[RelayCommand]
+		private void DeleteCategory()
+		{
+			if (SelectedCategory == null)
+				return;
+
+			try
+			{
+				_repo.Delete(SelectedCategory);
+				LoadCategories();
+			}
+			catch (InvalidOperationException ex)
+			{
+				MessageBox.Show(
+					ex.Message,
+					"Category In Use",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning);
+			}
+		}
 	}
 }
