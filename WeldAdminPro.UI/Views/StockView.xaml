@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d">
 
-	<Grid Margin="10">
+	<Grid Margin="12">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<!-- Buttons -->
@@ -16,35 +16,35 @@
 		</Grid.RowDefinitions>
 
 		<!-- ACTION BUTTONS -->
-		<StackPanel Grid.Row="0"
-                    Orientation="Horizontal"
-                    Margin="0,0,0,8">
+		<WrapPanel Grid.Row="0"
+                   Margin="0,0,0,10"
+                   HorizontalAlignment="Left">
 
 			<Button Content="New Stock Item"
-                    Width="130"
+                    Width="140"
                     Margin="4"
                     Command="{Binding NewItemCommand}" />
 
 			<Button Content="Edit Stock Item"
-                    Width="130"
+                    Width="140"
                     Margin="4"
                     Command="{Binding EditItemCommand}" />
 
 			<Button Content="Manage Categories"
-                    Width="150"
+                    Width="170"
                     Margin="4"
                     Click="ManageCategories_Click" />
 
 			<Button Content="Stock IN"
-                    Width="100"
+                    Width="110"
                     Margin="4"
                     Command="{Binding StockInCommand}" />
 
 			<Button Content="Stock OUT"
-                    Width="100"
+                    Width="110"
                     Margin="4"
                     Command="{Binding StockOutCommand}" />
-		</StackPanel>
+		</WrapPanel>
 
 		<!-- CATEGORY FILTER -->
 		<StackPanel Grid.Row="1"
@@ -52,9 +52,9 @@
                     Margin="0,0,0,10">
 			<TextBlock Text="Category:"
                        VerticalAlignment="Center"
-                       Margin="0,0,6,0"/>
+                       Margin="0,0,8,0"/>
 
-			<ComboBox Width="220"
+			<ComboBox Width="240"
                       ItemsSource="{Binding Categories}"
                       SelectedItem="{Binding SelectedCategory}"
                       DisplayMemberPath="Name"/>
@@ -65,12 +65,14 @@
                   ItemsSource="{Binding Items}"
                   SelectedItem="{Binding SelectedItem}"
                   AutoGenerateColumns="False"
-                  IsReadOnly="True">
+                  IsReadOnly="True"
+                  HeadersVisibility="Column"
+                  RowHeight="28">
 
 			<DataGrid.Columns>
 				<DataGridTextColumn Header="Item Code"
                                     Binding="{Binding ItemCode}"
-                                    Width="120"/>
+                                    Width="140"/>
 
 				<DataGridTextColumn Header="Description"
                                     Binding="{Binding Description}"

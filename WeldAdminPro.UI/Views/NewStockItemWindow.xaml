@@ -5,75 +5,77 @@
         SizeToContent="WidthAndHeight"
         WindowStartupLocation="CenterOwner">
 
-	<Grid Margin="20">
+	<Grid Margin="16">
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition Width="Auto"/>
-			<ColumnDefinition Width="20"/>
-			<ColumnDefinition Width="250"/>
+			<ColumnDefinition Width="260"/>
 		</Grid.ColumnDefinitions>
 
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="15"/>
 			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="15"/>
 			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="15"/>
 			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="25"/>
 			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
 
 		<!-- Item Code -->
 		<TextBlock Grid.Row="0" Grid.Column="0"
-                   Text="Item Code"
-                   VerticalAlignment="Center"/>
+                   Text="Item Code:"
+                   VerticalAlignment="Center"
+                   Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="0" Grid.Column="2"
+		<TextBox Grid.Row="0" Grid.Column="1"
+                 Margin="0,0,0,6"
                  Text="{Binding Item.ItemCode}"
                  IsReadOnly="{Binding IsEditMode}"/>
 
 		<!-- Description -->
-		<TextBlock Grid.Row="2" Grid.Column="0"
-                   Text="Description"
-                   VerticalAlignment="Center"/>
+		<TextBlock Grid.Row="1" Grid.Column="0"
+                   Text="Description:"
+                   VerticalAlignment="Center"
+                   Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="2" Grid.Column="2"
+		<TextBox Grid.Row="1" Grid.Column="1"
+                 Margin="0,0,0,6"
                  Text="{Binding Item.Description}"/>
 
 		<!-- Quantity -->
-		<TextBlock Grid.Row="4" Grid.Column="0"
-                   Text="Quantity"
-                   VerticalAlignment="Center"/>
+		<TextBlock Grid.Row="2" Grid.Column="0"
+                   Text="Quantity:"
+                   VerticalAlignment="Center"
+                   Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="4" Grid.Column="2"
-                 Width="100"
-                 HorizontalAlignment="Left"
+		<TextBox Grid.Row="2" Grid.Column="1"
+                 Margin="0,0,0,6"
+                 Width="120"
                  Text="{Binding Item.Quantity}"/>
 
 		<!-- Category -->
-		<TextBlock Grid.Row="6" Grid.Column="0"
-                   Text="Category"
-                   VerticalAlignment="Center"/>
+		<TextBlock Grid.Row="3" Grid.Column="0"
+                   Text="Category:"
+                   VerticalAlignment="Center"
+                   Margin="0,0,10,10"/>
 
-		<ComboBox Grid.Row="6" Grid.Column="2"
+		<ComboBox Grid.Row="3" Grid.Column="1"
+                  Margin="0,0,0,10"
                   ItemsSource="{Binding Categories}"
                   SelectedItem="{Binding SelectedCategory}"
                   DisplayMemberPath="Name"/>
 
 		<!-- Buttons -->
-		<StackPanel Grid.Row="8" Grid.ColumnSpan="3"
+		<StackPanel Grid.Row="4" Grid.ColumnSpan="2"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right">
+
 			<Button Content="Save"
-                    Command="{Binding SaveCommand}"
                     Width="100"
-                    Margin="0,0,10,0"/>
+                    Margin="0,0,8,0"
+                    Command="{Binding SaveCommand}"/>
 
 			<Button Content="Cancel"
-                    Command="{Binding CancelCommand}"
-                    Width="100"/>
+                    Width="100"
+                    Command="{Binding CancelCommand}"/>
 		</StackPanel>
-
 	</Grid>
 </Window>
