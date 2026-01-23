@@ -22,33 +22,49 @@
         BorderBrush="#D0D0D0"
         BorderThickness="0,0,0,1">
 
-					<StackPanel Orientation="Horizontal">
+					<StackPanel Orientation="Vertical" Margin="0,0,0,8">
 
-						<Button Content="New Stock Item"
-                Width="130"
-                Margin="0,0,8,0"
-                Command="{Binding NewItemCommand}"/>
+						<StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+							<Button Content="New Stock Item"
+                Command="{Binding NewItemCommand}"
+                Width="120"
+                Margin="4"/>
 
-						<Button Content="Edit Stock Item"
-                Width="130"
-                Margin="0,0,8,0"
-                Command="{Binding EditItemCommand}"/>
+							<Button Content="Edit Stock Item"
+                Command="{Binding EditItemCommand}"
+                Width="120"
+                Margin="4"/>
 
-						<Button Content="Manage Categories"
-                Width="160"
-                Margin="0,0,20,0"
+							<Button Content="Manage Categories"
+                Width="150"
+                Margin="4"
                 Click="ManageCategories_Click"/>
 
-						<Button Content="Stock IN"
-                Width="110"
-                Margin="0,0,8,0"
-                Command="{Binding StockInCommand}"/>
+							<Button Content="Stock IN"
+                Command="{Binding StockInCommand}"
+                Width="100"
+                Margin="4"/>
 
-						<Button Content="Stock OUT"
-                Width="110"
-                Command="{Binding StockOutCommand}"/>
+							<Button Content="Stock OUT"
+                Command="{Binding StockOutCommand}"
+                Width="100"
+                Margin="4"/>
+						</StackPanel>
+
+						<!-- CATEGORY FILTER -->
+						<StackPanel Orientation="Horizontal" Margin="4">
+							<TextBlock Text="Category:"
+                   VerticalAlignment="Center"
+                   Margin="0,0,6,0"/>
+
+							<ComboBox Width="200"
+                  ItemsSource="{Binding Categories}"
+                  SelectedItem="{Binding SelectedCategory}"
+                  DisplayMemberPath="Name"/>
+						</StackPanel>
 
 					</StackPanel>
+
 				</Border>
 
 

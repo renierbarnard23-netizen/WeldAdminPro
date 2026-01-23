@@ -21,9 +21,8 @@ namespace WeldAdminPro.UI.Views
 
 			window.ShowDialog();
 
-			// 🔁 Force reload after category changes
-			if (DataContext is StockViewModel vm)
-				vm.Reload();
+			// ✅ Re-create ViewModel to force full refresh
+			DataContext = new StockViewModel();
 		}
 	}
 }

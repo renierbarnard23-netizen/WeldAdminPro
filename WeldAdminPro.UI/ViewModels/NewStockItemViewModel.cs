@@ -1,8 +1,8 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
@@ -12,6 +12,10 @@ namespace WeldAdminPro.UI.ViewModels
 	{
 		private readonly StockRepository _stockRepo = new();
 		private readonly CategoryRepository _categoryRepo = new();
+
+		// =========================
+		// Properties
+		// =========================
 
 		[ObservableProperty]
 		private StockItem item = null!;
@@ -27,13 +31,16 @@ namespace WeldAdminPro.UI.ViewModels
 		public event Action? ItemCreated;
 		public event Action? RequestClose;
 
+		// =========================
 		// NEW item
+		// =========================
 		public NewStockItemViewModel()
 		{
 			Item = new StockItem
 			{
 				Id = Guid.NewGuid(),
-				Quantity = 0
+				Quantity = 0,
+				Category = "Uncategorised"
 			};
 
 			LoadCategories();
@@ -42,7 +49,9 @@ namespace WeldAdminPro.UI.ViewModels
 			IsEditMode = false;
 		}
 
+		// =========================
 		// EDIT item
+		// =========================
 		public NewStockItemViewModel(StockItem existingItem)
 		{
 			Item = new StockItem
@@ -56,20 +65,30 @@ namespace WeldAdminPro.UI.ViewModels
 			};
 
 			LoadCategories();
-			SelectedCategory = Categories.FirstOrDefault(c => c.Name == Item.Category);
+			SelectedCategory =
+				Categories.FirstOrDefault(c => c.Name == Item.Category)
+				?? Categories.FirstOrDefault(c => c.Name == "Uncategorised");
 
 			IsEditMode = true;
 		}
 
+		// =========================
+		// Load categories
+		// =========================
 		private void LoadCategories()
 		{
-			Categories = new ObservableCollection<Category>(_categoryRepo.GetAll());
+			Categories = new ObservableCollection<Category>(
+				_categoryRepo.GetAllActive()
+			);
 		}
 
+		// =========================
+		// Commands
+		// =========================
 		[RelayCommand]
 		private void Save()
 		{
-			// 🔑 THIS IS THE MISSING LINE
+			// 🔑 CRITICAL LINE
 			Item.Category = SelectedCategory?.Name ?? "Uncategorised";
 
 			if (IsEditMode)
