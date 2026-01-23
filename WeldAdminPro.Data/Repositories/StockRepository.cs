@@ -130,8 +130,10 @@ public List<StockItem> GetAll()
             cmd.Parameters.AddWithValue("$desc", item.Description);
             cmd.Parameters.AddWithValue("$qty", item.Quantity);
             cmd.Parameters.AddWithValue("$unit", item.Unit);
+			cmd.Parameters.AddWithValue("$cat", item.Category ?? "Uncategorised");
 
-            cmd.ExecuteNonQuery();
+
+			cmd.ExecuteNonQuery();
         }
 
         public void Update(StockItem item)
