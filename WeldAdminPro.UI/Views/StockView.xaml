@@ -17,34 +17,40 @@
 
 				<!-- Toolbar -->
 				<Border DockPanel.Dock="Top"
-                        Padding="8"
-                        Background="#F5F5F5"
-                        BorderBrush="#D0D0D0"
-                        BorderThickness="0,0,0,1">
+        Padding="8"
+        Background="#F5F5F5"
+        BorderBrush="#D0D0D0"
+        BorderThickness="0,0,0,1">
 
 					<StackPanel Orientation="Horizontal">
 
 						<Button Content="New Stock Item"
-                                Width="130"
-                                Margin="0,0,8,0"/>
+                Width="130"
+                Margin="0,0,8,0"
+                Command="{Binding NewItemCommand}"/>
 
 						<Button Content="Edit Stock Item"
-                                Width="130"
-                                Margin="0,0,8,0"/>
+                Width="130"
+                Margin="0,0,8,0"
+                Command="{Binding EditItemCommand}"/>
 
 						<Button Content="Manage Categories"
-                                Width="160"
-                                Margin="0,0,20,0"
-                                Click="ManageCategories_Click"/>
+                Width="160"
+                Margin="0,0,20,0"
+                Click="ManageCategories_Click"/>
 
 						<Button Content="Stock IN"
-                                Width="110"
-                                Margin="0,0,8,0"/>
+                Width="110"
+                Margin="0,0,8,0"
+                Command="{Binding StockInCommand}"/>
 
 						<Button Content="Stock OUT"
-                                Width="110"/>
+                Width="110"
+                Command="{Binding StockOutCommand}"/>
+
 					</StackPanel>
 				</Border>
+
 
 				<!-- Data Grid -->
 				<DataGrid ItemsSource="{Binding Items}"

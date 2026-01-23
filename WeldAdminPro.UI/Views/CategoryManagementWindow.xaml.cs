@@ -1,4 +1,5 @@
 using System.Windows;
+using WeldAdminPro.UI.ViewModels;
 
 namespace WeldAdminPro.UI.Views
 {
@@ -7,6 +8,7 @@ namespace WeldAdminPro.UI.Views
 		public CategoryManagementWindow()
 		{
 			InitializeComponent();
+			DataContext = new CategoryManagementViewModel();
 		}
 	}
 }

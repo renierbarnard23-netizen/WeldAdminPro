@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 using WeldAdminPro.Core.Models;
@@ -15,9 +15,6 @@ namespace WeldAdminPro.Data.Repositories
 			EnsureSchema();
 		}
 
-		// =========================
-		// SCHEMA
-		// =========================
 		private void EnsureSchema()
 		{
 			using var connection = new SqliteConnection(_connectionString);
@@ -46,14 +43,11 @@ namespace WeldAdminPro.Data.Repositories
 				SELECT 1 FROM Categories WHERE Name = 'Uncategorised'
 			);
 			";
-
 			cmd.Parameters.AddWithValue("$id", Guid.NewGuid().ToString());
 			cmd.ExecuteNonQuery();
 		}
 
-		// =========================
-		// GET
-		// =========================
+		// 🔹 NEW: get ALL categories
 		public List<Category> GetAll()
 		{
 			var list = new List<Category>();
@@ -68,7 +62,12 @@ namespace WeldAdminPro.Data.Repositories
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
 			{
-				list.Add(Read(reader));
+				list.Add(new Category
+				{
+					Id = Guid.Parse(reader.GetString(0)),
+					Name = reader.GetString(1),
+					IsActive = reader.GetInt32(2) == 1
+				});
 			}
 
 			return list;
@@ -88,52 +87,38 @@ namespace WeldAdminPro.Data.Repositories
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
 			{
-				list.Add(Read(reader));
+				list.Add(new Category
+				{
+					Id = Guid.Parse(reader.GetString(0)),
+					Name = reader.GetString(1),
+					IsActive = reader.GetInt32(2) == 1
+				});
 			}
 
 			return list;
 		}
 
-		// =========================
-		// ENABLE / DISABLE
-		// =========================
-		public void Disable(Guid id)
-		{
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
-
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText =
-				"UPDATE Categories SET IsActive = 0 WHERE Id = $id;";
-			cmd.Parameters.AddWithValue("$id", id.ToString());
-
-			cmd.ExecuteNonQuery();
-		}
-
 		public void Enable(Guid id)
 		{
+			SetActive(id, true);
+		}
+
+		public void Disable(Guid id)
+		{
+			SetActive(id, false);
+		}
+
+		private void SetActive(Guid id, bool active)
+		{
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText =
-				"UPDATE Categories SET IsActive = 1 WHERE Id = $id;";
+				"UPDATE Categories SET IsActive = $active WHERE Id = $id;";
+			cmd.Parameters.AddWithValue("$active", active ? 1 : 0);
 			cmd.Parameters.AddWithValue("$id", id.ToString());
-
 			cmd.ExecuteNonQuery();
-		}
-
-		// =========================
-		// MAP
-		// =========================
-		private static Category Read(SqliteDataReader reader)
-		{
-			return new Category
-			{
-				Id = Guid.Parse(reader.GetString(0)),
-				Name = reader.GetString(1),
-				IsActive = reader.GetInt32(2) == 1
-			};
 		}
 	}
 }
