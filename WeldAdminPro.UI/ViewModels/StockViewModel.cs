@@ -70,11 +70,18 @@ namespace WeldAdminPro.UI.ViewModels
             Items = new ObservableCollection<StockItem>(_repo.GetAll());
         }
 
-        // =========================
-        // New / Edit stock
-        // =========================
+		public void Reload()
+		{
+			SelectedItem = null;
+			Items = new ObservableCollection<StockItem>(_repo.GetAll());
+		}
 
-        private void OpenNewItem()
+
+		// =========================
+		// New / Edit stock
+		// =========================
+
+		private void OpenNewItem()
         {
             var vm = new NewStockItemViewModel();
 

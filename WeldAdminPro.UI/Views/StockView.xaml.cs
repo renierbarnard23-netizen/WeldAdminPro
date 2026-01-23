@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using WeldAdminPro.UI.ViewModels;
 
@@ -18,7 +18,12 @@ namespace WeldAdminPro.UI.Views
 			{
 				Owner = Window.GetWindow(this)
 			};
+
 			window.ShowDialog();
+
+			// 🔁 Force reload after category changes
+			if (DataContext is StockViewModel vm)
+				vm.Reload();
 		}
 	}
 }

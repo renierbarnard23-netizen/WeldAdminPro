@@ -1,8 +1,8 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
@@ -10,53 +10,39 @@ namespace WeldAdminPro.UI.ViewModels
 {
 	public partial class NewStockItemViewModel : ObservableObject
 	{
-		private readonly StockRepository _repo = new();
+		private readonly StockRepository _stockRepo = new();
 		private readonly CategoryRepository _categoryRepo = new();
 
 		[ObservableProperty]
 		private StockItem item = null!;
 
-		// =========================
-		// Categories
-		// =========================
-		public ObservableCollection<Category> Categories { get; } = new();
+		[ObservableProperty]
+		private ObservableCollection<Category> categories = new();
 
-		private Category? _selectedCategory;
-		public Category? SelectedCategory
-		{
-			get => _selectedCategory;
-			set
-			{
-				SetProperty(ref _selectedCategory, value);
-				Item.Category = value?.Name ?? "Uncategorised";
-			}
-		}
+		[ObservableProperty]
+		private Category? selectedCategory;
 
 		public bool IsEditMode { get; }
 
 		public event Action? ItemCreated;
 		public event Action? RequestClose;
 
-		// =========================
-		// NEW item constructor
-		// =========================
+		// NEW item
 		public NewStockItemViewModel()
 		{
 			Item = new StockItem
 			{
 				Id = Guid.NewGuid(),
-				Quantity = 0,
-				Category = "Uncategorised"
+				Quantity = 0
 			};
 
-			IsEditMode = false;
-
 			LoadCategories();
+			SelectedCategory = Categories.FirstOrDefault(c => c.Name == "Uncategorised");
+
+			IsEditMode = false;
 		}
 
-		// =========================
-		// EDIT item constructor
-		// =========================
+		// EDIT item
 		public NewStockItemViewModel(StockItem existingItem)
 		{
 			Item = new StockItem
@@ -66,43 +52,30 @@ namespace WeldAdminPro.UI.ViewModels
 				Description = existingItem.Description,
 				Quantity = existingItem.Quantity,
 				Unit = existingItem.Unit,
-				Category = string.IsNullOrWhiteSpace(existingItem.Category)
-					? "Uncategorised"
-					: existingItem.Category
+				Category = existingItem.Category
 			};
 
-			IsEditMode = true;
-
 			LoadCategories();
+			SelectedCategory = Categories.FirstOrDefault(c => c.Name == Item.Category);
+
+			IsEditMode = true;
 		}
 
-		// =========================
-		// Load categories safely
-		// =========================
 		private void LoadCategories()
 		{
-			Categories.Clear();
-
-			foreach (var c in _categoryRepo.GetAllActive())
-				Categories.Add(c);
-
-			// Select existing or default category
-			SelectedCategory =
-				Categories.FirstOrDefault(c => c.Name == Item.Category)
-				?? Categories.FirstOrDefault(c => c.Name == "Uncategorised")
-				?? Categories.FirstOrDefault();
+			Categories = new ObservableCollection<Category>(_categoryRepo.GetAll());
 		}
 
-		// =========================
-		// Commands
-		// =========================
 		[RelayCommand]
 		private void Save()
 		{
+			// 🔑 THIS IS THE MISSING LINE
+			Item.Category = SelectedCategory?.Name ?? "Uncategorised";
+
 			if (IsEditMode)
-				_repo.Update(Item);
+				_stockRepo.Update(Item);
 			else
-				_repo.Add(Item);
+				_stockRepo.Add(Item);
 
 			ItemCreated?.Invoke();
 			RequestClose?.Invoke();

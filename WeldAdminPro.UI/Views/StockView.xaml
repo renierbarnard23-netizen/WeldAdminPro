@@ -80,6 +80,10 @@
 						<DataGridTextColumn Header="Unit"
                                             Binding="{Binding Unit}"
                                             Width="100"/>
+						<DataGridTextColumn Header="Category"
+                                            Binding="{Binding Category}"
+                                            Width="150"/>
+
 
 					</DataGrid.Columns>
 

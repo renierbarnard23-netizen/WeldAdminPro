@@ -8,33 +8,43 @@
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Category List -->
-        <DataGrid ItemsSource="{Binding Categories}"
+        <!-- Add -->
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBox Width="200"
+                     Text="{Binding NewCategoryName}"
+                     Margin="0,0,8,0"/>
+            <Button Content="Add"
+                    Width="100"
+                    Command="{Binding AddCommand}"/>
+        </StackPanel>
+
+        <!-- List -->
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding Categories}"
                   SelectedItem="{Binding SelectedCategory}"
                   AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  CanUserAddRows="False">
+                  IsReadOnly="True">
 
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Name"
                                     Binding="{Binding Name}"
                                     Width="*"/>
-
                 <DataGridCheckBoxColumn Header="Active"
                                         Binding="{Binding IsActive}"
-                                        Width="100"/>
+                                        Width="80"/>
             </DataGrid.Columns>
         </DataGrid>
 
-        <!-- Buttons -->
-        <StackPanel Grid.Row="1"
+        <!-- Actions -->
+        <StackPanel Grid.Row="2"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
-                    Margin="0,10,0,0">
+                    Margin="0,8,0,0">
 
             <Button Content="Enable"
                     Width="100"
@@ -45,6 +55,11 @@
                     Width="100"
                     Margin="5"
                     Command="{Binding DisableCommand}"/>
+
+            <Button Content="Delete"
+                    Width="100"
+                    Margin="5"
+                    Command="{Binding DeleteCommand}"/>
         </StackPanel>
     </Grid>
 </Window>
