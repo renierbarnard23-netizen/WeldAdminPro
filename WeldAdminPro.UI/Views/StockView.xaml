@@ -6,68 +6,93 @@
              xmlns:views="clr-namespace:WeldAdminPro.UI.Views"
              mc:Ignorable="d">
 
-    <TabControl Margin="10">
+	<TabControl Margin="10">
 
-        <!-- TAB 1: EXISTING STOCK ITEMS (UNCHANGED) -->
-        <TabItem Header="Stock Items">
+		<!-- ========================= -->
+		<!-- TAB 1: STOCK ITEMS -->
+		<!-- ========================= -->
+		<TabItem Header="Stock Items">
 
-            <DockPanel>
+			<DockPanel LastChildFill="True">
 
-                <StackPanel Orientation="Horizontal"
-                            DockPanel.Dock="Top"
-                            Margin="0,0,0,10">
+				<!-- Toolbar -->
+				<Border DockPanel.Dock="Top"
+                        Padding="8"
+                        Background="#F5F5F5"
+                        BorderBrush="#D0D0D0"
+                        BorderThickness="0,0,0,1">
 
-                    <Button Content="New Stock Item"
-                            Width="150"
-                            Margin="0,0,10,0"
-                            Command="{Binding NewItemCommand}" />
+					<StackPanel Orientation="Horizontal">
 
-                    <Button Content="Edit Stock Item"
-                            Width="150"
-                            Command="{Binding EditItemCommand}" />
+						<Button Content="New Stock Item"
+                                Width="130"
+                                Margin="0,0,8,0"/>
 
-                    <Button Content="Stock IN"
-                            Width="120"
-                            Margin="5"
-                            Command="{Binding StockInCommand}" />
+						<Button Content="Edit Stock Item"
+                                Width="130"
+                                Margin="0,0,8,0"/>
 
-                    <Button Content="Stock OUT"
-                            Width="120"
-                            Margin="5"
-                            Command="{Binding StockOutCommand}" />
+						<Button Content="Manage Categories"
+                                Width="160"
+                                Margin="0,0,20,0"
+                                Click="ManageCategories_Click"/>
 
-                </StackPanel>
+						<Button Content="Stock IN"
+                                Width="110"
+                                Margin="0,0,8,0"/>
 
-                <DataGrid ItemsSource="{Binding Items}"
+						<Button Content="Stock OUT"
+                                Width="110"/>
+					</StackPanel>
+				</Border>
+
+				<!-- Data Grid -->
+				<DataGrid ItemsSource="{Binding Items}"
                           SelectedItem="{Binding SelectedItem}"
                           AutoGenerateColumns="False"
-                          IsReadOnly="True">
+                          IsReadOnly="True"
+                          Margin="0,8,0,0"
+                          GridLinesVisibility="Horizontal"
+                          HeadersVisibility="Column"
+                          CanUserResizeColumns="True"
+                          CanUserSortColumns="True">
 
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Item Code"
-                                            Binding="{Binding ItemCode}" />
+					<DataGrid.Columns>
 
-                        <DataGridTextColumn Header="Description"
-                                            Binding="{Binding Description}" />
+						<DataGridTextColumn Header="Item Code"
+                                            Binding="{Binding ItemCode}"
+                                            Width="120"/>
 
-                        <DataGridTextColumn Header="Quantity"
-                                            Binding="{Binding Quantity}" />
+						<DataGridTextColumn Header="Description"
+                                            Binding="{Binding Description}"
+                                            Width="*"/>
 
-                        <DataGridTextColumn Header="Unit"
-                                            Binding="{Binding Unit}" />
-                    </DataGrid.Columns>
+						<DataGridTextColumn Header="Quantity"
+                                            Binding="{Binding Quantity}"
+                                            Width="100"/>
 
-                </DataGrid>
+						<DataGridTextColumn Header="Unit"
+                                            Binding="{Binding Unit}"
+                                            Width="100"/>
 
-            </DockPanel>
+					</DataGrid.Columns>
 
-        </TabItem>
+				</DataGrid>
 
-        <!-- TAB 2: TRANSACTION HISTORY (NEW, READ-ONLY) -->
-        <TabItem Header="Transaction History">
-            <views:StockTransactionHistoryView />
-        </TabItem>
+			</DockPanel>
 
-    </TabControl>
+		</TabItem>
+
+		<!-- ========================= -->
+		<!-- TAB 2: TRANSACTION HISTORY -->
+		<!-- ========================= -->
+		<TabItem Header="Transaction History">
+			<TextBlock Text="Transaction history view will be restored"
+               Margin="10"
+               Foreground="Gray"/>
+		</TabItem>
+
+
+	</TabControl>
 
 </UserControl>

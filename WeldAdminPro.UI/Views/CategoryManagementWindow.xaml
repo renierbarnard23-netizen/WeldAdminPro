@@ -1,0 +1,17 @@
+<Window x:Class="WeldAdminPro.UI.Views.CategoryManagementWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Manage Categories"
+        Width="600"
+        Height="450"
+        WindowStartupLocation="CenterOwner">
+
+    <Grid Margin="10">
+        <TextBlock Text="Category management UI"
+                   FontSize="16"
+                   Foreground="Gray"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
+    </Grid>
+
+</Window>

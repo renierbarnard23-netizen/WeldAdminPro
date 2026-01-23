@@ -14,7 +14,7 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly CategoryRepository _categoryRepo = new();
 
 		[ObservableProperty]
-		private StockItem item;
+		private StockItem item = null!;
 
 		// =========================
 		// Categories

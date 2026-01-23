@@ -15,6 +15,9 @@ namespace WeldAdminPro.Data.Repositories
 			EnsureSchema();
 		}
 
+		// =========================
+		// SCHEMA
+		// =========================
 		private void EnsureSchema()
 		{
 			using var connection = new SqliteConnection(_connectionString);
@@ -48,6 +51,29 @@ namespace WeldAdminPro.Data.Repositories
 			cmd.ExecuteNonQuery();
 		}
 
+		// =========================
+		// GET
+		// =========================
+		public List<Category> GetAll()
+		{
+			var list = new List<Category>();
+
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText =
+				"SELECT Id, Name, IsActive FROM Categories ORDER BY Name;";
+
+			using var reader = cmd.ExecuteReader();
+			while (reader.Read())
+			{
+				list.Add(Read(reader));
+			}
+
+			return list;
+		}
+
 		public List<Category> GetAllActive()
 		{
 			var list = new List<Category>();
@@ -62,15 +88,52 @@ namespace WeldAdminPro.Data.Repositories
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
 			{
-				list.Add(new Category
-				{
-					Id = Guid.Parse(reader.GetString(0)),
-					Name = reader.GetString(1),
-					IsActive = reader.GetInt32(2) == 1
-				});
+				list.Add(Read(reader));
 			}
 
 			return list;
+		}
+
+		// =========================
+		// ENABLE / DISABLE
+		// =========================
+		public void Disable(Guid id)
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText =
+				"UPDATE Categories SET IsActive = 0 WHERE Id = $id;";
+			cmd.Parameters.AddWithValue("$id", id.ToString());
+
+			cmd.ExecuteNonQuery();
+		}
+
+		public void Enable(Guid id)
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText =
+				"UPDATE Categories SET IsActive = 1 WHERE Id = $id;";
+			cmd.Parameters.AddWithValue("$id", id.ToString());
+
+			cmd.ExecuteNonQuery();
+		}
+
+		// =========================
+		// MAP
+		// =========================
+		private static Category Read(SqliteDataReader reader)
+		{
+			return new Category
+			{
+				Id = Guid.Parse(reader.GetString(0)),
+				Name = reader.GetString(1),
+				IsActive = reader.GetInt32(2) == 1
+			};
 		}
 	}
 }
