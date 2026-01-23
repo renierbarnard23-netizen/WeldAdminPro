@@ -15,6 +15,8 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly StockRepository _stockRepo;
 		private readonly CategoryRepository _categoryRepo;
 
+		private const int LowStockThreshold = 5;
+
 		// =========================
 		// Observable Properties
 		// =========================
@@ -97,7 +99,7 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// Data loading
+		// Data loading + LOW STOCK FLAGS
 		// =========================
 
 		private void LoadItems()
@@ -106,20 +108,21 @@ namespace WeldAdminPro.UI.ViewModels
 
 			var allItems = _stockRepo.GetAll();
 
-			if (SelectedCategory == null || SelectedCategory.Name == "All")
+			var filtered = (SelectedCategory == null || SelectedCategory.Name == "All")
+				? allItems
+				: allItems.Where(i => i.Category == SelectedCategory.Name);
+
+			foreach (var item in filtered)
 			{
-				Items = new ObservableCollection<StockItem>(allItems);
+				item.IsOutOfStock = item.Quantity <= 0;
+				item.IsLowStock = item.Quantity > 0 && item.Quantity <= LowStockThreshold;
 			}
-			else
-			{
-				Items = new ObservableCollection<StockItem>(
-					allItems.Where(i => i.Category == SelectedCategory.Name)
-				);
-			}
+
+			Items = new ObservableCollection<StockItem>(filtered);
 		}
 
 		// =========================
-		// 🔑 REQUIRED BY StockView.xaml.cs
+		// Required by StockView.xaml.cs
 		// =========================
 
 		public void RefreshAfterCategoryChange()

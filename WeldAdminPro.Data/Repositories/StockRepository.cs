@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 using WeldAdminPro.Core.Models;
@@ -15,9 +15,6 @@ namespace WeldAdminPro.Data.Repositories
 			EnsureDatabase();
 		}
 
-		// =========================
-		// DB SETUP / MIGRATION
-		// =========================
 		private void EnsureDatabase()
 		{
 			using var connection = new SqliteConnection(_connectionString);
@@ -25,7 +22,6 @@ namespace WeldAdminPro.Data.Repositories
 
 			var cmd = connection.CreateCommand();
 
-			// Stock items table
 			cmd.CommandText =
 				@"CREATE TABLE IF NOT EXISTS StockItems (
                     Id TEXT PRIMARY KEY,
@@ -37,7 +33,6 @@ namespace WeldAdminPro.Data.Repositories
                 );";
 			cmd.ExecuteNonQuery();
 
-			// Stock transactions table
 			cmd.CommandText =
 				@"CREATE TABLE IF NOT EXISTS StockTransactions (
                     Id TEXT PRIMARY KEY,
@@ -48,15 +43,12 @@ namespace WeldAdminPro.Data.Repositories
                     Reference TEXT
                 );";
 			cmd.ExecuteNonQuery();
-
-			// Safe migration: add Category column if missing
-			cmd.CommandText = "ALTER TABLE StockItems ADD COLUMN Category TEXT;";
-			try { cmd.ExecuteNonQuery(); } catch { /* column already exists */ }
 		}
 
 		// =========================
-		// STOCK ITEMS
+		// READ
 		// =========================
+
 		public List<StockItem> GetAll()
 		{
 			var list = new List<StockItem>();
@@ -66,9 +58,7 @@ namespace WeldAdminPro.Data.Repositories
 
 			var cmd = connection.CreateCommand();
 			cmd.CommandText =
-				@"SELECT Id, ItemCode, Description, Quantity, Unit, Category
-                  FROM StockItems
-                  ORDER BY ItemCode;";
+				"SELECT Id, ItemCode, Description, Quantity, Unit, Category FROM StockItems;";
 
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
@@ -80,14 +70,59 @@ namespace WeldAdminPro.Data.Repositories
 					Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
 					Quantity = reader.GetInt32(3),
 					Unit = reader.IsDBNull(4) ? "" : reader.GetString(4),
-					Category = reader.IsDBNull(5) || string.IsNullOrWhiteSpace(reader.GetString(5))
-						? "Uncategorised"
-						: reader.GetString(5)
+					Category = reader.GetString(5)
 				});
 			}
 
 			return list;
 		}
+		public List<StockTransaction> GetAllTransactions()
+		{
+			var list = new List<StockTransaction>();
+
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			var cmd = connection.CreateCommand();
+			cmd.CommandText =
+				@"SELECT
+            t.Id,
+            t.StockItemId,
+            t.TransactionDate,
+            t.Quantity,
+            t.Type,
+            t.Reference,
+            i.ItemCode,
+            i.Description
+          FROM StockTransactions t
+          JOIN StockItems i ON i.Id = t.StockItemId
+          ORDER BY t.TransactionDate DESC;";
+
+			using var reader = cmd.ExecuteReader();
+			while (reader.Read())
+			{
+				list.Add(new StockTransaction
+				{
+					Id = Guid.Parse(reader.GetString(0)),
+					StockItemId = Guid.Parse(reader.GetString(1)),
+					TransactionDate = DateTime.Parse(reader.GetString(2)),
+					Quantity = reader.GetInt32(3),
+					Type = reader.GetString(4),
+					Reference = reader.IsDBNull(5) ? "" : reader.GetString(5),
+
+					// Convenience display fields
+					ItemCode = reader.GetString(6),
+					ItemDescription = reader.GetString(7)
+				});
+			}
+
+			return list;
+		}
+
+
+		// =========================
+		// CREATE / UPDATE
+		// =========================
 
 		public void Add(StockItem item)
 		{
@@ -97,9 +132,8 @@ namespace WeldAdminPro.Data.Repositories
 			var cmd = connection.CreateCommand();
 			cmd.CommandText =
 				@"INSERT INTO StockItems
-                    (Id, ItemCode, Description, Quantity, Unit, Category)
-                  VALUES
-                    ($id, $code, $desc, $qty, $unit, $cat);";
+                  (Id, ItemCode, Description, Quantity, Unit, Category)
+                  VALUES ($id, $code, $desc, $qty, $unit, $cat);";
 
 			cmd.Parameters.AddWithValue("$id", item.Id.ToString());
 			cmd.Parameters.AddWithValue("$code", item.ItemCode);
@@ -135,50 +169,8 @@ namespace WeldAdminPro.Data.Repositories
 		}
 
 		// =========================
-		// TRANSACTIONS
+		// TRANSACTIONS (FIXED)
 		// =========================
-		public List<StockTransaction> GetAllTransactions()
-		{
-			var list = new List<StockTransaction>();
-
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
-
-			var cmd = connection.CreateCommand();
-			cmd.CommandText =
-				@"SELECT
-                    t.Id,
-                    t.StockItemId,
-                    t.TransactionDate,
-                    t.Quantity,
-                    t.Type,
-                    t.Reference,
-                    i.ItemCode,
-                    i.Description
-                  FROM StockTransactions t
-                  JOIN StockItems i ON i.Id = t.StockItemId
-                  ORDER BY t.TransactionDate DESC;";
-
-			using var reader = cmd.ExecuteReader();
-			while (reader.Read())
-			{
-				list.Add(new StockTransaction
-				{
-					Id = Guid.Parse(reader.GetString(0)),
-					StockItemId = Guid.Parse(reader.GetString(1)),
-					TransactionDate = DateTime.Parse(reader.GetString(2)),
-					Quantity = reader.GetInt32(3),
-					Type = reader.GetString(4),
-					Reference = reader.IsDBNull(5) ? "" : reader.GetString(5),
-
-					// Convenience (UI only)
-					ItemCode = reader.GetString(6),
-					ItemDescription = reader.GetString(7)
-				});
-			}
-
-			return list;
-		}
 
 		public void AddTransaction(StockTransaction tx)
 		{
@@ -187,36 +179,36 @@ namespace WeldAdminPro.Data.Repositories
 
 			using var transaction = connection.BeginTransaction();
 
+			// 1️⃣ Insert transaction record
 			var txCmd = connection.CreateCommand();
 			txCmd.CommandText =
 				@"INSERT INTO StockTransactions
-                    (Id, StockItemId, TransactionDate, Quantity, Type, Reference)
-                  VALUES
-                    ($id, $itemId, $date, $qty, $type, $ref);";
+          (Id, StockItemId, TransactionDate, Quantity, Type, Reference)
+          VALUES ($id, $itemId, $date, $qty, $type, $ref);";
 
 			txCmd.Parameters.AddWithValue("$id", tx.Id.ToString());
 			txCmd.Parameters.AddWithValue("$itemId", tx.StockItemId.ToString());
 			txCmd.Parameters.AddWithValue("$date", tx.TransactionDate.ToString("o"));
-			txCmd.Parameters.AddWithValue("$qty", tx.Quantity);
+			txCmd.Parameters.AddWithValue("$qty", tx.Quantity); // 🔑 signed quantity
 			txCmd.Parameters.AddWithValue("$type", tx.Type);
 			txCmd.Parameters.AddWithValue("$ref", tx.Reference);
 
 			txCmd.ExecuteNonQuery();
 
+			// 2️⃣ Update stock balance CORRECTLY
 			var stockCmd = connection.CreateCommand();
 			stockCmd.CommandText =
 				@"UPDATE StockItems
-                  SET Quantity = Quantity + $delta
-                  WHERE Id = $id;";
+          SET Quantity = Quantity + $delta
+          WHERE Id = $id;";
 
-			int delta = tx.Type == "IN" ? tx.Quantity : -tx.Quantity;
-
-			stockCmd.Parameters.AddWithValue("$delta", delta);
+			stockCmd.Parameters.AddWithValue("$delta", tx.Quantity); // 🔑 signed delta
 			stockCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
 
 			stockCmd.ExecuteNonQuery();
 
 			transaction.Commit();
 		}
+
 	}
 }

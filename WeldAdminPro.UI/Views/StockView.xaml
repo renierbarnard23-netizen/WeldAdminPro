@@ -8,17 +8,13 @@
 	<Grid Margin="12">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
-			<!-- Buttons -->
 			<RowDefinition Height="Auto"/>
-			<!-- Category filter -->
 			<RowDefinition Height="*"/>
-			<!-- Stock grid -->
 		</Grid.RowDefinitions>
 
 		<!-- ACTION BUTTONS -->
 		<WrapPanel Grid.Row="0"
-                   Margin="0,0,0,10"
-                   HorizontalAlignment="Left">
+                   Margin="0,0,0,10">
 
 			<Button Content="New Stock Item"
                     Width="140"
@@ -60,14 +56,35 @@
                       DisplayMemberPath="Name"/>
 		</StackPanel>
 
-		<!-- STOCK ITEMS GRID -->
+		<!-- STOCK GRID -->
 		<DataGrid Grid.Row="2"
                   ItemsSource="{Binding Items}"
                   SelectedItem="{Binding SelectedItem}"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
-                  HeadersVisibility="Column"
                   RowHeight="28">
+
+			<!-- LOW / OUT OF STOCK VISUAL WARNINGS -->
+			<DataGrid.RowStyle>
+				<Style TargetType="DataGridRow">
+					<Style.Triggers>
+
+						<!-- OUT OF STOCK -->
+						<DataTrigger Binding="{Binding IsOutOfStock}" Value="True">
+							<Setter Property="Background" Value="#FFF2CCCC"/>
+							<Setter Property="Foreground" Value="DarkRed"/>
+							<Setter Property="FontWeight" Value="Bold"/>
+						</DataTrigger>
+
+						<!-- LOW STOCK -->
+						<DataTrigger Binding="{Binding IsLowStock}" Value="True">
+							<Setter Property="Background" Value="#FFFFF2CC"/>
+							<Setter Property="Foreground" Value="DarkGoldenrod"/>
+						</DataTrigger>
+
+					</Style.Triggers>
+				</Style>
+			</DataGrid.RowStyle>
 
 			<DataGrid.Columns>
 				<DataGridTextColumn Header="Item Code"
@@ -91,6 +108,5 @@
                                     Width="160"/>
 			</DataGrid.Columns>
 		</DataGrid>
-
 	</Grid>
 </UserControl>

@@ -15,5 +15,9 @@ namespace WeldAdminPro.Core.Models
 
 		// ✅ REQUIRED
 		public string Category { get; set; } = "Uncategorised";
+
+		public bool IsLowStock { get; set; }
+		public bool IsOutOfStock { get; set; }
+
 	}
 }
