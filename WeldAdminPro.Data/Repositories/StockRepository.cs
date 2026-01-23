@@ -2,14 +2,15 @@ using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 using WeldAdminPro.Core.Models;
+using WeldAdminPro.Data;
 
 namespace WeldAdminPro.Data.Repositories
 {
     public class StockRepository
     {
-        private readonly string _connectionString = "Data Source=weldadmin.db";
+        private readonly string _connectionString = $"Data Source={DatabasePath.Get()}";
 
-        public StockRepository()
+		public StockRepository()
         {
             EnsureDatabase();
         }
