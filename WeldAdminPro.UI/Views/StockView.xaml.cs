@@ -21,7 +21,7 @@ namespace WeldAdminPro.UI.Views
 
 			window.ShowDialog();
 
-			// ✅ Re-create ViewModel to force full refresh
+			// 🔑 AUTO-REFRESH AFTER WINDOW CLOSES
 			DataContext = new StockViewModel();
 		}
 	}
