@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
@@ -12,10 +12,6 @@ namespace WeldAdminPro.UI.ViewModels
 	{
 		private readonly CategoryRepository _repo = new();
 
-		// =========================
-		// Properties
-		// =========================
-
 		[ObservableProperty]
 		private ObservableCollection<Category> categories = new();
 
@@ -25,89 +21,96 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private string newCategoryName = string.Empty;
 
-		// =========================
-		// Constructor
-		// =========================
-
 		public CategoryManagementViewModel()
 		{
-			LoadCategories();
+			Load();
 		}
 
-		private void LoadCategories()
+		private void Load()
 		{
 			Categories = new ObservableCollection<Category>(_repo.GetAll());
 			SelectedCategory = null;
 		}
 
-		// =========================
-		// Commands
-		// =========================
-
 		[RelayCommand]
-		private void AddCategory()
+		private void Add()
 		{
 			if (string.IsNullOrWhiteSpace(NewCategoryName))
 				return;
 
 			_repo.Add(NewCategoryName.Trim());
 			NewCategoryName = string.Empty;
-
-			LoadCategories();
+			Load();
 		}
 
 		[RelayCommand]
-		private void DisableCategory()
+		private void Enable()
 		{
 			if (SelectedCategory == null)
 				return;
 
-			try
+			if (SelectedCategory.Name == "Uncategorised")
 			{
-				_repo.Disable(SelectedCategory);
-				LoadCategories();
+				MessageBox.Show("The 'Uncategorised' category cannot be disabled.");
+				return;
 			}
-			catch (InvalidOperationException ex)
+
+			_repo.SetActive(SelectedCategory.Id, true);
+			Load();
+		}
+
+		[RelayCommand]
+		private void Disable()
+		{
+			if (SelectedCategory == null)
+				return;
+
+			if (SelectedCategory.Name == "Uncategorised")
+			{
+				MessageBox.Show("The 'Uncategorised' category cannot be disabled.");
+				return;
+			}
+
+			if (_repo.IsCategoryInUse(SelectedCategory.Name))
 			{
 				MessageBox.Show(
-					ex.Message,
+					"This category is currently assigned to stock items and cannot be disabled.",
 					"Category In Use",
 					MessageBoxButton.OK,
-					MessageBoxImage.Warning);
+					MessageBoxImage.Warning
+				);
+				return;
 			}
+
+			_repo.SetActive(SelectedCategory.Id, false);
+			Load();
 		}
 
 		[RelayCommand]
-		private void EnableCategory()
+		private void Delete()
 		{
 			if (SelectedCategory == null)
 				return;
 
-			SelectedCategory.IsActive = true;
-			_repo.Update(SelectedCategory);
-
-			LoadCategories();
-		}
-
-		[RelayCommand]
-		private void DeleteCategory()
-		{
-			if (SelectedCategory == null)
-				return;
-
-			try
+			if (SelectedCategory.Name == "Uncategorised")
 			{
-				_repo.Delete(SelectedCategory);
-				LoadCategories();
+				MessageBox.Show("The 'Uncategorised' category cannot be deleted.");
+				return;
 			}
-			catch (InvalidOperationException ex)
+
+			if (_repo.IsCategoryInUse(SelectedCategory.Name))
 			{
 				MessageBox.Show(
-					ex.Message,
+					"This category is currently assigned to stock items and cannot be deleted.",
 					"Category In Use",
 					MessageBoxButton.OK,
-					MessageBoxImage.Warning);
+					MessageBoxImage.Warning
+				);
+				return;
 			}
+
+			_repo.Delete(SelectedCategory.Id);
+			Load();
 		}
 	}
 }

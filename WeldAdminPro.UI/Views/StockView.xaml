@@ -3,122 +3,92 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:views="clr-namespace:WeldAdminPro.UI.Views"
              mc:Ignorable="d">
 
-	<TabControl Margin="10">
+	<Grid Margin="10">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<!-- Buttons -->
+			<RowDefinition Height="Auto"/>
+			<!-- Category filter -->
+			<RowDefinition Height="*"/>
+			<!-- Stock grid -->
+		</Grid.RowDefinitions>
 
-		<!-- ========================= -->
-		<!-- TAB 1: STOCK ITEMS -->
-		<!-- ========================= -->
-		<TabItem Header="Stock Items">
+		<!-- ACTION BUTTONS -->
+		<StackPanel Grid.Row="0"
+                    Orientation="Horizontal"
+                    Margin="0,0,0,8">
 
-			<DockPanel LastChildFill="True">
+			<Button Content="New Stock Item"
+                    Width="130"
+                    Margin="4"
+                    Command="{Binding NewItemCommand}" />
 
-				<!-- Toolbar -->
-				<Border DockPanel.Dock="Top"
-        Padding="8"
-        Background="#F5F5F5"
-        BorderBrush="#D0D0D0"
-        BorderThickness="0,0,0,1">
+			<Button Content="Edit Stock Item"
+                    Width="130"
+                    Margin="4"
+                    Command="{Binding EditItemCommand}" />
 
-					<StackPanel Orientation="Vertical" Margin="0,0,0,8">
+			<Button Content="Manage Categories"
+                    Width="150"
+                    Margin="4"
+                    Click="ManageCategories_Click" />
 
-						<StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-							<Button Content="New Stock Item"
-                Command="{Binding NewItemCommand}"
-                Width="120"
-                Margin="4"/>
+			<Button Content="Stock IN"
+                    Width="100"
+                    Margin="4"
+                    Command="{Binding StockInCommand}" />
 
-							<Button Content="Edit Stock Item"
-                Command="{Binding EditItemCommand}"
-                Width="120"
-                Margin="4"/>
+			<Button Content="Stock OUT"
+                    Width="100"
+                    Margin="4"
+                    Command="{Binding StockOutCommand}" />
+		</StackPanel>
 
-							<Button Content="Manage Categories"
-                Width="150"
-                Margin="4"
-                Click="ManageCategories_Click"/>
+		<!-- CATEGORY FILTER -->
+		<StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    Margin="0,0,0,10">
+			<TextBlock Text="Category:"
+                       VerticalAlignment="Center"
+                       Margin="0,0,6,0"/>
 
-							<Button Content="Stock IN"
-                Command="{Binding StockInCommand}"
-                Width="100"
-                Margin="4"/>
+			<ComboBox Width="220"
+                      ItemsSource="{Binding Categories}"
+                      SelectedItem="{Binding SelectedCategory}"
+                      DisplayMemberPath="Name"/>
+		</StackPanel>
 
-							<Button Content="Stock OUT"
-                Command="{Binding StockOutCommand}"
-                Width="100"
-                Margin="4"/>
-						</StackPanel>
+		<!-- STOCK ITEMS GRID -->
+		<DataGrid Grid.Row="2"
+                  ItemsSource="{Binding Items}"
+                  SelectedItem="{Binding SelectedItem}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True">
 
-						<!-- CATEGORY FILTER -->
-						<StackPanel Orientation="Horizontal" Margin="4">
-							<TextBlock Text="Category:"
-                   VerticalAlignment="Center"
-                   Margin="0,0,6,0"/>
+			<DataGrid.Columns>
+				<DataGridTextColumn Header="Item Code"
+                                    Binding="{Binding ItemCode}"
+                                    Width="120"/>
 
-							<ComboBox Width="200"
-                  ItemsSource="{Binding Categories}"
-                  SelectedItem="{Binding SelectedCategory}"
-                  DisplayMemberPath="Name"/>
-						</StackPanel>
+				<DataGridTextColumn Header="Description"
+                                    Binding="{Binding Description}"
+                                    Width="*"/>
 
-					</StackPanel>
+				<DataGridTextColumn Header="Quantity"
+                                    Binding="{Binding Quantity}"
+                                    Width="100"/>
 
-				</Border>
+				<DataGridTextColumn Header="Unit"
+                                    Binding="{Binding Unit}"
+                                    Width="100"/>
 
+				<DataGridTextColumn Header="Category"
+                                    Binding="{Binding Category}"
+                                    Width="160"/>
+			</DataGrid.Columns>
+		</DataGrid>
 
-				<!-- Data Grid -->
-				<DataGrid ItemsSource="{Binding Items}"
-                          SelectedItem="{Binding SelectedItem}"
-                          AutoGenerateColumns="False"
-                          IsReadOnly="True"
-                          Margin="0,8,0,0"
-                          GridLinesVisibility="Horizontal"
-                          HeadersVisibility="Column"
-                          CanUserResizeColumns="True"
-                          CanUserSortColumns="True">
-
-					<DataGrid.Columns>
-
-						<DataGridTextColumn Header="Item Code"
-                                            Binding="{Binding ItemCode}"
-                                            Width="120"/>
-
-						<DataGridTextColumn Header="Description"
-                                            Binding="{Binding Description}"
-                                            Width="*"/>
-
-						<DataGridTextColumn Header="Quantity"
-                                            Binding="{Binding Quantity}"
-                                            Width="100"/>
-
-						<DataGridTextColumn Header="Unit"
-                                            Binding="{Binding Unit}"
-                                            Width="100"/>
-						<DataGridTextColumn Header="Category"
-                                            Binding="{Binding Category}"
-                                            Width="150"/>
-
-
-					</DataGrid.Columns>
-
-				</DataGrid>
-
-			</DockPanel>
-
-		</TabItem>
-
-		<!-- ========================= -->
-		<!-- TAB 2: TRANSACTION HISTORY -->
-		<!-- ========================= -->
-		<TabItem Header="Transaction History">
-			<TextBlock Text="Transaction history view will be restored"
-               Margin="10"
-               Foreground="Gray"/>
-		</TabItem>
-
-
-	</TabControl>
-
+	</Grid>
 </UserControl>

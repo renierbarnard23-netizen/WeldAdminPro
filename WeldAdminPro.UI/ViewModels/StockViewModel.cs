@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -16,10 +15,8 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly StockRepository _stockRepo;
 		private readonly CategoryRepository _categoryRepo;
 
-		private List<StockItem> _allItems = new();
-
 		// =========================
-		// Observable properties
+		// Observable Properties
 		// =========================
 
 		[ObservableProperty]
@@ -62,55 +59,30 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// Load data
+		// Category handling
 		// =========================
-
-		private void LoadItems()
-		{
-			_allItems = _stockRepo.GetAll();
-			ApplyCategoryFilter();
-		}
 
 		private void LoadCategories()
 		{
-			Categories = new ObservableCollection<Category>(
-				_categoryRepo.GetAllActive()
-			);
+			Categories.Clear();
 
-			// Insert "All"
-			Categories.Insert(0, new Category
+			// Virtual "All" category
+			Categories.Add(new Category
 			{
 				Id = Guid.Empty,
 				Name = "All",
 				IsActive = true
 			});
 
-			SelectedCategory = Categories.First();
-		}
+			foreach (var cat in _categoryRepo.GetAllActive())
+				Categories.Add(cat);
 
-		// =========================
-		// Filtering
-		// =========================
+			SelectedCategory = Categories.FirstOrDefault();
+		}
 
 		partial void OnSelectedCategoryChanged(Category? value)
 		{
-			ApplyCategoryFilter();
-		}
-
-		private void ApplyCategoryFilter()
-		{
-			if (SelectedCategory == null || SelectedCategory.Name == "All")
-			{
-				Items = new ObservableCollection<StockItem>(_allItems);
-			}
-			else
-			{
-				Items = new ObservableCollection<StockItem>(
-					_allItems.Where(i => i.Category == SelectedCategory.Name)
-				);
-			}
-
-			SelectedItem = null;
+			LoadItems();
 		}
 
 		// =========================
@@ -125,7 +97,39 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// New / Edit stock
+		// Data loading
+		// =========================
+
+		private void LoadItems()
+		{
+			SelectedItem = null;
+
+			var allItems = _stockRepo.GetAll();
+
+			if (SelectedCategory == null || SelectedCategory.Name == "All")
+			{
+				Items = new ObservableCollection<StockItem>(allItems);
+			}
+			else
+			{
+				Items = new ObservableCollection<StockItem>(
+					allItems.Where(i => i.Category == SelectedCategory.Name)
+				);
+			}
+		}
+
+		// =========================
+		// 🔑 REQUIRED BY StockView.xaml.cs
+		// =========================
+
+		public void RefreshAfterCategoryChange()
+		{
+			LoadCategories();
+			LoadItems();
+		}
+
+		// =========================
+		// Stock actions
 		// =========================
 
 		private void OpenNewItem()
@@ -134,11 +138,12 @@ namespace WeldAdminPro.UI.ViewModels
 
 			var window = new NewStockItemWindow(vm)
 			{
-				Owner = Application.Current.MainWindow
+				Owner = Application.Current.MainWindow,
+				Title = "New Stock Item"
 			};
 
-			vm.ItemCreated += LoadItems;
-			vm.RequestClose += () => window.Close();
+			vm.ItemCreated += RefreshAfterCategoryChange;
+			vm.RequestClose += window.Close;
 
 			window.ShowDialog();
 		}
@@ -152,18 +157,15 @@ namespace WeldAdminPro.UI.ViewModels
 
 			var window = new NewStockItemWindow(vm)
 			{
-				Owner = Application.Current.MainWindow
+				Owner = Application.Current.MainWindow,
+				Title = "Edit Stock Item"
 			};
 
-			vm.ItemCreated += LoadItems;
-			vm.RequestClose += () => window.Close();
+			vm.ItemCreated += RefreshAfterCategoryChange;
+			vm.RequestClose += window.Close;
 
 			window.ShowDialog();
 		}
-
-		// =========================
-		// Transactions
-		// =========================
 
 		private void OpenStockIn() => OpenTransaction(true);
 		private void OpenStockOut() => OpenTransaction(false);
@@ -181,7 +183,7 @@ namespace WeldAdminPro.UI.ViewModels
 			};
 
 			vm.TransactionCompleted += LoadItems;
-			vm.RequestClose += () => window.Close();
+			vm.RequestClose += window.Close;
 
 			window.ShowDialog();
 		}

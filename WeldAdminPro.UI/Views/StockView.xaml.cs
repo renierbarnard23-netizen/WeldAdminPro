@@ -21,8 +21,11 @@ namespace WeldAdminPro.UI.Views
 
 			window.ShowDialog();
 
-			// 🔑 AUTO-REFRESH AFTER WINDOW CLOSES
-			DataContext = new StockViewModel();
+			// 🔑 Refresh stock + categories after closing
+			if (DataContext is StockViewModel vm)
+			{
+				vm.RefreshAfterCategoryChange();
+			}
 		}
 	}
 }
