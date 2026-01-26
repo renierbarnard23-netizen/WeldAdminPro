@@ -1,9 +1,9 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
@@ -28,6 +28,9 @@ namespace WeldAdminPro.UI.ViewModels
 		private Category? selectedCategory;
 
 		public bool IsEditMode { get; }
+
+		// 🔒 Original ItemCode snapshot (IMMUTABLE)
+		private readonly string _originalItemCode = string.Empty;
 
 		public event Action? ItemCreated;
 		public event Action? RequestClose;
@@ -65,6 +68,9 @@ namespace WeldAdminPro.UI.ViewModels
 				Category = existingItem.Category
 			};
 
+			// 🔐 Capture original ItemCode ONCE
+			_originalItemCode = existingItem.ItemCode;
+
 			LoadCategories();
 			SelectedCategory =
 				Categories.FirstOrDefault(c => c.Name == Item.Category)
@@ -84,41 +90,41 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// Commands
+		// Save (HARD LOCK ENFORCED)
 		// =========================
 		[RelayCommand]
 		private void Save()
 		{
-			Item.Category = SelectedCategory?.Name ?? "Uncategorised";
-
-			// 🔐 PREVENT DUPLICATE ITEM CODES (UI SAFETY)
-			if (!IsEditMode && _stockRepo.ItemCodeExists(Item.ItemCode))
+			// 🔒 ABSOLUTE LOCK
+			if (IsEditMode && Item.ItemCode != _originalItemCode)
 			{
 				MessageBox.Show(
-					$"Item code '{Item.ItemCode}' already exists.\nItem codes must be unique.",
-					"Duplicate Item Code",
+					"Item Code cannot be changed once the item has been created.",
+					"Item Code Locked",
 					MessageBoxButton.OK,
 					MessageBoxImage.Warning
 				);
+
+				// Restore original value defensively
+				Item.ItemCode = _originalItemCode;
 				return;
 			}
 
-			try
-			{
-				if (IsEditMode)
-					_stockRepo.Update(Item);
-				else
-					_stockRepo.Add(Item);
-			}
-			catch (InvalidOperationException ex)
-			{
-				MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-				return;
-			}
+			Item.Category = SelectedCategory?.Name ?? "Uncategorised";
+
+			if (IsEditMode)
+				_stockRepo.Update(Item);
+			else
+				_stockRepo.Add(Item);
 
 			ItemCreated?.Invoke();
 			RequestClose?.Invoke();
 		}
 
+		[RelayCommand]
+		private void Cancel()
+		{
+			RequestClose?.Invoke();
+		}
 	}
 }

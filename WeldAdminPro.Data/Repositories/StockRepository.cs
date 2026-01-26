@@ -23,7 +23,7 @@ namespace WeldAdminPro.Data.Repositories
 			using var cmd = connection.CreateCommand();
 
 			// =========================
-			// Stock items table
+			// STOCK ITEMS
 			// =========================
 			cmd.CommandText = @"
 				CREATE TABLE IF NOT EXISTS StockItems (
@@ -38,7 +38,7 @@ namespace WeldAdminPro.Data.Repositories
 			cmd.ExecuteNonQuery();
 
 			// =========================
-			// Stock transactions table
+			// TRANSACTIONS
 			// =========================
 			cmd.CommandText = @"
 				CREATE TABLE IF NOT EXISTS StockTransactions (
@@ -51,12 +51,52 @@ namespace WeldAdminPro.Data.Repositories
 				);
 			";
 			cmd.ExecuteNonQuery();
+
+			// =========================
+			// 🔒 UNIQUE ITEM CODE GUARD
+			// =========================
+			EnsureUniqueItemCodeIndex(connection);
+		}
+
+		// 🔐 FINAL LINE OF DEFENCE
+		private void EnsureUniqueItemCodeIndex(SqliteConnection connection)
+		{
+			// 1️⃣ Detect duplicates FIRST
+			using (var checkCmd = connection.CreateCommand())
+			{
+				checkCmd.CommandText = @"
+					SELECT LOWER(ItemCode), COUNT(1)
+					FROM StockItems
+					GROUP BY LOWER(ItemCode)
+					HAVING COUNT(1) > 1;
+				";
+
+				using var reader = checkCmd.ExecuteReader();
+				if (reader.Read())
+				{
+					throw new InvalidOperationException(
+						"Duplicate Item Codes detected in database.\n\n" +
+						"Please resolve duplicates before continuing.\n\n" +
+						"Tip: Item Codes must be unique (case-insensitive)."
+					);
+				}
+			}
+
+			// 2️⃣ Create UNIQUE index (safe + idempotent)
+			using (var indexCmd = connection.CreateCommand())
+			{
+				indexCmd.CommandText = @"
+					CREATE UNIQUE INDEX IF NOT EXISTS
+					UX_StockItems_ItemCode
+					ON StockItems (LOWER(ItemCode));
+				";
+				indexCmd.ExecuteNonQuery();
+			}
 		}
 
 		// =========================
 		// STOCK ITEMS
 		// =========================
-
 		public List<StockItem> GetAll()
 		{
 			var list = new List<StockItem>();
@@ -88,33 +128,8 @@ namespace WeldAdminPro.Data.Repositories
 			return list;
 		}
 
-		// 🔐 Case-insensitive check (no DB constraint yet)
-		public bool ItemCodeExists(string itemCode)
-		{
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
-
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = @"
-				SELECT COUNT(1)
-				FROM StockItems
-				WHERE LOWER(ItemCode) = LOWER($code);
-			";
-
-			cmd.Parameters.AddWithValue("$code", itemCode.Trim());
-
-			return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
-		}
-
 		public void Add(StockItem item)
 		{
-			if (ItemCodeExists(item.ItemCode))
-			{
-				throw new InvalidOperationException(
-					$"An item with code '{item.ItemCode}' already exists. Item codes must be unique."
-				);
-			}
-
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
@@ -161,49 +176,6 @@ namespace WeldAdminPro.Data.Repositories
 		// =========================
 		// TRANSACTIONS
 		// =========================
-
-		public List<StockTransaction> GetAllTransactions()
-		{
-			var list = new List<StockTransaction>();
-
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
-
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = @"
-				SELECT
-					t.Id,
-					t.StockItemId,
-					t.TransactionDate,
-					t.Quantity,
-					t.Type,
-					t.Reference,
-					i.ItemCode,
-					i.Description
-				FROM StockTransactions t
-				JOIN StockItems i ON i.Id = t.StockItemId
-				ORDER BY t.TransactionDate DESC;
-			";
-
-			using var reader = cmd.ExecuteReader();
-			while (reader.Read())
-			{
-				list.Add(new StockTransaction
-				{
-					Id = Guid.Parse(reader.GetString(0)),
-					StockItemId = Guid.Parse(reader.GetString(1)),
-					TransactionDate = DateTime.Parse(reader.GetString(2)),
-					Quantity = reader.GetInt32(3),
-					Type = reader.GetString(4),
-					Reference = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
-					ItemCode = reader.GetString(6),
-					ItemDescription = reader.GetString(7)
-				});
-			}
-
-			return list;
-		}
-
 		public void AddTransaction(StockTransaction tx)
 		{
 			using var connection = new SqliteConnection(_connectionString);
@@ -211,7 +183,6 @@ namespace WeldAdminPro.Data.Repositories
 
 			using var dbTx = connection.BeginTransaction();
 
-			// Insert transaction
 			using (var cmd = connection.CreateCommand())
 			{
 				cmd.CommandText = @"
@@ -231,7 +202,6 @@ namespace WeldAdminPro.Data.Repositories
 				cmd.ExecuteNonQuery();
 			}
 
-			// 🔑 Single source of truth for stock change
 			int delta = tx.Type == "IN" ? tx.Quantity : -tx.Quantity;
 
 			using (var cmd = connection.CreateCommand())
@@ -250,5 +220,50 @@ namespace WeldAdminPro.Data.Repositories
 
 			dbTx.Commit();
 		}
-	}
-}
+	
+	// =========================
+// TRANSACTION HISTORY (READ-ONLY)
+// =========================
+public List<StockTransaction> GetAllTransactions()
+		{
+			var list = new List<StockTransaction>();
+
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = @"
+		SELECT
+			t.Id,
+			t.StockItemId,
+			t.TransactionDate,
+			t.Quantity,
+			t.Type,
+			t.Reference,
+			i.ItemCode,
+			i.Description
+		FROM StockTransactions t
+		JOIN StockItems i ON i.Id = t.StockItemId
+		ORDER BY t.TransactionDate DESC;
+	";
+
+			using var reader = cmd.ExecuteReader();
+			while (reader.Read())
+			{
+				list.Add(new StockTransaction
+				{
+					Id = Guid.Parse(reader.GetString(0)),
+					StockItemId = Guid.Parse(reader.GetString(1)),
+					TransactionDate = DateTime.Parse(reader.GetString(2)),
+					Quantity = reader.GetInt32(3),
+					Type = reader.GetString(4),
+					Reference = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
+					ItemCode = reader.GetString(6),
+					ItemDescription = reader.GetString(7)
+				});
+			}
+
+			return list;
+		} } }
+
+	
