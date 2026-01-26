@@ -15,7 +15,6 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public StockItem Item { get; }
 
-		// String binding (safe for WPF)
 		[ObservableProperty]
 		private string quantityText = string.Empty;
 
@@ -42,15 +41,15 @@ namespace WeldAdminPro.UI.ViewModels
 
 		private void Save()
 		{
-			// 🔑 Parse quantity safely
-			if (!int.TryParse(QuantityText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var quantity) || quantity <= 0)
+			if (!int.TryParse(
+				QuantityText,
+				NumberStyles.Integer,
+				CultureInfo.InvariantCulture,
+				out var quantity) || quantity <= 0)
 			{
 				MessageBox.Show("Please enter a valid quantity greater than zero.");
 				return;
 			}
-
-			// 🔑 Apply correct sign
-			var signedQuantity = _isStockIn ? quantity : -quantity;
 
 			// 🔐 Stock OUT safety
 			if (!_isStockIn && quantity > Item.Quantity)
@@ -64,8 +63,8 @@ namespace WeldAdminPro.UI.ViewModels
 				Id = Guid.NewGuid(),
 				StockItemId = Item.Id,
 				TransactionDate = DateTime.Now,
-				Quantity = signedQuantity,
-				Type = _isStockIn ? "IN" : "OUT",
+				Quantity = quantity,              // ✅ ALWAYS POSITIVE
+				Type = _isStockIn ? "IN" : "OUT",  // ✅ Repository handles sign
 				Reference = Reference
 			};
 

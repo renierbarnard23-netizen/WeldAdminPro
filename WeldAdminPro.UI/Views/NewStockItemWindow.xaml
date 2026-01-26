@@ -27,8 +27,20 @@
 
 		<TextBox Grid.Row="0" Grid.Column="1"
                  Margin="0,0,0,6"
-                 Text="{Binding Item.ItemCode}"
-                 IsReadOnly="{Binding IsEditMode}"/>
+                 Text="{Binding Item.ItemCode, UpdateSourceTrigger=PropertyChanged}"
+                 IsReadOnly="{Binding IsEditMode}"
+                 ToolTip="Item Code cannot be changed once the item is created">
+			<TextBox.Style>
+				<Style TargetType="TextBox">
+					<Style.Triggers>
+						<DataTrigger Binding="{Binding IsEditMode}" Value="True">
+							<Setter Property="Background" Value="#FFEFEFEF"/>
+							<Setter Property="Foreground" Value="#FF666666"/>
+						</DataTrigger>
+					</Style.Triggers>
+				</Style>
+			</TextBox.Style>
+		</TextBox>
 
 		<!-- Description -->
 		<TextBlock Grid.Row="1" Grid.Column="0"

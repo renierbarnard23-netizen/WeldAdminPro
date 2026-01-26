@@ -1,8 +1,9 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Windows;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
@@ -88,22 +89,36 @@ namespace WeldAdminPro.UI.ViewModels
 		[RelayCommand]
 		private void Save()
 		{
-			// 🔑 CRITICAL LINE
 			Item.Category = SelectedCategory?.Name ?? "Uncategorised";
 
-			if (IsEditMode)
-				_stockRepo.Update(Item);
-			else
-				_stockRepo.Add(Item);
+			// 🔐 PREVENT DUPLICATE ITEM CODES (UI SAFETY)
+			if (!IsEditMode && _stockRepo.ItemCodeExists(Item.ItemCode))
+			{
+				MessageBox.Show(
+					$"Item code '{Item.ItemCode}' already exists.\nItem codes must be unique.",
+					"Duplicate Item Code",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning
+				);
+				return;
+			}
+
+			try
+			{
+				if (IsEditMode)
+					_stockRepo.Update(Item);
+				else
+					_stockRepo.Add(Item);
+			}
+			catch (InvalidOperationException ex)
+			{
+				MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				return;
+			}
 
 			ItemCreated?.Invoke();
 			RequestClose?.Invoke();
 		}
 
-		[RelayCommand]
-		private void Cancel()
-		{
-			RequestClose?.Invoke();
-		}
 	}
 }
