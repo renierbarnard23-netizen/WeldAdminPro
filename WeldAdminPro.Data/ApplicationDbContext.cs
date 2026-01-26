@@ -5,6 +5,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using WeldAdminPro.Core.Models;
+using Microsoft.Data.Sqlite;
+using System.Diagnostics;
+
+
 
 namespace WeldAdminPro.Data
 {
@@ -12,10 +16,14 @@ namespace WeldAdminPro.Data
     {
         public DbSet<User> Users { get; set; } = null!;
 
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options) { }
+		public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+	: base(options)
+		{
+			LogDatabasePath();
+		}
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+
+		protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // common DateTime <-> TEXT converter using SQLite-friendly format
             var dateTimeConverter = new ValueConverter<DateTime?, string?>(
@@ -48,8 +56,32 @@ namespace WeldAdminPro.Data
                  .HasColumnType("TEXT");
             });
 
-            base.OnModelCreating(modelBuilder);
-        }
+            base.OnModelCreating(modelBuilder); }
+
+			private void LogDatabasePath()
+		{
+			try
+			{
+				var connection = Database.GetDbConnection();
+
+				if (connection is Microsoft.Data.Sqlite.SqliteConnection sqlite)
+				{
+					Debug.WriteLine("======================================");
+					Debug.WriteLine("USING SQLITE DATABASE FILE:");
+					Debug.WriteLine(sqlite.DataSource);
+					Debug.WriteLine("======================================");
+				}
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine("Failed to determine database path:");
+				Debug.WriteLine(ex.Message);
+			}
+		}
+
+		
+
+        
 
         // Automatically set timestamps in C# to keep app behavior consistent
         public override int SaveChanges()

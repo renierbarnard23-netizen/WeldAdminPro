@@ -2,6 +2,8 @@
 using System.Windows;
 using Microsoft.EntityFrameworkCore;
 using WeldAdminPro.Data;
+using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.UI.Views;
 
 namespace WeldAdminPro.UI
 {
@@ -13,18 +15,36 @@ namespace WeldAdminPro.UI
 		{
 			base.OnStartup(e);
 
-			// ===============================
-			// Create EF DbContext (Users, Auth)
-			// ===============================
+			// ==========================================
+			// 1️⃣ Detect duplicate ItemCodes (SAFE GUARD)
+			// ==========================================
+			try
+			{
+				var stockRepo = new StockRepository();
+				stockRepo.GetAll(); // triggers duplicate detection
+			}
+			catch (InvalidOperationException)
+			{
+				var fixWindow = new FixDuplicateItemCodesWindow
+				{
+					Owner = Current.MainWindow
+				};
+
+				fixWindow.ShowDialog();
+			}
+
+			// ==========================================
+			// 2️⃣ Create EF DbContext (Users / Auth)
+			// ==========================================
 			var options = new DbContextOptionsBuilder<ApplicationDbContext>()
 				.UseSqlite($"Data Source={DatabasePath.Get()}")
 				.Options;
 
 			DbContext = new ApplicationDbContext(options);
 
-			// ===============================
-			// Global exception handler
-			// ===============================
+			// ==========================================
+			// 3️⃣ Global exception handler
+			// ==========================================
 			DispatcherUnhandledException += (sender, args) =>
 			{
 				MessageBox.Show(

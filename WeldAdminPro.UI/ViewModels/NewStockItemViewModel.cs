@@ -14,10 +14,6 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly StockRepository _stockRepo = new();
 		private readonly CategoryRepository _categoryRepo = new();
 
-		// =========================
-		// Properties
-		// =========================
-
 		[ObservableProperty]
 		private StockItem item = null!;
 
@@ -29,14 +25,14 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public bool IsEditMode { get; }
 
-		// 🔒 Original ItemCode snapshot (IMMUTABLE)
+		// 🔒 Immutable snapshot for edits
 		private readonly string _originalItemCode = string.Empty;
 
 		public event Action? ItemCreated;
 		public event Action? RequestClose;
 
 		// =========================
-		// NEW item
+		// NEW ITEM
 		// =========================
 		public NewStockItemViewModel()
 		{
@@ -44,7 +40,9 @@ namespace WeldAdminPro.UI.ViewModels
 			{
 				Id = Guid.NewGuid(),
 				Quantity = 0,
-				Category = "Uncategorised"
+				Category = "Uncategorised",
+				// 🔑 AUTO-SUGGEST NEXT CODE
+				ItemCode = _stockRepo.GetNextItemCodeSuggestion()
 			};
 
 			LoadCategories();
@@ -54,7 +52,7 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// EDIT item
+		// EDIT ITEM
 		// =========================
 		public NewStockItemViewModel(StockItem existingItem)
 		{
@@ -65,10 +63,11 @@ namespace WeldAdminPro.UI.ViewModels
 				Description = existingItem.Description,
 				Quantity = existingItem.Quantity,
 				Unit = existingItem.Unit,
+				MinLevel = existingItem.MinLevel,
+				MaxLevel = existingItem.MaxLevel,
 				Category = existingItem.Category
 			};
 
-			// 🔐 Capture original ItemCode ONCE
 			_originalItemCode = existingItem.ItemCode;
 
 			LoadCategories();
@@ -79,9 +78,7 @@ namespace WeldAdminPro.UI.ViewModels
 			IsEditMode = true;
 		}
 
-		// =========================
-		// Load categories
-		// =========================
+
 		private void LoadCategories()
 		{
 			Categories = new ObservableCollection<Category>(
@@ -90,12 +87,12 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// Save (HARD LOCK ENFORCED)
+		// SAVE (LOCK ENFORCED)
 		// =========================
 		[RelayCommand]
 		private void Save()
 		{
-			// 🔒 ABSOLUTE LOCK
+			// 🔒 Hard lock ItemCode in edit mode
 			if (IsEditMode && Item.ItemCode != _originalItemCode)
 			{
 				MessageBox.Show(
@@ -105,17 +102,39 @@ namespace WeldAdminPro.UI.ViewModels
 					MessageBoxImage.Warning
 				);
 
-				// Restore original value defensively
 				Item.ItemCode = _originalItemCode;
 				return;
+				// ✅ Min / Max validation (only if both provided)
+				if (Item.MinLevel.HasValue && Item.MaxLevel.HasValue)
+				{
+					if (Item.MinLevel.Value > Item.MaxLevel.Value)
+					{
+						MessageBox.Show(
+							"Minimum level cannot be greater than Maximum level.",
+							"Invalid Stock Levels",
+							MessageBoxButton.OK,
+							MessageBoxImage.Warning
+						);
+						return;
+					}
+				}
+
 			}
 
 			Item.Category = SelectedCategory?.Name ?? "Uncategorised";
 
-			if (IsEditMode)
-				_stockRepo.Update(Item);
-			else
-				_stockRepo.Add(Item);
+			try
+			{
+				if (IsEditMode)
+					_stockRepo.Update(Item);
+				else
+					_stockRepo.Add(Item);
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show(ex.Message, "Save Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+				return;
+			}
 
 			ItemCreated?.Invoke();
 			RequestClose?.Invoke();

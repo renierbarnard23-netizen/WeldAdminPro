@@ -15,8 +15,7 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly StockRepository _stockRepo;
 		private readonly CategoryRepository _categoryRepo;
 
-		private const int LowStockThreshold = 5;
-
+		
 		// =========================
 		// Observable Properties
 		// =========================
@@ -111,12 +110,6 @@ namespace WeldAdminPro.UI.ViewModels
 			var filtered = (SelectedCategory == null || SelectedCategory.Name == "All")
 				? allItems
 				: allItems.Where(i => i.Category == SelectedCategory.Name);
-
-			foreach (var item in filtered)
-			{
-				item.IsOutOfStock = item.Quantity <= 0;
-				item.IsLowStock = item.Quantity > 0 && item.Quantity <= LowStockThreshold;
-			}
 
 			Items = new ObservableCollection<StockItem>(filtered);
 		}

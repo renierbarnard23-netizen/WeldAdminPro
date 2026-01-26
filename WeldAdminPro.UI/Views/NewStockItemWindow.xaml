@@ -13,10 +13,21 @@
 
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
+			<!-- Item Code -->
 			<RowDefinition Height="Auto"/>
+			<!-- Description -->
 			<RowDefinition Height="Auto"/>
+			<!-- Quantity -->
 			<RowDefinition Height="Auto"/>
+			<!-- Unit -->
 			<RowDefinition Height="Auto"/>
+			<!-- Min Level -->
+			<RowDefinition Height="Auto"/>
+			<!-- Max Level -->
+			<RowDefinition Height="Auto"/>
+			<!-- Category -->
+			<RowDefinition Height="Auto"/>
+			<!-- Buttons -->
 		</Grid.RowDefinitions>
 
 		<!-- Item Code -->
@@ -29,7 +40,7 @@
                  Margin="0,0,0,6"
                  Text="{Binding Item.ItemCode, UpdateSourceTrigger=PropertyChanged}"
                  IsReadOnly="{Binding IsEditMode}"
-                 ToolTip="Item Code cannot be changed once the item is created">
+                 ToolTip="Item Code is auto-suggested and cannot be changed after creation">
 			<TextBox.Style>
 				<Style TargetType="TextBox">
 					<Style.Triggers>
@@ -50,7 +61,7 @@
 
 		<TextBox Grid.Row="1" Grid.Column="1"
                  Margin="0,0,0,6"
-                 Text="{Binding Item.Description}"/>
+                 Text="{Binding Item.Description, UpdateSourceTrigger=PropertyChanged}"/>
 
 		<!-- Quantity -->
 		<TextBlock Grid.Row="2" Grid.Column="0"
@@ -61,22 +72,58 @@
 		<TextBox Grid.Row="2" Grid.Column="1"
                  Margin="0,0,0,6"
                  Width="120"
-                 Text="{Binding Item.Quantity}"/>
+                 Text="{Binding Item.Quantity, UpdateSourceTrigger=PropertyChanged}"/>
+
+		<!-- Unit -->
+		<TextBlock Grid.Row="3" Grid.Column="0"
+                   Text="Unit:"
+                   VerticalAlignment="Center"
+                   Margin="0,0,10,6"/>
+
+		<TextBox Grid.Row="3" Grid.Column="1"
+                 Margin="0,0,0,6"
+                 Width="120"
+                 Text="{Binding Item.Unit, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="e.g. kg, pcs, litre"/>
+
+		<!-- Min Level -->
+		<TextBlock Grid.Row="4" Grid.Column="0"
+                   Text="Min Level:"
+                   VerticalAlignment="Center"
+                   Margin="0,0,10,6"/>
+
+		<TextBox Grid.Row="4" Grid.Column="1"
+                 Margin="0,0,0,6"
+                 Width="120"
+                 Text="{Binding Item.MinLevel, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="Optional minimum stock level"/>
+
+		<!-- Max Level -->
+		<TextBlock Grid.Row="5" Grid.Column="0"
+                   Text="Max Level:"
+                   VerticalAlignment="Center"
+                   Margin="0,0,10,6"/>
+
+		<TextBox Grid.Row="5" Grid.Column="1"
+                 Margin="0,0,0,6"
+                 Width="120"
+                 Text="{Binding Item.MaxLevel, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="Optional maximum stock level"/>
 
 		<!-- Category -->
-		<TextBlock Grid.Row="3" Grid.Column="0"
+		<TextBlock Grid.Row="6" Grid.Column="0"
                    Text="Category:"
                    VerticalAlignment="Center"
                    Margin="0,0,10,10"/>
 
-		<ComboBox Grid.Row="3" Grid.Column="1"
+		<ComboBox Grid.Row="6" Grid.Column="1"
                   Margin="0,0,0,10"
                   ItemsSource="{Binding Categories}"
                   SelectedItem="{Binding SelectedCategory}"
                   DisplayMemberPath="Name"/>
 
 		<!-- Buttons -->
-		<StackPanel Grid.Row="4" Grid.ColumnSpan="2"
+		<StackPanel Grid.Row="7" Grid.ColumnSpan="2"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right">
 

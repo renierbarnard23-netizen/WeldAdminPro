@@ -5,7 +5,7 @@ using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Data.Repositories
 {
-	public class StockRepository
+	public partial class StockRepository
 	{
 		private readonly string _connectionString;
 
@@ -58,10 +58,9 @@ namespace WeldAdminPro.Data.Repositories
 			EnsureUniqueItemCodeIndex(connection);
 		}
 
-		// 🔐 FINAL LINE OF DEFENCE
 		private void EnsureUniqueItemCodeIndex(SqliteConnection connection)
 		{
-			// 1️⃣ Detect duplicates FIRST
+			// Detect duplicates first
 			using (var checkCmd = connection.CreateCommand())
 			{
 				checkCmd.CommandText = @"
@@ -77,12 +76,12 @@ namespace WeldAdminPro.Data.Repositories
 					throw new InvalidOperationException(
 						"Duplicate Item Codes detected in database.\n\n" +
 						"Please resolve duplicates before continuing.\n\n" +
-						"Tip: Item Codes must be unique (case-insensitive)."
+						"Item Codes must be unique (case-insensitive)."
 					);
 				}
 			}
 
-			// 2️⃣ Create UNIQUE index (safe + idempotent)
+			// Create unique index (idempotent)
 			using (var indexCmd = connection.CreateCommand())
 			{
 				indexCmd.CommandText = @"
@@ -92,6 +91,30 @@ namespace WeldAdminPro.Data.Repositories
 				";
 				indexCmd.ExecuteNonQuery();
 			}
+		}
+
+		// =========================
+		// AUTO-SUGGEST NEXT ITEM CODE
+		// =========================
+		public string GetNextItemCodeSuggestion(int padLength = 3)
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = @"SELECT ItemCode FROM StockItems;";
+
+			int max = 0;
+
+			using var reader = cmd.ExecuteReader();
+			while (reader.Read())
+			{
+				var code = reader.GetString(0).Trim();
+				if (int.TryParse(code, out int num) && num > max)
+					max = num;
+			}
+
+			return (max + 1).ToString().PadLeft(padLength, '0');
 		}
 
 		// =========================
@@ -220,11 +243,11 @@ namespace WeldAdminPro.Data.Repositories
 
 			dbTx.Commit();
 		}
-	
-	// =========================
-// TRANSACTION HISTORY (READ-ONLY)
-// =========================
-public List<StockTransaction> GetAllTransactions()
+
+		// =========================
+		// TRANSACTION HISTORY
+		// =========================
+		public List<StockTransaction> GetAllTransactions()
 		{
 			var list = new List<StockTransaction>();
 
@@ -233,19 +256,19 @@ public List<StockTransaction> GetAllTransactions()
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-		SELECT
-			t.Id,
-			t.StockItemId,
-			t.TransactionDate,
-			t.Quantity,
-			t.Type,
-			t.Reference,
-			i.ItemCode,
-			i.Description
-		FROM StockTransactions t
-		JOIN StockItems i ON i.Id = t.StockItemId
-		ORDER BY t.TransactionDate DESC;
-	";
+				SELECT
+					t.Id,
+					t.StockItemId,
+					t.TransactionDate,
+					t.Quantity,
+					t.Type,
+					t.Reference,
+					i.ItemCode,
+					i.Description
+				FROM StockTransactions t
+				JOIN StockItems i ON i.Id = t.StockItemId
+				ORDER BY t.TransactionDate DESC;
+			";
 
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
@@ -264,6 +287,6 @@ public List<StockTransaction> GetAllTransactions()
 			}
 
 			return list;
-		} } }
-
-	
+		}
+	}
+}
