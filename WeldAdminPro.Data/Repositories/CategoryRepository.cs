@@ -23,12 +23,12 @@ namespace WeldAdminPro.Data.Repositories
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-                CREATE TABLE IF NOT EXISTS Categories (
-                    Id TEXT PRIMARY KEY,
-                    Name TEXT NOT NULL UNIQUE,
-                    IsActive INTEGER NOT NULL DEFAULT 1
-                );
-            ";
+				CREATE TABLE IF NOT EXISTS Categories (
+					Id TEXT PRIMARY KEY,
+					Name TEXT NOT NULL UNIQUE,
+					IsActive INTEGER NOT NULL DEFAULT 1
+				);
+			";
 			cmd.ExecuteNonQuery();
 
 			EnsureDefaultCategory(connection);
@@ -38,12 +38,12 @@ namespace WeldAdminPro.Data.Repositories
 		{
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-                INSERT INTO Categories (Id, Name, IsActive)
-                SELECT $id, 'Uncategorised', 1
-                WHERE NOT EXISTS (
-                    SELECT 1 FROM Categories WHERE Name = 'Uncategorised'
-                );
-            ";
+				INSERT INTO Categories (Id, Name, IsActive)
+				SELECT $id, 'Uncategorised', 1
+				WHERE NOT EXISTS (
+					SELECT 1 FROM Categories WHERE Name = 'Uncategorised'
+				);
+			";
 
 			cmd.Parameters.AddWithValue("$id", Guid.NewGuid().ToString());
 			cmd.ExecuteNonQuery();
@@ -74,6 +74,31 @@ namespace WeldAdminPro.Data.Repositories
 			return list;
 		}
 
+		public List<Category> GetAllActive()
+		{
+			var list = new List<Category>();
+
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText =
+				"SELECT Id, Name, IsActive FROM Categories WHERE IsActive = 1 ORDER BY Name;";
+
+			using var reader = cmd.ExecuteReader();
+			while (reader.Read())
+			{
+				list.Add(new Category
+				{
+					Id = Guid.Parse(reader.GetString(0)),
+					Name = reader.GetString(1),
+					IsActive = true
+				});
+			}
+
+			return list;
+		}
+
 		// 🔐 SAFETY CHECK
 		public bool IsCategoryInUse(string categoryName)
 		{
@@ -82,24 +107,35 @@ namespace WeldAdminPro.Data.Repositories
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-                SELECT COUNT(1)
-                FROM StockItems
-                WHERE Category = $category;
-            ";
+				SELECT COUNT(1)
+				FROM StockItems
+				WHERE Category = $category;
+			";
 
 			cmd.Parameters.AddWithValue("$category", categoryName);
-
 			return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
 		}
 
+		// ✅ SAFE ADD (NO DUPLICATE CRASHES)
 		public void Add(string name)
 		{
+			if (string.IsNullOrWhiteSpace(name))
+				return;
+
+			name = name.Trim();
+
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
 			using var cmd = connection.CreateCommand();
-			cmd.CommandText =
-				"INSERT INTO Categories (Id, Name, IsActive) VALUES ($id, $name, 1);";
+			cmd.CommandText = @"
+				INSERT OR IGNORE INTO Categories (Id, Name, IsActive)
+				VALUES ($id, $name, 1);
+
+				UPDATE Categories
+				SET IsActive = 1
+				WHERE Name = $name;
+			";
 
 			cmd.Parameters.AddWithValue("$id", Guid.NewGuid().ToString());
 			cmd.Parameters.AddWithValue("$name", name);
@@ -133,30 +169,5 @@ namespace WeldAdminPro.Data.Repositories
 
 			cmd.ExecuteNonQuery();
 		}
-	
-	public List<Category> GetAllActive()
-		{
-			var list = new List<Category>();
-
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
-
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText =
-				"SELECT Id, Name, IsActive FROM Categories WHERE IsActive = 1 ORDER BY Name;";
-
-			using var reader = cmd.ExecuteReader();
-			while (reader.Read())
-			{
-				list.Add(new Category
-				{
-					Id = Guid.Parse(reader.GetString(0)),
-					Name = reader.GetString(1),
-					IsActive = true
-				});
-			}
-
-			return list;
-		}
 	}
-	}
+}
