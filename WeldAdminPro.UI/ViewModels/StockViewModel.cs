@@ -127,6 +127,9 @@ namespace WeldAdminPro.UI.ViewModels
 
 		private void ApplyFilters()
 		{
+			// 🔑 Clear selection when filtering
+			SelectedItem = null;
+
 			Items = SelectedStatusFilter switch
 			{
 				StockStatusFilter.Low => new ObservableCollection<StockItem>(
