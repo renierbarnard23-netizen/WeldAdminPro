@@ -1,81 +1,98 @@
 ﻿<UserControl x:Class="WeldAdminPro.UI.Views.StockView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d">
-
-	<!-- 🔑 REQUIRED RESOURCES -->
-	<UserControl.Resources>
-		<BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-	</UserControl.Resources>
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
 	<Grid Margin="12">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
+			<!-- Buttons -->
 			<RowDefinition Height="Auto"/>
+			<!-- Category -->
 			<RowDefinition Height="Auto"/>
+			<!-- Filters -->
+			<RowDefinition Height="Auto"/>
+			<!-- Banner -->
 			<RowDefinition Height="*"/>
+			<!-- Grid -->
 		</Grid.RowDefinitions>
 
 		<!-- ACTION BUTTONS -->
 		<WrapPanel Grid.Row="0" Margin="0,0,0,10">
-			<Button Content="New Stock Item" Width="140" Margin="4" Command="{Binding NewItemCommand}" />
-			<Button Content="Edit Stock Item" Width="140" Margin="4" Command="{Binding EditItemCommand}" />
-			<Button Content="Manage Categories" Width="170" Margin="4" Click="ManageCategories_Click" />
-			<Button Content="Stock IN" Width="110" Margin="4" Command="{Binding StockInCommand}" />
-			<Button Content="Stock OUT" Width="110" Margin="4" Command="{Binding StockOutCommand}" />
-			<Button Content="Transaction History" Width="170" Margin="4" Command="{Binding ViewHistoryCommand}" />
+			<Button Content="New Stock Item" Width="140" Margin="4"
+                    Command="{Binding NewItemCommand}" />
+
+			<Button Content="Edit Stock Item" Width="140" Margin="4"
+                    Command="{Binding EditItemCommand}" />
+
+			<Button Content="Manage Categories" Width="170" Margin="4"
+                    Click="ManageCategories_Click" />
+
+			<Button Content="Stock IN" Width="110" Margin="4"
+                    Command="{Binding StockInCommand}" />
+
+			<Button Content="Stock OUT" Width="110" Margin="4"
+                    Command="{Binding StockOutCommand}" />
+
+			<Button Content="Transaction History" Width="170" Margin="4"
+                    Command="{Binding ViewHistoryCommand}" />
 		</WrapPanel>
 
 		<!-- CATEGORY FILTER -->
-		<StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
-			<TextBlock Text="Category:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+		<StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    Margin="0,0,0,10">
+			<TextBlock Text="Category:"
+                       VerticalAlignment="Center"
+                       Margin="0,0,8,0"/>
+
 			<ComboBox Width="240"
                       ItemsSource="{Binding Categories}"
                       SelectedItem="{Binding SelectedCategory}"
                       DisplayMemberPath="Name"/>
 		</StackPanel>
+		<!-- 🔍 STATUS FILTER BUTTONS (SAFE MODE) -->
+		<StackPanel Grid.Row="2"
+            Orientation="Horizontal"
+            Margin="0,0,0,8">
 
-		<!-- 🔔 STATUS SUMMARY BANNER -->
-		<Border Grid.Row="2"
-                Background="#FFFFF2CC"
-                BorderBrush="#FFCC9900"
-                BorderThickness="1"
-                Padding="8"
-                CornerRadius="4"
-                Margin="0,0,0,8"
-                Visibility="{Binding HasStockWarnings, Converter={StaticResource BooleanToVisibilityConverter}}">
-			<StackPanel Orientation="Horizontal">
-				<TextBlock Text="⚠ Stock warnings:"
-                           FontWeight="Bold"
-                           Margin="0,0,12,0"/>
+			<Button Content="All"
+            Width="80"
+            Margin="0,0,6,0"
+            Command="{Binding ShowAllCommand}" />
 
-				<TextBlock Text="{Binding OutOfStockCount, StringFormat=🔴 {0} out of stock}"
-                           Margin="0,0,16,0"/>
+			<Button Content="🟡 Low"
+            Width="90"
+            Margin="0,0,6,0"
+            Command="{Binding ShowLowCommand}" />
 
-				<TextBlock Text="{Binding LowStockCount, StringFormat=🟡 {0} low stock}"/>
-			</StackPanel>
-		</Border>
+			<Button Content="🔴 Out"
+            Width="90"
+            Command="{Binding ShowOutCommand}" />
 
-		<!-- STOCK GRID -->
-		<DataGrid Grid.Row="3"
+		</StackPanel>
+
+
+		<!-- STOCK GRID WITH ROW COLOURING + STATUS ICON -->
+		<DataGrid Grid.Row="4"
                   ItemsSource="{Binding Items}"
                   SelectedItem="{Binding SelectedItem}"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
                   RowHeight="28">
 
+			<!-- ROW COLOURING -->
 			<DataGrid.RowStyle>
 				<Style TargetType="DataGridRow">
 					<Style.Triggers>
 
+						<!-- 🔴 OUT OF STOCK -->
 						<DataTrigger Binding="{Binding Status}" Value="Out">
 							<Setter Property="Background" Value="#FFF2CCCC"/>
 							<Setter Property="Foreground" Value="DarkRed"/>
 							<Setter Property="FontWeight" Value="Bold"/>
 						</DataTrigger>
 
+						<!-- 🟡 LOW STOCK -->
 						<DataTrigger Binding="{Binding Status}" Value="Low">
 							<Setter Property="Background" Value="#FFFFF2CC"/>
 							<Setter Property="Foreground" Value="DarkGoldenrod"/>
@@ -86,12 +103,61 @@
 			</DataGrid.RowStyle>
 
 			<DataGrid.Columns>
-				<DataGridTextColumn Header="Item Code" Binding="{Binding ItemCode}" Width="140"/>
-				<DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
-				<DataGridTextColumn Header="Quantity" Binding="{Binding Quantity}" Width="100"/>
-				<DataGridTextColumn Header="Unit" Binding="{Binding Unit}" Width="100"/>
-				<DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="160"/>
+
+				<!-- ⭐ STATUS ICON COLUMN -->
+				<DataGridTemplateColumn Header=""
+                                        Width="40"
+                                        IsReadOnly="True">
+					<DataGridTemplateColumn.CellTemplate>
+						<DataTemplate>
+							<TextBlock FontSize="16"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center">
+								<TextBlock.Style>
+									<Style TargetType="TextBlock">
+										<!-- Default = OK -->
+										<Setter Property="Text" Value="✔"/>
+										<Setter Property="ToolTip" Value="Stock level OK"/>
+
+										<Style.Triggers>
+											<DataTrigger Binding="{Binding Status}" Value="Out">
+												<Setter Property="Text" Value="🔴"/>
+												<Setter Property="ToolTip" Value="Out of stock"/>
+											</DataTrigger>
+
+											<DataTrigger Binding="{Binding Status}" Value="Low">
+												<Setter Property="Text" Value="🟡"/>
+												<Setter Property="ToolTip" Value="Low stock"/>
+											</DataTrigger>
+										</Style.Triggers>
+									</Style>
+								</TextBlock.Style>
+							</TextBlock>
+						</DataTemplate>
+					</DataGridTemplateColumn.CellTemplate>
+				</DataGridTemplateColumn>
+
+				<DataGridTextColumn Header="Item Code"
+                                    Binding="{Binding ItemCode}"
+                                    Width="140"/>
+
+				<DataGridTextColumn Header="Description"
+                                    Binding="{Binding Description}"
+                                    Width="*"/>
+
+				<DataGridTextColumn Header="Quantity"
+                                    Binding="{Binding Quantity}"
+                                    Width="100"/>
+
+				<DataGridTextColumn Header="Unit"
+                                    Binding="{Binding Unit}"
+                                    Width="100"/>
+
+				<DataGridTextColumn Header="Category"
+                                    Binding="{Binding Category}"
+                                    Width="160"/>
 			</DataGrid.Columns>
 		</DataGrid>
 	</Grid>
+
 </UserControl>

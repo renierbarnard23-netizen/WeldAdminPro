@@ -10,10 +10,19 @@ using WeldAdminPro.UI.Views;
 
 namespace WeldAdminPro.UI.ViewModels
 {
+	public enum StockStatusFilter
+	{
+		All,
+		Low,
+		Out
+	}
+
 	public partial class StockViewModel : ObservableObject
 	{
 		private readonly StockRepository _stockRepo;
 		private readonly CategoryRepository _categoryRepo;
+
+		private ObservableCollection<StockItem> _allItems = new();
 
 		[ObservableProperty]
 		private ObservableCollection<StockItem> items = new();
@@ -27,7 +36,9 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private Category? selectedCategory;
 
-		// 🔔 STATUS COUNTERS (Phase 9.4)
+		[ObservableProperty]
+		private StockStatusFilter selectedStatusFilter = StockStatusFilter.All;
+
 		[ObservableProperty]
 		private int lowStockCount;
 
@@ -35,6 +46,10 @@ namespace WeldAdminPro.UI.ViewModels
 		private int outOfStockCount;
 
 		public bool HasStockWarnings => LowStockCount > 0 || OutOfStockCount > 0;
+
+		public IRelayCommand ShowAllCommand { get; }
+		public IRelayCommand ShowLowCommand { get; }
+		public IRelayCommand ShowOutCommand { get; }
 
 		public IRelayCommand NewItemCommand { get; }
 		public IRelayCommand EditItemCommand { get; }
@@ -46,6 +61,10 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			_stockRepo = new StockRepository();
 			_categoryRepo = new CategoryRepository();
+
+			ShowAllCommand = new RelayCommand(() => ApplyStatusFilter(StockStatusFilter.All));
+			ShowLowCommand = new RelayCommand(() => ApplyStatusFilter(StockStatusFilter.Low));
+			ShowOutCommand = new RelayCommand(() => ApplyStatusFilter(StockStatusFilter.Out));
 
 			LoadCategories();
 			LoadItems();
@@ -88,23 +107,42 @@ namespace WeldAdminPro.UI.ViewModels
 
 		private void LoadItems()
 		{
-			SelectedItem = null;
+			var all = _stockRepo.GetAll();
 
-			var allItems = _stockRepo.GetAll();
+			_allItems = new ObservableCollection<StockItem>(
+				(SelectedCategory == null || SelectedCategory.Name == "All")
+					? all
+					: all.Where(i => i.Category == SelectedCategory.Name)
+			);
 
-			var filtered = (SelectedCategory == null || SelectedCategory.Name == "All")
-				? allItems
-				: allItems.Where(i => i.Category == SelectedCategory.Name);
-
-			Items = new ObservableCollection<StockItem>(filtered);
-
+			ApplyFilters();
 			RecalculateStatusCounters();
+		}
+
+		private void ApplyStatusFilter(StockStatusFilter filter)
+		{
+			SelectedStatusFilter = filter;
+			ApplyFilters();
+		}
+
+		private void ApplyFilters()
+		{
+			Items = SelectedStatusFilter switch
+			{
+				StockStatusFilter.Low => new ObservableCollection<StockItem>(
+					_allItems.Where(i => i.Status == StockStatus.Low)),
+
+				StockStatusFilter.Out => new ObservableCollection<StockItem>(
+					_allItems.Where(i => i.Status == StockStatus.Out)),
+
+				_ => new ObservableCollection<StockItem>(_allItems)
+			};
 		}
 
 		private void RecalculateStatusCounters()
 		{
-			OutOfStockCount = Items.Count(i => i.Status == StockStatus.Out);
-			LowStockCount = Items.Count(i => i.Status == StockStatus.Low);
+			OutOfStockCount = _allItems.Count(i => i.Status == StockStatus.Out);
+			LowStockCount = _allItems.Count(i => i.Status == StockStatus.Low);
 
 			OnPropertyChanged(nameof(HasStockWarnings));
 		}
