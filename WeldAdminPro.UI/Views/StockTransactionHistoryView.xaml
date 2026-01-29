@@ -5,8 +5,44 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d">
 
-    <Grid Margin="10">
-        <DataGrid ItemsSource="{Binding Transactions}"
+	<Grid Margin="10">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+
+		<!-- FILTER BAR -->
+		<StackPanel Orientation="Horizontal"
+                    Margin="0,0,0,10"
+                    VerticalAlignment="Center">
+
+			<TextBlock Text="Item:"
+                       VerticalAlignment="Center"
+                       Margin="0,0,6,0"/>
+
+			<ComboBox Width="140"
+                      ItemsSource="{Binding ItemCodes}"
+                      SelectedItem="{Binding SelectedItemCode}" />
+
+			<TextBlock Text="From:"
+                       VerticalAlignment="Center"
+                       Margin="16,0,6,0"/>
+
+			<DatePicker Width="130"
+                        SelectedDate="{Binding FromDate}" />
+
+			<TextBlock Text="To:"
+                       VerticalAlignment="Center"
+                       Margin="16,0,6,0"/>
+
+			<DatePicker Width="130"
+                        SelectedDate="{Binding ToDate}" />
+
+		</StackPanel>
+
+		<!-- TRANSACTION GRID -->
+		<DataGrid Grid.Row="1"
+                  ItemsSource="{Binding Transactions}"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
                   CanUserAddRows="False"
@@ -14,32 +50,30 @@
                   HeadersVisibility="Column"
                   GridLinesVisibility="All">
 
-            <DataGrid.Columns>
+			<DataGrid.Columns>
 
-    <DataGridTextColumn Header="Date"
-                        Binding="{Binding TransactionDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}" />
+				<DataGridTextColumn Header="Date"
+                                    Binding="{Binding TransactionDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}" />
 
-    <DataGridTextColumn Header="Item Code"
-                        Binding="{Binding ItemCode}" />
+				<DataGridTextColumn Header="Item Code"
+                                    Binding="{Binding ItemCode}" />
 
-    <DataGridTextColumn Header="Description"
-                        Binding="{Binding ItemDescription}" />
+				<DataGridTextColumn Header="Description"
+                                    Binding="{Binding ItemDescription}" />
 
-    <DataGridTextColumn Header="Type"
-                        Binding="{Binding Type}" />
+				<DataGridTextColumn Header="Type"
+                                    Binding="{Binding Type}" />
 
-    <DataGridTextColumn Header="Quantity"
-                        Binding="{Binding Quantity}" />
+				<DataGridTextColumn Header="Quantity"
+                                    Binding="{Binding Quantity}" />
 
-    <DataGridTextColumn Header="Balance"
-                    Binding="{Binding RunningBalance}" />
+				<DataGridTextColumn Header="Balance"
+                                    Binding="{Binding RunningBalance}" />
 
-    <DataGridTextColumn Header="Reference"
-                        Binding="{Binding Reference}" />
+				<DataGridTextColumn Header="Reference"
+                                    Binding="{Binding Reference}" />
 
-</DataGrid.Columns>
-
-
-        </DataGrid>
-    </Grid>
+			</DataGrid.Columns>
+		</DataGrid>
+	</Grid>
 </UserControl>

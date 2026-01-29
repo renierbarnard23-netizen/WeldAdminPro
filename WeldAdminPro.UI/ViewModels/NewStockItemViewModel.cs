@@ -41,7 +41,6 @@ namespace WeldAdminPro.UI.ViewModels
 				Id = Guid.NewGuid(),
 				Quantity = 0,
 				Category = "Uncategorised",
-				// 🔑 AUTO-SUGGEST NEXT CODE
 				ItemCode = _stockRepo.GetNextItemCodeSuggestion()
 			};
 
@@ -78,7 +77,6 @@ namespace WeldAdminPro.UI.ViewModels
 			IsEditMode = true;
 		}
 
-
 		private void LoadCategories()
 		{
 			Categories = new ObservableCollection<Category>(
@@ -87,12 +85,12 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// SAVE (LOCK ENFORCED)
+		// SAVE
 		// =========================
 		[RelayCommand]
 		private void Save()
 		{
-			// 🔒 Hard lock ItemCode in edit mode
+			// 🔒 Lock ItemCode in edit mode
 			if (IsEditMode && Item.ItemCode != _originalItemCode)
 			{
 				MessageBox.Show(
@@ -104,21 +102,21 @@ namespace WeldAdminPro.UI.ViewModels
 
 				Item.ItemCode = _originalItemCode;
 				return;
-				// ✅ Min / Max validation (only if both provided)
-				if (Item.MinLevel.HasValue && Item.MaxLevel.HasValue)
-				{
-					if (Item.MinLevel.Value > Item.MaxLevel.Value)
-					{
-						MessageBox.Show(
-							"Minimum level cannot be greater than Maximum level.",
-							"Invalid Stock Levels",
-							MessageBoxButton.OK,
-							MessageBoxImage.Warning
-						);
-						return;
-					}
-				}
+			}
 
+			// ✅ Min / Max validation
+			if (Item.MinLevel.HasValue && Item.MaxLevel.HasValue)
+			{
+				if (Item.MinLevel.Value > Item.MaxLevel.Value)
+				{
+					MessageBox.Show(
+						"Minimum level cannot be greater than Maximum level.",
+						"Invalid Stock Levels",
+						MessageBoxButton.OK,
+						MessageBoxImage.Warning
+					);
+					return;
+				}
 			}
 
 			Item.Category = SelectedCategory?.Name ?? "Uncategorised";

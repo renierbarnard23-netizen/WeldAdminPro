@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -15,11 +15,6 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly StockRepository _stockRepo;
 		private readonly CategoryRepository _categoryRepo;
 
-		
-		// =========================
-		// Observable Properties
-		// =========================
-
 		[ObservableProperty]
 		private ObservableCollection<StockItem> items = new();
 
@@ -32,18 +27,20 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private Category? selectedCategory;
 
-		// =========================
-		// Commands
-		// =========================
+		// 🔔 STATUS COUNTERS (Phase 9.4)
+		[ObservableProperty]
+		private int lowStockCount;
+
+		[ObservableProperty]
+		private int outOfStockCount;
+
+		public bool HasStockWarnings => LowStockCount > 0 || OutOfStockCount > 0;
 
 		public IRelayCommand NewItemCommand { get; }
 		public IRelayCommand EditItemCommand { get; }
 		public IRelayCommand StockInCommand { get; }
 		public IRelayCommand StockOutCommand { get; }
-
-		// =========================
-		// Constructor
-		// =========================
+		public IRelayCommand ViewHistoryCommand { get; }
 
 		public StockViewModel()
 		{
@@ -57,17 +54,13 @@ namespace WeldAdminPro.UI.ViewModels
 			EditItemCommand = new RelayCommand(OpenEditItem, () => SelectedItem != null);
 			StockInCommand = new RelayCommand(OpenStockIn, () => SelectedItem != null);
 			StockOutCommand = new RelayCommand(OpenStockOut, () => SelectedItem != null);
+			ViewHistoryCommand = new RelayCommand(OpenHistory);
 		}
-
-		// =========================
-		// Category handling
-		// =========================
 
 		private void LoadCategories()
 		{
 			Categories.Clear();
 
-			// Virtual "All" category
 			Categories.Add(new Category
 			{
 				Id = Guid.Empty,
@@ -86,20 +79,12 @@ namespace WeldAdminPro.UI.ViewModels
 			LoadItems();
 		}
 
-		// =========================
-		// Selection handling
-		// =========================
-
 		partial void OnSelectedItemChanged(StockItem? value)
 		{
 			EditItemCommand.NotifyCanExecuteChanged();
 			StockInCommand.NotifyCanExecuteChanged();
 			StockOutCommand.NotifyCanExecuteChanged();
 		}
-
-		// =========================
-		// Data loading + LOW STOCK FLAGS
-		// =========================
 
 		private void LoadItems()
 		{
@@ -112,21 +97,23 @@ namespace WeldAdminPro.UI.ViewModels
 				: allItems.Where(i => i.Category == SelectedCategory.Name);
 
 			Items = new ObservableCollection<StockItem>(filtered);
+
+			RecalculateStatusCounters();
 		}
 
-		// =========================
-		// Required by StockView.xaml.cs
-		// =========================
+		private void RecalculateStatusCounters()
+		{
+			OutOfStockCount = Items.Count(i => i.Status == StockStatus.Out);
+			LowStockCount = Items.Count(i => i.Status == StockStatus.Low);
+
+			OnPropertyChanged(nameof(HasStockWarnings));
+		}
 
 		public void RefreshAfterCategoryChange()
 		{
 			LoadCategories();
 			LoadItems();
 		}
-
-		// =========================
-		// Stock actions
-		// =========================
 
 		private void OpenNewItem()
 		{
@@ -180,6 +167,20 @@ namespace WeldAdminPro.UI.ViewModels
 
 			vm.TransactionCompleted += LoadItems;
 			vm.RequestClose += window.Close;
+
+			window.ShowDialog();
+		}
+
+		private void OpenHistory()
+		{
+			var window = new Window
+			{
+				Title = "Stock Transaction History",
+				Content = new StockTransactionHistoryView(),
+				Owner = Application.Current.MainWindow,
+				Width = 900,
+				Height = 600
+			};
 
 			window.ShowDialog();
 		}
