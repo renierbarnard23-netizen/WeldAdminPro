@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Windows;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Models;
@@ -14,30 +14,28 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private Project project;
 
+		public ObservableCollection<ProjectStatus> Statuses { get; } =
+			new(Enum.GetValues<ProjectStatus>());
+
 		public ProjectDetailsViewModel(Project project)
 		{
-			Project = project ?? throw new ArgumentNullException(nameof(project));
 			_repository = new ProjectRepository();
+			this.project = project;
 		}
 
 		[RelayCommand]
 		private void Save()
 		{
 			_repository.Update(Project);
-			Close();
+			RequestClose?.Invoke();
 		}
 
 		[RelayCommand]
-		private void Close()
+		private void Cancel()
 		{
-			foreach (Window window in Application.Current.Windows)
-			{
-				if (window.DataContext == this)
-				{
-					window.Close();
-					break;
-				}
-			}
+			RequestClose?.Invoke();
 		}
+
+		public event Action? RequestClose;
 	}
 }

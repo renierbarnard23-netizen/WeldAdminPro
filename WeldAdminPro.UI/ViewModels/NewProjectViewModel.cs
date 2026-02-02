@@ -1,5 +1,5 @@
 using System;
-using System.Windows;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Models;
@@ -14,48 +14,32 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private Project project;
 
+		public ObservableCollection<ProjectStatus> Statuses { get; } =
+			new(Enum.GetValues<ProjectStatus>());
+
 		public NewProjectViewModel()
 		{
 			_repository = new ProjectRepository();
 
 			project = new Project
 			{
-				Id = Guid.NewGuid(),
-				IsInvoiced = false
+				Status = ProjectStatus.Planned
 			};
 		}
 
 		[RelayCommand]
 		private void Save()
 		{
-			try
-			{
-				_repository.Add(Project);
-				CloseWindow();
-			}
-			catch (Exception ex)
-			{
-				MessageBox.Show(
-					$"Failed to save project.\n\n{ex.Message}",
-					"Error",
-					MessageBoxButton.OK,
-					MessageBoxImage.Error);
-			}
+			_repository.Add(Project);
+			RequestClose?.Invoke();
 		}
 
 		[RelayCommand]
-		private void Cancel() => CloseWindow();
-
-		private void CloseWindow()
+		private void Cancel()
 		{
-			foreach (Window window in Application.Current.Windows)
-			{
-				if (window.DataContext == this)
-				{
-					window.Close();
-					break;
-				}
-			}
+			RequestClose?.Invoke();
 		}
+
+		public event Action? RequestClose;
 	}
 }

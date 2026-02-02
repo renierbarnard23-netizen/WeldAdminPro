@@ -121,6 +121,13 @@
 				</StackPanel>
 			</Grid>
 
+			<StackPanel Grid.Row="6" Margin="0,0,0,10">
+				<TextBlock Text="Status" FontWeight="Bold"/>
+				<ComboBox ItemsSource="{Binding Statuses}"
+	          SelectedItem="{Binding Project.Status}" />
+			</StackPanel>
+
+
 			<!-- Dates -->
 			<Grid Grid.Row="8" Margin="0,0,0,15">
 				<Grid.ColumnDefinitions>

@@ -36,7 +36,12 @@
                                     Binding="{Binding JobNumber}"
                                     Width="70"/>
 
-                <DataGridTextColumn Header="Project Name"
+				<DataGridTextColumn Header="Status"
+                    Binding="{Binding Status}"
+                    Width="120"/>
+
+
+				<DataGridTextColumn Header="Project Name"
                                     Binding="{Binding ProjectName}"
                                     Width="150"/>
 

@@ -14,19 +14,17 @@ namespace WeldAdminPro.Data.Repositories
 		{
 			_connectionString = $"Data Source={DatabasePath.Get()}";
 			EnsureTables();
-			EnsureColumns();
+			EnsureStatusColumn();
 		}
 
 		public ProjectRepository(string connectionString)
 		{
 			_connectionString = connectionString;
 			EnsureTables();
-			EnsureColumns();
+			EnsureStatusColumn();
 		}
 
-		// =========================
-		// SCHEMA
-		// =========================
+		#region Schema
 
 		private void EnsureTables()
 		{
@@ -48,6 +46,9 @@ CREATE TABLE IF NOT EXISTS Projects (
 	AssignedTo TEXT,
 	IsInvoiced INTEGER NOT NULL,
 	InvoiceNumber TEXT,
+	StartDate TEXT,
+	EndDate TEXT,
+	Status INTEGER NOT NULL DEFAULT 0,
 	CreatedOn TEXT NOT NULL
 );
 
@@ -59,38 +60,38 @@ CREATE TABLE IF NOT EXISTS ProjectSettings (
 			cmd.ExecuteNonQuery();
 		}
 
-		/// <summary>
-		/// Adds missing columns safely for existing databases
-		/// </summary>
-		private void EnsureColumns()
+		// ✅ Safe migration for existing DBs
+		private void EnsureStatusColumn()
 		{
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
-			void AddColumnIfMissing(string columnName, string sqlType)
+			using var check = connection.CreateCommand();
+			check.CommandText = "PRAGMA table_info(Projects);";
+
+			using var reader = check.ExecuteReader();
+			bool hasStatus = false;
+
+			while (reader.Read())
 			{
-				using var check = connection.CreateCommand();
-				check.CommandText = $"PRAGMA table_info(Projects);";
-
-				using var reader = check.ExecuteReader();
-				while (reader.Read())
+				if (reader["name"].ToString() == "Status")
 				{
-					if (reader["name"].ToString() == columnName)
-						return;
+					hasStatus = true;
+					break;
 				}
-
-				using var alter = connection.CreateCommand();
-				alter.CommandText = $"ALTER TABLE Projects ADD COLUMN {columnName} {sqlType};";
-				alter.ExecuteNonQuery();
 			}
 
-			AddColumnIfMissing("StartDate", "TEXT");
-			AddColumnIfMissing("EndDate", "TEXT");
+			if (!hasStatus)
+			{
+				using var alter = connection.CreateCommand();
+				alter.CommandText = "ALTER TABLE Projects ADD COLUMN Status INTEGER NOT NULL DEFAULT 0;";
+				alter.ExecuteNonQuery();
+			}
 		}
 
-		// =========================
-		// READ
-		// =========================
+		#endregion
+
+		#region Read
 
 		public IEnumerable<Project> GetAll()
 		{
@@ -122,9 +123,9 @@ CREATE TABLE IF NOT EXISTS ProjectSettings (
 			return reader.Read() ? Map(reader) : null;
 		}
 
-		// =========================
-		// CREATE
-		// =========================
+		#endregion
+
+		#region Create
 
 		public void Add(Project project)
 		{
@@ -141,11 +142,11 @@ CREATE TABLE IF NOT EXISTS ProjectSettings (
 INSERT INTO Projects (
 	Id, JobNumber, ProjectName, Client, ClientRepresentative,
 	Amount, QuoteNumber, OrderNumber, Material, AssignedTo,
-	IsInvoiced, InvoiceNumber, StartDate, EndDate, CreatedOn
+	IsInvoiced, InvoiceNumber, StartDate, EndDate, Status, CreatedOn
 ) VALUES (
 	@Id, @JobNumber, @ProjectName, @Client, @ClientRepresentative,
 	@Amount, @QuoteNumber, @OrderNumber, @Material, @AssignedTo,
-	@IsInvoiced, @InvoiceNumber, @StartDate, @EndDate, @CreatedOn
+	@IsInvoiced, @InvoiceNumber, @StartDate, @EndDate, @Status, @CreatedOn
 );";
 
 			cmd.Parameters.AddWithValue("@Id", project.Id.ToString());
@@ -162,6 +163,7 @@ INSERT INTO Projects (
 			cmd.Parameters.AddWithValue("@InvoiceNumber", project.InvoiceNumber ?? string.Empty);
 			cmd.Parameters.AddWithValue("@StartDate", project.StartDate?.ToString("O"));
 			cmd.Parameters.AddWithValue("@EndDate", project.EndDate?.ToString("O"));
+			cmd.Parameters.AddWithValue("@Status", (int)project.Status);
 			cmd.Parameters.AddWithValue("@CreatedOn", project.CreatedOn.ToString("O"));
 
 			cmd.ExecuteNonQuery();
@@ -170,9 +172,9 @@ INSERT INTO Projects (
 			tx.Commit();
 		}
 
-		// =========================
-		// UPDATE
-		// =========================
+		#endregion
+
+		#region Update
 
 		public void Update(Project project)
 		{
@@ -193,7 +195,8 @@ UPDATE Projects SET
 	IsInvoiced = @IsInvoiced,
 	InvoiceNumber = @InvoiceNumber,
 	StartDate = @StartDate,
-	EndDate = @EndDate
+	EndDate = @EndDate,
+	Status = @Status
 WHERE Id = @Id;";
 
 			cmd.Parameters.AddWithValue("@Id", project.Id.ToString());
@@ -209,13 +212,14 @@ WHERE Id = @Id;";
 			cmd.Parameters.AddWithValue("@InvoiceNumber", project.InvoiceNumber ?? string.Empty);
 			cmd.Parameters.AddWithValue("@StartDate", project.StartDate?.ToString("O"));
 			cmd.Parameters.AddWithValue("@EndDate", project.EndDate?.ToString("O"));
+			cmd.Parameters.AddWithValue("@Status", (int)project.Status);
 
 			cmd.ExecuteNonQuery();
 		}
 
-		// =========================
-		// DELETE
-		// =========================
+		#endregion
+
+		#region Delete
 
 		public void Delete(Guid id)
 		{
@@ -228,9 +232,9 @@ WHERE Id = @Id;";
 			cmd.ExecuteNonQuery();
 		}
 
-		// =========================
-		// JOB NUMBER
-		// =========================
+		#endregion
+
+		#region Job Number
 
 		public int GetNextJobNumber()
 		{
@@ -285,43 +289,30 @@ WHERE Key = 'NextJobNumber';";
 			cmd.ExecuteNonQuery();
 		}
 
-		// =========================
-		// MAP (SAFE)
-		// =========================
+		#endregion
 
-		private static Project Map(IDataRecord r)
+		#region Map
+
+		private static Project Map(IDataRecord r) => new()
 		{
-			DateTime? ReadDate(string name)
-			{
-				try
-				{
-					var val = r[name];
-					return val == DBNull.Value ? null : DateTime.Parse(val.ToString()!);
-				}
-				catch (IndexOutOfRangeException)
-				{
-					return null;
-				}
-			}
+			Id = Guid.Parse(r["Id"].ToString()!),
+			JobNumber = Convert.ToInt32(r["JobNumber"]),
+			ProjectName = r["ProjectName"].ToString()!,
+			Client = r["Client"].ToString()!,
+			ClientRepresentative = r["ClientRepresentative"]?.ToString() ?? string.Empty,
+			Amount = Convert.ToDecimal(r["Amount"]),
+			QuoteNumber = r["QuoteNumber"]?.ToString() ?? string.Empty,
+			OrderNumber = r["OrderNumber"]?.ToString() ?? string.Empty,
+			Material = r["Material"]?.ToString() ?? string.Empty,
+			AssignedTo = r["AssignedTo"]?.ToString() ?? string.Empty,
+			IsInvoiced = Convert.ToInt32(r["IsInvoiced"]) == 1,
+			InvoiceNumber = r["InvoiceNumber"]?.ToString(),
+			StartDate = r["StartDate"] == DBNull.Value ? null : DateTime.Parse(r["StartDate"].ToString()!),
+			EndDate = r["EndDate"] == DBNull.Value ? null : DateTime.Parse(r["EndDate"].ToString()!),
+			Status = (ProjectStatus)Convert.ToInt32(r["Status"]),
+			CreatedOn = DateTime.Parse(r["CreatedOn"].ToString()!)
+		};
 
-			return new Project
-			{
-				Id = Guid.Parse(r["Id"].ToString()!),
-				JobNumber = Convert.ToInt32(r["JobNumber"]),
-				ProjectName = r["ProjectName"].ToString()!,
-				Client = r["Client"].ToString()!,
-				ClientRepresentative = r["ClientRepresentative"]?.ToString() ?? string.Empty,
-				Amount = Convert.ToDecimal(r["Amount"]),
-				QuoteNumber = r["QuoteNumber"]?.ToString() ?? string.Empty,
-				OrderNumber = r["OrderNumber"]?.ToString() ?? string.Empty,
-				Material = r["Material"]?.ToString() ?? string.Empty,
-				AssignedTo = r["AssignedTo"]?.ToString() ?? string.Empty,
-				IsInvoiced = Convert.ToInt32(r["IsInvoiced"]) == 1,
-				InvoiceNumber = r["InvoiceNumber"]?.ToString(),
-				StartDate = ReadDate("StartDate"),
-				EndDate = ReadDate("EndDate"),
-				CreatedOn = DateTime.Parse(r["CreatedOn"].ToString()!)
-			};
-		}
+		#endregion
 	}
 }

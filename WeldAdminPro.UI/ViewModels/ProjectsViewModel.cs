@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Models;
@@ -26,25 +27,21 @@ namespace WeldAdminPro.UI.ViewModels
 		[RelayCommand]
 		private void LoadProjects()
 		{
-			Projects.Clear();
+			var ordered = _repository.GetAll()
+				.OrderBy(p => p.Status switch
+				{
+					ProjectStatus.Active => 0,
+					ProjectStatus.Planned => 1,
+					ProjectStatus.OnHold => 2,
+					ProjectStatus.Completed => 3,
+					ProjectStatus.Cancelled => 4,
+					_ => 99
+				})
+				.ThenBy(p => p.StartDate)
+				.ThenBy(p => p.JobNumber)
+				.ToList();
 
-			foreach (var project in _repository.GetAll())
-				Projects.Add(project);
-		}
-
-		[RelayCommand]
-		private void NewProject()
-		{
-			var vm = new NewProjectViewModel();
-
-			var window = new NewProjectWindow(vm)
-			{
-				Owner = System.Windows.Application.Current.MainWindow,
-				Title = "New Project"
-			};
-
-			window.ShowDialog();
-			LoadProjects();
+			Projects = new ObservableCollection<Project>(ordered);
 		}
 
 		[RelayCommand(CanExecute = nameof(CanEditProject))]
@@ -54,11 +51,22 @@ namespace WeldAdminPro.UI.ViewModels
 				return;
 
 			var vm = new ProjectDetailsViewModel(SelectedProject);
-
 			var window = new ProjectDetailsWindow(vm)
 			{
-				Owner = System.Windows.Application.Current.MainWindow,
-				Title = "Project Details"
+				Owner = System.Windows.Application.Current.MainWindow
+			};
+
+			window.ShowDialog();
+			LoadProjects();
+		}
+
+		[RelayCommand]
+		private void NewProject()
+		{
+			var vm = new NewProjectViewModel();
+			var window = new NewProjectWindow(vm)
+			{
+				Owner = System.Windows.Application.Current.MainWindow
 			};
 
 			window.ShowDialog();
