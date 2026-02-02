@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -9,6 +10,15 @@ using WeldAdminPro.UI.Views;
 
 namespace WeldAdminPro.UI.ViewModels
 {
+	public enum ProjectStatusFilter
+	{
+		All,
+		Active,
+		Planned,
+		OnHold,
+		Completed
+	}
+
 	public partial class ProjectsViewModel : ObservableObject
 	{
 		private readonly IProjectRepository _repository;
@@ -21,13 +31,17 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private Project? selectedProject;
 
+		[ObservableProperty]
+		private ProjectStatusFilter selectedStatusFilter = ProjectStatusFilter.All;
+
 		public ProjectsViewModel()
 		{
 			_repository = new ProjectRepository();
 
 			_projectsView = CollectionViewSource.GetDefaultView(Projects);
-			ApplyDefaultSorting();
+			_projectsView.Filter = ApplyStatusFilter;
 
+			ApplyDefaultSorting();
 			LoadProjects();
 		}
 
@@ -38,27 +52,49 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			_projectsView.SortDescriptions.Clear();
 
-			// 1️⃣ Status priority (Active first)
+			// Status priority (Active first)
 			_projectsView.SortDescriptions.Add(
 				new SortDescription(nameof(Project.StatusSortOrder),
-									ListSortDirection.Ascending));
+					ListSortDirection.Ascending));
 
-			// 2️⃣ Start Date (nulls last)
+			// Start Date
 			_projectsView.SortDescriptions.Add(
 				new SortDescription(nameof(Project.StartDate),
-									ListSortDirection.Ascending));
+					ListSortDirection.Ascending));
 
-			// 3️⃣ End Date
+			// End Date
 			_projectsView.SortDescriptions.Add(
 				new SortDescription(nameof(Project.EndDate),
-									ListSortDirection.Ascending));
+					ListSortDirection.Ascending));
 
-			// 4️⃣ Job Number
+			// Job Number
 			_projectsView.SortDescriptions.Add(
 				new SortDescription(nameof(Project.JobNumber),
-									ListSortDirection.Ascending));
+					ListSortDirection.Ascending));
 		}
 
+		// =========================
+		// FILTERING
+		// =========================
+		private bool ApplyStatusFilter(object obj)
+		{
+			if (obj is not Project project)
+				return false;
+
+			return SelectedStatusFilter switch
+			{
+				ProjectStatusFilter.Active => project.Status == ProjectStatus.Active,
+				ProjectStatusFilter.Planned => project.Status == ProjectStatus.Planned,
+				ProjectStatusFilter.OnHold => project.Status == ProjectStatus.OnHold,
+				ProjectStatusFilter.Completed => project.Status == ProjectStatus.Completed,
+				_ => true
+			};
+		}
+
+		partial void OnSelectedStatusFilterChanged(ProjectStatusFilter value)
+		{
+			_projectsView.Refresh();
+		}
 
 		// =========================
 		// LOAD
@@ -77,6 +113,21 @@ namespace WeldAdminPro.UI.ViewModels
 		// =========================
 		// COMMANDS
 		// =========================
+		[RelayCommand]
+		private void ShowAll() => SelectedStatusFilter = ProjectStatusFilter.All;
+
+		[RelayCommand]
+		private void ShowActive() => SelectedStatusFilter = ProjectStatusFilter.Active;
+
+		[RelayCommand]
+		private void ShowPlanned() => SelectedStatusFilter = ProjectStatusFilter.Planned;
+
+		[RelayCommand]
+		private void ShowOnHold() => SelectedStatusFilter = ProjectStatusFilter.OnHold;
+
+		[RelayCommand]
+		private void ShowCompleted() => SelectedStatusFilter = ProjectStatusFilter.Completed;
+
 		[RelayCommand]
 		private void NewProject()
 		{

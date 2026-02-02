@@ -97,11 +97,7 @@
 					<TextBox Text="{Binding Project.AssignedTo}"/>
 				</StackPanel>
 			</Grid>
-			<StackPanel Grid.Row="6" Margin="0,0,0,10">
-				<TextBlock Text="Status" FontWeight="Bold"/>
-				<ComboBox ItemsSource="{Binding Statuses}"
-	          SelectedItem="{Binding Project.Status}" />
-			</StackPanel>
+			<StackPanel Grid.Row="6" Margin="0,0,0,10"/>
 
 
 			<!-- Dates -->
@@ -113,14 +109,10 @@
 				</Grid.ColumnDefinitions>
 
 				<StackPanel Grid.Column="0">
-					<TextBlock Text="Start Date" FontWeight="Bold"/>
-					<DatePicker SelectedDate="{Binding Project.StartDate}"/>
+					<TextBlock Text="Status" FontWeight="Bold"/>
 				</StackPanel>
 
-				<StackPanel Grid.Column="2">
-					<TextBlock Text="End Date" FontWeight="Bold"/>
-					<DatePicker SelectedDate="{Binding Project.EndDate}"/>
-				</StackPanel>
+				<StackPanel Grid.Column="2"/>
 			</Grid>
 
 			<!-- Buttons -->
@@ -128,10 +120,16 @@
                         Orientation="Horizontal"
                         HorizontalAlignment="Right"/>
 			<Button Content="Save"
-                        Margin="235,70,125,-47"
+                        Margin="225,103,135,-80"
                         Command="{Binding SaveCommand}" Grid.Row="7"/>
 			<Button Content="Cancel"
-                        Command="{Binding CancelCommand}" Margin="341,70,19,-47" Grid.Row="7"/>
+                        Command="{Binding CancelCommand}" Margin="335,103,25,-80" Grid.Row="7"/>
+			<DatePicker SelectedDate="{Binding Project.StartDate}" Margin="0,66,230,-36" Grid.Row="7"/>
+			<DatePicker SelectedDate="{Binding Project.EndDate}" Margin="230,65,0,-35" Grid.Row="7"/>
+			<TextBlock Text="Start Date" FontWeight="Bold" Margin="0,47,230,-9" Grid.Row="7"/>
+			<TextBlock Text="End Date" FontWeight="Bold" Margin="230,44,0,-6" Grid.Row="7"/>
+			<ComboBox ItemsSource="{Binding Statuses}"
+	          SelectedItem="{Binding Project.Status}" Margin="0,25,216,7" Grid.Row="7" />
 		</Grid>
 	</ScrollViewer>
 </Window>
