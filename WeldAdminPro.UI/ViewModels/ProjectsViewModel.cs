@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -38,18 +38,27 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			_projectsView.SortDescriptions.Clear();
 
-			// Start Date (nulls last)
+			// 1️⃣ Status priority (Active first)
 			_projectsView.SortDescriptions.Add(
-				new SortDescription(nameof(Project.StartDate), ListSortDirection.Ascending));
+				new SortDescription(nameof(Project.StatusSortOrder),
+									ListSortDirection.Ascending));
 
-			// End Date (nulls last)
+			// 2️⃣ Start Date (nulls last)
 			_projectsView.SortDescriptions.Add(
-				new SortDescription(nameof(Project.EndDate), ListSortDirection.Ascending));
+				new SortDescription(nameof(Project.StartDate),
+									ListSortDirection.Ascending));
 
-			// Job Number
+			// 3️⃣ End Date
 			_projectsView.SortDescriptions.Add(
-				new SortDescription(nameof(Project.JobNumber), ListSortDirection.Ascending));
+				new SortDescription(nameof(Project.EndDate),
+									ListSortDirection.Ascending));
+
+			// 4️⃣ Job Number
+			_projectsView.SortDescriptions.Add(
+				new SortDescription(nameof(Project.JobNumber),
+									ListSortDirection.Ascending));
 		}
+
 
 		// =========================
 		// LOAD

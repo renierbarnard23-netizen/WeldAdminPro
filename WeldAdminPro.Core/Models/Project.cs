@@ -45,5 +45,16 @@ namespace WeldAdminPro.Core.Models
 		public DateTime? EndDate { get; set; }
 
 		public DateTime CreatedOn { get; set; } = DateTime.Now;
+		public int StatusSortOrder =>
+	Status switch
+	{
+		ProjectStatus.Active => 0,
+		ProjectStatus.Planned => 1,
+		ProjectStatus.OnHold => 2,
+		ProjectStatus.Completed => 3,
+		ProjectStatus.Cancelled => 4,
+		_ => 99
+	};
+
 	}
 }
