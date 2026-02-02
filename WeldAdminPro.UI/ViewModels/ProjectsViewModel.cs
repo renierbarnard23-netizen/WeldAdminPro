@@ -12,7 +12,7 @@ namespace WeldAdminPro.UI.ViewModels
 	{
 		private readonly IProjectRepository _repository;
 
-		private readonly ObservableCollection<Project> _allProjects = new();
+		private ObservableCollection<Project> _allProjects = new();
 
 		[ObservableProperty]
 		private ObservableCollection<Project> projects = new();
@@ -23,6 +23,8 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private string searchText = string.Empty;
 
+		public bool IsSearchActive => !string.IsNullOrWhiteSpace(SearchText);
+
 		public ProjectsViewModel()
 		{
 			_repository = new ProjectRepository();
@@ -30,49 +32,54 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// LOAD + SORT (JOB NUMBER)
+		// LOAD + DEFAULT SORT
 		// =========================
 		[RelayCommand]
 		private void LoadProjects()
 		{
-			var ordered = _repository
+			var sorted = _repository
 				.GetAll()
-				.OrderBy(p => p.JobNumber) // ✅ ALWAYS from first Job Number
+				.OrderBy(p => p.JobNumber)
 				.ToList();
 
-			_allProjects.Clear();
-			foreach (var p in ordered)
-				_allProjects.Add(p);
-
-			ApplySearchFilter();
+			_allProjects = new ObservableCollection<Project>(sorted);
+			ApplySearch();
 		}
 
 		// =========================
-		// QUICK SEARCH (IN-MEMORY)
+		// SEARCH
 		// =========================
 		partial void OnSearchTextChanged(string value)
 		{
-			ApplySearchFilter();
+			ApplySearch();
+			OnPropertyChanged(nameof(IsSearchActive));
+			ClearSearchCommand.NotifyCanExecuteChanged();
 		}
 
-		private void ApplySearchFilter()
+		private void ApplySearch()
 		{
-			var text = SearchText?.Trim().ToLower() ?? string.Empty;
+			if (string.IsNullOrWhiteSpace(SearchText))
+			{
+				Projects = new ObservableCollection<Project>(_allProjects);
+				return;
+			}
 
-			var filtered = string.IsNullOrWhiteSpace(text)
-				? _allProjects
-				: _allProjects.Where(p =>
-					   p.JobNumber.ToString().Contains(text)
-					|| p.ProjectName.ToLower().Contains(text)
-					|| p.Client.ToLower().Contains(text)
-					|| p.ClientRepresentative.ToLower().Contains(text)
-					|| p.QuoteNumber.ToLower().Contains(text)
-					|| p.OrderNumber.ToLower().Contains(text)
-				);
+			var term = SearchText.Trim().ToLower();
 
-			Projects.Clear();
-			foreach (var p in filtered)
-				Projects.Add(p);
+			var filtered = _allProjects.Where(p =>
+				   p.JobNumber.ToString().Contains(term)
+				|| p.ProjectName.ToLower().Contains(term)
+				|| p.Client.ToLower().Contains(term)
+			);
+
+			Projects = new ObservableCollection<Project>(filtered);
+		}
+
+		[RelayCommand(CanExecute = nameof(IsSearchActive))]
+		private void ClearSearch()
+		{
+			SearchText = string.Empty;
+			Projects = new ObservableCollection<Project>(_allProjects);
 		}
 
 		// =========================

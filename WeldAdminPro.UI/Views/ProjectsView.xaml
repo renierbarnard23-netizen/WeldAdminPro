@@ -7,100 +7,113 @@
 
 		<!-- TOP BAR -->
 		<StackPanel DockPanel.Dock="Top"
-		            Orientation="Horizontal"
-		            Margin="0,0,0,10">
+                    Orientation="Vertical"
+                    Margin="0,0,0,10">
 
-			<Button Content="New Project"
-			        Width="120"
-			        Height="35"
-			        Margin="0,0,10,0"
-			        Command="{Binding NewProjectCommand}" />
+			<!-- ACTION BUTTONS -->
+			<StackPanel Orientation="Horizontal"
+                        Margin="0,0,0,8">
 
-			<Button Content="Open"
-			        Width="80"
-			        Height="35"
-			        Margin="0,0,20,0"
-			        Command="{Binding EditProjectCommand}" />
+				<Button Content="New Project"
+                        Width="120"
+                        Height="32"
+                        Margin="0,0,10,0"
+                        Command="{Binding NewProjectCommand}" />
 
-			<!-- SEARCH -->
-			<StackPanel Width="250">
-				<TextBlock Text="Quick Search"
-				           FontSize="11"
-				           Foreground="Gray"/>
-				<TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+				<Button Content="Open"
+                        Width="80"
+                        Height="32"
+                        Command="{Binding EditProjectCommand}" />
 			</StackPanel>
 
+			<!-- SEARCH ROW -->
+			<Grid>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition Width="220"/>
+					<ColumnDefinition Width="10"/>
+					<ColumnDefinition Width="80"/>
+				</Grid.ColumnDefinitions>
+
+				<TextBlock Grid.Column="3"
+                           Text="Search:"
+                           VerticalAlignment="Top"
+                           Margin="19,-34,23,0"/>
+
+				<TextBox Grid.Column="3"
+                         Height="28"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Search by Job Number, Project Name or Client" Margin="74,-40,-214,40"/>
+
+				<Button Grid.Column="3"
+                        Content="Clear"
+                        Height="28"
+                        Command="{Binding ClearSearchCommand}"
+                        IsEnabled="{Binding IsSearchActive}" Margin="299,-40,-299,40"/>
+			</Grid>
 		</StackPanel>
 
 		<!-- PROJECT LIST -->
 		<DataGrid ItemsSource="{Binding Projects}"
-		          SelectedItem="{Binding SelectedProject}"
-		          AutoGenerateColumns="False"
-		          IsReadOnly="True"
-		          CanUserAddRows="False"
-		          CanUserDeleteRows="False">
+                  SelectedItem="{Binding SelectedProject}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False">
 
 			<DataGrid.Columns>
 
 				<DataGridTextColumn Header="Job #"
-				                    Binding="{Binding JobNumber}"
-				                    Width="70"/>
-
-				<DataGridTextColumn Header="Status"
-				                    Binding="{Binding Status}"
-				                    Width="120"/>
+                                    Binding="{Binding JobNumber}"
+                                    Width="70"/>
 
 				<DataGridTextColumn Header="Project Name"
-				                    Binding="{Binding ProjectName}"
-				                    Width="150"/>
+                                    Binding="{Binding ProjectName}"
+                                    Width="150"/>
 
 				<DataGridTextColumn Header="Client"
-				                    Binding="{Binding Client}"
-				                    Width="120"/>
+                                    Binding="{Binding Client}"
+                                    Width="120"/>
 
 				<DataGridTextColumn Header="Client Rep"
-				                    Binding="{Binding ClientRepresentative}"
-				                    Width="120"/>
+                                    Binding="{Binding ClientRepresentative}"
+                                    Width="120"/>
 
 				<DataGridTextColumn Header="Quote #"
-				                    Binding="{Binding QuoteNumber}"
-				                    Width="90"/>
+                                    Binding="{Binding QuoteNumber}"
+                                    Width="90"/>
 
 				<DataGridTextColumn Header="Order #"
-				                    Binding="{Binding OrderNumber}"
-				                    Width="90"/>
+                                    Binding="{Binding OrderNumber}"
+                                    Width="90"/>
 
 				<DataGridTextColumn Header="Amount (R)"
-				                    Binding="{Binding Amount, StringFormat=N2}"
-				                    Width="110"/>
+                                    Binding="{Binding Amount, StringFormat=N2}"
+                                    Width="110"/>
 
 				<DataGridTextColumn Header="Material"
-				                    Binding="{Binding Material}"
-				                    Width="120"/>
+                                    Binding="{Binding Material}"
+                                    Width="120"/>
 
 				<DataGridTextColumn Header="Assigned To"
-				                    Binding="{Binding AssignedTo}"
-				                    Width="120"/>
+                                    Binding="{Binding AssignedTo}"
+                                    Width="120"/>
 
 				<DataGridCheckBoxColumn Header="Invoiced"
-				                        Binding="{Binding IsInvoiced}"
-				                        Width="80"/>
+                                        Binding="{Binding IsInvoiced}"
+                                        Width="80"/>
 
 				<DataGridTextColumn Header="Invoice #"
-				                    Binding="{Binding InvoiceNumber}"
-				                    Width="100"/>
+                                    Binding="{Binding InvoiceNumber}"
+                                    Width="100"/>
 
 				<DataGridTextColumn Header="Start Date"
-				                    Width="110"
-				                    Binding="{Binding StartDate,
-				                                      StringFormat=dd MMM yyyy,
-				                                      TargetNullValue=-}" />
+                                    Binding="{Binding StartDate, StringFormat=dd MMM yyyy, TargetNullValue=-}"
+                                    Width="110"/>
 
 				<DataGridTextColumn Header="End Date"
-				                    Width="110"
-				                    Binding="{Binding EndDate,
-				                                      StringFormat=dd MMM yyyy,
-				                                      TargetNullValue=-}" />
+                                    Binding="{Binding EndDate, StringFormat=dd MMM yyyy, TargetNullValue=-}"
+                                    Width="110"/>
 
 			</DataGrid.Columns>
 		</DataGrid>
