@@ -30,14 +30,14 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// LOAD + BASE SORT
+		// LOAD + SORT (JOB NUMBER)
 		// =========================
 		[RelayCommand]
 		private void LoadProjects()
 		{
 			var ordered = _repository
 				.GetAll()
-				.OrderBy(p => p.JobNumber)
+				.OrderBy(p => p.JobNumber) // ✅ ALWAYS from first Job Number
 				.ToList();
 
 			_allProjects.Clear();
@@ -48,7 +48,7 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// SEARCH (IN-MEMORY ONLY)
+		// QUICK SEARCH (IN-MEMORY)
 		// =========================
 		partial void OnSearchTextChanged(string value)
 		{
