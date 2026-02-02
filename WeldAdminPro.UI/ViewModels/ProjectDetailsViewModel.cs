@@ -20,7 +20,7 @@ namespace WeldAdminPro.UI.ViewModels
 		public ProjectDetailsViewModel(Project project)
 		{
 			_repository = new ProjectRepository();
-			this.project = project;
+			Project = project;
 		}
 
 		[RelayCommand]

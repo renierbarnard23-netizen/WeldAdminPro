@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
-using System.Linq;
+using System.ComponentModel;
+using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Models;
@@ -11,9 +12,11 @@ namespace WeldAdminPro.UI.ViewModels
 	public partial class ProjectsViewModel : ObservableObject
 	{
 		private readonly IProjectRepository _repository;
+		private readonly ICollectionView _projectsView;
 
-		[ObservableProperty]
-		private ObservableCollection<Project> projects = new();
+		public ObservableCollection<Project> Projects { get; } = new();
+
+		public ICollectionView ProjectsView => _projectsView;
 
 		[ObservableProperty]
 		private Project? selectedProject;
@@ -21,27 +24,63 @@ namespace WeldAdminPro.UI.ViewModels
 		public ProjectsViewModel()
 		{
 			_repository = new ProjectRepository();
+
+			_projectsView = CollectionViewSource.GetDefaultView(Projects);
+			ApplyDefaultSorting();
+
 			LoadProjects();
 		}
 
+		// =========================
+		// SORTING
+		// =========================
+		private void ApplyDefaultSorting()
+		{
+			_projectsView.SortDescriptions.Clear();
+
+			// Start Date (nulls last)
+			_projectsView.SortDescriptions.Add(
+				new SortDescription(nameof(Project.StartDate), ListSortDirection.Ascending));
+
+			// End Date (nulls last)
+			_projectsView.SortDescriptions.Add(
+				new SortDescription(nameof(Project.EndDate), ListSortDirection.Ascending));
+
+			// Job Number
+			_projectsView.SortDescriptions.Add(
+				new SortDescription(nameof(Project.JobNumber), ListSortDirection.Ascending));
+		}
+
+		// =========================
+		// LOAD
+		// =========================
 		[RelayCommand]
 		private void LoadProjects()
 		{
-			var ordered = _repository.GetAll()
-				.OrderBy(p => p.Status switch
-				{
-					ProjectStatus.Active => 0,
-					ProjectStatus.Planned => 1,
-					ProjectStatus.OnHold => 2,
-					ProjectStatus.Completed => 3,
-					ProjectStatus.Cancelled => 4,
-					_ => 99
-				})
-				.ThenBy(p => p.StartDate)
-				.ThenBy(p => p.JobNumber)
-				.ToList();
+			Projects.Clear();
 
-			Projects = new ObservableCollection<Project>(ordered);
+			foreach (var project in _repository.GetAll())
+				Projects.Add(project);
+
+			_projectsView.Refresh();
+		}
+
+		// =========================
+		// COMMANDS
+		// =========================
+		[RelayCommand]
+		private void NewProject()
+		{
+			var vm = new NewProjectViewModel();
+
+			var window = new NewProjectWindow(vm)
+			{
+				Owner = System.Windows.Application.Current.MainWindow,
+				Title = "New Project"
+			};
+
+			window.ShowDialog();
+			LoadProjects();
 		}
 
 		[RelayCommand(CanExecute = nameof(CanEditProject))]
@@ -51,22 +90,11 @@ namespace WeldAdminPro.UI.ViewModels
 				return;
 
 			var vm = new ProjectDetailsViewModel(SelectedProject);
+
 			var window = new ProjectDetailsWindow(vm)
 			{
-				Owner = System.Windows.Application.Current.MainWindow
-			};
-
-			window.ShowDialog();
-			LoadProjects();
-		}
-
-		[RelayCommand]
-		private void NewProject()
-		{
-			var vm = new NewProjectViewModel();
-			var window = new NewProjectWindow(vm)
-			{
-				Owner = System.Windows.Application.Current.MainWindow
+				Owner = System.Windows.Application.Current.MainWindow,
+				Title = "Project Details"
 			};
 
 			window.ShowDialog();
