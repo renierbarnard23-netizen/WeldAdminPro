@@ -1,75 +1,75 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Collections.ObjectModel;
-using System.Windows;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.UI.Views;
 
 namespace WeldAdminPro.UI.ViewModels
 {
-    public partial class ProjectsViewModel : ObservableObject
-    {
-        private readonly ProjectRepository _repo;
+	public partial class ProjectsViewModel : ObservableObject
+	{
+		private readonly IProjectRepository _repository;
 
-        [ObservableProperty]
-        private ObservableCollection<Project> projects = new();
+		[ObservableProperty]
+		private ObservableCollection<Project> projects = new();
 
-        [ObservableProperty]
-        private Project? selectedProject;
+		[ObservableProperty]
+		private Project? selectedProject;
 
-        public IRelayCommand NewProjectCommand { get; }
-        public IRelayCommand OpenProjectCommand { get; }
+		public ProjectsViewModel()
+		{
+			_repository = new ProjectRepository();
+			LoadProjects();
+		}
 
-        public ProjectsViewModel()
-        {
-            _repo = new ProjectRepository();
-            LoadProjects();
+		[RelayCommand]
+		private void LoadProjects()
+		{
+			Projects.Clear();
 
-            NewProjectCommand = new RelayCommand(OpenNewProject);
-            OpenProjectCommand = new RelayCommand(OpenSelectedProject);
-        }
+			foreach (var project in _repository.GetAll())
+				Projects.Add(project);
+		}
 
-        private void LoadProjects()
-        {
-            Projects = new ObservableCollection<Project>(_repo.GetAll());
-        }
+		[RelayCommand]
+		private void NewProject()
+		{
+			var vm = new NewProjectViewModel();
 
-        private void OpenNewProject()
-{
-    var vm = new NewProjectViewModel();
+			var window = new NewProjectWindow(vm)
+			{
+				Owner = System.Windows.Application.Current.MainWindow,
+				Title = "New Project"
+			};
 
-    var window = new NewProjectWindow(vm)
-    {
-        Owner = Application.Current.MainWindow
-    };
+			window.ShowDialog();
+			LoadProjects();
+		}
 
-    vm.ProjectCreated += project =>
-    {
-        _repo.Add(project);
+		[RelayCommand(CanExecute = nameof(CanEditProject))]
+		private void EditProject()
+		{
+			if (SelectedProject == null)
+				return;
 
-        // 🔄 Reload from DB to guarantee sync
-        LoadProjects();
-    };
+			var vm = new ProjectDetailsViewModel(SelectedProject);
 
-    window.ShowDialog();
-}
+			var window = new ProjectDetailsWindow(vm)
+			{
+				Owner = System.Windows.Application.Current.MainWindow,
+				Title = "Project Details"
+			};
 
+			window.ShowDialog();
+			LoadProjects();
+		}
 
-        private void OpenSelectedProject()
-        {
-            if (SelectedProject == null)
-                return;
+		private bool CanEditProject() => SelectedProject != null;
 
-            var vm = new ProjectDetailsViewModel(SelectedProject);
-
-            var window = new ProjectDetailsWindow(vm)
-            {
-                Owner = Application.Current.MainWindow
-            };
-
-            window.ShowDialog();
-            LoadProjects();
-        }
-    }
+		partial void OnSelectedProjectChanged(Project? value)
+		{
+			EditProjectCommand.NotifyCanExecuteChanged();
+		}
+	}
 }

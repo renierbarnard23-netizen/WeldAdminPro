@@ -2,55 +2,157 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Project Details"
-        Height="300"
-        Width="420"
+        Height="700"
+        Width="480"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
 
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+	<ScrollViewer VerticalScrollBarVisibility="Auto">
+		<Grid Margin="15">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"/>
+				<!-- Job -->
+				<RowDefinition Height="Auto"/>
+				<!-- Name -->
+				<RowDefinition Height="Auto"/>
+				<!-- Client -->
+				<RowDefinition Height="Auto"/>
+				<!-- Client Rep -->
+				<RowDefinition Height="Auto"/>
+				<!-- Commercial -->
+				<RowDefinition Height="Auto"/>
+				<!-- Amount -->
+				<RowDefinition Height="Auto"/>
+				<!-- Material / Assigned -->
+				<RowDefinition Height="Auto"/>
+				<!-- Invoice -->
+				<RowDefinition Height="Auto"/>
+				<!-- Dates -->
+				<RowDefinition Height="Auto"/>
+				<!-- Buttons -->
+			</Grid.RowDefinitions>
 
-        <!-- Project Number -->
-        <TextBlock Text="Project Number" FontWeight="Bold"/>
-        <TextBox Grid.Row="1"
-                 Text="{Binding ProjectNumber}"
-                 IsReadOnly="True"
-                 Margin="0,5,0,10"/>
+			<!-- Job Number -->
+			<StackPanel Grid.Row="0" Margin="0,0,0,10">
+				<TextBlock Text="Job Number" FontWeight="Bold"/>
+				<TextBox Text="{Binding Project.JobNumber}"
+                         IsReadOnly="True"
+                         Background="#EEE"/>
+			</StackPanel>
 
-        <!-- Project Name -->
-        <TextBlock Grid.Row="2" Text="Project Name" FontWeight="Bold"/>
-        <TextBox Grid.Row="3"
-                 Text="{Binding ProjectName}"
-                 Margin="0,5,0,10"/>
+			<!-- Project Name -->
+			<StackPanel Grid.Row="1" Margin="0,0,0,10">
+				<TextBlock Text="Project Name" FontWeight="Bold"/>
+				<TextBox Text="{Binding Project.ProjectName}"/>
+			</StackPanel>
 
-        <!-- Dates -->
-        <StackPanel Grid.Row="4" Orientation="Vertical">
-            <TextBlock Text="Start Date" FontWeight="Bold"/>
-            <DatePicker SelectedDate="{Binding StartDate}" Margin="0,5,0,10"/>
+			<!-- Client -->
+			<StackPanel Grid.Row="2" Margin="0,0,0,10">
+				<TextBlock Text="Client" FontWeight="Bold"/>
+				<TextBox Text="{Binding Project.Client}"/>
+			</StackPanel>
 
-            <TextBlock Text="End Date" FontWeight="Bold"/>
-            <DatePicker SelectedDate="{Binding EndDate}" Margin="0,5,0,10"/>
-        </StackPanel>
+			<!-- Client Representative -->
+			<StackPanel Grid.Row="3" Margin="0,0,0,10">
+				<TextBlock Text="Client Representative" FontWeight="Bold"/>
+				<TextBox Text="{Binding Project.ClientRepresentative}"/>
+			</StackPanel>
 
-        <!-- Buttons -->
-        <StackPanel Grid.Row="5"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Margin="0,15,0,0">
-            <Button Content="Save"
-                    Width="80"
-                    Margin="5"
-                    Command="{Binding SaveCommand}"/>
-            <Button Content="Cancel"
-                    Width="80"
-                    Margin="5"
-                    Command="{Binding CancelCommand}"/>
-        </StackPanel>
-    </Grid>
+			<!-- Quote / Order -->
+			<Grid Grid.Row="4" Margin="0,0,0,10">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="10"/>
+					<ColumnDefinition Width="*"/>
+				</Grid.ColumnDefinitions>
+
+				<StackPanel Grid.Column="0">
+					<TextBlock Text="Quote Number" FontWeight="Bold"/>
+					<TextBox Text="{Binding Project.QuoteNumber}"/>
+				</StackPanel>
+
+				<StackPanel Grid.Column="2">
+					<TextBlock Text="Order Number" FontWeight="Bold"/>
+					<TextBox Text="{Binding Project.OrderNumber}"/>
+				</StackPanel>
+			</Grid>
+
+			<!-- Amount -->
+			<StackPanel Grid.Row="5" Margin="0,0,0,10">
+				<TextBlock Text="Amount (R)" FontWeight="Bold"/>
+				<TextBox Text="{Binding Project.Amount}"/>
+			</StackPanel>
+
+			<!-- Material / Assigned -->
+			<Grid Grid.Row="6" Margin="0,0,0,10">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="10"/>
+					<ColumnDefinition Width="*"/>
+				</Grid.ColumnDefinitions>
+
+				<StackPanel Grid.Column="0">
+					<TextBlock Text="Material" FontWeight="Bold"/>
+					<TextBox Text="{Binding Project.Material}"/>
+				</StackPanel>
+
+				<StackPanel Grid.Column="2">
+					<TextBlock Text="Assigned To" FontWeight="Bold"/>
+					<TextBox Text="{Binding Project.AssignedTo}"/>
+				</StackPanel>
+			</Grid>
+
+			<!-- Invoice -->
+			<Grid Grid.Row="7" Margin="0,0,0,10">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition Width="10"/>
+					<ColumnDefinition Width="*"/>
+				</Grid.ColumnDefinitions>
+
+				<CheckBox Grid.Column="0"
+                          Content="Invoiced"
+                          IsChecked="{Binding Project.IsInvoiced}"
+                          VerticalAlignment="Center"/>
+
+				<StackPanel Grid.Column="2">
+					<TextBlock Text="Invoice Number" FontWeight="Bold"/>
+					<TextBox Text="{Binding Project.InvoiceNumber}"/>
+				</StackPanel>
+			</Grid>
+
+			<!-- Dates -->
+			<Grid Grid.Row="8" Margin="0,0,0,15">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="10"/>
+					<ColumnDefinition Width="*"/>
+				</Grid.ColumnDefinitions>
+
+				<StackPanel Grid.Column="0">
+					<TextBlock Text="Start Date" FontWeight="Bold"/>
+					<DatePicker SelectedDate="{Binding Project.StartDate}"/>
+				</StackPanel>
+
+				<StackPanel Grid.Column="2">
+					<TextBlock Text="End Date" FontWeight="Bold"/>
+					<DatePicker SelectedDate="{Binding Project.EndDate}"/>
+				</StackPanel>
+			</Grid>
+
+			<!-- Buttons -->
+			<StackPanel Grid.Row="9"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+				<Button Content="Save"
+                        Width="90"
+                        Margin="0,0,10,0"
+                        Command="{Binding SaveCommand}"/>
+
+				<Button Content="Cancel"
+                        Width="90"
+                        Command="{Binding CloseCommand}"/>
+			</StackPanel>
+		</Grid>
+	</ScrollViewer>
 </Window>

@@ -1,40 +1,61 @@
+using System;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System;
 using WeldAdminPro.Core.Models;
+using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.UI.ViewModels
 {
-    public partial class NewProjectViewModel : ObservableObject
-    {
-        [ObservableProperty]
-        private Project project = new();
+	public partial class NewProjectViewModel : ObservableObject
+	{
+		private readonly IProjectRepository _repository;
 
-        public event Action<Project>? ProjectCreated;
-        public event Action? RequestClose;
+		[ObservableProperty]
+		private Project project;
 
-        public NewProjectViewModel()
-        {
-            // Auto-generate project number when window opens
-            Project.ProjectNumber = $"PRJ-{DateTime.Now:yyyyMMdd-HHmmss}";
-        }
+		public NewProjectViewModel()
+		{
+			_repository = new ProjectRepository();
 
-        [RelayCommand] // ✅ ONLY ONCE
-        private void Save()
-        {
-            if (string.IsNullOrWhiteSpace(Project.ProjectName))
-                return; // optional validation
+			project = new Project
+			{
+				Id = Guid.NewGuid(),
+				IsInvoiced = false
+			};
+		}
 
-            Project.Id = Guid.NewGuid();
+		[RelayCommand]
+		private void Save()
+		{
+			try
+			{
+				_repository.Add(Project);
+				CloseWindow();
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show(
+					$"Failed to save project.\n\n{ex.Message}",
+					"Error",
+					MessageBoxButton.OK,
+					MessageBoxImage.Error);
+			}
+		}
 
-            ProjectCreated?.Invoke(Project);
-            RequestClose?.Invoke();
-        }
+		[RelayCommand]
+		private void Cancel() => CloseWindow();
 
-        [RelayCommand]
-        private void Cancel()
-        {
-            RequestClose?.Invoke();
-        }
-    }
+		private void CloseWindow()
+		{
+			foreach (Window window in Application.Current.Windows)
+			{
+				if (window.DataContext == this)
+				{
+					window.Close();
+					break;
+				}
+			}
+		}
+	}
 }

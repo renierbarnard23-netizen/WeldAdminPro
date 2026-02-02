@@ -1,8 +1,9 @@
 <UserControl x:Class="WeldAdminPro.UI.Views.ProjectsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Margin="10">
 
-    <DockPanel Margin="10">
+    <DockPanel>
 
         <!-- TOP BAR -->
         <StackPanel DockPanel.Dock="Top"
@@ -18,34 +19,77 @@
             <Button Content="Open"
                     Width="80"
                     Height="35"
-                    Command="{Binding OpenProjectCommand}" />
+                    Command="{Binding EditProjectCommand}" />
         </StackPanel>
 
         <!-- PROJECT LIST -->
-<DataGrid ItemsSource="{Binding Projects}"
-          SelectedItem="{Binding SelectedProject}"
-          AutoGenerateColumns="False">
+        <DataGrid ItemsSource="{Binding Projects}"
+                  SelectedItem="{Binding SelectedProject}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False">
 
-    <DataGrid.Columns>
+            <DataGrid.Columns>
 
-        <DataGridTextColumn
-            Header="Project Number"
-            Binding="{Binding ProjectNumber}" />
+                <DataGridTextColumn Header="Job #"
+                                    Binding="{Binding JobNumber}"
+                                    Width="70"/>
 
-        <DataGridTextColumn
-            Header="Project Name"
-            Binding="{Binding ProjectName}" />
+                <DataGridTextColumn Header="Project Name"
+                                    Binding="{Binding ProjectName}"
+                                    Width="150"/>
 
-        <DataGridTextColumn
-            Header="Start Date"
-            Binding="{Binding StartDate, StringFormat=d}" />
+                <DataGridTextColumn Header="Client"
+                                    Binding="{Binding Client}"
+                                    Width="120"/>
 
-        <DataGridTextColumn
-            Header="End Date"
-            Binding="{Binding EndDate, StringFormat=d}" />
+                <DataGridTextColumn Header="Client Rep"
+                                    Binding="{Binding ClientRepresentative}"
+                                    Width="120"/>
 
-    </DataGrid.Columns>
-</DataGrid>
+                <DataGridTextColumn Header="Quote #"
+                                    Binding="{Binding QuoteNumber}"
+                                    Width="90"/>
+
+                <DataGridTextColumn Header="Order #"
+                                    Binding="{Binding OrderNumber}"
+                                    Width="90"/>
+
+                <DataGridTextColumn Header="Amount (R)"
+                                    Binding="{Binding Amount, StringFormat=N2}"
+                                    Width="110"/>
+
+                <DataGridTextColumn Header="Material"
+                                    Binding="{Binding Material}"
+                                    Width="120"/>
+
+                <DataGridTextColumn Header="Assigned To"
+                                    Binding="{Binding AssignedTo}"
+                                    Width="120"/>
+
+                <DataGridCheckBoxColumn Header="Invoiced"
+                                        Binding="{Binding IsInvoiced}"
+                                        Width="80"/>
+
+                <DataGridTextColumn Header="Invoice #"
+                                    Binding="{Binding InvoiceNumber}"
+                                    Width="100"/>
+
+				<DataGridTextColumn Header="Start Date"
+                    Width="110"
+                    Binding="{Binding StartDate,
+                                      StringFormat=dd MMM yyyy,
+                                      TargetNullValue=-}" />
+
+				<DataGridTextColumn Header="End Date"
+                    Width="110"
+                    Binding="{Binding EndDate,
+                                      StringFormat=dd MMM yyyy,
+                                      TargetNullValue=-}" />
+
+                </DataGrid.Columns>
+        </DataGrid>
 
     </DockPanel>
 </UserControl>
