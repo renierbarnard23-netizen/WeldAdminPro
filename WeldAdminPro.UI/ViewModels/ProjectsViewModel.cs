@@ -1,4 +1,5 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Models;
@@ -23,15 +24,25 @@ namespace WeldAdminPro.UI.ViewModels
 			LoadProjects();
 		}
 
+		// =========================
+		// LOAD + SORT (JOB NUMBER)
+		// =========================
 		[RelayCommand]
 		private void LoadProjects()
 		{
-			Projects.Clear();
+			var ordered = _repository
+				.GetAll()
+				.OrderBy(p => p.JobNumber)   // ✅ ALWAYS from first job number
+				.ToList();
 
-			foreach (var project in _repository.GetAll())
+			Projects.Clear();
+			foreach (var project in ordered)
 				Projects.Add(project);
 		}
 
+		// =========================
+		// UI COMMANDS
+		// =========================
 		[RelayCommand]
 		private void NewProject()
 		{
