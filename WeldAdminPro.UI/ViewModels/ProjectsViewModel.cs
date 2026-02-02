@@ -12,11 +12,16 @@ namespace WeldAdminPro.UI.ViewModels
 	{
 		private readonly IProjectRepository _repository;
 
+		private readonly ObservableCollection<Project> _allProjects = new();
+
 		[ObservableProperty]
 		private ObservableCollection<Project> projects = new();
 
 		[ObservableProperty]
 		private Project? selectedProject;
+
+		[ObservableProperty]
+		private string searchText = string.Empty;
 
 		public ProjectsViewModel()
 		{
@@ -25,19 +30,49 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// LOAD + SORT (JOB NUMBER)
+		// LOAD + BASE SORT
 		// =========================
 		[RelayCommand]
 		private void LoadProjects()
 		{
 			var ordered = _repository
 				.GetAll()
-				.OrderBy(p => p.JobNumber)   // ✅ ALWAYS from first job number
+				.OrderBy(p => p.JobNumber)
 				.ToList();
 
+			_allProjects.Clear();
+			foreach (var p in ordered)
+				_allProjects.Add(p);
+
+			ApplySearchFilter();
+		}
+
+		// =========================
+		// SEARCH (IN-MEMORY ONLY)
+		// =========================
+		partial void OnSearchTextChanged(string value)
+		{
+			ApplySearchFilter();
+		}
+
+		private void ApplySearchFilter()
+		{
+			var text = SearchText?.Trim().ToLower() ?? string.Empty;
+
+			var filtered = string.IsNullOrWhiteSpace(text)
+				? _allProjects
+				: _allProjects.Where(p =>
+					   p.JobNumber.ToString().Contains(text)
+					|| p.ProjectName.ToLower().Contains(text)
+					|| p.Client.ToLower().Contains(text)
+					|| p.ClientRepresentative.ToLower().Contains(text)
+					|| p.QuoteNumber.ToLower().Contains(text)
+					|| p.OrderNumber.ToLower().Contains(text)
+				);
+
 			Projects.Clear();
-			foreach (var project in ordered)
-				Projects.Add(project);
+			foreach (var p in filtered)
+				Projects.Add(p);
 		}
 
 		// =========================
