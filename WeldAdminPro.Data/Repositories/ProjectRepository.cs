@@ -1,7 +1,7 @@
-﻿using System;
+﻿using Microsoft.Data.Sqlite;
+using System;
 using System.Collections.Generic;
 using System.Data;
-using Microsoft.Data.Sqlite;
 using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Data.Repositories
@@ -14,19 +14,7 @@ namespace WeldAdminPro.Data.Repositories
 		{
 			_connectionString = $"Data Source={DatabasePath.Get()}";
 			EnsureTables();
-			EnsureColumns();
 		}
-
-		public ProjectRepository(string connectionString)
-		{
-			_connectionString = connectionString;
-			EnsureTables();
-			EnsureColumns();
-		}
-
-		// =========================
-		// SCHEMA
-		// =========================
 
 		private void EnsureTables()
 		{
@@ -48,49 +36,20 @@ CREATE TABLE IF NOT EXISTS Projects (
 	AssignedTo TEXT,
 	IsInvoiced INTEGER NOT NULL,
 	InvoiceNumber TEXT,
+	StartDate TEXT,
+	EndDate TEXT,
+	Status INTEGER NOT NULL,
 	CreatedOn TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS ProjectSettings (
 	Key TEXT PRIMARY KEY,
 	Value TEXT NOT NULL
-);
-";
+);";
 			cmd.ExecuteNonQuery();
 		}
 
-		/// <summary>
-		/// Adds missing columns safely for existing databases
-		/// </summary>
-		private void EnsureColumns()
-		{
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
-
-			void AddColumnIfMissing(string columnName, string sqlType)
-			{
-				using var check = connection.CreateCommand();
-				check.CommandText = $"PRAGMA table_info(Projects);";
-
-				using var reader = check.ExecuteReader();
-				while (reader.Read())
-				{
-					if (reader["name"].ToString() == columnName)
-						return;
-				}
-
-				using var alter = connection.CreateCommand();
-				alter.CommandText = $"ALTER TABLE Projects ADD COLUMN {columnName} {sqlType};";
-				alter.ExecuteNonQuery();
-			}
-
-			AddColumnIfMissing("StartDate", "TEXT");
-			AddColumnIfMissing("EndDate", "TEXT");
-		}
-
-		// =========================
-		// READ
-		// =========================
+		// ================= READ =================
 
 		public IEnumerable<Project> GetAll()
 		{
@@ -100,7 +59,7 @@ CREATE TABLE IF NOT EXISTS ProjectSettings (
 			connection.Open();
 
 			using var cmd = connection.CreateCommand();
-			cmd.CommandText = "SELECT * FROM Projects ORDER BY JobNumber DESC";
+			cmd.CommandText = "SELECT * FROM Projects ORDER BY JobNumber ASC";
 
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
@@ -122,9 +81,7 @@ CREATE TABLE IF NOT EXISTS ProjectSettings (
 			return reader.Read() ? Map(reader) : null;
 		}
 
-		// =========================
-		// CREATE
-		// =========================
+		// ================= CREATE =================
 
 		public void Add(Project project)
 		{
@@ -133,46 +90,28 @@ CREATE TABLE IF NOT EXISTS ProjectSettings (
 
 			using var tx = connection.BeginTransaction();
 
-			int nextJobNumber = GetNextJobNumberInternal(connection);
-			project.JobNumber = nextJobNumber;
+			project.JobNumber = GetNextJobNumberInternal(connection);
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
 INSERT INTO Projects (
 	Id, JobNumber, ProjectName, Client, ClientRepresentative,
 	Amount, QuoteNumber, OrderNumber, Material, AssignedTo,
-	IsInvoiced, InvoiceNumber, StartDate, EndDate, CreatedOn
+	IsInvoiced, InvoiceNumber, StartDate, EndDate, Status, CreatedOn
 ) VALUES (
 	@Id, @JobNumber, @ProjectName, @Client, @ClientRepresentative,
 	@Amount, @QuoteNumber, @OrderNumber, @Material, @AssignedTo,
-	@IsInvoiced, @InvoiceNumber, @StartDate, @EndDate, @CreatedOn
+	@IsInvoiced, @InvoiceNumber, @StartDate, @EndDate, @Status, @CreatedOn
 );";
 
-			cmd.Parameters.AddWithValue("@Id", project.Id.ToString());
-			cmd.Parameters.AddWithValue("@JobNumber", project.JobNumber);
-			cmd.Parameters.AddWithValue("@ProjectName", project.ProjectName);
-			cmd.Parameters.AddWithValue("@Client", project.Client);
-			cmd.Parameters.AddWithValue("@ClientRepresentative", project.ClientRepresentative);
-			cmd.Parameters.AddWithValue("@Amount", project.Amount);
-			cmd.Parameters.AddWithValue("@QuoteNumber", project.QuoteNumber);
-			cmd.Parameters.AddWithValue("@OrderNumber", project.OrderNumber);
-			cmd.Parameters.AddWithValue("@Material", project.Material);
-			cmd.Parameters.AddWithValue("@AssignedTo", project.AssignedTo);
-			cmd.Parameters.AddWithValue("@IsInvoiced", project.IsInvoiced ? 1 : 0);
-			cmd.Parameters.AddWithValue("@InvoiceNumber", project.InvoiceNumber ?? string.Empty);
-			cmd.Parameters.AddWithValue("@StartDate", project.StartDate?.ToString("O"));
-			cmd.Parameters.AddWithValue("@EndDate", project.EndDate?.ToString("O"));
-			cmd.Parameters.AddWithValue("@CreatedOn", project.CreatedOn.ToString("O"));
-
+			BindParameters(cmd, project);
 			cmd.ExecuteNonQuery();
 
-			UpdateNextJobNumber(connection, nextJobNumber + 1);
+			UpdateNextJobNumber(connection, project.JobNumber + 1);
 			tx.Commit();
 		}
 
-		// =========================
-		// UPDATE
-		// =========================
+		// ================= UPDATE =================
 
 		public void Update(Project project)
 		{
@@ -193,29 +132,15 @@ UPDATE Projects SET
 	IsInvoiced = @IsInvoiced,
 	InvoiceNumber = @InvoiceNumber,
 	StartDate = @StartDate,
-	EndDate = @EndDate
+	EndDate = @EndDate,
+	Status = @Status
 WHERE Id = @Id;";
 
-			cmd.Parameters.AddWithValue("@Id", project.Id.ToString());
-			cmd.Parameters.AddWithValue("@ProjectName", project.ProjectName);
-			cmd.Parameters.AddWithValue("@Client", project.Client);
-			cmd.Parameters.AddWithValue("@ClientRepresentative", project.ClientRepresentative);
-			cmd.Parameters.AddWithValue("@Amount", project.Amount);
-			cmd.Parameters.AddWithValue("@QuoteNumber", project.QuoteNumber);
-			cmd.Parameters.AddWithValue("@OrderNumber", project.OrderNumber);
-			cmd.Parameters.AddWithValue("@Material", project.Material);
-			cmd.Parameters.AddWithValue("@AssignedTo", project.AssignedTo);
-			cmd.Parameters.AddWithValue("@IsInvoiced", project.IsInvoiced ? 1 : 0);
-			cmd.Parameters.AddWithValue("@InvoiceNumber", project.InvoiceNumber ?? string.Empty);
-			cmd.Parameters.AddWithValue("@StartDate", project.StartDate?.ToString("O"));
-			cmd.Parameters.AddWithValue("@EndDate", project.EndDate?.ToString("O"));
-
+			BindParameters(cmd, project);
 			cmd.ExecuteNonQuery();
 		}
 
-		// =========================
-		// DELETE
-		// =========================
+		// ================= DELETE =================
 
 		public void Delete(Guid id)
 		{
@@ -228,9 +153,7 @@ WHERE Id = @Id;";
 			cmd.ExecuteNonQuery();
 		}
 
-		// =========================
-		// JOB NUMBER
-		// =========================
+		// ================= JOB NUMBER =================
 
 		public int GetNextJobNumber()
 		{
@@ -248,7 +171,6 @@ WHERE Id = @Id;";
 			cmd.CommandText = @"
 INSERT OR IGNORE INTO ProjectSettings (Key, Value)
 VALUES ('NextJobNumber', @Value);";
-
 			cmd.Parameters.AddWithValue("@Value", startingNumber.ToString());
 			cmd.ExecuteNonQuery();
 		}
@@ -256,18 +178,12 @@ VALUES ('NextJobNumber', @Value);";
 		private int GetNextJobNumberInternal(SqliteConnection connection)
 		{
 			using var cmd = connection.CreateCommand();
-			cmd.CommandText = "SELECT Value FROM ProjectSettings WHERE Key = 'NextJobNumber';";
+			cmd.CommandText = "SELECT Value FROM ProjectSettings WHERE Key='NextJobNumber';";
 
 			var result = cmd.ExecuteScalar();
-
 			if (result == null)
 			{
-				using var insert = connection.CreateCommand();
-				insert.CommandText = @"
-INSERT INTO ProjectSettings (Key, Value)
-VALUES ('NextJobNumber', '1001');";
-				insert.ExecuteNonQuery();
-
+				UpdateNextJobNumber(connection, 1001);
 				return 1000;
 			}
 
@@ -277,51 +193,51 @@ VALUES ('NextJobNumber', '1001');";
 		private void UpdateNextJobNumber(SqliteConnection connection, int next)
 		{
 			using var cmd = connection.CreateCommand();
-			cmd.CommandText = @"
-UPDATE ProjectSettings
-SET Value = @Value
-WHERE Key = 'NextJobNumber';";
+			cmd.CommandText = "UPDATE ProjectSettings SET Value=@Value WHERE Key='NextJobNumber';";
 			cmd.Parameters.AddWithValue("@Value", next.ToString());
 			cmd.ExecuteNonQuery();
 		}
 
-		// =========================
-		// MAP (SAFE)
-		// =========================
+		// ================= HELPERS =================
 
-		private static Project Map(IDataRecord r)
+		private static void BindParameters(SqliteCommand cmd, Project p)
 		{
-			DateTime? ReadDate(string name)
-			{
-				try
-				{
-					var val = r[name];
-					return val == DBNull.Value ? null : DateTime.Parse(val.ToString()!);
-				}
-				catch (IndexOutOfRangeException)
-				{
-					return null;
-				}
-			}
-
-			return new Project
-			{
-				Id = Guid.Parse(r["Id"].ToString()!),
-				JobNumber = Convert.ToInt32(r["JobNumber"]),
-				ProjectName = r["ProjectName"].ToString()!,
-				Client = r["Client"].ToString()!,
-				ClientRepresentative = r["ClientRepresentative"]?.ToString() ?? string.Empty,
-				Amount = Convert.ToDecimal(r["Amount"]),
-				QuoteNumber = r["QuoteNumber"]?.ToString() ?? string.Empty,
-				OrderNumber = r["OrderNumber"]?.ToString() ?? string.Empty,
-				Material = r["Material"]?.ToString() ?? string.Empty,
-				AssignedTo = r["AssignedTo"]?.ToString() ?? string.Empty,
-				IsInvoiced = Convert.ToInt32(r["IsInvoiced"]) == 1,
-				InvoiceNumber = r["InvoiceNumber"]?.ToString(),
-				StartDate = ReadDate("StartDate"),
-				EndDate = ReadDate("EndDate"),
-				CreatedOn = DateTime.Parse(r["CreatedOn"].ToString()!)
-			};
+			cmd.Parameters.AddWithValue("@Id", p.Id.ToString());
+			cmd.Parameters.AddWithValue("@JobNumber", p.JobNumber);
+			cmd.Parameters.AddWithValue("@ProjectName", p.ProjectName);
+			cmd.Parameters.AddWithValue("@Client", p.Client);
+			cmd.Parameters.AddWithValue("@ClientRepresentative", p.ClientRepresentative);
+			cmd.Parameters.AddWithValue("@Amount", p.Amount);
+			cmd.Parameters.AddWithValue("@QuoteNumber", p.QuoteNumber);
+			cmd.Parameters.AddWithValue("@OrderNumber", p.OrderNumber);
+			cmd.Parameters.AddWithValue("@Material", p.Material);
+			cmd.Parameters.AddWithValue("@AssignedTo", p.AssignedTo);
+			cmd.Parameters.AddWithValue("@IsInvoiced", p.IsInvoiced ? 1 : 0);
+			cmd.Parameters.AddWithValue("@InvoiceNumber", p.InvoiceNumber ?? string.Empty);
+			cmd.Parameters.AddWithValue("@StartDate", p.StartDate?.ToString("O"));
+			cmd.Parameters.AddWithValue("@EndDate", p.EndDate?.ToString("O"));
+			cmd.Parameters.AddWithValue("@Status", (int)p.Status);
+			cmd.Parameters.AddWithValue("@CreatedOn", p.CreatedOn.ToString("O"));
 		}
+
+		private static Project Map(IDataRecord r) => new()
+		{
+			Id = Guid.Parse(r["Id"].ToString()!),
+			JobNumber = Convert.ToInt32(r["JobNumber"]),
+			ProjectName = r["ProjectName"].ToString()!,
+			Client = r["Client"].ToString()!,
+			ClientRepresentative = r["ClientRepresentative"]?.ToString() ?? string.Empty,
+			Amount = Convert.ToDecimal(r["Amount"]),
+			QuoteNumber = r["QuoteNumber"]?.ToString() ?? string.Empty,
+			OrderNumber = r["OrderNumber"]?.ToString() ?? string.Empty,
+			Material = r["Material"]?.ToString() ?? string.Empty,
+			AssignedTo = r["AssignedTo"]?.ToString() ?? string.Empty,
+			IsInvoiced = Convert.ToInt32(r["IsInvoiced"]) == 1,
+			InvoiceNumber = r["InvoiceNumber"]?.ToString(),
+			StartDate = r["StartDate"] == DBNull.Value ? null : DateTime.Parse(r["StartDate"].ToString()!),
+			EndDate = r["EndDate"] == DBNull.Value ? null : DateTime.Parse(r["EndDate"].ToString()!),
+			Status = (ProjectStatus)Convert.ToInt32(r["Status"]),
+			CreatedOn = DateTime.Parse(r["CreatedOn"].ToString()!)
+		};
 	}
 }

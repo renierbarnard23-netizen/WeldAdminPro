@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -32,18 +33,64 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =========================
-		// LOAD + DEFAULT SORT
+		// LOAD + STATUS-AWARE SORT
 		// =========================
 		[RelayCommand]
 		private void LoadProjects()
 		{
+			var today = DateTime.Today;
+
 			var sorted = _repository
 				.GetAll()
-				.OrderBy(p => p.JobNumber)
+				.OrderBy(p => GetStatusSortOrder(p, today))
+				.ThenBy(p => p.JobNumber)
 				.ToList();
 
 			_allProjects = new ObservableCollection<Project>(sorted);
 			ApplySearch();
+		}
+
+		// =========================
+		// DERIVED STATUS (TEXT)
+		// =========================
+		public static string GetStatus(Project p)
+		{
+			var today = DateTime.Today;
+
+			if (p.StartDate.HasValue && p.StartDate.Value.Date > today)
+				return "Planned";
+
+			if (p.StartDate.HasValue &&
+				p.StartDate.Value.Date <= today &&
+				(!p.EndDate.HasValue || p.EndDate.Value.Date >= today))
+				return "Active";
+
+			if (!p.StartDate.HasValue)
+				return "Unscheduled";
+
+			if (p.EndDate.HasValue && p.EndDate.Value.Date < today)
+				return "Completed";
+
+			return string.Empty;
+		}
+
+		private static int GetStatusSortOrder(Project p, DateTime today)
+		{
+			if (p.StartDate.HasValue && p.StartDate.Value.Date > today)
+				return 1; // Planned
+
+			if (p.StartDate.HasValue &&
+				p.StartDate.Value.Date <= today &&
+				(!p.EndDate.HasValue || p.EndDate.Value.Date >= today))
+				return 0; // Active
+
+			if (!p.StartDate.HasValue)
+				return 2; // Unscheduled
+
+			if (p.EndDate.HasValue && p.EndDate.Value.Date < today)
+				return 3; // Completed
+
+			return 99;
 		}
 
 		// =========================

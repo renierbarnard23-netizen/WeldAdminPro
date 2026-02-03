@@ -1,7 +1,8 @@
-﻿using System;
-using System.Windows;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
@@ -11,33 +12,36 @@ namespace WeldAdminPro.UI.ViewModels
 	{
 		private readonly IProjectRepository _repository;
 
-		[ObservableProperty]
-		private Project project;
+		public Project Project { get; }
+
+		// ✅ THIS is what populates the Status dropdown
+		public IReadOnlyList<ProjectStatus> Statuses { get; }
+
+		public event Action? RequestClose;
 
 		public ProjectDetailsViewModel(Project project)
 		{
-			Project = project ?? throw new ArgumentNullException(nameof(project));
 			_repository = new ProjectRepository();
+			Project = project;
+
+			// ✅ Populate enum values explicitly
+			Statuses = Enum
+				.GetValues(typeof(ProjectStatus))
+				.Cast<ProjectStatus>()
+				.ToList();
 		}
 
 		[RelayCommand]
 		private void Save()
 		{
 			_repository.Update(Project);
-			Close();
+			RequestClose?.Invoke();
 		}
 
 		[RelayCommand]
-		private void Close()
+		private void Cancel()
 		{
-			foreach (Window window in Application.Current.Windows)
-			{
-				if (window.DataContext == this)
-				{
-					window.Close();
-					break;
-				}
-			}
+			RequestClose?.Invoke();
 		}
 	}
 }
