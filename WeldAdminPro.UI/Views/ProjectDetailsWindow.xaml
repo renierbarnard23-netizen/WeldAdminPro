@@ -10,6 +10,7 @@
 	<ScrollViewer VerticalScrollBarVisibility="Auto">
 		<Grid Margin="20">
 
+			<!-- ================= MAIN ROWS ================= -->
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto"/>
 				<!-- Header -->
@@ -19,6 +20,8 @@
 				<!-- Buttons -->
 				<RowDefinition Height="Auto"/>
 				<!-- Issue Stock -->
+				<RowDefinition Height="Auto"/>
+				<!-- Issued Stock History -->
 			</Grid.RowDefinitions>
 
 			<!-- ================= HEADER ================= -->
@@ -38,10 +41,9 @@
 
 				<TextBlock Grid.Column="2" Text="Status" FontWeight="Bold"/>
 				<ComboBox Grid.Column="3"
-          ItemsSource="{Binding Statuses}"
-          SelectedItem="{Binding Status, Mode=TwoWay}"
-          IsEnabled="True"
-          Height="28"/>
+                          ItemsSource="{Binding Statuses}"
+                          SelectedItem="{Binding Status, Mode=TwoWay}"
+                          Height="28"/>
 			</Grid>
 
 			<!-- ================= FORM ================= -->
@@ -158,29 +160,20 @@
 						<RowDefinition Height="Auto"/>
 					</Grid.RowDefinitions>
 
-					<TextBlock Grid.Row="0" Grid.Column="0"
-                               Text="Stock Item"
-                               VerticalAlignment="Center"/>
-
+					<TextBlock Grid.Row="0" Grid.Column="0" Text="Stock Item"/>
 					<ComboBox Grid.Row="0" Grid.Column="1"
                               ItemsSource="{Binding StockItems}"
                               SelectedItem="{Binding SelectedStockItem}"
                               DisplayMemberPath="Description"
                               IsEnabled="{Binding IsEditable}"/>
 
-					<TextBlock Grid.Row="1" Grid.Column="0"
-                               Text="Quantity"
-                               Margin="0,8,0,0"/>
-
+					<TextBlock Grid.Row="1" Grid.Column="0" Text="Quantity" Margin="0,8,0,0"/>
 					<TextBox Grid.Row="1" Grid.Column="1"
                              Margin="0,8,0,0"
                              Text="{Binding IssueQuantity}"
                              IsEnabled="{Binding IsEditable}"/>
 
-					<TextBlock Grid.Row="2" Grid.Column="0"
-                               Text="Issued By"
-                               Margin="0,8,0,0"/>
-
+					<TextBlock Grid.Row="2" Grid.Column="0" Text="Issued By" Margin="0,8,0,0"/>
 					<TextBox Grid.Row="2" Grid.Column="1"
                              Margin="0,8,0,0"
                              Text="{Binding IssuedBy}"
@@ -194,6 +187,41 @@
                             Command="{Binding IssueStockCommand}"
                             IsEnabled="{Binding IsEditable}"/>
 				</Grid>
+			</GroupBox>
+
+			<!-- ================= ISSUED STOCK HISTORY ================= -->
+			<GroupBox Grid.Row="4"
+                      Header="Issued Stock History"
+                      Margin="0,30,0,0">
+
+				<DataGrid ItemsSource="{Binding IssuedStockHistory}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          CanUserAddRows="False"
+                          Margin="5">
+
+					<DataGrid.Columns>
+						<DataGridTextColumn Header="Issued On"
+                                            Binding="{Binding IssuedOn, StringFormat=\{0:yyyy-MM-dd HH:mm\}}"
+                                            Width="140"/>
+
+						<DataGridTextColumn Header="Stock Item"
+                                            Binding="{Binding StockItemId}"
+                                            Width="*"/>
+
+						<DataGridTextColumn Header="Quantity"
+                                            Binding="{Binding Quantity}"
+                                            Width="100"/>
+
+						<DataGridTextColumn Header="Issued By"
+                                            Binding="{Binding IssuedBy}"
+                                            Width="140"/>
+
+						<DataGridTextColumn Header="Notes"
+                                            Binding="{Binding Notes}"
+                                            Width="*"/>
+					</DataGrid.Columns>
+				</DataGrid>
 			</GroupBox>
 
 		</Grid>

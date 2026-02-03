@@ -21,6 +21,8 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public ObservableCollection<StockItem> StockItems { get; }
 
+		public ObservableCollection<ProjectStockUsage> IssuedStockHistory { get; }
+
 		[ObservableProperty]
 		private StockItem? selectedStockItem;
 
@@ -47,9 +49,12 @@ namespace WeldAdminPro.UI.ViewModels
 			StockItems = new ObservableCollection<StockItem>(
 				_stockRepository.GetAll()
 			);
+
+			IssuedStockHistory = new ObservableCollection<ProjectStockUsage>(
+				_usageRepository.GetByProjectId(Project.Id)
+			);
 		}
 
-		// 🔒 Phase 8 rule: only Completed is locked
 		public bool IsEditable => Project.Status != ProjectStatus.Completed;
 
 		public ProjectStatus Status
@@ -76,10 +81,7 @@ namespace WeldAdminPro.UI.ViewModels
 		[RelayCommand]
 		private void IssueStock()
 		{
-			if (!IsEditable)
-				return;
-
-			if (SelectedStockItem == null || IssueQuantity <= 0)
+			if (!IsEditable || SelectedStockItem == null || IssueQuantity <= 0)
 				return;
 
 			var usage = new ProjectStockUsage
@@ -92,7 +94,8 @@ namespace WeldAdminPro.UI.ViewModels
 
 			_usageRepository.Add(usage);
 
-			// Reset fields
+			IssuedStockHistory.Insert(0, usage);
+
 			SelectedStockItem = null;
 			IssueQuantity = 0;
 			IssuedBy = string.Empty;
