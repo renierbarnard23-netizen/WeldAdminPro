@@ -206,8 +206,9 @@
                                             Width="140"/>
 
 						<DataGridTextColumn Header="Stock Item"
-                                            Binding="{Binding StockItemId}"
-                                            Width="*"/>
+                    Binding="{Binding Notes}"
+                    Width="*" />
+
 
 						<DataGridTextColumn Header="Quantity"
                                             Binding="{Binding Quantity}"

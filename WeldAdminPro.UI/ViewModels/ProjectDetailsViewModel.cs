@@ -34,27 +34,6 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public event Action? RequestClose;
 
-		public ProjectDetailsViewModel(Project project)
-		{
-			Project = project;
-
-			_projectRepository = new ProjectRepository();
-			_stockRepository = new StockRepository();
-			_usageRepository = new ProjectStockUsageRepository();
-
-			Statuses = Enum.GetValues(typeof(ProjectStatus))
-						   .Cast<ProjectStatus>()
-						   .ToList();
-
-			StockItems = new ObservableCollection<StockItem>(
-				_stockRepository.GetAll()
-			);
-
-			IssuedStockHistory = new ObservableCollection<ProjectStockUsage>(
-				_usageRepository.GetByProjectId(Project.Id)
-			);
-		}
-
 		public bool IsEditable => Project.Status != ProjectStatus.Completed;
 
 		public ProjectStatus Status
@@ -69,6 +48,35 @@ namespace WeldAdminPro.UI.ViewModels
 					OnPropertyChanged(nameof(IsEditable));
 				}
 			}
+		}
+
+		public ProjectDetailsViewModel(Project project)
+		{
+			Project = project;
+
+			_projectRepository = new ProjectRepository();
+			_stockRepository = new StockRepository();
+			_usageRepository = new ProjectStockUsageRepository();
+
+			Statuses = Enum.GetValues(typeof(ProjectStatus))
+						   .Cast<ProjectStatus>()
+						   .ToList();
+
+			var stockItems = _stockRepository.GetAll();
+			StockItems = new ObservableCollection<StockItem>(stockItems);
+
+			var stockLookup = stockItems.ToDictionary(s => s.Id, s => s.Description);
+
+			var history = _usageRepository.GetByProjectId(Project.Id);
+
+			foreach (var h in history)
+			{
+				h.Notes = stockLookup.TryGetValue(h.StockItemId, out var desc)
+					? desc
+					: h.StockItemId.ToString();
+			}
+
+			IssuedStockHistory = new ObservableCollection<ProjectStockUsage>(history);
 		}
 
 		[RelayCommand]
@@ -86,14 +94,16 @@ namespace WeldAdminPro.UI.ViewModels
 
 			var usage = new ProjectStockUsage
 			{
+				Id = Guid.NewGuid(),
 				ProjectId = Project.Id,
 				StockItemId = SelectedStockItem.Id,
 				Quantity = IssueQuantity,
-				IssuedBy = IssuedBy
+				IssuedBy = IssuedBy,
+				IssuedOn = DateTime.UtcNow,
+				Notes = SelectedStockItem.Description
 			};
 
 			_usageRepository.Add(usage);
-
 			IssuedStockHistory.Insert(0, usage);
 
 			SelectedStockItem = null;

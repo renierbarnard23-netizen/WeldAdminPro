@@ -15,16 +15,12 @@ namespace WeldAdminPro.Data.Repositories
 			EnsureSchema();
 		}
 
-		// =========================
-		// SCHEMA
-		// =========================
 		private void EnsureSchema()
 		{
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
 			using var cmd = connection.CreateCommand();
-
 			cmd.CommandText = @"
                 CREATE TABLE IF NOT EXISTS ProjectStockUsages (
                     Id TEXT PRIMARY KEY,
@@ -39,9 +35,6 @@ namespace WeldAdminPro.Data.Repositories
 			cmd.ExecuteNonQuery();
 		}
 
-		// =========================
-		// WRITE
-		// =========================
 		public void Add(ProjectStockUsage usage)
 		{
 			using var connection = new SqliteConnection(_connectionString);
@@ -66,9 +59,6 @@ namespace WeldAdminPro.Data.Repositories
 			cmd.ExecuteNonQuery();
 		}
 
-		// =========================
-		// READ (PHASE 9.3)
-		// =========================
 		public List<ProjectStockUsage> GetByProjectId(Guid projectId)
 		{
 			var list = new List<ProjectStockUsage>();
