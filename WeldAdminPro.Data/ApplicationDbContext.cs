@@ -22,6 +22,7 @@ namespace WeldAdminPro.Data
 			LogDatabasePath();
 		}
 
+		public DbSet<ProjectStockUsage> ProjectStockUsages { get; set; }
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
