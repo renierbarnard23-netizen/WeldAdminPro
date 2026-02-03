@@ -14,7 +14,6 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public Project Project { get; }
 
-		// ✅ THIS is what populates the Status dropdown
 		public IReadOnlyList<ProjectStatus> Statuses { get; }
 
 		public event Action? RequestClose;
@@ -24,12 +23,30 @@ namespace WeldAdminPro.UI.ViewModels
 			_repository = new ProjectRepository();
 			Project = project;
 
-			// ✅ Populate enum values explicitly
 			Statuses = Enum
 				.GetValues(typeof(ProjectStatus))
 				.Cast<ProjectStatus>()
 				.ToList();
 		}
+
+		public ProjectStatus Status
+		{
+			get => Project.Status;
+			set
+			{
+				if (Project.Status != value)
+				{
+					Project.Status = value;
+					OnPropertyChanged(nameof(Status));
+					OnPropertyChanged(nameof(IsEditable));
+				}
+			}
+		}
+
+		/// <summary>
+		/// Only Completed projects are locked
+		/// </summary>
+		public bool IsEditable => Project.Status != ProjectStatus.Completed;
 
 		[RelayCommand]
 		private void Save()

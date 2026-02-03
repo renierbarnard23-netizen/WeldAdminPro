@@ -10,17 +10,13 @@
 	<ScrollViewer VerticalScrollBarVisibility="Auto">
 		<Grid Margin="20">
 
-			<!-- Main layout -->
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto"/>
-				<!-- Header -->
 				<RowDefinition Height="Auto"/>
-				<!-- Form -->
 				<RowDefinition Height="Auto"/>
-				<!-- Buttons -->
 			</Grid.RowDefinitions>
 
-			<!-- ===== Header ===== -->
+			<!-- Header -->
 			<Grid Grid.Row="0" Margin="0,0,0,20">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="120"/>
@@ -29,27 +25,21 @@
 					<ColumnDefinition Width="*"/>
 				</Grid.ColumnDefinitions>
 
-				<TextBlock Text="Job Number"
-                           FontWeight="Bold"
-                           VerticalAlignment="Center"/>
-
+				<TextBlock Text="Job Number" FontWeight="Bold"/>
 				<TextBox Grid.Column="1"
                          Text="{Binding Project.JobNumber}"
                          IsReadOnly="True"
                          Background="#EEE"/>
 
-				<TextBlock Grid.Column="2"
-                           Text="Status"
-                           FontWeight="Bold"
-                           VerticalAlignment="Center"/>
-
+				<TextBlock Grid.Column="2" Text="Status" FontWeight="Bold"/>
 				<ComboBox Grid.Column="3"
                           ItemsSource="{Binding Statuses}"
-                          SelectedItem="{Binding Project.Status, Mode=TwoWay}"
+                          SelectedItem="{Binding Project.Status}"
+                          IsEnabled="{Binding IsEditable}"
                           Height="28"/>
 			</Grid>
 
-			<!-- ===== Form ===== -->
+			<!-- Form -->
 			<Grid Grid.Row="1">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="120"/>
@@ -71,57 +61,72 @@
 
 				<!-- Project Name -->
 				<TextBlock Grid.Row="0" Grid.Column="0" Text="Project Name" FontWeight="Bold"/>
-				<TextBox  Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4"
-                          Text="{Binding Project.ProjectName}"/>
+				<TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4"
+                         Text="{Binding Project.ProjectName}"
+                         IsEnabled="{Binding IsEditable}"/>
 
 				<!-- Client -->
 				<TextBlock Grid.Row="1" Grid.Column="0" Text="Client" FontWeight="Bold" Margin="0,8,0,0"/>
-				<TextBox  Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4"
-                          Margin="0,8,0,0"
-                          Text="{Binding Project.Client}"/>
+				<TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4"
+                         Margin="0,8,0,0"
+                         Text="{Binding Project.Client}"
+                         IsEnabled="{Binding IsEditable}"/>
 
-				<!-- Client Representative -->
+				<!-- Client Rep -->
 				<TextBlock Grid.Row="2" Grid.Column="0" Text="Client Rep" FontWeight="Bold" Margin="0,8,0,0"/>
-				<TextBox  Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="4"
-                          Margin="0,8,0,0"
-                          Text="{Binding Project.ClientRepresentative}"/>
+				<TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="4"
+                         Margin="0,8,0,0"
+                         Text="{Binding Project.ClientRepresentative}"
+                         IsEnabled="{Binding IsEditable}"/>
 
-				<!-- Quote Number -->
+				<!-- Quote / Order -->
 				<TextBlock Grid.Row="3" Grid.Column="0" Text="Quote #" FontWeight="Bold" Margin="0,8,0,0"/>
-				<TextBox  Grid.Row="3" Grid.Column="1" Margin="0,8,0,0"
-                          Text="{Binding Project.QuoteNumber}"/>
+				<TextBox Grid.Row="3" Grid.Column="1"
+                         Margin="0,8,0,0"
+                         Text="{Binding Project.QuoteNumber}"
+                         IsEnabled="{Binding IsEditable}"/>
 
-				<!-- Order Number -->
 				<TextBlock Grid.Row="3" Grid.Column="3" Text="Order #" FontWeight="Bold" Margin="0,8,0,0"/>
-				<TextBox  Grid.Row="3" Grid.Column="4" Margin="0,8,0,0"
-                          Text="{Binding Project.OrderNumber}"/>
+				<TextBox Grid.Row="3" Grid.Column="4"
+                         Margin="0,8,0,0"
+                         Text="{Binding Project.OrderNumber}"
+                         IsEnabled="{Binding IsEditable}"/>
 
 				<!-- Amount -->
 				<TextBlock Grid.Row="4" Grid.Column="0" Text="Amount (R)" FontWeight="Bold" Margin="0,8,0,0"/>
-				<TextBox  Grid.Row="4" Grid.Column="1" Margin="0,8,0,0"
-                          Text="{Binding Project.Amount}"/>
+				<TextBox Grid.Row="4" Grid.Column="1"
+                         Margin="0,8,0,0"
+                         Text="{Binding Project.Amount}"
+                         IsEnabled="{Binding IsEditable}"/>
 
-				<!-- Material -->
+				<!-- Material / Assigned -->
 				<TextBlock Grid.Row="5" Grid.Column="0" Text="Material" FontWeight="Bold" Margin="0,8,0,0"/>
-				<TextBox  Grid.Row="5" Grid.Column="1" Margin="0,8,0,0"
-                          Text="{Binding Project.Material}"/>
+				<TextBox Grid.Row="5" Grid.Column="1"
+                         Margin="0,8,0,0"
+                         Text="{Binding Project.Material}"
+                         IsEnabled="{Binding IsEditable}"/>
 
-				<!-- Assigned To -->
 				<TextBlock Grid.Row="5" Grid.Column="3" Text="Assigned To" FontWeight="Bold" Margin="0,8,0,0"/>
-				<TextBox  Grid.Row="5" Grid.Column="4" Margin="0,8,0,0"
-                          Text="{Binding Project.AssignedTo}"/>
+				<TextBox Grid.Row="5" Grid.Column="4"
+                         Margin="0,8,0,0"
+                         Text="{Binding Project.AssignedTo}"
+                         IsEnabled="{Binding IsEditable}"/>
 
 				<!-- Dates -->
 				<TextBlock Grid.Row="6" Grid.Column="0" Text="Start Date" FontWeight="Bold" Margin="0,8,0,0"/>
-				<DatePicker Grid.Row="6" Grid.Column="1" Margin="0,8,0,0"
-                            SelectedDate="{Binding Project.StartDate}"/>
+				<DatePicker Grid.Row="6" Grid.Column="1"
+                            Margin="0,8,0,0"
+                            SelectedDate="{Binding Project.StartDate}"
+                            IsEnabled="{Binding IsEditable}"/>
 
 				<TextBlock Grid.Row="6" Grid.Column="3" Text="End Date" FontWeight="Bold" Margin="0,8,0,0"/>
-				<DatePicker Grid.Row="6" Grid.Column="4" Margin="0,8,0,0"
-                            SelectedDate="{Binding Project.EndDate}"/>
+				<DatePicker Grid.Row="6" Grid.Column="4"
+                            Margin="0,8,0,0"
+                            SelectedDate="{Binding Project.EndDate}"
+                            IsEnabled="{Binding IsEditable}"/>
 			</Grid>
 
-			<!-- ===== Buttons ===== -->
+			<!-- Buttons -->
 			<StackPanel Grid.Row="2"
                         Orientation="Horizontal"
                         HorizontalAlignment="Right"
@@ -130,7 +135,8 @@
 				<Button Content="Save"
                         Width="100"
                         Margin="0,0,10,0"
-                        Command="{Binding SaveCommand}"/>
+                        Command="{Binding SaveCommand}"
+                        IsEnabled="{Binding IsEditable}"/>
 
 				<Button Content="Cancel"
                         Width="100"
@@ -140,4 +146,3 @@
 		</Grid>
 	</ScrollViewer>
 </Window>
-
