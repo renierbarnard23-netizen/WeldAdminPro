@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Project Details"
         Width="600"
-        Height="720"
+        Height="820"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
 
@@ -12,11 +12,16 @@
 
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto"/>
+				<!-- Header -->
 				<RowDefinition Height="Auto"/>
+				<!-- Form -->
 				<RowDefinition Height="Auto"/>
+				<!-- Buttons -->
+				<RowDefinition Height="Auto"/>
+				<!-- Issue Stock -->
 			</Grid.RowDefinitions>
 
-			<!-- Header -->
+			<!-- ================= HEADER ================= -->
 			<Grid Grid.Row="0" Margin="0,0,0,20">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="120"/>
@@ -33,13 +38,13 @@
 
 				<TextBlock Grid.Column="2" Text="Status" FontWeight="Bold"/>
 				<ComboBox Grid.Column="3"
-                          ItemsSource="{Binding Statuses}"
-                          SelectedItem="{Binding Project.Status}"
-                          IsEnabled="{Binding IsEditable}"
-                          Height="28"/>
+          ItemsSource="{Binding Statuses}"
+          SelectedItem="{Binding Status, Mode=TwoWay}"
+          IsEnabled="True"
+          Height="28"/>
 			</Grid>
 
-			<!-- Form -->
+			<!-- ================= FORM ================= -->
 			<Grid Grid.Row="1">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="120"/>
@@ -59,27 +64,23 @@
 					<RowDefinition Height="Auto"/>
 				</Grid.RowDefinitions>
 
-				<!-- Project Name -->
 				<TextBlock Grid.Row="0" Grid.Column="0" Text="Project Name" FontWeight="Bold"/>
 				<TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4"
                          Text="{Binding Project.ProjectName}"
                          IsEnabled="{Binding IsEditable}"/>
 
-				<!-- Client -->
 				<TextBlock Grid.Row="1" Grid.Column="0" Text="Client" FontWeight="Bold" Margin="0,8,0,0"/>
 				<TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4"
                          Margin="0,8,0,0"
                          Text="{Binding Project.Client}"
                          IsEnabled="{Binding IsEditable}"/>
 
-				<!-- Client Rep -->
 				<TextBlock Grid.Row="2" Grid.Column="0" Text="Client Rep" FontWeight="Bold" Margin="0,8,0,0"/>
 				<TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="4"
                          Margin="0,8,0,0"
                          Text="{Binding Project.ClientRepresentative}"
                          IsEnabled="{Binding IsEditable}"/>
 
-				<!-- Quote / Order -->
 				<TextBlock Grid.Row="3" Grid.Column="0" Text="Quote #" FontWeight="Bold" Margin="0,8,0,0"/>
 				<TextBox Grid.Row="3" Grid.Column="1"
                          Margin="0,8,0,0"
@@ -92,14 +93,12 @@
                          Text="{Binding Project.OrderNumber}"
                          IsEnabled="{Binding IsEditable}"/>
 
-				<!-- Amount -->
 				<TextBlock Grid.Row="4" Grid.Column="0" Text="Amount (R)" FontWeight="Bold" Margin="0,8,0,0"/>
 				<TextBox Grid.Row="4" Grid.Column="1"
                          Margin="0,8,0,0"
                          Text="{Binding Project.Amount}"
                          IsEnabled="{Binding IsEditable}"/>
 
-				<!-- Material / Assigned -->
 				<TextBlock Grid.Row="5" Grid.Column="0" Text="Material" FontWeight="Bold" Margin="0,8,0,0"/>
 				<TextBox Grid.Row="5" Grid.Column="1"
                          Margin="0,8,0,0"
@@ -112,7 +111,6 @@
                          Text="{Binding Project.AssignedTo}"
                          IsEnabled="{Binding IsEditable}"/>
 
-				<!-- Dates -->
 				<TextBlock Grid.Row="6" Grid.Column="0" Text="Start Date" FontWeight="Bold" Margin="0,8,0,0"/>
 				<DatePicker Grid.Row="6" Grid.Column="1"
                             Margin="0,8,0,0"
@@ -126,7 +124,7 @@
                             IsEnabled="{Binding IsEditable}"/>
 			</Grid>
 
-			<!-- Buttons -->
+			<!-- ================= BUTTONS ================= -->
 			<StackPanel Grid.Row="2"
                         Orientation="Horizontal"
                         HorizontalAlignment="Right"
@@ -135,13 +133,68 @@
 				<Button Content="Save"
                         Width="100"
                         Margin="0,0,10,0"
-                        Command="{Binding SaveCommand}"
-                        IsEnabled="{Binding IsEditable}"/>
+                        Command="{Binding SaveCommand}"/>
 
 				<Button Content="Cancel"
                         Width="100"
                         Command="{Binding CancelCommand}"/>
 			</StackPanel>
+
+			<!-- ================= ISSUE STOCK ================= -->
+			<GroupBox Grid.Row="3"
+                      Header="Issue Stock to Project"
+                      Margin="0,30,0,0">
+
+				<Grid Margin="10">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="120"/>
+						<ColumnDefinition Width="*"/>
+					</Grid.ColumnDefinitions>
+
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+
+					<TextBlock Grid.Row="0" Grid.Column="0"
+                               Text="Stock Item"
+                               VerticalAlignment="Center"/>
+
+					<ComboBox Grid.Row="0" Grid.Column="1"
+                              ItemsSource="{Binding StockItems}"
+                              SelectedItem="{Binding SelectedStockItem}"
+                              DisplayMemberPath="Description"
+                              IsEnabled="{Binding IsEditable}"/>
+
+					<TextBlock Grid.Row="1" Grid.Column="0"
+                               Text="Quantity"
+                               Margin="0,8,0,0"/>
+
+					<TextBox Grid.Row="1" Grid.Column="1"
+                             Margin="0,8,0,0"
+                             Text="{Binding IssueQuantity}"
+                             IsEnabled="{Binding IsEditable}"/>
+
+					<TextBlock Grid.Row="2" Grid.Column="0"
+                               Text="Issued By"
+                               Margin="0,8,0,0"/>
+
+					<TextBox Grid.Row="2" Grid.Column="1"
+                             Margin="0,8,0,0"
+                             Text="{Binding IssuedBy}"
+                             IsEnabled="{Binding IsEditable}"/>
+
+					<Button Grid.Row="3" Grid.Column="1"
+                            Content="Issue Stock"
+                            Width="120"
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Left"
+                            Command="{Binding IssueStockCommand}"
+                            IsEnabled="{Binding IsEditable}"/>
+				</Grid>
+			</GroupBox>
 
 		</Grid>
 	</ScrollViewer>
