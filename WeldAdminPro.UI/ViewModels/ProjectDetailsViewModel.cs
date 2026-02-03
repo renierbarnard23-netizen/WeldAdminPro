@@ -35,13 +35,14 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public event Action? RequestClose;
 
-		public bool IsEditable => Project.Status != ProjectStatus.Completed;
+		// 🔒 Editable only when NOT Completed or Cancelled
+		public bool IsEditable =>
+			Project.Status != ProjectStatus.Completed &&
+			Project.Status != ProjectStatus.Cancelled;
 
-		// 🔹 Computed: available quantity of selected stock
 		public decimal AvailableQuantity =>
 			SelectedStockItem?.Quantity ?? 0;
 
-		// 🔹 Validation flag
 		public bool CanIssueStock =>
 			IsEditable &&
 			SelectedStockItem != null &&
@@ -116,7 +117,7 @@ namespace WeldAdminPro.UI.ViewModels
 			if (!CanIssueStock)
 			{
 				MessageBox.Show(
-					$"Insufficient stock available.\n\nAvailable: {AvailableQuantity}",
+					$"Stock cannot be issued for this project.\n\nAvailable: {AvailableQuantity}",
 					"Stock Validation",
 					MessageBoxButton.OK,
 					MessageBoxImage.Warning
@@ -138,7 +139,7 @@ namespace WeldAdminPro.UI.ViewModels
 			_usageRepository.Add(usage);
 			IssuedStockHistory.Insert(0, usage);
 
-			// Update local stock quantity (UI only)
+			// UI-only quantity update
 			SelectedStockItem.Quantity -= (int)IssueQuantity;
 
 			SelectedStockItem = null;
