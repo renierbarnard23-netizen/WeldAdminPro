@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Windows;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
@@ -36,6 +37,17 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public bool IsEditable => Project.Status != ProjectStatus.Completed;
 
+		// 🔹 Computed: available quantity of selected stock
+		public decimal AvailableQuantity =>
+			SelectedStockItem?.Quantity ?? 0;
+
+		// 🔹 Validation flag
+		public bool CanIssueStock =>
+			IsEditable &&
+			SelectedStockItem != null &&
+			IssueQuantity > 0 &&
+			IssueQuantity <= AvailableQuantity;
+
 		public ProjectStatus Status
 		{
 			get => Project.Status;
@@ -46,6 +58,7 @@ namespace WeldAdminPro.UI.ViewModels
 					Project.Status = value;
 					OnPropertyChanged(nameof(Status));
 					OnPropertyChanged(nameof(IsEditable));
+					OnPropertyChanged(nameof(CanIssueStock));
 				}
 			}
 		}
@@ -79,6 +92,17 @@ namespace WeldAdminPro.UI.ViewModels
 			IssuedStockHistory = new ObservableCollection<ProjectStockUsage>(history);
 		}
 
+		partial void OnSelectedStockItemChanged(StockItem? value)
+		{
+			OnPropertyChanged(nameof(AvailableQuantity));
+			OnPropertyChanged(nameof(CanIssueStock));
+		}
+
+		partial void OnIssueQuantityChanged(decimal value)
+		{
+			OnPropertyChanged(nameof(CanIssueStock));
+		}
+
 		[RelayCommand]
 		private void Save()
 		{
@@ -89,14 +113,22 @@ namespace WeldAdminPro.UI.ViewModels
 		[RelayCommand]
 		private void IssueStock()
 		{
-			if (!IsEditable || SelectedStockItem == null || IssueQuantity <= 0)
+			if (!CanIssueStock)
+			{
+				MessageBox.Show(
+					$"Insufficient stock available.\n\nAvailable: {AvailableQuantity}",
+					"Stock Validation",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning
+				);
 				return;
+			}
 
 			var usage = new ProjectStockUsage
 			{
 				Id = Guid.NewGuid(),
 				ProjectId = Project.Id,
-				StockItemId = SelectedStockItem.Id,
+				StockItemId = SelectedStockItem!.Id,
 				Quantity = IssueQuantity,
 				IssuedBy = IssuedBy,
 				IssuedOn = DateTime.UtcNow,
@@ -105,6 +137,9 @@ namespace WeldAdminPro.UI.ViewModels
 
 			_usageRepository.Add(usage);
 			IssuedStockHistory.Insert(0, usage);
+
+			// Update local stock quantity (UI only)
+			SelectedStockItem.Quantity -= (int)IssueQuantity;
 
 			SelectedStockItem = null;
 			IssueQuantity = 0;

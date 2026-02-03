@@ -172,6 +172,11 @@
                              Margin="0,8,0,0"
                              Text="{Binding IssueQuantity}"
                              IsEnabled="{Binding IsEditable}"/>
+					<TextBlock Grid.Row="1" Grid.Column="1"
+           Margin="0,30,0,0"
+           Foreground="Gray"
+           Text="{Binding AvailableQuantity, StringFormat=Available: {0}}" />
+
 
 					<TextBlock Grid.Row="2" Grid.Column="0" Text="Issued By" Margin="0,8,0,0"/>
 					<TextBox Grid.Row="2" Grid.Column="1"
@@ -180,12 +185,13 @@
                              IsEnabled="{Binding IsEditable}"/>
 
 					<Button Grid.Row="3" Grid.Column="1"
-                            Content="Issue Stock"
-                            Width="120"
-                            Margin="0,12,0,0"
-                            HorizontalAlignment="Left"
-                            Command="{Binding IssueStockCommand}"
-                            IsEnabled="{Binding IsEditable}"/>
+        Content="Issue Stock"
+        Width="120"
+        Margin="0,12,0,0"
+        HorizontalAlignment="Left"
+        Command="{Binding IssueStockCommand}"
+        IsEnabled="{Binding CanIssueStock}" />
+
 				</Grid>
 			</GroupBox>
 
