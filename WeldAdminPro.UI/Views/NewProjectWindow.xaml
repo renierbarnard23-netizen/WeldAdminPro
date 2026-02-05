@@ -11,29 +11,22 @@
 		<Grid Margin="15">
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto"/>
-				<!-- Job -->
 				<RowDefinition Height="Auto"/>
-				<!-- Name -->
 				<RowDefinition Height="Auto"/>
-				<!-- Client -->
 				<RowDefinition Height="Auto"/>
-				<!-- Client Rep -->
 				<RowDefinition Height="Auto"/>
-				<!-- Commercial -->
 				<RowDefinition Height="Auto"/>
-				<!-- Project -->
 				<RowDefinition Height="Auto"/>
-				<!-- Dates -->
 				<RowDefinition Height="Auto"/>
-				<!-- Buttons -->
+				<RowDefinition Height="Auto"/>
 			</Grid.RowDefinitions>
 
 			<!-- Job Number -->
 			<StackPanel Grid.Row="0" Margin="0,0,0,10">
 				<TextBlock Text="Job Number" FontWeight="Bold"/>
 				<TextBox Text="{Binding Project.JobNumber}"
-         IsReadOnly="True"
-         Background="#EEE" />
+                         IsReadOnly="True"
+                         Background="#EEE"/>
 			</StackPanel>
 
 			<!-- Project Name -->
@@ -120,12 +113,17 @@
 			<!-- Buttons -->
 			<StackPanel Grid.Row="8"
                         Orientation="Horizontal"
-                        HorizontalAlignment="Right"/>
-			<Button Content="Save"
-                        Margin="235,70,125,-47"
-                        Command="{Binding SaveCommand}" Grid.Row="7"/>
-			<Button Content="Cancel"
-                        Command="{Binding CancelCommand}" Margin="341,70,19,-47" Grid.Row="7"/>
+                        HorizontalAlignment="Right"
+                        Margin="0,10,0,0">
+				<Button Content="Save"
+                        Width="90"
+                        Margin="0,0,10,0"
+                        Command="{Binding SaveCommand}"/>
+				<Button Content="Cancel"
+                        Width="90"
+                        Command="{Binding CancelCommand}"/>
+			</StackPanel>
+
 		</Grid>
 	</ScrollViewer>
 </Window>

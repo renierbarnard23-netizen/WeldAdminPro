@@ -35,13 +35,26 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public event Action? RequestClose;
 
-		// 🔒 Editable only when NOT Completed or Cancelled
+		// =========================
+		// EDIT LOCKING
+		// =========================
 		public bool IsEditable =>
 			Project.Status != ProjectStatus.Completed &&
 			Project.Status != ProjectStatus.Cancelled;
 
-		public decimal AvailableQuantity =>
-			SelectedStockItem?.Quantity ?? 0;
+		// =========================
+		// LIVE STOCK AVAILABILITY
+		// =========================
+		public int AvailableQuantity
+		{
+			get
+			{
+				if (SelectedStockItem == null)
+					return 0;
+
+				return _stockRepository.GetAvailableQuantity(SelectedStockItem.Id);
+			}
+		}
 
 		public bool CanIssueStock =>
 			IsEditable &&
@@ -49,21 +62,62 @@ namespace WeldAdminPro.UI.ViewModels
 			IssueQuantity > 0 &&
 			IssueQuantity <= AvailableQuantity;
 
+		// =========================
+		// STATUS WITH INVOICE RULES
+		// =========================
 		public ProjectStatus Status
 		{
 			get => Project.Status;
 			set
 			{
-				if (Project.Status != value)
+				if (Project.Status == value)
+					return;
+
+				if (value == ProjectStatus.Completed)
 				{
-					Project.Status = value;
-					OnPropertyChanged(nameof(Status));
-					OnPropertyChanged(nameof(IsEditable));
-					OnPropertyChanged(nameof(CanIssueStock));
+					if (!Project.IsInvoiced)
+					{
+						var confirm = MessageBox.Show(
+							"This project is not marked as invoiced.\n\nMark as invoiced before completion?",
+							"Confirm Completion",
+							MessageBoxButton.YesNo,
+							MessageBoxImage.Question
+						);
+
+						if (confirm == MessageBoxResult.No)
+						{
+							OnPropertyChanged(nameof(Status));
+							return;
+						}
+
+						Project.IsInvoiced = true;
+					}
+
+					if (string.IsNullOrWhiteSpace(Project.InvoiceNumber))
+					{
+						MessageBox.Show(
+							"Invoice number is required before completing a project.",
+							"Invoice Required",
+							MessageBoxButton.OK,
+							MessageBoxImage.Warning
+						);
+						OnPropertyChanged(nameof(Status));
+						return;
+					}
+
+					Project.CompletedOn ??= DateTime.Now;
 				}
+
+				Project.Status = value;
+				OnPropertyChanged(nameof(Status));
+				OnPropertyChanged(nameof(IsEditable));
+				OnPropertyChanged(nameof(CanIssueStock));
 			}
 		}
 
+		// =========================
+		// CONSTRUCTOR
+		// =========================
 		public ProjectDetailsViewModel(Project project)
 		{
 			Project = project;
@@ -76,13 +130,11 @@ namespace WeldAdminPro.UI.ViewModels
 						   .Cast<ProjectStatus>()
 						   .ToList();
 
-			var stockItems = _stockRepository.GetAll();
-			StockItems = new ObservableCollection<StockItem>(stockItems);
+			StockItems = new ObservableCollection<StockItem>(_stockRepository.GetAll());
 
-			var stockLookup = stockItems.ToDictionary(s => s.Id, s => s.Description);
+			var stockLookup = StockItems.ToDictionary(s => s.Id, s => s.Description);
 
 			var history = _usageRepository.GetByProjectId(Project.Id);
-
 			foreach (var h in history)
 			{
 				h.Notes = stockLookup.TryGetValue(h.StockItemId, out var desc)
@@ -93,6 +145,9 @@ namespace WeldAdminPro.UI.ViewModels
 			IssuedStockHistory = new ObservableCollection<ProjectStockUsage>(history);
 		}
 
+		// =========================
+		// PROPERTY CHANGE HOOKS
+		// =========================
 		partial void OnSelectedStockItemChanged(StockItem? value)
 		{
 			OnPropertyChanged(nameof(AvailableQuantity));
@@ -104,20 +159,38 @@ namespace WeldAdminPro.UI.ViewModels
 			OnPropertyChanged(nameof(CanIssueStock));
 		}
 
+		// =========================
+		// SAVE
+		// =========================
 		[RelayCommand]
 		private void Save()
 		{
+			if (Project.Status == ProjectStatus.Completed &&
+				(!Project.IsInvoiced || string.IsNullOrWhiteSpace(Project.InvoiceNumber)))
+			{
+				MessageBox.Show(
+					"Completed projects must remain invoiced with an invoice number.",
+					"Invoice Lock",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning
+				);
+				return;
+			}
+
 			_projectRepository.Update(Project);
 			RequestClose?.Invoke();
 		}
 
+		// =========================
+		// ISSUE STOCK
+		// =========================
 		[RelayCommand]
 		private void IssueStock()
 		{
 			if (!CanIssueStock)
 			{
 				MessageBox.Show(
-					$"Stock cannot be issued for this project.\n\nAvailable: {AvailableQuantity}",
+					$"Insufficient stock.\n\nAvailable: {AvailableQuantity}",
 					"Stock Validation",
 					MessageBoxButton.OK,
 					MessageBoxImage.Warning
@@ -137,20 +210,28 @@ namespace WeldAdminPro.UI.ViewModels
 			};
 
 			_usageRepository.Add(usage);
+
+			// 🔴 CRITICAL: book stock OUT via transaction system
+			_stockRepository.AddTransaction(new StockTransaction
+			{
+				Id = Guid.NewGuid(),
+				StockItemId = SelectedStockItem.Id,
+				Quantity = (int)IssueQuantity,
+				Type = "OUT",
+				TransactionDate = DateTime.UtcNow,
+				Reference = $"Project {Project.JobNumber}"
+			});
+
 			IssuedStockHistory.Insert(0, usage);
 
-			// UI-only quantity update
-			SelectedStockItem.Quantity -= (int)IssueQuantity;
-
-			SelectedStockItem = null;
 			IssueQuantity = 0;
 			IssuedBy = string.Empty;
+
+			OnPropertyChanged(nameof(AvailableQuantity));
+			OnPropertyChanged(nameof(CanIssueStock));
 		}
 
 		[RelayCommand]
-		private void Cancel()
-		{
-			RequestClose?.Invoke();
-		}
+		private void Cancel() => RequestClose?.Invoke();
 	}
 }

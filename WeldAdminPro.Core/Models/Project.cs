@@ -34,6 +34,9 @@ namespace WeldAdminPro.Core.Models
 		public DateTime? StartDate { get; set; }
 		public DateTime? EndDate { get; set; }
 
+		// ✅ Completion date (NEW)
+		public DateTime? CompletedOn { get; set; }
+
 		public ProjectStatus Status { get; set; } = ProjectStatus.Active;
 
 		public DateTime CreatedOn { get; set; } = DateTime.Now;

@@ -140,8 +140,6 @@ WHERE Id = @Id;";
 			cmd.ExecuteNonQuery();
 		}
 
-		// ================= DELETE =================
-
 		public void Delete(Guid id)
 		{
 			using var connection = new SqliteConnection(_connectionString);
@@ -198,7 +196,7 @@ VALUES ('NextJobNumber', @Value);";
 			cmd.ExecuteNonQuery();
 		}
 
-		// ================= HELPERS =================
+		// ================= SAFE PARAM BINDING =================
 
 		private static void BindParameters(SqliteCommand cmd, Project p)
 		{
@@ -206,16 +204,21 @@ VALUES ('NextJobNumber', @Value);";
 			cmd.Parameters.AddWithValue("@JobNumber", p.JobNumber);
 			cmd.Parameters.AddWithValue("@ProjectName", p.ProjectName);
 			cmd.Parameters.AddWithValue("@Client", p.Client);
-			cmd.Parameters.AddWithValue("@ClientRepresentative", p.ClientRepresentative);
+			cmd.Parameters.AddWithValue("@ClientRepresentative", p.ClientRepresentative ?? string.Empty);
 			cmd.Parameters.AddWithValue("@Amount", p.Amount);
-			cmd.Parameters.AddWithValue("@QuoteNumber", p.QuoteNumber);
-			cmd.Parameters.AddWithValue("@OrderNumber", p.OrderNumber);
-			cmd.Parameters.AddWithValue("@Material", p.Material);
-			cmd.Parameters.AddWithValue("@AssignedTo", p.AssignedTo);
+			cmd.Parameters.AddWithValue("@QuoteNumber", p.QuoteNumber ?? string.Empty);
+			cmd.Parameters.AddWithValue("@OrderNumber", p.OrderNumber ?? string.Empty);
+			cmd.Parameters.AddWithValue("@Material", p.Material ?? string.Empty);
+			cmd.Parameters.AddWithValue("@AssignedTo", p.AssignedTo ?? string.Empty);
 			cmd.Parameters.AddWithValue("@IsInvoiced", p.IsInvoiced ? 1 : 0);
 			cmd.Parameters.AddWithValue("@InvoiceNumber", p.InvoiceNumber ?? string.Empty);
-			cmd.Parameters.AddWithValue("@StartDate", p.StartDate?.ToString("O"));
-			cmd.Parameters.AddWithValue("@EndDate", p.EndDate?.ToString("O"));
+
+			cmd.Parameters.AddWithValue("@StartDate",
+				p.StartDate.HasValue ? p.StartDate.Value.ToString("O") : DBNull.Value);
+
+			cmd.Parameters.AddWithValue("@EndDate",
+				p.EndDate.HasValue ? p.EndDate.Value.ToString("O") : DBNull.Value);
+
 			cmd.Parameters.AddWithValue("@Status", (int)p.Status);
 			cmd.Parameters.AddWithValue("@CreatedOn", p.CreatedOn.ToString("O"));
 		}

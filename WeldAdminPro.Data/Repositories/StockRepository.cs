@@ -26,32 +26,30 @@ namespace WeldAdminPro.Data.Repositories
 			using var cmd = connection.CreateCommand();
 
 			cmd.CommandText = @"
-                CREATE TABLE IF NOT EXISTS StockItems (
-                    Id TEXT PRIMARY KEY,
-                    ItemCode TEXT NOT NULL,
-                    Description TEXT,
-                    Quantity INTEGER NOT NULL,
-                    Unit TEXT,
-                    MinLevel REAL NULL,
-                    MaxLevel REAL NULL,
-                    Category TEXT NOT NULL DEFAULT 'Uncategorised'
-                );
-            ";
+CREATE TABLE IF NOT EXISTS StockItems (
+	Id TEXT PRIMARY KEY,
+	ItemCode TEXT NOT NULL,
+	Description TEXT,
+	Quantity INTEGER NOT NULL,
+	Unit TEXT,
+	MinLevel REAL NULL,
+	MaxLevel REAL NULL,
+	Category TEXT NOT NULL DEFAULT 'Uncategorised'
+);";
 			cmd.ExecuteNonQuery();
 
 			TryAddColumn(cmd, "ALTER TABLE StockItems ADD COLUMN MinLevel REAL NULL;");
 			TryAddColumn(cmd, "ALTER TABLE StockItems ADD COLUMN MaxLevel REAL NULL;");
 
 			cmd.CommandText = @"
-                CREATE TABLE IF NOT EXISTS StockTransactions (
-                    Id TEXT PRIMARY KEY,
-                    StockItemId TEXT NOT NULL,
-                    TransactionDate TEXT NOT NULL,
-                    Quantity INTEGER NOT NULL,
-                    Type TEXT NOT NULL,
-                    Reference TEXT
-                );
-            ";
+CREATE TABLE IF NOT EXISTS StockTransactions (
+	Id TEXT PRIMARY KEY,
+	StockItemId TEXT NOT NULL,
+	TransactionDate TEXT NOT NULL,
+	Quantity INTEGER NOT NULL,
+	Type TEXT NOT NULL,
+	Reference TEXT
+);";
 			cmd.ExecuteNonQuery();
 
 			EnsureUniqueItemCodeIndex(connection);
@@ -59,11 +57,7 @@ namespace WeldAdminPro.Data.Repositories
 
 		private void TryAddColumn(SqliteCommand cmd, string sql)
 		{
-			try
-			{
-				cmd.CommandText = sql;
-				cmd.ExecuteNonQuery();
-			}
+			try { cmd.CommandText = sql; cmd.ExecuteNonQuery(); }
 			catch (SqliteException) { }
 		}
 
@@ -71,11 +65,26 @@ namespace WeldAdminPro.Data.Repositories
 		{
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-                CREATE UNIQUE INDEX IF NOT EXISTS
-                UX_StockItems_ItemCode
-                ON StockItems (LOWER(ItemCode));
-            ";
+CREATE UNIQUE INDEX IF NOT EXISTS
+UX_StockItems_ItemCode
+ON StockItems (LOWER(ItemCode));";
 			cmd.ExecuteNonQuery();
+		}
+
+		// =========================
+		// AVAILABILITY (NEW)
+		// =========================
+		public int GetAvailableQuantity(Guid stockItemId)
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = "SELECT Quantity FROM StockItems WHERE Id = $id;";
+			cmd.Parameters.AddWithValue("$id", stockItemId.ToString());
+
+			var result = cmd.ExecuteScalar();
+			return result == null ? 0 : Convert.ToInt32(result);
 		}
 
 		// =========================
@@ -88,11 +97,10 @@ namespace WeldAdminPro.Data.Repositories
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-                SELECT ItemCode
-                FROM StockItems
-                ORDER BY ItemCode DESC
-                LIMIT 1;
-            ";
+SELECT ItemCode
+FROM StockItems
+ORDER BY ItemCode DESC
+LIMIT 1;";
 
 			var result = cmd.ExecuteScalar()?.ToString();
 
@@ -118,12 +126,9 @@ namespace WeldAdminPro.Data.Repositories
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-                SELECT
-                    Id, ItemCode, Description, Quantity, Unit,
-                    MinLevel, MaxLevel, Category
-                FROM StockItems
-                ORDER BY ItemCode;
-            ";
+SELECT Id, ItemCode, Description, Quantity, Unit, MinLevel, MaxLevel, Category
+FROM StockItems
+ORDER BY ItemCode;";
 
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
@@ -151,11 +156,10 @@ namespace WeldAdminPro.Data.Repositories
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-                INSERT INTO StockItems
-                (Id, ItemCode, Description, Quantity, Unit, MinLevel, MaxLevel, Category)
-                VALUES
-                ($id, $code, $desc, $qty, $unit, $min, $max, $cat);
-            ";
+INSERT INTO StockItems
+(Id, ItemCode, Description, Quantity, Unit, MinLevel, MaxLevel, Category)
+VALUES
+($id, $code, $desc, $qty, $unit, $min, $max, $cat);";
 
 			cmd.Parameters.AddWithValue("$id", item.Id.ToString());
 			cmd.Parameters.AddWithValue("$code", item.ItemCode.Trim());
@@ -176,15 +180,14 @@ namespace WeldAdminPro.Data.Repositories
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-                UPDATE StockItems SET
-                    Description = $desc,
-                    Quantity = $qty,
-                    Unit = $unit,
-                    MinLevel = $min,
-                    MaxLevel = $max,
-                    Category = $cat
-                WHERE Id = $id;
-            ";
+UPDATE StockItems SET
+	Description = $desc,
+	Quantity = $qty,
+	Unit = $unit,
+	MinLevel = $min,
+	MaxLevel = $max,
+	Category = $cat
+WHERE Id = $id;";
 
 			cmd.Parameters.AddWithValue("$id", item.Id.ToString());
 			cmd.Parameters.AddWithValue("$desc", item.Description);
@@ -204,17 +207,14 @@ namespace WeldAdminPro.Data.Repositories
 		{
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
-
 			using var dbTx = connection.BeginTransaction();
 
 			using (var cmd = connection.CreateCommand())
 			{
 				cmd.CommandText = @"
-                    INSERT INTO StockTransactions
-                    (Id, StockItemId, TransactionDate, Quantity, Type, Reference)
-                    VALUES
-                    ($id, $itemId, $date, $qty, $type, $ref);
-                ";
+INSERT INTO StockTransactions
+(Id, StockItemId, TransactionDate, Quantity, Type, Reference)
+VALUES ($id, $itemId, $date, $qty, $type, $ref);";
 
 				cmd.Parameters.AddWithValue("$id", tx.Id.ToString());
 				cmd.Parameters.AddWithValue("$itemId", tx.StockItemId.ToString());
@@ -231,10 +231,9 @@ namespace WeldAdminPro.Data.Repositories
 			using (var cmd = connection.CreateCommand())
 			{
 				cmd.CommandText = @"
-                    UPDATE StockItems
-                    SET Quantity = Quantity + $delta
-                    WHERE Id = $id;
-                ";
+UPDATE StockItems
+SET Quantity = Quantity + $delta
+WHERE Id = $id;";
 
 				cmd.Parameters.AddWithValue("$delta", delta);
 				cmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
@@ -254,19 +253,18 @@ namespace WeldAdminPro.Data.Repositories
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-                SELECT
-                    t.Id,
-                    t.StockItemId,
-                    t.TransactionDate,
-                    t.Quantity,
-                    t.Type,
-                    t.Reference,
-                    i.ItemCode,
-                    i.Description
-                FROM StockTransactions t
-                JOIN StockItems i ON i.Id = t.StockItemId
-                ORDER BY t.TransactionDate DESC;
-            ";
+SELECT
+	t.Id,
+	t.StockItemId,
+	t.TransactionDate,
+	t.Quantity,
+	t.Type,
+	t.Reference,
+	i.ItemCode,
+	i.Description
+FROM StockTransactions t
+JOIN StockItems i ON i.Id = t.StockItemId
+ORDER BY t.TransactionDate DESC;";
 
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())

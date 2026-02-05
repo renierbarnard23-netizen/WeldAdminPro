@@ -67,6 +67,10 @@
 				<DataGridTextColumn Header="Invoice #" Binding="{Binding InvoiceNumber}" Width="100"/>
 				<DataGridTextColumn Header="Start Date" Binding="{Binding StartDate, StringFormat=dd MMM yyyy, TargetNullValue=-}" Width="110"/>
 				<DataGridTextColumn Header="End Date" Binding="{Binding EndDate, StringFormat=dd MMM yyyy, TargetNullValue=-}" Width="110"/>
+				<DataGridTextColumn Header="Completed On"
+                    Binding="{Binding CompletedOn, StringFormat=dd MMM yyyy}"
+                    Width="120"/>
+
 			</DataGrid.Columns>
 		</DataGrid>
 

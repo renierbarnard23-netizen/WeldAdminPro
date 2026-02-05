@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -21,13 +21,50 @@ namespace WeldAdminPro.UI.ViewModels
 			project = new Project
 			{
 				Id = Guid.NewGuid(),
-				IsInvoiced = false
+
+				// ✅ REQUIRED DEFAULTS
+				Status = ProjectStatus.Active,
+				IsInvoiced = false,
+				CreatedOn = DateTime.Now,
+				Amount = 0m
 			};
 		}
 
 		[RelayCommand]
 		private void Save()
 		{
+			// ================= HARD VALIDATION =================
+
+			if (string.IsNullOrWhiteSpace(Project.ProjectName))
+			{
+				MessageBox.Show("Project Name is required.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+				return;
+			}
+
+			if (string.IsNullOrWhiteSpace(Project.Client))
+			{
+				MessageBox.Show("Client is required.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+				return;
+			}
+
+			if (Project.Amount < 0)
+			{
+				MessageBox.Show("Amount cannot be negative.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+				return;
+			}
+
+			// ================= NULL-SAFETY (CRITICAL) =================
+			// SQLite DOES NOT allow null parameters
+
+			Project.ClientRepresentative ??= string.Empty;
+			Project.QuoteNumber ??= string.Empty;
+			Project.OrderNumber ??= string.Empty;
+			Project.Material ??= string.Empty;
+			Project.AssignedTo ??= string.Empty;
+			Project.InvoiceNumber ??= string.Empty;
+
+			// ================= SAVE =================
+
 			try
 			{
 				_repository.Add(Project);
