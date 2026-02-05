@@ -24,6 +24,9 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public ObservableCollection<ProjectStockUsage> IssuedStockHistory { get; }
 
+		// =========================
+		// ISSUE STOCK
+		// =========================
 		[ObservableProperty]
 		private StockItem? selectedStockItem;
 
@@ -34,7 +37,7 @@ namespace WeldAdminPro.UI.ViewModels
 		private string issuedBy = string.Empty;
 
 		// =========================
-		// 🔁 RETURN STOCK
+		// RETURN STOCK
 		// =========================
 		[ObservableProperty]
 		private ProjectStockUsage? selectedIssuedUsage;
@@ -52,7 +55,7 @@ namespace WeldAdminPro.UI.ViewModels
 			Project.Status != ProjectStatus.Cancelled;
 
 		// =========================
-		// LIVE AVAILABLE STOCK
+		// ISSUE STOCK LOGIC
 		// =========================
 		public int AvailableQuantity =>
 			SelectedStockItem == null
@@ -66,7 +69,7 @@ namespace WeldAdminPro.UI.ViewModels
 			IssueQuantity <= AvailableQuantity;
 
 		// =========================
-		// 🔑 REMAINING ISSUED BALANCE (AUTHORITATIVE)
+		// RETURN STOCK LOGIC
 		// =========================
 		private decimal GetRemainingIssuedBalance(Guid stockItemId)
 		{
@@ -79,6 +82,12 @@ namespace WeldAdminPro.UI.ViewModels
 			SelectedIssuedUsage == null
 				? 0
 				: GetRemainingIssuedBalance(SelectedIssuedUsage.StockItemId);
+
+		public IEnumerable<ProjectStockUsage> ReturnableIssuedItems =>
+			IssuedStockHistory
+				.GroupBy(x => x.StockItemId)
+				.Select(g => g.First())
+				.Where(x => GetRemainingIssuedBalance(x.StockItemId) > 0);
 
 		public bool CanReturnStock =>
 			IsEditable &&
@@ -105,8 +114,7 @@ namespace WeldAdminPro.UI.ViewModels
 							"This project is not marked as invoiced.\n\nMark it as invoiced before completion?",
 							"Confirm Completion",
 							MessageBoxButton.YesNo,
-							MessageBoxImage.Question
-						);
+							MessageBoxImage.Question);
 
 						if (confirm == MessageBoxResult.No)
 						{
@@ -123,8 +131,8 @@ namespace WeldAdminPro.UI.ViewModels
 							"Invoice number is required before completing a project.",
 							"Invoice Required",
 							MessageBoxButton.OK,
-							MessageBoxImage.Warning
-						);
+							MessageBoxImage.Warning);
+
 						OnPropertyChanged(nameof(Status));
 						return;
 					}
@@ -170,9 +178,7 @@ namespace WeldAdminPro.UI.ViewModels
 
 			IssuedStockHistory = new ObservableCollection<ProjectStockUsage>(history);
 
-			OnPropertyChanged(nameof(AvailableQuantity));
-			OnPropertyChanged(nameof(CanIssueStock));
-			OnPropertyChanged(nameof(CanReturnStock));
+			OnPropertyChanged(nameof(ReturnableIssuedItems));
 		}
 
 		// =========================
@@ -214,8 +220,7 @@ namespace WeldAdminPro.UI.ViewModels
 					"Completed projects must remain invoiced with an invoice number.",
 					"Invoice Lock",
 					MessageBoxButton.OK,
-					MessageBoxImage.Warning
-				);
+					MessageBoxImage.Warning);
 				return;
 			}
 
@@ -230,15 +235,7 @@ namespace WeldAdminPro.UI.ViewModels
 		private void IssueStock()
 		{
 			if (!CanIssueStock)
-			{
-				MessageBox.Show(
-					$"Insufficient stock.\n\nAvailable: {AvailableQuantity}",
-					"Stock Validation",
-					MessageBoxButton.OK,
-					MessageBoxImage.Warning
-				);
 				return;
-			}
 
 			var usage = new ProjectStockUsage
 			{
@@ -268,29 +265,28 @@ namespace WeldAdminPro.UI.ViewModels
 			IssueQuantity = 0;
 			IssuedBy = string.Empty;
 
+			OnPropertyChanged(nameof(ReturnableIssuedItems));
 			OnPropertyChanged(nameof(AvailableQuantity));
-			OnPropertyChanged(nameof(CanIssueStock));
-			OnPropertyChanged(nameof(CanReturnStock));
 		}
 
 		// =========================
-		// 🔁 RETURN STOCK
+		// RETURN STOCK
 		// =========================
 		[RelayCommand]
 		private void ReturnStock()
 		{
-			if (!CanReturnStock)
+			if (!CanReturnStock || SelectedIssuedUsage == null)
 				return;
 
 			var usage = new ProjectStockUsage
 			{
 				Id = Guid.NewGuid(),
 				ProjectId = Project.Id,
-				StockItemId = SelectedIssuedUsage!.StockItemId,
+				StockItemId = SelectedIssuedUsage.StockItemId,
 				Quantity = -ReturnQuantity,
 				IssuedBy = IssuedBy,
 				IssuedOn = DateTime.UtcNow,
-				Notes = "RETURN"
+				Notes = SelectedIssuedUsage.Notes
 			};
 
 			_usageRepository.Add(usage);
@@ -310,8 +306,8 @@ namespace WeldAdminPro.UI.ViewModels
 			ReturnQuantity = 0;
 			SelectedIssuedUsage = null;
 
+			OnPropertyChanged(nameof(ReturnableIssuedItems));
 			OnPropertyChanged(nameof(AvailableQuantity));
-			OnPropertyChanged(nameof(CanReturnStock));
 		}
 
 		[RelayCommand]
