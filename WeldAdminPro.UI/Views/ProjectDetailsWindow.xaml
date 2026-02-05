@@ -2,28 +2,30 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Project Details"
-        Width="600"
-        Height="800"
+        Width="620"
+        Height="820"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
 
 	<ScrollViewer VerticalScrollBarVisibility="Auto">
 		<Grid Margin="20">
 
-			<!-- ================= MAIN ROWS ================= -->
+			<!-- ================= LAYOUT ROWS ================= -->
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto"/>
 				<!-- Header -->
 				<RowDefinition Height="Auto"/>
-				<!-- Form -->
+				<!-- Project form -->
 				<RowDefinition Height="Auto"/>
 				<!-- Buttons -->
 				<RowDefinition Height="Auto"/>
-				<!-- Issue Stock -->
+				<!-- Issue stock -->
 				<RowDefinition Height="Auto"/>
-				<!-- Issued History -->
+				<!-- Issued history -->
 				<RowDefinition Height="Auto"/>
-				<!-- Return Stock -->
+				<!-- Return stock -->
+				<RowDefinition Height="Auto"/>
+				<!-- Stock summary -->
 			</Grid.RowDefinitions>
 
 			<!-- ================= HEADER ================= -->
@@ -50,7 +52,7 @@
                           Height="26"/>
 			</Grid>
 
-			<!-- ================= PROJECT FORM ================= -->
+			<!-- ================= PROJECT DETAILS ================= -->
 			<Grid Grid.Row="1">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="120"/>
@@ -142,7 +144,7 @@
                          IsEnabled="{Binding Project.IsInvoiced}"/>
 			</Grid>
 
-			<!-- ================= BUTTONS ================= -->
+			<!-- ================= ACTION BUTTONS ================= -->
 			<StackPanel Grid.Row="2"
                         Orientation="Horizontal"
                         HorizontalAlignment="Right"
@@ -185,17 +187,19 @@
 
 					<TextBlock Grid.Row="2" Grid.Column="1"
                                Foreground="Gray"
-                               Text="{Binding AvailableQuantity, StringFormat=Available: {0}}"/>
+                               Text="{Binding AvailableQuantity,
+                               StringFormat=Available: {0}}"/>
 
 					<TextBlock Grid.Row="3" Text="Issued By" Margin="0,6,0,0"/>
 					<TextBox Grid.Row="3" Grid.Column="1"
-                             Margin="0,6,269,0"
+                             Margin="0,6,0,0"
                              Text="{Binding IssuedBy}"/>
 
 					<Button Grid.Row="3" Grid.Column="1"
                             Content="Issue Stock"
                             Width="120"
-                            Margin="165,10,123,0"
+                            HorizontalAlignment="Right"
+                            Margin="0,10,0,0"
                             Command="{Binding IssueStockCommand}"
                             IsEnabled="{Binding CanIssueStock}"/>
 				</Grid>
@@ -211,11 +215,18 @@
                           CanUserAddRows="False">
 					<DataGrid.Columns>
 						<DataGridTextColumn Header="Date"
-                                            Binding="{Binding IssuedOn, StringFormat=\{0:yyyy-MM-dd HH:mm\}}"
+                                            Binding="{Binding IssuedOn,
+                                            StringFormat=\{0:yyyy-MM-dd HH:mm\}}"
                                             Width="150"/>
-						<DataGridTextColumn Header="Item" Binding="{Binding Notes}" Width="*"/>
-						<DataGridTextColumn Header="Qty" Binding="{Binding Quantity}" Width="80"/>
-						<DataGridTextColumn Header="By" Binding="{Binding IssuedBy}" Width="120"/>
+						<DataGridTextColumn Header="Item"
+                                            Binding="{Binding Notes}"
+                                            Width="*"/>
+						<DataGridTextColumn Header="Qty"
+                                            Binding="{Binding Quantity}"
+                                            Width="80"/>
+						<DataGridTextColumn Header="By"
+                                            Binding="{Binding IssuedBy}"
+                                            Width="120"/>
 					</DataGrid.Columns>
 				</DataGrid>
 			</GroupBox>
@@ -255,10 +266,30 @@
 					<Button Grid.Row="3" Grid.Column="1"
                             Content="Return Stock"
                             Width="120"
+                            HorizontalAlignment="Right"
                             Margin="0,10,0,0"
                             Command="{Binding ReturnStockCommand}"
                             IsEnabled="{Binding CanReturnStock}"/>
 				</Grid>
+			</GroupBox>
+
+			<!-- ================= PROJECT STOCK SUMMARY ================= -->
+			<GroupBox Grid.Row="6"
+                      Header="Project Stock Summary"
+                      Margin="0,20,0,0">
+				<DataGrid ItemsSource="{Binding ProjectStockSummary}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          CanUserAddRows="False">
+					<DataGrid.Columns>
+						<DataGridTextColumn Header="Code" Binding="{Binding ItemCode}" Width="120"/>
+						<DataGridTextColumn Header="Item" Binding="{Binding Description}" Width="*"/>
+						<DataGridTextColumn Header="Issued" Binding="{Binding IssuedQuantity}" Width="90"/>
+						<DataGridTextColumn Header="Returned" Binding="{Binding ReturnedQuantity}" Width="90"/>
+						<DataGridTextColumn Header="Net Used" Binding="{Binding NetQuantity}" Width="90"/>
+						<DataGridTextColumn Header="Unit" Binding="{Binding Unit}" Width="80"/>
+					</DataGrid.Columns>
+				</DataGrid>
 			</GroupBox>
 
 		</Grid>

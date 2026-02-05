@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Windows;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
@@ -21,42 +20,21 @@ namespace WeldAdminPro.UI.ViewModels
 		public IReadOnlyList<ProjectStatus> Statuses { get; }
 
 		public ObservableCollection<StockItem> StockItems { get; }
-
 		public ObservableCollection<ProjectStockUsage> IssuedStockHistory { get; }
+		public ObservableCollection<ProjectStockSummary> ProjectStockSummary { get; }
 
-		// =========================
-		// ISSUE STOCK
-		// =========================
-		[ObservableProperty]
-		private StockItem? selectedStockItem;
-
-		[ObservableProperty]
-		private decimal issueQuantity;
-
-		[ObservableProperty]
-		private string issuedBy = string.Empty;
-
-		// =========================
-		// RETURN STOCK
-		// =========================
-		[ObservableProperty]
-		private ProjectStockUsage? selectedIssuedUsage;
-
-		[ObservableProperty]
-		private decimal returnQuantity;
+		[ObservableProperty] private StockItem? selectedStockItem;
+		[ObservableProperty] private decimal issueQuantity;
+		[ObservableProperty] private string issuedBy = string.Empty;
+		[ObservableProperty] private ProjectStockUsage? selectedIssuedUsage;
+		[ObservableProperty] private decimal returnQuantity;
 
 		public event Action? RequestClose;
 
-		// =========================
-		// EDIT LOCKING
-		// =========================
 		public bool IsEditable =>
 			Project.Status != ProjectStatus.Completed &&
 			Project.Status != ProjectStatus.Cancelled;
 
-		// =========================
-		// ISSUE STOCK LOGIC
-		// =========================
 		public int AvailableQuantity =>
 			SelectedStockItem == null
 				? 0
@@ -66,17 +44,13 @@ namespace WeldAdminPro.UI.ViewModels
 			IsEditable &&
 			SelectedStockItem != null &&
 			IssueQuantity > 0 &&
-			IssueQuantity <= AvailableQuantity;
+			IssueQuantity <= AvailableQuantity &&
+			!string.IsNullOrWhiteSpace(IssuedBy);
 
-		// =========================
-		// RETURN STOCK LOGIC
-		// =========================
-		private decimal GetRemainingIssuedBalance(Guid stockItemId)
-		{
-			return IssuedStockHistory
+		private decimal GetRemainingIssuedBalance(Guid stockItemId) =>
+			IssuedStockHistory
 				.Where(x => x.StockItemId == stockItemId)
 				.Sum(x => x.Quantity);
-		}
 
 		public decimal RemainingIssuedBalance =>
 			SelectedIssuedUsage == null
@@ -95,63 +69,6 @@ namespace WeldAdminPro.UI.ViewModels
 			ReturnQuantity > 0 &&
 			ReturnQuantity <= RemainingIssuedBalance;
 
-		// =========================
-		// STATUS + INVOICE RULES
-		// =========================
-		public ProjectStatus Status
-		{
-			get => Project.Status;
-			set
-			{
-				if (Project.Status == value)
-					return;
-
-				if (value == ProjectStatus.Completed)
-				{
-					if (!Project.IsInvoiced)
-					{
-						var confirm = MessageBox.Show(
-							"This project is not marked as invoiced.\n\nMark it as invoiced before completion?",
-							"Confirm Completion",
-							MessageBoxButton.YesNo,
-							MessageBoxImage.Question);
-
-						if (confirm == MessageBoxResult.No)
-						{
-							OnPropertyChanged(nameof(Status));
-							return;
-						}
-
-						Project.IsInvoiced = true;
-					}
-
-					if (string.IsNullOrWhiteSpace(Project.InvoiceNumber))
-					{
-						MessageBox.Show(
-							"Invoice number is required before completing a project.",
-							"Invoice Required",
-							MessageBoxButton.OK,
-							MessageBoxImage.Warning);
-
-						OnPropertyChanged(nameof(Status));
-						return;
-					}
-
-					Project.CompletedOn ??= DateTime.Now;
-				}
-
-				Project.Status = value;
-
-				OnPropertyChanged(nameof(Status));
-				OnPropertyChanged(nameof(IsEditable));
-				OnPropertyChanged(nameof(CanIssueStock));
-				OnPropertyChanged(nameof(CanReturnStock));
-			}
-		}
-
-		// =========================
-		// CONSTRUCTOR
-		// =========================
 		public ProjectDetailsViewModel(Project project)
 		{
 			Project = project;
@@ -161,29 +78,18 @@ namespace WeldAdminPro.UI.ViewModels
 			_usageRepository = new ProjectStockUsageRepository();
 
 			Statuses = Enum.GetValues(typeof(ProjectStatus))
-						   .Cast<ProjectStatus>()
-						   .ToList();
+				.Cast<ProjectStatus>()
+				.ToList();
 
 			StockItems = new ObservableCollection<StockItem>(_stockRepository.GetAll());
 
-			var stockLookup = StockItems.ToDictionary(s => s.Id, s => s.Description);
+			IssuedStockHistory = new ObservableCollection<ProjectStockUsage>(
+				_usageRepository.GetByProjectId(Project.Id));
 
-			var history = _usageRepository.GetByProjectId(Project.Id);
-			foreach (var h in history)
-			{
-				h.Notes = stockLookup.TryGetValue(h.StockItemId, out var desc)
-					? desc
-					: h.StockItemId.ToString();
-			}
-
-			IssuedStockHistory = new ObservableCollection<ProjectStockUsage>(history);
-
-			OnPropertyChanged(nameof(ReturnableIssuedItems));
+			ProjectStockSummary = new ObservableCollection<ProjectStockSummary>(
+				_usageRepository.GetProjectStockSummary(Project.Id));
 		}
 
-		// =========================
-		// PROPERTY CHANGE HOOKS
-		// =========================
 		partial void OnSelectedStockItemChanged(StockItem? value)
 		{
 			OnPropertyChanged(nameof(AvailableQuantity));
@@ -195,9 +101,13 @@ namespace WeldAdminPro.UI.ViewModels
 			OnPropertyChanged(nameof(CanIssueStock));
 		}
 
+		partial void OnIssuedByChanged(string value)
+		{
+			OnPropertyChanged(nameof(CanIssueStock));
+		}
+
 		partial void OnSelectedIssuedUsageChanged(ProjectStockUsage? value)
 		{
-			ReturnQuantity = 0;
 			OnPropertyChanged(nameof(RemainingIssuedBalance));
 			OnPropertyChanged(nameof(CanReturnStock));
 		}
@@ -207,39 +117,23 @@ namespace WeldAdminPro.UI.ViewModels
 			OnPropertyChanged(nameof(CanReturnStock));
 		}
 
-		// =========================
-		// SAVE
-		// =========================
-		[RelayCommand]
-		private void Save()
+		private void RefreshSummary()
 		{
-			if (Project.Status == ProjectStatus.Completed &&
-				(!Project.IsInvoiced || string.IsNullOrWhiteSpace(Project.InvoiceNumber)))
-			{
-				MessageBox.Show(
-					"Completed projects must remain invoiced with an invoice number.",
-					"Invoice Lock",
-					MessageBoxButton.OK,
-					MessageBoxImage.Warning);
-				return;
-			}
+			ProjectStockSummary.Clear();
+			foreach (var row in _usageRepository.GetProjectStockSummary(Project.Id))
+				ProjectStockSummary.Add(row);
 
-			_projectRepository.Update(Project);
-			RequestClose?.Invoke();
+			OnPropertyChanged(nameof(RemainingIssuedBalance));
+			OnPropertyChanged(nameof(CanReturnStock));
 		}
 
-		// =========================
-		// ISSUE STOCK
-		// =========================
 		[RelayCommand]
 		private void IssueStock()
 		{
-			if (!CanIssueStock)
-				return;
+			if (!CanIssueStock) return;
 
 			var usage = new ProjectStockUsage
 			{
-				Id = Guid.NewGuid(),
 				ProjectId = Project.Id,
 				StockItemId = SelectedStockItem!.Id,
 				Quantity = IssueQuantity,
@@ -253,7 +147,7 @@ namespace WeldAdminPro.UI.ViewModels
 			_stockRepository.AddTransaction(new StockTransaction
 			{
 				Id = Guid.NewGuid(),
-				StockItemId = SelectedStockItem.Id,
+				StockItemId = usage.StockItemId,
 				Quantity = (int)IssueQuantity,
 				Type = "OUT",
 				TransactionDate = DateTime.UtcNow,
@@ -265,22 +159,18 @@ namespace WeldAdminPro.UI.ViewModels
 			IssueQuantity = 0;
 			IssuedBy = string.Empty;
 
-			OnPropertyChanged(nameof(ReturnableIssuedItems));
+			RefreshSummary();
 			OnPropertyChanged(nameof(AvailableQuantity));
+			OnPropertyChanged(nameof(CanIssueStock));
 		}
 
-		// =========================
-		// RETURN STOCK
-		// =========================
 		[RelayCommand]
 		private void ReturnStock()
 		{
-			if (!CanReturnStock || SelectedIssuedUsage == null)
-				return;
+			if (!CanReturnStock || SelectedIssuedUsage == null) return;
 
 			var usage = new ProjectStockUsage
 			{
-				Id = Guid.NewGuid(),
 				ProjectId = Project.Id,
 				StockItemId = SelectedIssuedUsage.StockItemId,
 				Quantity = -ReturnQuantity,
@@ -306,8 +196,15 @@ namespace WeldAdminPro.UI.ViewModels
 			ReturnQuantity = 0;
 			SelectedIssuedUsage = null;
 
-			OnPropertyChanged(nameof(ReturnableIssuedItems));
+			RefreshSummary();
 			OnPropertyChanged(nameof(AvailableQuantity));
+		}
+
+		[RelayCommand]
+		private void Save()
+		{
+			_projectRepository.Update(Project);
+			RequestClose?.Invoke();
 		}
 
 		[RelayCommand]

@@ -18,7 +18,7 @@ namespace WeldAdminPro.Core.Models
 
 		public string? Notes { get; set; }
 
-		// ✅ NEW — SAFE DISPLAY NAME FOR UI
+		// ✅ SAFE DISPLAY NAME (USED BY UI)
 		public string DisplayName =>
 			string.IsNullOrWhiteSpace(Notes)
 				? StockItemId.ToString()

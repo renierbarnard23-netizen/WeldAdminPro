@@ -22,41 +22,75 @@ namespace WeldAdminPro.Data.Repositories
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-                CREATE TABLE IF NOT EXISTS ProjectStockUsages (
-                    Id TEXT PRIMARY KEY,
-                    ProjectId TEXT NOT NULL,
-                    StockItemId TEXT NOT NULL,
-                    Quantity REAL NOT NULL,
-                    IssuedOn TEXT NOT NULL,
-                    IssuedBy TEXT,
-                    Notes TEXT
-                );
-            ";
+CREATE TABLE IF NOT EXISTS ProjectStockUsages (
+	Id TEXT PRIMARY KEY,
+	ProjectId TEXT NOT NULL,
+	StockItemId TEXT NOT NULL,
+	Quantity REAL NOT NULL,
+	IssuedOn TEXT NOT NULL,
+	IssuedBy TEXT,
+	Notes TEXT
+);";
 			cmd.ExecuteNonQuery();
 		}
 
+		// =========================================================
+		// HARD CONSTRAINT: NO OVER-RETURN
+		// =========================================================
 		public void Add(ProjectStockUsage usage)
 		{
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = @"
-                INSERT INTO ProjectStockUsages
-                (Id, ProjectId, StockItemId, Quantity, IssuedOn, IssuedBy, Notes)
-                VALUES
-                ($id, $projectId, $stockItemId, $qty, $issuedOn, $issuedBy, $notes);
-            ";
+			using var transaction = connection.BeginTransaction();
 
-			cmd.Parameters.AddWithValue("$id", usage.Id.ToString());
-			cmd.Parameters.AddWithValue("$projectId", usage.ProjectId.ToString());
-			cmd.Parameters.AddWithValue("$stockItemId", usage.StockItemId.ToString());
-			cmd.Parameters.AddWithValue("$qty", usage.Quantity);
-			cmd.Parameters.AddWithValue("$issuedOn", usage.IssuedOn.ToString("o"));
-			cmd.Parameters.AddWithValue("$issuedBy", usage.IssuedBy ?? string.Empty);
-			cmd.Parameters.AddWithValue("$notes", usage.Notes ?? string.Empty);
+			decimal currentBalance;
 
-			cmd.ExecuteNonQuery();
+			using (var balanceCmd = connection.CreateCommand())
+			{
+				balanceCmd.Transaction = transaction;
+				balanceCmd.CommandText = @"
+SELECT COALESCE(SUM(Quantity), 0)
+FROM ProjectStockUsages
+WHERE ProjectId = $projectId
+  AND StockItemId = $stockItemId;";
+
+				balanceCmd.Parameters.AddWithValue("$projectId", usage.ProjectId.ToString());
+				balanceCmd.Parameters.AddWithValue("$stockItemId", usage.StockItemId.ToString());
+
+				currentBalance = Convert.ToDecimal(balanceCmd.ExecuteScalar());
+			}
+
+			if (usage.Quantity < 0 && currentBalance + usage.Quantity < 0)
+			{
+				throw new InvalidOperationException(
+					$"Invalid stock return.\n\n" +
+					$"Issued balance: {currentBalance}\n" +
+					$"Attempted return: {-usage.Quantity}"
+				);
+			}
+
+			using (var insertCmd = connection.CreateCommand())
+			{
+				insertCmd.Transaction = transaction;
+				insertCmd.CommandText = @"
+INSERT INTO ProjectStockUsages
+(Id, ProjectId, StockItemId, Quantity, IssuedOn, IssuedBy, Notes)
+VALUES
+($id, $projectId, $stockItemId, $qty, $issuedOn, $issuedBy, $notes);";
+
+				insertCmd.Parameters.AddWithValue("$id", usage.Id.ToString());
+				insertCmd.Parameters.AddWithValue("$projectId", usage.ProjectId.ToString());
+				insertCmd.Parameters.AddWithValue("$stockItemId", usage.StockItemId.ToString());
+				insertCmd.Parameters.AddWithValue("$qty", usage.Quantity);
+				insertCmd.Parameters.AddWithValue("$issuedOn", usage.IssuedOn.ToString("o"));
+				insertCmd.Parameters.AddWithValue("$issuedBy", usage.IssuedBy ?? string.Empty);
+				insertCmd.Parameters.AddWithValue("$notes", usage.Notes ?? string.Empty);
+
+				insertCmd.ExecuteNonQuery();
+			}
+
+			transaction.Commit();
 		}
 
 		public List<ProjectStockUsage> GetByProjectId(Guid projectId)
@@ -68,18 +102,17 @@ namespace WeldAdminPro.Data.Repositories
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-                SELECT
-                    Id,
-                    ProjectId,
-                    StockItemId,
-                    Quantity,
-                    IssuedOn,
-                    IssuedBy,
-                    Notes
-                FROM ProjectStockUsages
-                WHERE ProjectId = $projectId
-                ORDER BY IssuedOn DESC;
-            ";
+SELECT
+	Id,
+	ProjectId,
+	StockItemId,
+	Quantity,
+	IssuedOn,
+	IssuedBy,
+	Notes
+FROM ProjectStockUsages
+WHERE ProjectId = $projectId
+ORDER BY IssuedOn DESC;";
 
 			cmd.Parameters.AddWithValue("$projectId", projectId.ToString());
 
@@ -95,6 +128,50 @@ namespace WeldAdminPro.Data.Repositories
 					IssuedOn = DateTime.Parse(reader.GetString(4)),
 					IssuedBy = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
 					Notes = reader.IsDBNull(6) ? string.Empty : reader.GetString(6)
+				});
+			}
+
+			return list;
+		}
+
+		// =========================================================
+		// ✅ PROJECT STOCK SUMMARY (READ-ONLY)
+		// =========================================================
+		public List<ProjectStockSummary> GetProjectStockSummary(Guid projectId)
+		{
+			var list = new List<ProjectStockSummary>();
+
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = @"
+SELECT
+	s.Id,
+	s.ItemCode,
+	s.Description,
+	s.Unit,
+	SUM(CASE WHEN u.Quantity > 0 THEN u.Quantity ELSE 0 END) AS IssuedQty,
+	ABS(SUM(CASE WHEN u.Quantity < 0 THEN u.Quantity ELSE 0 END)) AS ReturnedQty
+FROM ProjectStockUsages u
+JOIN StockItems s ON s.Id = u.StockItemId
+WHERE u.ProjectId = $projectId
+GROUP BY s.Id, s.ItemCode, s.Description, s.Unit
+ORDER BY s.ItemCode;";
+
+			cmd.Parameters.AddWithValue("$projectId", projectId.ToString());
+
+			using var reader = cmd.ExecuteReader();
+			while (reader.Read())
+			{
+				list.Add(new ProjectStockSummary
+				{
+					StockItemId = Guid.Parse(reader.GetString(0)),
+					ItemCode = reader.GetString(1),
+					Description = reader.GetString(2),
+					Unit = reader.IsDBNull(3) ? "" : reader.GetString(3),
+					IssuedQuantity = reader.GetDecimal(4),
+					ReturnedQuantity = reader.GetDecimal(5)
 				});
 			}
 
