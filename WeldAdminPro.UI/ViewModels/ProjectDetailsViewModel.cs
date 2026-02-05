@@ -33,6 +33,15 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private string issuedBy = string.Empty;
 
+		// =========================
+		// 🔁 RETURN STOCK
+		// =========================
+		[ObservableProperty]
+		private ProjectStockUsage? selectedIssuedUsage;
+
+		[ObservableProperty]
+		private decimal returnQuantity;
+
 		public event Action? RequestClose;
 
 		// =========================
@@ -43,18 +52,12 @@ namespace WeldAdminPro.UI.ViewModels
 			Project.Status != ProjectStatus.Cancelled;
 
 		// =========================
-		// LIVE STOCK AVAILABILITY
+		// LIVE AVAILABLE STOCK
 		// =========================
-		public int AvailableQuantity
-		{
-			get
-			{
-				if (SelectedStockItem == null)
-					return 0;
-
-				return _stockRepository.GetAvailableQuantity(SelectedStockItem.Id);
-			}
-		}
+		public int AvailableQuantity =>
+			SelectedStockItem == null
+				? 0
+				: _stockRepository.GetAvailableQuantity(SelectedStockItem.Id);
 
 		public bool CanIssueStock =>
 			IsEditable &&
@@ -63,7 +66,28 @@ namespace WeldAdminPro.UI.ViewModels
 			IssueQuantity <= AvailableQuantity;
 
 		// =========================
-		// STATUS WITH INVOICE RULES
+		// 🔑 REMAINING ISSUED BALANCE (AUTHORITATIVE)
+		// =========================
+		private decimal GetRemainingIssuedBalance(Guid stockItemId)
+		{
+			return IssuedStockHistory
+				.Where(x => x.StockItemId == stockItemId)
+				.Sum(x => x.Quantity);
+		}
+
+		public decimal RemainingIssuedBalance =>
+			SelectedIssuedUsage == null
+				? 0
+				: GetRemainingIssuedBalance(SelectedIssuedUsage.StockItemId);
+
+		public bool CanReturnStock =>
+			IsEditable &&
+			SelectedIssuedUsage != null &&
+			ReturnQuantity > 0 &&
+			ReturnQuantity <= RemainingIssuedBalance;
+
+		// =========================
+		// STATUS + INVOICE RULES
 		// =========================
 		public ProjectStatus Status
 		{
@@ -78,7 +102,7 @@ namespace WeldAdminPro.UI.ViewModels
 					if (!Project.IsInvoiced)
 					{
 						var confirm = MessageBox.Show(
-							"This project is not marked as invoiced.\n\nMark as invoiced before completion?",
+							"This project is not marked as invoiced.\n\nMark it as invoiced before completion?",
 							"Confirm Completion",
 							MessageBoxButton.YesNo,
 							MessageBoxImage.Question
@@ -109,9 +133,11 @@ namespace WeldAdminPro.UI.ViewModels
 				}
 
 				Project.Status = value;
+
 				OnPropertyChanged(nameof(Status));
 				OnPropertyChanged(nameof(IsEditable));
 				OnPropertyChanged(nameof(CanIssueStock));
+				OnPropertyChanged(nameof(CanReturnStock));
 			}
 		}
 
@@ -143,6 +169,10 @@ namespace WeldAdminPro.UI.ViewModels
 			}
 
 			IssuedStockHistory = new ObservableCollection<ProjectStockUsage>(history);
+
+			OnPropertyChanged(nameof(AvailableQuantity));
+			OnPropertyChanged(nameof(CanIssueStock));
+			OnPropertyChanged(nameof(CanReturnStock));
 		}
 
 		// =========================
@@ -157,6 +187,18 @@ namespace WeldAdminPro.UI.ViewModels
 		partial void OnIssueQuantityChanged(decimal value)
 		{
 			OnPropertyChanged(nameof(CanIssueStock));
+		}
+
+		partial void OnSelectedIssuedUsageChanged(ProjectStockUsage? value)
+		{
+			ReturnQuantity = 0;
+			OnPropertyChanged(nameof(RemainingIssuedBalance));
+			OnPropertyChanged(nameof(CanReturnStock));
+		}
+
+		partial void OnReturnQuantityChanged(decimal value)
+		{
+			OnPropertyChanged(nameof(CanReturnStock));
 		}
 
 		// =========================
@@ -211,7 +253,6 @@ namespace WeldAdminPro.UI.ViewModels
 
 			_usageRepository.Add(usage);
 
-			// 🔴 CRITICAL: book stock OUT via transaction system
 			_stockRepository.AddTransaction(new StockTransaction
 			{
 				Id = Guid.NewGuid(),
@@ -229,6 +270,48 @@ namespace WeldAdminPro.UI.ViewModels
 
 			OnPropertyChanged(nameof(AvailableQuantity));
 			OnPropertyChanged(nameof(CanIssueStock));
+			OnPropertyChanged(nameof(CanReturnStock));
+		}
+
+		// =========================
+		// 🔁 RETURN STOCK
+		// =========================
+		[RelayCommand]
+		private void ReturnStock()
+		{
+			if (!CanReturnStock)
+				return;
+
+			var usage = new ProjectStockUsage
+			{
+				Id = Guid.NewGuid(),
+				ProjectId = Project.Id,
+				StockItemId = SelectedIssuedUsage!.StockItemId,
+				Quantity = -ReturnQuantity,
+				IssuedBy = IssuedBy,
+				IssuedOn = DateTime.UtcNow,
+				Notes = "RETURN"
+			};
+
+			_usageRepository.Add(usage);
+
+			_stockRepository.AddTransaction(new StockTransaction
+			{
+				Id = Guid.NewGuid(),
+				StockItemId = usage.StockItemId,
+				Quantity = (int)ReturnQuantity,
+				Type = "IN",
+				TransactionDate = DateTime.UtcNow,
+				Reference = $"Return from Project {Project.JobNumber}"
+			});
+
+			IssuedStockHistory.Insert(0, usage);
+
+			ReturnQuantity = 0;
+			SelectedIssuedUsage = null;
+
+			OnPropertyChanged(nameof(AvailableQuantity));
+			OnPropertyChanged(nameof(CanReturnStock));
 		}
 
 		[RelayCommand]
