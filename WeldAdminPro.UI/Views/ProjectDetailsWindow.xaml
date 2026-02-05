@@ -64,6 +64,8 @@
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<!-- Invoice -->
 				</Grid.RowDefinitions>
 
 				<TextBlock Grid.Row="0" Grid.Column="0" Text="Project Name" FontWeight="Bold"/>
@@ -124,6 +126,18 @@
                             Margin="0,8,0,0"
                             SelectedDate="{Binding Project.EndDate}"
                             IsEnabled="{Binding IsEditable}"/>
+
+				<!-- ================= INVOICING ================= -->
+				<CheckBox Grid.Row="7" Grid.Column="0"
+                          Content="Invoiced"
+                          Margin="0,12,0,0"
+                          IsChecked="{Binding Project.IsInvoiced}"
+                          IsEnabled="{Binding IsEditable}"/>
+
+				<TextBox Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="4"
+                         Margin="0,12,0,0"
+                         Text="{Binding Project.InvoiceNumber}"
+                         IsEnabled="{Binding Project.IsInvoiced}"/>
 			</Grid>
 
 			<!-- ================= BUTTONS ================= -->
@@ -131,12 +145,10 @@
                         Orientation="Horizontal"
                         HorizontalAlignment="Right"
                         Margin="0,30,0,0">
-
 				<Button Content="Save"
                         Width="100"
                         Margin="0,0,10,0"
                         Command="{Binding SaveCommand}"/>
-
 				<Button Content="Cancel"
                         Width="100"
                         Command="{Binding CancelCommand}"/>
@@ -172,11 +184,11 @@
                              Margin="0,8,0,0"
                              Text="{Binding IssueQuantity}"
                              IsEnabled="{Binding IsEditable}"/>
-					<TextBlock Grid.Row="1" Grid.Column="1"
-           Margin="0,30,0,0"
-           Foreground="Gray"
-           Text="{Binding AvailableQuantity, StringFormat=Available: {0}}" />
 
+					<TextBlock Grid.Row="1" Grid.Column="1"
+                               Margin="0,30,0,0"
+                               Foreground="Gray"
+                               Text="{Binding AvailableQuantity, StringFormat=Available: {0}}"/>
 
 					<TextBlock Grid.Row="2" Grid.Column="0" Text="Issued By" Margin="0,8,0,0"/>
 					<TextBox Grid.Row="2" Grid.Column="1"
@@ -185,13 +197,12 @@
                              IsEnabled="{Binding IsEditable}"/>
 
 					<Button Grid.Row="3" Grid.Column="1"
-        Content="Issue Stock"
-        Width="120"
-        Margin="0,12,0,0"
-        HorizontalAlignment="Left"
-        Command="{Binding IssueStockCommand}"
-        IsEnabled="{Binding CanIssueStock}" />
-
+                            Content="Issue Stock"
+                            Width="120"
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Left"
+                            Command="{Binding IssueStockCommand}"
+                            IsEnabled="{Binding CanIssueStock}"/>
 				</Grid>
 			</GroupBox>
 
@@ -210,20 +221,15 @@
 						<DataGridTextColumn Header="Issued On"
                                             Binding="{Binding IssuedOn, StringFormat=\{0:yyyy-MM-dd HH:mm\}}"
                                             Width="140"/>
-
 						<DataGridTextColumn Header="Stock Item"
-                    Binding="{Binding Notes}"
-                    Width="*" />
-
-
+                                            Binding="{Binding Notes}"
+                                            Width="*"/>
 						<DataGridTextColumn Header="Quantity"
                                             Binding="{Binding Quantity}"
                                             Width="100"/>
-
 						<DataGridTextColumn Header="Issued By"
                                             Binding="{Binding IssuedBy}"
                                             Width="140"/>
-
 						<DataGridTextColumn Header="Notes"
                                             Binding="{Binding Notes}"
                                             Width="*"/>
