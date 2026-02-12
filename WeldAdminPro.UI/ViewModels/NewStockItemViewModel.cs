@@ -64,7 +64,8 @@ namespace WeldAdminPro.UI.ViewModels
 				Unit = existingItem.Unit,
 				MinLevel = existingItem.MinLevel,
 				MaxLevel = existingItem.MaxLevel,
-				Category = existingItem.Category
+				Category = existingItem.Category,
+				AverageUnitCost = existingItem.AverageUnitCost
 			};
 
 			_originalItemCode = existingItem.ItemCode;

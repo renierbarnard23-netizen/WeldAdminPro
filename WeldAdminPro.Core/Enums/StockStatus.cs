@@ -1,6 +1,9 @@
-public enum StockStatus
+namespace WeldAdminPro.Core.Models
 {
-    Normal,
-    Low,
-    Out
+	public enum StockStatus
+	{
+		Normal = 0,
+		Low = 1,
+		Out = 2
+	}
 }

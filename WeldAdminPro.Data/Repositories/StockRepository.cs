@@ -25,44 +25,36 @@ namespace WeldAdminPro.Data.Repositories
 
 			using var cmd = connection.CreateCommand();
 
+			// StockItems with HARD constraint
 			cmd.CommandText = @"
 CREATE TABLE IF NOT EXISTS StockItems (
-	Id TEXT PRIMARY KEY,
-	ItemCode TEXT NOT NULL,
-	Description TEXT,
-	Quantity INTEGER NOT NULL,
-	Unit TEXT,
-	MinLevel REAL NULL,
-	MaxLevel REAL NULL,
-	Category TEXT NOT NULL DEFAULT 'Uncategorised',
-	AverageUnitCost REAL NOT NULL DEFAULT 0
+    Id TEXT PRIMARY KEY,
+    ItemCode TEXT NOT NULL,
+    Description TEXT,
+    Quantity INTEGER NOT NULL CHECK (Quantity >= 0),
+    Unit TEXT,
+    MinLevel REAL NULL,
+    MaxLevel REAL NULL,
+    Category TEXT NOT NULL DEFAULT 'Uncategorised',
+    AverageUnitCost REAL NOT NULL DEFAULT 0
 );";
 			cmd.ExecuteNonQuery();
-
-			TryAddColumn(cmd, "ALTER TABLE StockItems ADD COLUMN AverageUnitCost REAL NOT NULL DEFAULT 0;");
 
 			cmd.CommandText = @"
 CREATE TABLE IF NOT EXISTS StockTransactions (
-	Id TEXT PRIMARY KEY,
-	StockItemId TEXT NOT NULL,
-	TransactionDate TEXT NOT NULL,
-	Quantity INTEGER NOT NULL,
-	Type TEXT NOT NULL,
-	UnitCost REAL NOT NULL DEFAULT 0,
-	Reference TEXT
+    Id TEXT PRIMARY KEY,
+    StockItemId TEXT NOT NULL,
+    TransactionDate TEXT NOT NULL,
+    Quantity INTEGER NOT NULL,
+    Type TEXT NOT NULL,
+    UnitCost REAL NOT NULL DEFAULT 0,
+    Reference TEXT
 );";
 			cmd.ExecuteNonQuery();
-
-			TryAddColumn(cmd, "ALTER TABLE StockTransactions ADD COLUMN UnitCost REAL NOT NULL DEFAULT 0;");
 
 			EnsureUniqueItemCodeIndex(connection);
 		}
 
-		private void TryAddColumn(SqliteCommand cmd, string sql)
-		{
-			try { cmd.CommandText = sql; cmd.ExecuteNonQuery(); }
-			catch (SqliteException) { }
-		}
 
 		private void EnsureUniqueItemCodeIndex(SqliteConnection connection)
 		{
@@ -114,7 +106,7 @@ LIMIT 1;";
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
 SELECT Id, ItemCode, Description, Quantity, Unit,
-MinLevel, MaxLevel, Category, AverageUnitCost
+       MinLevel, MaxLevel, Category, AverageUnitCost
 FROM StockItems
 ORDER BY ItemCode;";
 
@@ -171,13 +163,13 @@ VALUES
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
 UPDATE StockItems SET
-	Description = $desc,
-	Quantity = $qty,
-	Unit = $unit,
-	MinLevel = $min,
-	MaxLevel = $max,
-	Category = $cat,
-	AverageUnitCost = $avg
+    Description = $desc,
+    Quantity = $qty,
+    Unit = $unit,
+    MinLevel = $min,
+    MaxLevel = $max,
+    Category = $cat,
+    AverageUnitCost = $avg
 WHERE Id = $id;";
 
 			cmd.Parameters.AddWithValue("$id", item.Id.ToString());
@@ -192,9 +184,6 @@ WHERE Id = $id;";
 			cmd.ExecuteNonQuery();
 		}
 
-		// =========================
-		// AVAILABILITY
-		// =========================
 		public int GetAvailableQuantity(Guid stockItemId)
 		{
 			using var connection = new SqliteConnection(_connectionString);
@@ -209,7 +198,7 @@ WHERE Id = $id;";
 		}
 
 		// =========================
-		// TRANSACTIONS
+		// TRANSACTIONS (MOVING AVERAGE + HARD PROTECTION)
 		// =========================
 		public void AddTransaction(StockTransaction tx)
 		{
@@ -217,6 +206,7 @@ WHERE Id = $id;";
 			connection.Open();
 			using var dbTx = connection.BeginTransaction();
 
+			// Insert transaction
 			using (var cmd = connection.CreateCommand())
 			{
 				cmd.CommandText = @"
@@ -235,19 +225,62 @@ VALUES ($id, $itemId, $date, $qty, $type, $cost, $ref);";
 				cmd.ExecuteNonQuery();
 			}
 
-			int delta = tx.Type == "IN" ? tx.Quantity : -tx.Quantity;
-
-			using (var cmd = connection.CreateCommand())
+			if (tx.Type == "IN")
 			{
-				cmd.CommandText = @"
+				using var getCmd = connection.CreateCommand();
+				getCmd.CommandText = "SELECT Quantity, AverageUnitCost FROM StockItems WHERE Id = $id;";
+				getCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
+
+				using var reader = getCmd.ExecuteReader();
+				if (!reader.Read())
+					throw new Exception("Stock item not found.");
+
+				int oldQty = reader.GetInt32(0);
+				decimal oldAvg = reader.GetDecimal(1);
+
+				int newQty = oldQty + tx.Quantity;
+
+				decimal newAvg =
+					newQty == 0
+						? 0
+						: ((oldQty * oldAvg) + (tx.Quantity * tx.UnitCost)) / newQty;
+
+				using var updateCmd = connection.CreateCommand();
+				updateCmd.CommandText = @"
 UPDATE StockItems
-SET Quantity = Quantity + $delta
+SET Quantity = $qty,
+    AverageUnitCost = $avg
 WHERE Id = $id;";
 
-				cmd.Parameters.AddWithValue("$delta", delta);
-				cmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
+				updateCmd.Parameters.AddWithValue("$qty", newQty);
+				updateCmd.Parameters.AddWithValue("$avg", newAvg);
+				updateCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
 
-				cmd.ExecuteNonQuery();
+				updateCmd.ExecuteNonQuery();
+			}
+			else
+			{
+				// HARD PROTECTION
+				using var checkCmd = connection.CreateCommand();
+				checkCmd.CommandText = "SELECT Quantity FROM StockItems WHERE Id = $id;";
+				checkCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
+
+				var result = checkCmd.ExecuteScalar();
+				int currentQty = result == null ? 0 : Convert.ToInt32(result);
+
+				if (currentQty < tx.Quantity)
+					throw new InvalidOperationException("Insufficient stock available.");
+
+				using var updateCmd = connection.CreateCommand();
+				updateCmd.CommandText = @"
+UPDATE StockItems
+SET Quantity = Quantity - $qty
+WHERE Id = $id;";
+
+				updateCmd.Parameters.AddWithValue("$qty", tx.Quantity);
+				updateCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
+
+				updateCmd.ExecuteNonQuery();
 			}
 
 			dbTx.Commit();
@@ -263,15 +296,15 @@ WHERE Id = $id;";
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
 SELECT
-	t.Id,
-	t.StockItemId,
-	t.TransactionDate,
-	t.Quantity,
-	t.Type,
-	t.UnitCost,
-	t.Reference,
-	i.ItemCode,
-	i.Description
+    t.Id,
+    t.StockItemId,
+    t.TransactionDate,
+    t.Quantity,
+    t.Type,
+    t.UnitCost,
+    t.Reference,
+    i.ItemCode,
+    i.Description
 FROM StockTransactions t
 JOIN StockItems i ON i.Id = t.StockItemId
 ORDER BY t.TransactionDate DESC;";

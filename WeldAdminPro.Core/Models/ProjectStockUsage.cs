@@ -4,6 +4,9 @@ namespace WeldAdminPro.Core.Models
 {
 	public class ProjectStockUsage
 	{
+		public decimal UnitCostAtIssue { get; set; }
+		public decimal LineCost => Quantity * UnitCostAtIssue;
+
 		public Guid Id { get; set; } = Guid.NewGuid();
 
 		public Guid ProjectId { get; set; }

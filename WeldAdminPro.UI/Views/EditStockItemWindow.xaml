@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Edit Stock Item"
         SizeToContent="WidthAndHeight"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner" Height="298">
 
 	<Grid Margin="16">
 		<Grid.ColumnDefinitions>
@@ -40,25 +40,24 @@
 		<TextBlock Text="Max Level:" Grid.Row="5" Margin="0,0,8,6"/>
 		<TextBox Text="{Binding MaxLevel}" Grid.Row="5" Grid.Column="1"/>
 
-		<TextBlock Text="Category:" Grid.Row="6" Margin="0,0,8,6"/>
+		<TextBlock Text="Unit Cost (R):" Grid.Row="6" Margin="0,0,8,6"/>
+		<TextBox Text="{Binding AverageUnitCost}" Grid.Row="6" Grid.Column="1"/>
+
+
+		<TextBlock Text="Category:" Grid.Row="7" Margin="3,32,5,-36"/>
 		<ComboBox ItemsSource="{Binding Categories}"
                   SelectedItem="{Binding Category}"
-                  Grid.Row="6"
-                  Grid.Column="1"/>
+                  Grid.Row="7" Grid.ColumnSpan="2" Margin="77,29,0,-39"/>
 
 		<StackPanel Grid.Row="7" Grid.ColumnSpan="2"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
-                    Margin="0,12,0,0">
-
-			<Button Content="Save"
+                    Margin="0,12,0,0"/>
+		<Button Content="Save"
                     Command="{Binding SaveCommand}"
-                    Width="80"
-                    Margin="0,0,8,0"/>
-
-			<Button Content="Cancel"
+                    Margin="71,56,89,-64" Grid.Column="1" Grid.Row="7"/>
+		<Button Content="Cancel"
                     Command="{Binding CancelCommand}"
-                    Width="80"/>
-		</StackPanel>
+                    Grid.Column="1" Margin="159,56,1,-64" Grid.Row="7"/>
 	</Grid>
 </Window>

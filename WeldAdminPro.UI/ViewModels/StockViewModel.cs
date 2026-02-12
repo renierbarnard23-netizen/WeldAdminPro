@@ -1,14 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
+using ClosedXML.Excel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Win32;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.UI.Views;
-using Microsoft.Win32;
-using ClosedXML.Excel;
 
 namespace WeldAdminPro.UI.ViewModels
 {
@@ -49,7 +50,41 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private int outOfStockCount;
 
-		public bool HasStockWarnings => LowStockCount > 0 || OutOfStockCount > 0;
+		// ✅ Category Breakdown
+		public ObservableCollection<CategoryValueBreakdown> CategoryBreakdown { get; }
+			= new();
+
+		// =========================
+		// FINANCIAL SUMMARY
+		// =========================
+
+		public decimal TotalInventoryValue =>
+			_allItems.Sum(i => i.TotalStockValue);
+
+		public decimal TotalLowStockValue =>
+			_allItems
+				.Where(i => i.Status == StockStatus.Low)
+				.Sum(i => i.TotalStockValue);
+
+		public decimal TotalOutOfStockValue =>
+			_allItems
+				.Where(i => i.Status == StockStatus.Out)
+				.Sum(i => i.TotalStockValue);
+
+		public int TotalUnitsInStock =>
+			_allItems.Sum(i => i.Quantity);
+
+		public IEnumerable<StockItem> TopValuableItems =>
+			_allItems
+				.OrderByDescending(i => i.TotalStockValue)
+				.Take(5);
+
+		public bool HasStockWarnings =>
+			LowStockCount > 0 || OutOfStockCount > 0;
+
+		// =========================
+		// COMMANDS
+		// =========================
 
 		public IRelayCommand ShowAllCommand { get; }
 		public IRelayCommand ShowLowCommand { get; }
@@ -60,7 +95,6 @@ namespace WeldAdminPro.UI.ViewModels
 		public IRelayCommand StockInCommand { get; }
 		public IRelayCommand StockOutCommand { get; }
 		public IRelayCommand ViewHistoryCommand { get; }
-
 		public IRelayCommand ExportWarningsCommand { get; }
 
 		public StockViewModel()
@@ -84,6 +118,10 @@ namespace WeldAdminPro.UI.ViewModels
 			StockOutCommand = new RelayCommand(OpenStockOut, () => SelectedItem != null);
 			ViewHistoryCommand = new RelayCommand(OpenHistory);
 		}
+
+		// =========================
+		// LOAD DATA
+		// =========================
 
 		private void LoadCategories()
 		{
@@ -133,8 +171,42 @@ namespace WeldAdminPro.UI.ViewModels
 			}
 
 			RecalculateStatusCounters();
+			BuildCategoryBreakdown();
+
 			ExportWarningsCommand.NotifyCanExecuteChanged();
+
+			OnPropertyChanged(nameof(TotalInventoryValue));
+			OnPropertyChanged(nameof(TotalLowStockValue));
+			OnPropertyChanged(nameof(TotalOutOfStockValue));
+			OnPropertyChanged(nameof(TotalUnitsInStock));
+			OnPropertyChanged(nameof(TopValuableItems));
 		}
+
+		// =========================
+		// CATEGORY BREAKDOWN
+		// =========================
+
+		private void BuildCategoryBreakdown()
+		{
+			CategoryBreakdown.Clear();
+
+			var grouped = _allItems
+				.GroupBy(i => i.Category)
+				.Select(g => new CategoryValueBreakdown
+				{
+					Category = g.Key,
+					TotalValue = g.Sum(x => x.TotalStockValue),
+					TotalUnits = g.Sum(x => x.Quantity)
+				})
+				.OrderByDescending(g => g.TotalValue);
+
+			foreach (var item in grouped)
+				CategoryBreakdown.Add(item);
+		}
+
+		// =========================
+		// FILTERS
+		// =========================
 
 		private void ApplyStatusFilter(StockStatusFilter filter)
 		{
@@ -149,11 +221,11 @@ namespace WeldAdminPro.UI.ViewModels
 
 			Items = SelectedStatusFilter switch
 			{
-				StockStatusFilter.Low => new ObservableCollection<StockItem>(
-					_allItems.Where(i => i.Status == StockStatus.Low)),
+				StockStatusFilter.Low =>
+					new ObservableCollection<StockItem>(_allItems.Where(i => i.Status == StockStatus.Low)),
 
-				StockStatusFilter.Out => new ObservableCollection<StockItem>(
-					_allItems.Where(i => i.Status == StockStatus.Out)),
+				StockStatusFilter.Out =>
+					new ObservableCollection<StockItem>(_allItems.Where(i => i.Status == StockStatus.Out)),
 
 				_ => new ObservableCollection<StockItem>(_allItems)
 			};
@@ -176,14 +248,18 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			if (Application.Current.Properties.Contains(LastStatusFilterKey))
 			{
-				SelectedStatusFilter = (StockStatusFilter)
-					Application.Current.Properties[LastStatusFilterKey];
+				SelectedStatusFilter =
+					(StockStatusFilter)Application.Current.Properties[LastStatusFilterKey];
 			}
 			else
 			{
 				SelectedStatusFilter = StockStatusFilter.All;
 			}
 		}
+
+		// =========================
+		// EXPORT
+		// =========================
 
 		private void ExportWarningsToExcel()
 		{
@@ -231,11 +307,9 @@ namespace WeldAdminPro.UI.ViewModels
 			workbook.SaveAs(dialog.FileName);
 		}
 
-		public void RefreshAfterCategoryChange()
-		{
-			LoadCategories();
-			LoadItems();
-		}
+		// =========================
+		// WINDOWS
+		// =========================
 
 		private void OpenNewItem()
 		{
@@ -305,6 +379,12 @@ namespace WeldAdminPro.UI.ViewModels
 			};
 
 			window.ShowDialog();
+		}
+
+		public void RefreshAfterCategoryChange()
+		{
+			LoadCategories();
+			LoadItems();
 		}
 	}
 }

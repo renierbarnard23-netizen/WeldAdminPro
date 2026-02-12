@@ -25,6 +25,8 @@
 			<RowDefinition Height="Auto"/>
 			<!-- Max Level -->
 			<RowDefinition Height="Auto"/>
+			<!-- Unit Cost -->
+			<RowDefinition Height="Auto"/>
 			<!-- Category -->
 			<RowDefinition Height="Auto"/>
 			<!-- Buttons -->
@@ -39,19 +41,7 @@
 		<TextBox Grid.Row="0" Grid.Column="1"
                  Margin="0,0,0,6"
                  Text="{Binding Item.ItemCode, UpdateSourceTrigger=PropertyChanged}"
-                 IsReadOnly="{Binding IsEditMode}"
-                 ToolTip="Item Code is auto-suggested and cannot be changed after creation">
-			<TextBox.Style>
-				<Style TargetType="TextBox">
-					<Style.Triggers>
-						<DataTrigger Binding="{Binding IsEditMode}" Value="True">
-							<Setter Property="Background" Value="#FFEFEFEF"/>
-							<Setter Property="Foreground" Value="#FF666666"/>
-						</DataTrigger>
-					</Style.Triggers>
-				</Style>
-			</TextBox.Style>
-		</TextBox>
+                 IsReadOnly="{Binding IsEditMode}"/>
 
 		<!-- Description -->
 		<TextBlock Grid.Row="1" Grid.Column="0"
@@ -83,8 +73,7 @@
 		<TextBox Grid.Row="3" Grid.Column="1"
                  Margin="0,0,0,6"
                  Width="120"
-                 Text="{Binding Item.Unit, UpdateSourceTrigger=PropertyChanged}"
-                 ToolTip="e.g. kg, pcs, litre"/>
+                 Text="{Binding Item.Unit, UpdateSourceTrigger=PropertyChanged}"/>
 
 		<!-- Min Level -->
 		<TextBlock Grid.Row="4" Grid.Column="0"
@@ -95,8 +84,7 @@
 		<TextBox Grid.Row="4" Grid.Column="1"
                  Margin="0,0,0,6"
                  Width="120"
-                 Text="{Binding Item.MinLevel, UpdateSourceTrigger=PropertyChanged}"
-                 ToolTip="Optional minimum stock level"/>
+                 Text="{Binding Item.MinLevel, UpdateSourceTrigger=PropertyChanged}"/>
 
 		<!-- Max Level -->
 		<TextBlock Grid.Row="5" Grid.Column="0"
@@ -107,23 +95,33 @@
 		<TextBox Grid.Row="5" Grid.Column="1"
                  Margin="0,0,0,6"
                  Width="120"
-                 Text="{Binding Item.MaxLevel, UpdateSourceTrigger=PropertyChanged}"
-                 ToolTip="Optional maximum stock level"/>
+                 Text="{Binding Item.MaxLevel, UpdateSourceTrigger=PropertyChanged}"/>
+
+		<!-- Unit Cost -->
+		<TextBlock Grid.Row="6" Grid.Column="0"
+                   Text="Unit Cost (R):"
+                   VerticalAlignment="Center"
+                   Margin="0,0,10,6"/>
+
+		<TextBox Grid.Row="6" Grid.Column="1"
+                 Margin="0,0,0,6"
+                 Width="120"
+                 Text="{Binding Item.AverageUnitCost, UpdateSourceTrigger=PropertyChanged}"/>
 
 		<!-- Category -->
-		<TextBlock Grid.Row="6" Grid.Column="0"
+		<TextBlock Grid.Row="7" Grid.Column="0"
                    Text="Category:"
                    VerticalAlignment="Center"
                    Margin="0,0,10,10"/>
 
-		<ComboBox Grid.Row="6" Grid.Column="1"
+		<ComboBox Grid.Row="7" Grid.Column="1"
                   Margin="0,0,0,10"
                   ItemsSource="{Binding Categories}"
                   SelectedItem="{Binding SelectedCategory}"
                   DisplayMemberPath="Name"/>
 
 		<!-- Buttons -->
-		<StackPanel Grid.Row="7" Grid.ColumnSpan="2"
+		<StackPanel Grid.Row="8" Grid.ColumnSpan="2"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right">
 
@@ -136,5 +134,6 @@
                     Width="100"
                     Command="{Binding CancelCommand}"/>
 		</StackPanel>
+
 	</Grid>
 </Window>

@@ -15,7 +15,6 @@
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
 
 		<Grid.ColumnDefinitions>
@@ -23,31 +22,36 @@
 			<ColumnDefinition Width="*"/>
 		</Grid.ColumnDefinitions>
 
+		<!-- Item -->
 		<TextBlock Text="Stock Item"/>
 		<ComboBox Grid.Column="1"
                   ItemsSource="{Binding StockItems}"
                   SelectedItem="{Binding SelectedStockItem}"
                   DisplayMemberPath="Description"/>
 
+		<!-- Quantity -->
 		<TextBlock Grid.Row="1" Text="Quantity" Margin="0,10,0,0"/>
 		<TextBox Grid.Row="1"
                  Grid.Column="1"
                  Margin="0,10,0,0"
                  Text="{Binding Quantity}"/>
 
+		<!-- Unit Cost -->
 		<TextBlock Grid.Row="2" Text="Unit Cost (R)" Margin="0,10,0,0"/>
 		<TextBox Grid.Row="2"
                  Grid.Column="1"
                  Margin="0,10,0,0"
                  Text="{Binding UnitCost}"/>
 
+		<!-- Reference -->
 		<TextBlock Grid.Row="3" Text="Reference" Margin="0,10,0,0"/>
 		<TextBox Grid.Row="3"
                  Grid.Column="1"
                  Margin="0,10,0,0"
                  Text="{Binding Reference}"/>
 
-		<StackPanel Grid.Row="5"
+		<!-- Buttons -->
+		<StackPanel Grid.Row="4"
                     Grid.ColumnSpan="2"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"

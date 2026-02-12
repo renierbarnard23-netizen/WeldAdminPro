@@ -1,34 +1,108 @@
 ﻿using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace WeldAdminPro.Core.Models
 {
-	public class StockItem
+	public class StockItem : INotifyPropertyChanged
 	{
 		public Guid Id { get; set; }
 
-		public string ItemCode { get; set; } = "";
-		public string Description { get; set; } = "";
-		public int Quantity { get; set; }
-		public string Unit { get; set; } = "";
-		public decimal? MinLevel { get; set; }
-		public decimal? MaxLevel { get; set; }
+		public string ItemCode { get; set; } = string.Empty;
+
+		public string Description { get; set; } = string.Empty;
+
+		// =========================
+		// QUANTITY (Reactive)
+		// =========================
+		private int _quantity;
+		public int Quantity
+		{
+			get => _quantity;
+			set
+			{
+				if (_quantity != value)
+				{
+					_quantity = value;
+					OnPropertyChanged();
+					OnPropertyChanged(nameof(IsOutOfStock));
+					OnPropertyChanged(nameof(IsLowStock));
+					OnPropertyChanged(nameof(Status));
+					OnPropertyChanged(nameof(TotalStockValue));
+				}
+			}
+		}
+
+		public string Unit { get; set; } = string.Empty;
+
+		// =========================
+		// MIN LEVEL (Reactive)
+		// =========================
+		private decimal? _minLevel;
+		public decimal? MinLevel
+		{
+			get => _minLevel;
+			set
+			{
+				if (_minLevel != value)
+				{
+					_minLevel = value;
+					OnPropertyChanged();
+					OnPropertyChanged(nameof(IsLowStock));
+					OnPropertyChanged(nameof(Status));
+				}
+			}
+		}
+
+		private decimal? _maxLevel;
+		public decimal? MaxLevel
+		{
+			get => _maxLevel;
+			set
+			{
+				if (_maxLevel != value)
+				{
+					_maxLevel = value;
+					OnPropertyChanged();
+				}
+			}
+		}
+
 		public string Category { get; set; } = "Uncategorised";
 
-		// 🔹 NEW – Financial Tracking
-		public decimal AverageUnitCost { get; set; } = 0m;
+		// =========================
+		// AVERAGE UNIT COST (Reactive)
+		// =========================
+		private decimal _averageUnitCost;
+		public decimal AverageUnitCost
+		{
+			get => _averageUnitCost;
+			set
+			{
+				if (_averageUnitCost != value)
+				{
+					_averageUnitCost = value;
+					OnPropertyChanged();
+					OnPropertyChanged(nameof(TotalStockValue));
+				}
+			}
+		}
 
+		// =========================
+		// FINANCIAL
+		// =========================
 		public decimal TotalStockValue => Quantity * AverageUnitCost;
 
-		// 🔴 Out of stock = ZERO or less
+		// =========================
+		// STATUS LOGIC
+		// =========================
 		public bool IsOutOfStock => Quantity <= 0;
 
-		// 🟡 Low stock = ABOVE zero AND below min
 		public bool IsLowStock =>
 			MinLevel.HasValue &&
 			Quantity > 0 &&
 			Quantity <= MinLevel.Value;
 
-		// 🧠 Unified stock status
 		public StockStatus Status
 		{
 			get
@@ -41,6 +115,16 @@ namespace WeldAdminPro.Core.Models
 
 				return StockStatus.Normal;
 			}
+		}
+
+		// =========================
+		// PROPERTY CHANGED
+		// =========================
+		public event PropertyChangedEventHandler? PropertyChanged;
+
+		protected void OnPropertyChanged([CallerMemberName] string? name = null)
+		{
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 		}
 	}
 }

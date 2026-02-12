@@ -33,16 +33,24 @@ namespace WeldAdminPro.Data.Services
 		public void ApplyIssueCost(Project project, Guid stockItemId, decimal quantity)
 		{
 			var cost = CalculateIssueCost(stockItemId, quantity);
+
 			project.ActualCost += cost;
 			project.LastModifiedOn = DateTime.UtcNow;
 		}
 
 		// =========================
 		// APPLY RETURN TO PROJECT
+		// ✅ EXACT COST REVERSAL
 		// =========================
-		public void ApplyReturnCost(Project project, Guid stockItemId, decimal quantity)
+		public void ApplyReturnCost(
+			Project project,
+			Guid stockItemId,
+			decimal quantity,
+			decimal unitCostAtIssue)
 		{
-			var cost = CalculateIssueCost(stockItemId, quantity);
+			// Reverse the EXACT cost that was originally applied
+			var cost = quantity * unitCostAtIssue;
+
 			project.ActualCost -= cost;
 
 			if (project.ActualCost < 0)

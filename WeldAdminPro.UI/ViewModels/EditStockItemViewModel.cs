@@ -19,6 +19,7 @@ public partial class EditStockItemViewModel : ObservableObject
 	[ObservableProperty] private decimal? minLevel;
 	[ObservableProperty] private decimal? maxLevel;
 	[ObservableProperty] private string category;
+	[ObservableProperty] private decimal averageUnitCost;   // ✅ NEW
 
 	public IRelayCommand SaveCommand { get; }
 	public IRelayCommand CancelCommand { get; }
@@ -35,6 +36,7 @@ public partial class EditStockItemViewModel : ObservableObject
 		minLevel = item.MinLevel;
 		maxLevel = item.MaxLevel;
 		category = item.Category;
+		averageUnitCost = item.AverageUnitCost;   // ✅ LOAD COST
 
 		SaveCommand = new RelayCommand(Save);
 		CancelCommand = new RelayCommand(() => RequestClose?.Invoke());
@@ -48,6 +50,7 @@ public partial class EditStockItemViewModel : ObservableObject
 		_item.MinLevel = MinLevel;
 		_item.MaxLevel = MaxLevel;
 		_item.Category = Category;
+		_item.AverageUnitCost = AverageUnitCost;   // ✅ SAVE COST
 
 		_repo.Update(_item);
 

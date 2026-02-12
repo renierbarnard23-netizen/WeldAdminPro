@@ -16,6 +16,12 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private StockItem? selectedStockItem;
 
+		partial void OnSelectedStockItemChanged(StockItem? value)
+		{
+			if (value != null)
+				UnitCost = value.AverageUnitCost; // auto-fill cost
+		}
+
 		[ObservableProperty]
 		private int quantity;
 
