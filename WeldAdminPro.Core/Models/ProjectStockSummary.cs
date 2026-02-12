@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace WeldAdminPro.Core.Models
 {
@@ -14,5 +14,8 @@ namespace WeldAdminPro.Core.Models
 		public decimal ReturnedQuantity { get; set; }
 
 		public decimal NetQuantity => IssuedQuantity - ReturnedQuantity;
+
+		// ✅ ADD THIS
+		public bool HasNegativeNetUsage => NetQuantity < 0;
 	}
 }

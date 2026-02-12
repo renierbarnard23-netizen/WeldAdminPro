@@ -26,7 +26,13 @@ namespace WeldAdminPro.UI.ViewModels
 				Status = ProjectStatus.Active,
 				IsInvoiced = false,
 				CreatedOn = DateTime.Now,
-				Amount = 0m
+				LastModifiedOn = DateTime.Now,
+
+				// 🔹 Financial Defaults
+				Budget = 0m,
+				ActualCost = 0m,
+				CommittedCost = 0m,
+				IsArchived = false
 			};
 		}
 
@@ -47,9 +53,9 @@ namespace WeldAdminPro.UI.ViewModels
 				return;
 			}
 
-			if (Project.Amount < 0)
+			if (Project.Budget < 0)
 			{
-				MessageBox.Show("Amount cannot be negative.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+				MessageBox.Show("Budget cannot be negative.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
 				return;
 			}
 

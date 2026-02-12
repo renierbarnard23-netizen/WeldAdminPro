@@ -14,6 +14,11 @@ namespace WeldAdminPro.Core.Models
 		public decimal? MaxLevel { get; set; }
 		public string Category { get; set; } = "Uncategorised";
 
+		// 🔹 NEW – Financial Tracking
+		public decimal AverageUnitCost { get; set; } = 0m;
+
+		public decimal TotalStockValue => Quantity * AverageUnitCost;
+
 		// 🔴 Out of stock = ZERO or less
 		public bool IsOutOfStock => Quantity <= 0;
 
@@ -23,7 +28,7 @@ namespace WeldAdminPro.Core.Models
 			Quantity > 0 &&
 			Quantity <= MinLevel.Value;
 
-		// 🧠 Unified stock status (Phase 9.1)
+		// 🧠 Unified stock status
 		public StockStatus Status
 		{
 			get

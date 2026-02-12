@@ -34,12 +34,12 @@ CREATE TABLE IF NOT EXISTS StockItems (
 	Unit TEXT,
 	MinLevel REAL NULL,
 	MaxLevel REAL NULL,
-	Category TEXT NOT NULL DEFAULT 'Uncategorised'
+	Category TEXT NOT NULL DEFAULT 'Uncategorised',
+	AverageUnitCost REAL NOT NULL DEFAULT 0
 );";
 			cmd.ExecuteNonQuery();
 
-			TryAddColumn(cmd, "ALTER TABLE StockItems ADD COLUMN MinLevel REAL NULL;");
-			TryAddColumn(cmd, "ALTER TABLE StockItems ADD COLUMN MaxLevel REAL NULL;");
+			TryAddColumn(cmd, "ALTER TABLE StockItems ADD COLUMN AverageUnitCost REAL NOT NULL DEFAULT 0;");
 
 			cmd.CommandText = @"
 CREATE TABLE IF NOT EXISTS StockTransactions (
@@ -48,9 +48,12 @@ CREATE TABLE IF NOT EXISTS StockTransactions (
 	TransactionDate TEXT NOT NULL,
 	Quantity INTEGER NOT NULL,
 	Type TEXT NOT NULL,
+	UnitCost REAL NOT NULL DEFAULT 0,
 	Reference TEXT
 );";
 			cmd.ExecuteNonQuery();
+
+			TryAddColumn(cmd, "ALTER TABLE StockTransactions ADD COLUMN UnitCost REAL NOT NULL DEFAULT 0;");
 
 			EnsureUniqueItemCodeIndex(connection);
 		}
@@ -69,22 +72,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS
 UX_StockItems_ItemCode
 ON StockItems (LOWER(ItemCode));";
 			cmd.ExecuteNonQuery();
-		}
-
-		// =========================
-		// AVAILABILITY (NEW)
-		// =========================
-		public int GetAvailableQuantity(Guid stockItemId)
-		{
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
-
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = "SELECT Quantity FROM StockItems WHERE Id = $id;";
-			cmd.Parameters.AddWithValue("$id", stockItemId.ToString());
-
-			var result = cmd.ExecuteScalar();
-			return result == null ? 0 : Convert.ToInt32(result);
 		}
 
 		// =========================
@@ -126,7 +113,8 @@ LIMIT 1;";
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-SELECT Id, ItemCode, Description, Quantity, Unit, MinLevel, MaxLevel, Category
+SELECT Id, ItemCode, Description, Quantity, Unit,
+MinLevel, MaxLevel, Category, AverageUnitCost
 FROM StockItems
 ORDER BY ItemCode;";
 
@@ -142,7 +130,8 @@ ORDER BY ItemCode;";
 					Unit = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
 					MinLevel = reader.IsDBNull(5) ? null : reader.GetDecimal(5),
 					MaxLevel = reader.IsDBNull(6) ? null : reader.GetDecimal(6),
-					Category = reader.IsDBNull(7) ? "Uncategorised" : reader.GetString(7)
+					Category = reader.IsDBNull(7) ? "Uncategorised" : reader.GetString(7),
+					AverageUnitCost = reader.GetDecimal(8)
 				});
 			}
 
@@ -157,9 +146,9 @@ ORDER BY ItemCode;";
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
 INSERT INTO StockItems
-(Id, ItemCode, Description, Quantity, Unit, MinLevel, MaxLevel, Category)
+(Id, ItemCode, Description, Quantity, Unit, MinLevel, MaxLevel, Category, AverageUnitCost)
 VALUES
-($id, $code, $desc, $qty, $unit, $min, $max, $cat);";
+($id, $code, $desc, $qty, $unit, $min, $max, $cat, $avg);";
 
 			cmd.Parameters.AddWithValue("$id", item.Id.ToString());
 			cmd.Parameters.AddWithValue("$code", item.ItemCode.Trim());
@@ -169,6 +158,7 @@ VALUES
 			cmd.Parameters.AddWithValue("$min", (object?)item.MinLevel ?? DBNull.Value);
 			cmd.Parameters.AddWithValue("$max", (object?)item.MaxLevel ?? DBNull.Value);
 			cmd.Parameters.AddWithValue("$cat", item.Category ?? "Uncategorised");
+			cmd.Parameters.AddWithValue("$avg", item.AverageUnitCost);
 
 			cmd.ExecuteNonQuery();
 		}
@@ -186,7 +176,8 @@ UPDATE StockItems SET
 	Unit = $unit,
 	MinLevel = $min,
 	MaxLevel = $max,
-	Category = $cat
+	Category = $cat,
+	AverageUnitCost = $avg
 WHERE Id = $id;";
 
 			cmd.Parameters.AddWithValue("$id", item.Id.ToString());
@@ -196,8 +187,25 @@ WHERE Id = $id;";
 			cmd.Parameters.AddWithValue("$min", (object?)item.MinLevel ?? DBNull.Value);
 			cmd.Parameters.AddWithValue("$max", (object?)item.MaxLevel ?? DBNull.Value);
 			cmd.Parameters.AddWithValue("$cat", item.Category ?? "Uncategorised");
+			cmd.Parameters.AddWithValue("$avg", item.AverageUnitCost);
 
 			cmd.ExecuteNonQuery();
+		}
+
+		// =========================
+		// AVAILABILITY
+		// =========================
+		public int GetAvailableQuantity(Guid stockItemId)
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = "SELECT Quantity FROM StockItems WHERE Id = $id;";
+			cmd.Parameters.AddWithValue("$id", stockItemId.ToString());
+
+			var result = cmd.ExecuteScalar();
+			return result == null ? 0 : Convert.ToInt32(result);
 		}
 
 		// =========================
@@ -213,14 +221,15 @@ WHERE Id = $id;";
 			{
 				cmd.CommandText = @"
 INSERT INTO StockTransactions
-(Id, StockItemId, TransactionDate, Quantity, Type, Reference)
-VALUES ($id, $itemId, $date, $qty, $type, $ref);";
+(Id, StockItemId, TransactionDate, Quantity, Type, UnitCost, Reference)
+VALUES ($id, $itemId, $date, $qty, $type, $cost, $ref);";
 
 				cmd.Parameters.AddWithValue("$id", tx.Id.ToString());
 				cmd.Parameters.AddWithValue("$itemId", tx.StockItemId.ToString());
 				cmd.Parameters.AddWithValue("$date", tx.TransactionDate.ToString("o"));
 				cmd.Parameters.AddWithValue("$qty", tx.Quantity);
 				cmd.Parameters.AddWithValue("$type", tx.Type);
+				cmd.Parameters.AddWithValue("$cost", tx.UnitCost);
 				cmd.Parameters.AddWithValue("$ref", tx.Reference ?? string.Empty);
 
 				cmd.ExecuteNonQuery();
@@ -259,6 +268,7 @@ SELECT
 	t.TransactionDate,
 	t.Quantity,
 	t.Type,
+	t.UnitCost,
 	t.Reference,
 	i.ItemCode,
 	i.Description
@@ -276,9 +286,10 @@ ORDER BY t.TransactionDate DESC;";
 					TransactionDate = DateTime.Parse(reader.GetString(2)),
 					Quantity = reader.GetInt32(3),
 					Type = reader.GetString(4),
-					Reference = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
-					ItemCode = reader.GetString(6),
-					ItemDescription = reader.GetString(7)
+					UnitCost = reader.GetDecimal(5),
+					Reference = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
+					ItemCode = reader.GetString(7),
+					ItemDescription = reader.GetString(8)
 				});
 			}
 

@@ -19,9 +19,7 @@ namespace WeldAdminPro.Core.Models
 		public string ProjectName { get; set; } = string.Empty;
 		public string Client { get; set; } = string.Empty;
 		public string ClientRepresentative { get; set; } = string.Empty;
-
-		public decimal Amount { get; set; }
-
+				
 		public string QuoteNumber { get; set; } = string.Empty;
 		public string OrderNumber { get; set; } = string.Empty;
 
@@ -35,10 +33,20 @@ namespace WeldAdminPro.Core.Models
 		public DateTime? EndDate { get; set; }
 
 		// ✅ Completion date (NEW)
-		public DateTime? CompletedOn { get; set; }
-
+		
 		public ProjectStatus Status { get; set; } = ProjectStatus.Active;
 
 		public DateTime CreatedOn { get; set; } = DateTime.Now;
+
+		// Financial
+		public decimal Budget { get; set; }          // Contract value
+		public decimal ActualCost { get; set; }      // Auto calculated
+		public decimal CommittedCost { get; set; }   // Allocated but not used
+
+		// Lifecycle
+		public DateTime? CompletedOn { get; set; }
+		public DateTime? LastModifiedOn { get; set; }
+		public bool IsArchived { get; set; }
+
 	}
 }
