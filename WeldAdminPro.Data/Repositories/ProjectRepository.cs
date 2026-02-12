@@ -22,6 +22,8 @@ namespace WeldAdminPro.Data.Repositories
 			connection.Open();
 
 			using var cmd = connection.CreateCommand();
+
+			// 🔒 HARD CONSTRAINTS INCLUDED
 			cmd.CommandText = @"
 CREATE TABLE IF NOT EXISTS Projects (
 	Id TEXT PRIMARY KEY,
@@ -29,7 +31,7 @@ CREATE TABLE IF NOT EXISTS Projects (
 	ProjectName TEXT NOT NULL,
 	Client TEXT NOT NULL,
 	ClientRepresentative TEXT,
-	Amount REAL NOT NULL DEFAULT 0, -- legacy (kept for safety)
+	Amount REAL NOT NULL DEFAULT 0,
 	QuoteNumber TEXT,
 	OrderNumber TEXT,
 	Material TEXT,
@@ -39,7 +41,14 @@ CREATE TABLE IF NOT EXISTS Projects (
 	StartDate TEXT,
 	EndDate TEXT,
 	Status INTEGER NOT NULL,
-	CreatedOn TEXT NOT NULL
+	CreatedOn TEXT NOT NULL,
+
+	Budget REAL NOT NULL DEFAULT 0,
+	ActualCost REAL NOT NULL DEFAULT 0 CHECK (ActualCost >= 0),
+	CommittedCost REAL NOT NULL DEFAULT 0 CHECK (CommittedCost >= 0),
+	CompletedOn TEXT,
+	LastModifiedOn TEXT,
+	IsArchived INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS ProjectSettings (
@@ -47,43 +56,6 @@ CREATE TABLE IF NOT EXISTS ProjectSettings (
 	Value TEXT NOT NULL
 );";
 			cmd.ExecuteNonQuery();
-
-			// ---- SAFE COLUMN MIGRATIONS ----
-			AddColumnIfNotExists("Projects", "Budget REAL DEFAULT 0");
-			AddColumnIfNotExists("Projects", "ActualCost REAL DEFAULT 0");
-			AddColumnIfNotExists("Projects", "CommittedCost REAL DEFAULT 0");
-			AddColumnIfNotExists("Projects", "CompletedOn TEXT");
-			AddColumnIfNotExists("Projects", "LastModifiedOn TEXT");
-			AddColumnIfNotExists("Projects", "IsArchived INTEGER DEFAULT 0");
-		}
-
-		private void AddColumnIfNotExists(string table, string columnDef)
-		{
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
-
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = $"PRAGMA table_info({table});";
-
-			using var reader = cmd.ExecuteReader();
-			var columnName = columnDef.Split(' ')[0];
-			var exists = false;
-
-			while (reader.Read())
-			{
-				if (reader["name"].ToString() == columnName)
-				{
-					exists = true;
-					break;
-				}
-			}
-
-			if (!exists)
-			{
-				using var alterCmd = connection.CreateCommand();
-				alterCmd.CommandText = $"ALTER TABLE {table} ADD COLUMN {columnDef};";
-				alterCmd.ExecuteNonQuery();
-			}
 		}
 
 		// ================= READ =================
@@ -129,6 +101,10 @@ CREATE TABLE IF NOT EXISTS ProjectSettings (
 
 			project.JobNumber = GetNextJobNumberInternal(connection);
 
+			project.LastModifiedOn = DateTime.UtcNow;
+
+			ValidateFinancialIntegrity(project);
+
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
 INSERT INTO Projects (
@@ -145,8 +121,6 @@ INSERT INTO Projects (
 	@LastModifiedOn, @IsArchived
 );";
 
-			project.LastModifiedOn = DateTime.Now;
-
 			BindParameters(cmd, project);
 			cmd.ExecuteNonQuery();
 
@@ -161,7 +135,10 @@ INSERT INTO Projects (
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
-			project.LastModifiedOn = DateTime.Now;
+			project.LastModifiedOn = DateTime.UtcNow;
+
+			// 🔒 HARD CODE GUARD
+			ValidateFinancialIntegrity(project);
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
@@ -190,8 +167,54 @@ WHERE Id = @Id;";
 			BindParameters(cmd, project);
 			cmd.ExecuteNonQuery();
 		}
+		// ================= UPDATE (ATOMIC OVERLOAD) =================
 
-		// ================= ARCHIVE (REPLACES DELETE) =================
+		public void Update(Project project, SqliteConnection connection, SqliteTransaction transaction)
+		{
+			project.LastModifiedOn = DateTime.Now;
+
+			using var cmd = connection.CreateCommand();
+			cmd.Transaction = transaction;
+
+			cmd.CommandText = @"
+UPDATE Projects SET
+    ProjectName = @ProjectName,
+    Client = @Client,
+    ClientRepresentative = @ClientRepresentative,
+    Amount = @Amount,
+    Budget = @Budget,
+    QuoteNumber = @QuoteNumber,
+    OrderNumber = @OrderNumber,
+    Material = @Material,
+    AssignedTo = @AssignedTo,
+    IsInvoiced = @IsInvoiced,
+    InvoiceNumber = @InvoiceNumber,
+    StartDate = @StartDate,
+    EndDate = @EndDate,
+    Status = @Status,
+    ActualCost = @ActualCost,
+    CommittedCost = @CommittedCost,
+    CompletedOn = @CompletedOn,
+    LastModifiedOn = @LastModifiedOn,
+    IsArchived = @IsArchived
+WHERE Id = @Id;";
+
+			BindParameters(cmd, project);
+			cmd.ExecuteNonQuery();
+		}
+
+
+		// 🔒 CENTRALIZED FINANCIAL VALIDATION
+		private static void ValidateFinancialIntegrity(Project p)
+		{
+			if (p.ActualCost < 0)
+				throw new InvalidOperationException("ActualCost cannot be negative.");
+
+			if (p.CommittedCost < 0)
+				throw new InvalidOperationException("CommittedCost cannot be negative.");
+		}
+
+		// ================= ARCHIVE =================
 
 		public void Delete(Guid id)
 		{
@@ -213,19 +236,6 @@ WHERE Id = @Id;";
 			return GetNextJobNumberInternal(connection);
 		}
 
-		public void InitializeJobNumber(int startingNumber)
-		{
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
-
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = @"
-INSERT OR IGNORE INTO ProjectSettings (Key, Value)
-VALUES ('NextJobNumber', @Value);";
-			cmd.Parameters.AddWithValue("@Value", startingNumber.ToString());
-			cmd.ExecuteNonQuery();
-		}
-
 		private int GetNextJobNumberInternal(SqliteConnection connection)
 		{
 			using var cmd = connection.CreateCommand();
@@ -241,6 +251,21 @@ VALUES ('NextJobNumber', @Value);";
 			return int.Parse(result.ToString()!);
 		}
 
+		public void InitializeJobNumber(int startingNumber)
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = @"
+INSERT OR IGNORE INTO ProjectSettings (Key, Value)
+VALUES ('NextJobNumber', @Value);";
+
+			cmd.Parameters.AddWithValue("@Value", startingNumber.ToString());
+			cmd.ExecuteNonQuery();
+		}
+
+
 		private void UpdateNextJobNumber(SqliteConnection connection, int next)
 		{
 			using var cmd = connection.CreateCommand();
@@ -249,7 +274,7 @@ VALUES ('NextJobNumber', @Value);";
 			cmd.ExecuteNonQuery();
 		}
 
-		// ================= SAFE PARAM BINDING =================
+		// ================= PARAM BINDING =================
 
 		private static void BindParameters(SqliteCommand cmd, Project p)
 		{
@@ -258,10 +283,7 @@ VALUES ('NextJobNumber', @Value);";
 			cmd.Parameters.AddWithValue("@ProjectName", p.ProjectName);
 			cmd.Parameters.AddWithValue("@Client", p.Client);
 			cmd.Parameters.AddWithValue("@ClientRepresentative", p.ClientRepresentative ?? string.Empty);
-
-			// Legacy compatibility
 			cmd.Parameters.AddWithValue("@Amount", p.Budget);
-
 			cmd.Parameters.AddWithValue("@Budget", p.Budget);
 			cmd.Parameters.AddWithValue("@QuoteNumber", p.QuoteNumber ?? string.Empty);
 			cmd.Parameters.AddWithValue("@OrderNumber", p.OrderNumber ?? string.Empty);
@@ -287,36 +309,56 @@ VALUES ('NextJobNumber', @Value);";
 			cmd.Parameters.AddWithValue("@IsArchived", p.IsArchived ? 1 : 0);
 		}
 
-		private static Project Map(IDataRecord r) => new()
+		private static Project Map(IDataRecord r)
 		{
-			Id = Guid.Parse(r["Id"].ToString()!),
-			JobNumber = Convert.ToInt32(r["JobNumber"]),
-			ProjectName = r["ProjectName"].ToString()!,
-			Client = r["Client"].ToString()!,
-			ClientRepresentative = r["ClientRepresentative"]?.ToString() ?? string.Empty,
+			decimal GetDecimal(string name) =>
+				r[name] == DBNull.Value ? 0m : Convert.ToDecimal(r[name]);
 
-			Budget = r["Budget"] != DBNull.Value
-				? Convert.ToDecimal(r["Budget"])
-				: Convert.ToDecimal(r["Amount"]), // fallback for legacy
+			int GetInt(string name) =>
+				r[name] == DBNull.Value ? 0 : Convert.ToInt32(r[name]);
 
-			QuoteNumber = r["QuoteNumber"]?.ToString() ?? string.Empty,
-			OrderNumber = r["OrderNumber"]?.ToString() ?? string.Empty,
-			Material = r["Material"]?.ToString() ?? string.Empty,
-			AssignedTo = r["AssignedTo"]?.ToString() ?? string.Empty,
-			IsInvoiced = Convert.ToInt32(r["IsInvoiced"]) == 1,
-			InvoiceNumber = r["InvoiceNumber"]?.ToString(),
+			string GetString(string name) =>
+				r[name] == DBNull.Value ? string.Empty : r[name].ToString()!;
 
-			StartDate = r["StartDate"] == DBNull.Value ? null : DateTime.Parse(r["StartDate"].ToString()!),
-			EndDate = r["EndDate"] == DBNull.Value ? null : DateTime.Parse(r["EndDate"].ToString()!),
-			CompletedOn = r["CompletedOn"] == DBNull.Value ? null : DateTime.Parse(r["CompletedOn"].ToString()!),
+			DateTime? GetDate(string name) =>
+				r[name] == DBNull.Value ? null : DateTime.Parse(r[name].ToString()!);
 
-			Status = (ProjectStatus)Convert.ToInt32(r["Status"]),
-			CreatedOn = DateTime.Parse(r["CreatedOn"].ToString()!),
-			LastModifiedOn = r["LastModifiedOn"] == DBNull.Value ? null : DateTime.Parse(r["LastModifiedOn"].ToString()!),
+			bool GetBool(string name) =>
+				r[name] != DBNull.Value && Convert.ToInt32(r[name]) == 1;
 
-			ActualCost = r["ActualCost"] != DBNull.Value ? Convert.ToDecimal(r["ActualCost"]) : 0,
-			CommittedCost = r["CommittedCost"] != DBNull.Value ? Convert.ToDecimal(r["CommittedCost"]) : 0,
-			IsArchived = r["IsArchived"] != DBNull.Value && Convert.ToInt32(r["IsArchived"]) == 1
-		};
+			return new Project
+			{
+				Id = Guid.Parse(r["Id"].ToString()!),
+				JobNumber = GetInt("JobNumber"),
+				ProjectName = GetString("ProjectName"),
+				Client = GetString("Client"),
+				ClientRepresentative = GetString("ClientRepresentative"),
+
+				Budget = GetDecimal("Budget") != 0
+					? GetDecimal("Budget")
+					: GetDecimal("Amount"),
+
+				QuoteNumber = GetString("QuoteNumber"),
+				OrderNumber = GetString("OrderNumber"),
+				Material = GetString("Material"),
+				AssignedTo = GetString("AssignedTo"),
+				IsInvoiced = GetBool("IsInvoiced"),
+				InvoiceNumber = GetString("InvoiceNumber"),
+
+				StartDate = GetDate("StartDate"),
+				EndDate = GetDate("EndDate"),
+				CompletedOn = GetDate("CompletedOn"),
+
+				Status = (ProjectStatus)GetInt("Status"),
+				CreatedOn = DateTime.Parse(r["CreatedOn"].ToString()!),
+				LastModifiedOn = GetDate("LastModifiedOn"),
+
+				ActualCost = GetDecimal("ActualCost"),
+				CommittedCost = GetDecimal("CommittedCost"),
+				IsArchived = GetBool("IsArchived")
+			};
+		}
 	}
 }
+
+

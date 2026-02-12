@@ -14,6 +14,14 @@ namespace WeldAdminPro.Data.Services
 		}
 
 		// =========================
+		// INTERNAL ROUNDING SAFETY
+		// =========================
+		private decimal RoundCurrency(decimal value)
+		{
+			return Math.Round(value, 2, MidpointRounding.AwayFromZero);
+		}
+
+		// =========================
 		// ISSUE COST CALCULATION
 		// =========================
 		public decimal CalculateIssueCost(Guid stockItemId, decimal quantity)
@@ -24,7 +32,8 @@ namespace WeldAdminPro.Data.Services
 			if (stock == null)
 				throw new Exception("Stock item not found for costing.");
 
-			return quantity * stock.AverageUnitCost;
+			var cost = quantity * stock.AverageUnitCost;
+			return RoundCurrency(cost);
 		}
 
 		// =========================
@@ -34,24 +43,25 @@ namespace WeldAdminPro.Data.Services
 		{
 			var cost = CalculateIssueCost(stockItemId, quantity);
 
-			project.ActualCost += cost;
+			project.ActualCost = RoundCurrency(project.ActualCost + cost);
+
+			if (project.ActualCost < 0)
+				project.ActualCost = 0;
+
 			project.LastModifiedOn = DateTime.UtcNow;
 		}
 
 		// =========================
-		// APPLY RETURN TO PROJECT
-		// ✅ EXACT COST REVERSAL
+		// APPLY RETURN (EXACT COST)
 		// =========================
-		public void ApplyReturnCost(
-			Project project,
-			Guid stockItemId,
-			decimal quantity,
-			decimal unitCostAtIssue)
+		public void ApplyReturnCost(Project project,
+									Guid stockItemId,
+									decimal quantity,
+									decimal unitCostAtIssue)
 		{
-			// Reverse the EXACT cost that was originally applied
-			var cost = quantity * unitCostAtIssue;
+			var cost = RoundCurrency(quantity * unitCostAtIssue);
 
-			project.ActualCost -= cost;
+			project.ActualCost = RoundCurrency(project.ActualCost - cost);
 
 			if (project.ActualCost < 0)
 				project.ActualCost = 0;
@@ -64,7 +74,7 @@ namespace WeldAdminPro.Data.Services
 		// =========================
 		public decimal CalculateVariance(Project project)
 		{
-			return project.Budget - project.ActualCost;
+			return RoundCurrency(project.Budget - project.ActualCost);
 		}
 
 		// =========================
@@ -76,7 +86,7 @@ namespace WeldAdminPro.Data.Services
 				return 0;
 
 			var variance = CalculateVariance(project);
-			return (variance / project.Budget) * 100m;
+			return RoundCurrency((variance / project.Budget) * 100m);
 		}
 	}
 }

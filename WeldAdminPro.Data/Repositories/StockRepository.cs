@@ -5,7 +5,7 @@ using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Data.Repositories
 {
-	public partial class StockRepository
+	public class StockRepository
 	{
 		private readonly string _connectionString;
 
@@ -15,17 +15,18 @@ namespace WeldAdminPro.Data.Repositories
 			EnsureSchema();
 		}
 
-		// =========================
+		// =========================================================
 		// SCHEMA
-		// =========================
+		// =========================================================
 		private void EnsureSchema()
 		{
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
 			using var cmd = connection.CreateCommand();
+			cmd.CommandText = "PRAGMA foreign_keys = ON;";
+			cmd.ExecuteNonQuery();
 
-			// StockItems with HARD constraint
 			cmd.CommandText = @"
 CREATE TABLE IF NOT EXISTS StockItems (
     Id TEXT PRIMARY KEY,
@@ -48,13 +49,16 @@ CREATE TABLE IF NOT EXISTS StockTransactions (
     Quantity INTEGER NOT NULL,
     Type TEXT NOT NULL,
     UnitCost REAL NOT NULL DEFAULT 0,
-    Reference TEXT
+    Reference TEXT,
+    FOREIGN KEY (StockItemId)
+        REFERENCES StockItems(Id)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
 );";
 			cmd.ExecuteNonQuery();
 
 			EnsureUniqueItemCodeIndex(connection);
 		}
-
 
 		private void EnsureUniqueItemCodeIndex(SqliteConnection connection)
 		{
@@ -66,36 +70,9 @@ ON StockItems (LOWER(ItemCode));";
 			cmd.ExecuteNonQuery();
 		}
 
-		// =========================
-		// ITEM CODE SUGGESTION
-		// =========================
-		public string GetNextItemCodeSuggestion()
-		{
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
-
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = @"
-SELECT ItemCode
-FROM StockItems
-ORDER BY ItemCode DESC
-LIMIT 1;";
-
-			var result = cmd.ExecuteScalar()?.ToString();
-
-			if (string.IsNullOrWhiteSpace(result))
-				return "ITEM-001";
-
-			var parts = result.Split('-', StringSplitOptions.RemoveEmptyEntries);
-			if (parts.Length < 2 || !int.TryParse(parts[^1], out int number))
-				return result + "-1";
-
-			return $"{string.Join('-', parts[..^1])}-{number + 1:000}";
-		}
-
-		// =========================
+		// =========================================================
 		// STOCK ITEMS
-		// =========================
+		// =========================================================
 		public List<StockItem> GetAll()
 		{
 			var list = new List<StockItem>();
@@ -117,13 +94,13 @@ ORDER BY ItemCode;";
 				{
 					Id = Guid.Parse(reader.GetString(0)),
 					ItemCode = reader.GetString(1),
-					Description = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+					Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
 					Quantity = reader.GetInt32(3),
-					Unit = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
+					Unit = reader.IsDBNull(4) ? "" : reader.GetString(4),
 					MinLevel = reader.IsDBNull(5) ? null : reader.GetDecimal(5),
 					MaxLevel = reader.IsDBNull(6) ? null : reader.GetDecimal(6),
 					Category = reader.IsDBNull(7) ? "Uncategorised" : reader.GetString(7),
-					AverageUnitCost = reader.GetDecimal(8)
+					AverageUnitCost = reader.IsDBNull(8) ? 0m : reader.GetDecimal(8)
 				});
 			}
 
@@ -144,9 +121,9 @@ VALUES
 
 			cmd.Parameters.AddWithValue("$id", item.Id.ToString());
 			cmd.Parameters.AddWithValue("$code", item.ItemCode.Trim());
-			cmd.Parameters.AddWithValue("$desc", item.Description);
+			cmd.Parameters.AddWithValue("$desc", item.Description ?? "");
 			cmd.Parameters.AddWithValue("$qty", item.Quantity);
-			cmd.Parameters.AddWithValue("$unit", item.Unit);
+			cmd.Parameters.AddWithValue("$unit", item.Unit ?? "");
 			cmd.Parameters.AddWithValue("$min", (object?)item.MinLevel ?? DBNull.Value);
 			cmd.Parameters.AddWithValue("$max", (object?)item.MaxLevel ?? DBNull.Value);
 			cmd.Parameters.AddWithValue("$cat", item.Category ?? "Uncategorised");
@@ -173,9 +150,9 @@ UPDATE StockItems SET
 WHERE Id = $id;";
 
 			cmd.Parameters.AddWithValue("$id", item.Id.ToString());
-			cmd.Parameters.AddWithValue("$desc", item.Description);
+			cmd.Parameters.AddWithValue("$desc", item.Description ?? "");
 			cmd.Parameters.AddWithValue("$qty", item.Quantity);
-			cmd.Parameters.AddWithValue("$unit", item.Unit);
+			cmd.Parameters.AddWithValue("$unit", item.Unit ?? "");
 			cmd.Parameters.AddWithValue("$min", (object?)item.MinLevel ?? DBNull.Value);
 			cmd.Parameters.AddWithValue("$max", (object?)item.MaxLevel ?? DBNull.Value);
 			cmd.Parameters.AddWithValue("$cat", item.Category ?? "Uncategorised");
@@ -197,93 +174,67 @@ WHERE Id = $id;";
 			return result == null ? 0 : Convert.ToInt32(result);
 		}
 
-		// =========================
-		// TRANSACTIONS (MOVING AVERAGE + HARD PROTECTION)
-		// =========================
+		public string GetNextItemCodeSuggestion()
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = "SELECT ItemCode FROM StockItems ORDER BY ItemCode DESC LIMIT 1;";
+
+			var result = cmd.ExecuteScalar()?.ToString();
+			if (string.IsNullOrWhiteSpace(result))
+				return "ITEM-001";
+
+			var parts = result.Split('-', StringSplitOptions.RemoveEmptyEntries);
+			if (parts.Length < 2 || !int.TryParse(parts[^1], out int number))
+				return result + "-1";
+
+			return $"{string.Join('-', parts[..^1])}-{number + 1:000}";
+		}
+
+		// =========================================================
+		// TRANSACTIONS
+		// =========================================================
 		public void AddTransaction(StockTransaction tx)
 		{
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
-			using var dbTx = connection.BeginTransaction();
 
-			// Insert transaction
-			using (var cmd = connection.CreateCommand())
+			using var transaction = connection.BeginTransaction();
+			try
 			{
-				cmd.CommandText = @"
+				AddTransaction(tx, connection, transaction);
+				transaction.Commit();
+			}
+			catch
+			{
+				transaction.Rollback();
+				throw;
+			}
+		}
+
+		public void AddTransaction(StockTransaction tx,
+								   SqliteConnection connection,
+								   SqliteTransaction transaction)
+		{
+			using var cmd = connection.CreateCommand();
+			cmd.Transaction = transaction;
+
+			cmd.CommandText = @"
 INSERT INTO StockTransactions
 (Id, StockItemId, TransactionDate, Quantity, Type, UnitCost, Reference)
 VALUES ($id, $itemId, $date, $qty, $type, $cost, $ref);";
 
-				cmd.Parameters.AddWithValue("$id", tx.Id.ToString());
-				cmd.Parameters.AddWithValue("$itemId", tx.StockItemId.ToString());
-				cmd.Parameters.AddWithValue("$date", tx.TransactionDate.ToString("o"));
-				cmd.Parameters.AddWithValue("$qty", tx.Quantity);
-				cmd.Parameters.AddWithValue("$type", tx.Type);
-				cmd.Parameters.AddWithValue("$cost", tx.UnitCost);
-				cmd.Parameters.AddWithValue("$ref", tx.Reference ?? string.Empty);
+			cmd.Parameters.AddWithValue("$id", tx.Id.ToString());
+			cmd.Parameters.AddWithValue("$itemId", tx.StockItemId.ToString());
+			cmd.Parameters.AddWithValue("$date", tx.TransactionDate.ToString("o"));
+			cmd.Parameters.AddWithValue("$qty", tx.Quantity);
+			cmd.Parameters.AddWithValue("$type", tx.Type);
+			cmd.Parameters.AddWithValue("$cost", tx.UnitCost);
+			cmd.Parameters.AddWithValue("$ref", tx.Reference ?? "");
 
-				cmd.ExecuteNonQuery();
-			}
-
-			if (tx.Type == "IN")
-			{
-				using var getCmd = connection.CreateCommand();
-				getCmd.CommandText = "SELECT Quantity, AverageUnitCost FROM StockItems WHERE Id = $id;";
-				getCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
-
-				using var reader = getCmd.ExecuteReader();
-				if (!reader.Read())
-					throw new Exception("Stock item not found.");
-
-				int oldQty = reader.GetInt32(0);
-				decimal oldAvg = reader.GetDecimal(1);
-
-				int newQty = oldQty + tx.Quantity;
-
-				decimal newAvg =
-					newQty == 0
-						? 0
-						: ((oldQty * oldAvg) + (tx.Quantity * tx.UnitCost)) / newQty;
-
-				using var updateCmd = connection.CreateCommand();
-				updateCmd.CommandText = @"
-UPDATE StockItems
-SET Quantity = $qty,
-    AverageUnitCost = $avg
-WHERE Id = $id;";
-
-				updateCmd.Parameters.AddWithValue("$qty", newQty);
-				updateCmd.Parameters.AddWithValue("$avg", newAvg);
-				updateCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
-
-				updateCmd.ExecuteNonQuery();
-			}
-			else
-			{
-				// HARD PROTECTION
-				using var checkCmd = connection.CreateCommand();
-				checkCmd.CommandText = "SELECT Quantity FROM StockItems WHERE Id = $id;";
-				checkCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
-
-				var result = checkCmd.ExecuteScalar();
-				int currentQty = result == null ? 0 : Convert.ToInt32(result);
-
-				if (currentQty < tx.Quantity)
-					throw new InvalidOperationException("Insufficient stock available.");
-
-				using var updateCmd = connection.CreateCommand();
-				updateCmd.CommandText = @"
-UPDATE StockItems
-SET Quantity = Quantity - $qty
-WHERE Id = $id;";
-
-				updateCmd.Parameters.AddWithValue("$qty", tx.Quantity);
-				updateCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
-
-				updateCmd.ExecuteNonQuery();
-			}
-
-			dbTx.Commit();
+			cmd.ExecuteNonQuery();
 		}
 
 		public List<StockTransaction> GetAllTransactions()
@@ -295,16 +246,9 @@ WHERE Id = $id;";
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-SELECT
-    t.Id,
-    t.StockItemId,
-    t.TransactionDate,
-    t.Quantity,
-    t.Type,
-    t.UnitCost,
-    t.Reference,
-    i.ItemCode,
-    i.Description
+SELECT t.Id, t.StockItemId, t.TransactionDate,
+       t.Quantity, t.Type, t.UnitCost, t.Reference,
+       i.ItemCode, i.Description
 FROM StockTransactions t
 JOIN StockItems i ON i.Id = t.StockItemId
 ORDER BY t.TransactionDate DESC;";
@@ -320,7 +264,7 @@ ORDER BY t.TransactionDate DESC;";
 					Quantity = reader.GetInt32(3),
 					Type = reader.GetString(4),
 					UnitCost = reader.GetDecimal(5),
-					Reference = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
+					Reference = reader.IsDBNull(6) ? "" : reader.GetString(6),
 					ItemCode = reader.GetString(7),
 					ItemDescription = reader.GetString(8)
 				});

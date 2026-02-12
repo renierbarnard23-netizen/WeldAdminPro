@@ -19,6 +19,9 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly StockAvailabilityService _stockAvailability;
 		private readonly FinancialService _financialService;
 
+		// 🔒 NEW ATOMIC SERVICE
+		private readonly StockProjectTransactionService _transactionService;
+
 		public Project Project { get; }
 
 		public IReadOnlyList<ProjectStatus> Statuses { get; }
@@ -35,7 +38,7 @@ namespace WeldAdminPro.UI.ViewModels
 		public bool CanSave => IsEditable;
 
 		// =========================
-		// FINANCIAL CALCULATED PROPERTIES
+		// FINANCIAL CALCULATED
 		// =========================
 		public decimal Variance =>
 			_financialService.CalculateVariance(Project);
@@ -145,6 +148,7 @@ namespace WeldAdminPro.UI.ViewModels
 			_stockRepository = new StockRepository();
 			_stockAvailability = new StockAvailabilityService();
 			_financialService = new FinancialService();
+			_transactionService = new StockProjectTransactionService(); // 🔒
 
 			Statuses = Enum.GetValues(typeof(ProjectStatus))
 				.Cast<ProjectStatus>()
@@ -171,104 +175,74 @@ namespace WeldAdminPro.UI.ViewModels
 			OnPropertyChanged(nameof(CanReturnStock));
 			OnPropertyChanged(nameof(AvailableQuantity));
 
-			// 🔥 FORCE FINANCIAL REFRESH
 			OnPropertyChanged(nameof(Project));
 			OnPropertyChanged(nameof(Project.ActualCost));
 			OnPropertyChanged(nameof(Variance));
 			OnPropertyChanged(nameof(MarginPercentage));
 		}
 
-
 		// =========================
-		// ISSUE STOCK
+		// 🔒 ISSUE STOCK (ATOMIC)
 		// =========================
 		[RelayCommand]
 		private void IssueStock()
 		{
-			if (!CanIssueStock || SelectedStockItem == null) return;
+			if (!CanIssueStock || SelectedStockItem == null)
+				return;
 
-			var unitCost = SelectedStockItem.AverageUnitCost;
+			_transactionService.IssueStock(
+				Project,
+				SelectedStockItem,
+				IssueQuantity,
+				IssuedBy);
 
-			var usage = new ProjectStockUsage
-			{
-				ProjectId = Project.Id,
-				StockItemId = SelectedStockItem.Id,
-				Quantity = IssueQuantity,
-				UnitCostAtIssue = unitCost,
-				IssuedBy = IssuedBy,
-				IssuedOn = DateTime.UtcNow,
-				Notes = SelectedStockItem.Description
-			};
-
-			_usageRepository.Add(usage);
-
-			_stockRepository.AddTransaction(new StockTransaction
-			{
-				Id = Guid.NewGuid(),
-				StockItemId = usage.StockItemId,
-				Quantity = (int)IssueQuantity,
-				Type = "OUT",
-				TransactionDate = DateTime.UtcNow,
-				Reference = $"Project {Project.JobNumber}"
-			});
-
-			// ✅ Apply financial cost
-			_financialService.ApplyIssueCost(Project, SelectedStockItem.Id, IssueQuantity);
-			_projectRepository.Update(Project);
-
-			IssuedStockHistory.Insert(0, usage);
-
-			IssueQuantity = 0;
-			IssuedBy = string.Empty;
-
-			RefreshSummary();
+			ReloadAfterTransaction();
 		}
 
 		// =========================
-		// RETURN STOCK
+		// 🔒 RETURN STOCK (ATOMIC)
 		// =========================
 		[RelayCommand]
 		private void ReturnStock()
 		{
-			if (!CanReturnStock || SelectedIssuedUsage == null) return;
+			if (!CanReturnStock || SelectedIssuedUsage == null)
+				return;
 
-			var usage = new ProjectStockUsage
-			{
-				ProjectId = Project.Id,
-				StockItemId = SelectedIssuedUsage.StockItemId,
-				Quantity = -ReturnQuantity,
-				UnitCostAtIssue = SelectedIssuedUsage.UnitCostAtIssue,   // ✅ CRITICAL
-				IssuedBy = IssuedBy,
-				IssuedOn = DateTime.UtcNow,
-				Notes = SelectedIssuedUsage.Notes
-			};
+			var stockItem = StockItems.FirstOrDefault(x => x.Id == SelectedIssuedUsage.StockItemId);
+			if (stockItem == null)
+				return;
 
-			_usageRepository.Add(usage);
+			_transactionService.ReturnStock(
+				Project,
+				stockItem,
+				ReturnQuantity,
+				SelectedIssuedUsage.UnitCostAtIssue,
+				IssuedBy);
 
-			_stockRepository.AddTransaction(new StockTransaction
-			{
-				Id = Guid.NewGuid(),
-				StockItemId = usage.StockItemId,
-				Quantity = (int)ReturnQuantity,
-				Type = "IN",
-				TransactionDate = DateTime.UtcNow,
-				Reference = $"Return from Project {Project.JobNumber}"
-			});
-
-			// ✅ Reverse EXACT issued cost
-			_financialService.ApplyReturnCost(Project, usage.StockItemId, ReturnQuantity, usage.UnitCostAtIssue);
-
-			_projectRepository.Update(Project);
-
-			IssuedStockHistory.Insert(0, usage);
-
-			ReturnQuantity = 0;
-			SelectedIssuedUsage = null;
-
-			RefreshSummary();
+			ReloadAfterTransaction();
 		}
 
 
+		// =========================
+		// CENTRALIZED RELOAD
+		// =========================
+		private void ReloadAfterTransaction()
+		{
+			IssuedStockHistory.Clear();
+			foreach (var u in _usageRepository.GetByProjectId(Project.Id))
+				IssuedStockHistory.Add(u);
+
+			RefreshSummary();
+
+			IssueQuantity = 0;
+			ReturnQuantity = 0;
+			IssuedBy = string.Empty;
+			SelectedIssuedUsage = null;
+		}
+
+		// =========================
+		// SAVE
+		// =========================
 		[RelayCommand]
 		private void Save()
 		{

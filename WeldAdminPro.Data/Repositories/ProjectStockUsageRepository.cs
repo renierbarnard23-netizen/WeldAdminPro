@@ -22,6 +22,9 @@ namespace WeldAdminPro.Data.Repositories
 
 			using var cmd = connection.CreateCommand();
 
+			cmd.CommandText = "PRAGMA foreign_keys = ON;";
+			cmd.ExecuteNonQuery();
+
 			cmd.CommandText = @"
 CREATE TABLE IF NOT EXISTS ProjectStockUsages (
     Id TEXT PRIMARY KEY,
@@ -31,26 +34,29 @@ CREATE TABLE IF NOT EXISTS ProjectStockUsages (
     UnitCostAtIssue REAL NOT NULL DEFAULT 0,
     IssuedOn TEXT NOT NULL,
     IssuedBy TEXT,
-    Notes TEXT
+    Notes TEXT,
+
+    FOREIGN KEY (ProjectId)
+        REFERENCES Projects(Id)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+
+    FOREIGN KEY (StockItemId)
+        REFERENCES StockItems(Id)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
 );";
 			cmd.ExecuteNonQuery();
-
-			// 🔹 Safe migration if column did not exist previously
-			TryAddColumn(cmd,
-				"ALTER TABLE ProjectStockUsages ADD COLUMN UnitCostAtIssue REAL NOT NULL DEFAULT 0;");
-		}
-
-		private void TryAddColumn(SqliteCommand cmd, string sql)
-		{
-			try { cmd.CommandText = sql; cmd.ExecuteNonQuery(); }
-			catch (SqliteException) { }
 		}
 
 		// =========================================================
-		// HARD CONSTRAINT: NO OVER-RETURN
+		// HARD PROTECTION: NO OVER-RETURN
 		// =========================================================
 		public void Add(ProjectStockUsage usage)
 		{
+			if (usage.Id == Guid.Empty)
+				usage.Id = Guid.NewGuid();
+
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 			using var transaction = connection.BeginTransaction();
@@ -147,6 +153,53 @@ ORDER BY IssuedOn DESC;";
 
 			return list;
 		}
+		// ================= ADD (ATOMIC OVERLOAD) =================
+
+		public void Add(ProjectStockUsage usage,
+						SqliteConnection connection,
+						SqliteTransaction transaction)
+		{
+			decimal currentBalance;
+
+			using (var balanceCmd = connection.CreateCommand())
+			{
+				balanceCmd.Transaction = transaction;
+				balanceCmd.CommandText = @"
+SELECT COALESCE(SUM(Quantity), 0)
+FROM ProjectStockUsages
+WHERE ProjectId = $projectId
+  AND StockItemId = $stockItemId;";
+
+				balanceCmd.Parameters.AddWithValue("$projectId", usage.ProjectId.ToString());
+				balanceCmd.Parameters.AddWithValue("$stockItemId", usage.StockItemId.ToString());
+
+				currentBalance = Convert.ToDecimal(balanceCmd.ExecuteScalar());
+			}
+
+			if (usage.Quantity < 0 && currentBalance + usage.Quantity < 0)
+				throw new InvalidOperationException("Invalid stock return – exceeds issued balance.");
+
+			using var insertCmd = connection.CreateCommand();
+			insertCmd.Transaction = transaction;
+
+			insertCmd.CommandText = @"
+INSERT INTO ProjectStockUsages
+(Id, ProjectId, StockItemId, Quantity, UnitCostAtIssue, IssuedOn, IssuedBy, Notes)
+VALUES
+($id, $projectId, $stockItemId, $qty, $cost, $issuedOn, $issuedBy, $notes);";
+
+			insertCmd.Parameters.AddWithValue("$id", usage.Id.ToString());
+			insertCmd.Parameters.AddWithValue("$projectId", usage.ProjectId.ToString());
+			insertCmd.Parameters.AddWithValue("$stockItemId", usage.StockItemId.ToString());
+			insertCmd.Parameters.AddWithValue("$qty", usage.Quantity);
+			insertCmd.Parameters.AddWithValue("$cost", usage.UnitCostAtIssue);
+			insertCmd.Parameters.AddWithValue("$issuedOn", usage.IssuedOn.ToString("o"));
+			insertCmd.Parameters.AddWithValue("$issuedBy", usage.IssuedBy ?? string.Empty);
+			insertCmd.Parameters.AddWithValue("$notes", usage.Notes ?? string.Empty);
+
+			insertCmd.ExecuteNonQuery();
+		}
+
 
 		// =========================================================
 		// PROJECT STOCK SUMMARY
