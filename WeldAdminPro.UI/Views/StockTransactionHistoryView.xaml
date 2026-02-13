@@ -67,13 +67,15 @@
 				<DataGridTextColumn Header="Quantity"
                                     Binding="{Binding Quantity}" />
 
-				<DataGridTextColumn Header="Balance"
-                                    Binding="{Binding RunningBalance}" />
+				<!-- ✅ Correct running balance column -->
+				<DataGridTextColumn Header="Balance After"
+                                    Binding="{Binding BalanceAfter}" />
 
 				<DataGridTextColumn Header="Reference"
                                     Binding="{Binding Reference}" />
 
 			</DataGrid.Columns>
+
 		</DataGrid>
 	</Grid>
 </UserControl>

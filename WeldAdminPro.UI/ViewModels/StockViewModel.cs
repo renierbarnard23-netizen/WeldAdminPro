@@ -246,15 +246,16 @@ namespace WeldAdminPro.UI.ViewModels
 
 		private void RestoreLastStatusFilter()
 		{
-			if (Application.Current.Properties.Contains(LastStatusFilterKey))
+			if (Application.Current.Properties[LastStatusFilterKey]
+	is StockStatusFilter filter)
 			{
-				SelectedStatusFilter =
-					(StockStatusFilter)Application.Current.Properties[LastStatusFilterKey];
+				SelectedStatusFilter = filter;
 			}
 			else
 			{
 				SelectedStatusFilter = StockStatusFilter.All;
 			}
+
 		}
 
 		// =========================

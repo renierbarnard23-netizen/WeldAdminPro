@@ -12,12 +12,6 @@ namespace WeldAdminPro.UI.Views
 			DataContext = new StockViewModel();
 		}
 
-		private void StockIn_Click(object sender, RoutedEventArgs e)
-		{
-			var window = new StockInWindow();
-			window.Owner = Window.GetWindow(this);
-			window.ShowDialog();
-		}
 		private void ManageCategories_Click(object sender, RoutedEventArgs e)
 		{
 			var window = new CategoryManagementWindow
@@ -27,7 +21,7 @@ namespace WeldAdminPro.UI.Views
 
 			window.ShowDialog();
 
-			// 🔑 Refresh stock + categories after closing
+			// Refresh stock + categories after closing
 			if (DataContext is StockViewModel vm)
 			{
 				vm.RefreshAfterCategoryChange();

@@ -8,6 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Views\StockInWindow.xaml.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Remove="Views\StockInWindow.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\WeldAdminPro.Core\WeldAdminPro.Core.csproj" />
     <ProjectReference Include="..\WeldAdminPro.Data\WeldAdminPro.Data.csproj" />
   </ItemGroup>

@@ -5,21 +5,30 @@ namespace WeldAdminPro.Core.Models
 	public class StockTransaction
 	{
 		public Guid Id { get; set; }
+
 		public Guid StockItemId { get; set; }
+
+		// ✅ NEW – optional project link
+		public Guid? ProjectId { get; set; }
+
 		public DateTime TransactionDate { get; set; }
 
-		public int Quantity { get; set; }      // +IN / -OUT
-		public string Type { get; set; } = ""; // IN or OUT
+		// Always stored positive
+		public int Quantity { get; set; }
 
-		// 🔹 NEW – Cost per unit for this transaction
-		// Used for weighted average costing
-		public decimal UnitCost { get; set; } = 0m;
+		// "IN" or "OUT"
+		public string Type { get; set; } = string.Empty;
 
-		public string Reference { get; set; } = "";
+		public decimal UnitCost { get; set; }
 
-		public string ItemCode { get; set; } = "";
-		public string ItemDescription { get; set; } = "";
+		public string? Reference { get; set; }
 
-		public int RunningBalance { get; set; }
+		// Running balance after transaction
+		public int BalanceAfter { get; set; }
+
+		// For joined history display
+		public string ItemCode { get; set; } = string.Empty;
+
+		public string ItemDescription { get; set; } = string.Empty;
 	}
 }
