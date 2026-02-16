@@ -95,6 +95,8 @@ namespace WeldAdminPro.UI.ViewModels
 		public IRelayCommand ViewLedgerCommand { get; }
 
 		public IRelayCommand ExportWarningsCommand { get; }
+		public IRelayCommand OpenSmartPlannerCommand { get; }
+
 
 		public StockViewModel()
 		{
@@ -114,6 +116,8 @@ namespace WeldAdminPro.UI.ViewModels
 
 			ViewHistoryCommand = new RelayCommand(OpenHistory);
 			ViewLedgerCommand = new RelayCommand(OpenLedger);
+			OpenSmartPlannerCommand = new RelayCommand(OpenSmartPlanner);
+
 
 			LoadCategories();
 			RestoreLastStatusFilter();
@@ -437,6 +441,23 @@ namespace WeldAdminPro.UI.ViewModels
 
 			window.ShowDialog();
 		}
+		private void OpenSmartPlanner()
+		{
+			var window = new Window
+			{
+				Title = "Smart Reorder Planner",
+				Content = new SmartReorderPlannerView(),
+				Width = 1000,
+				Height = 650
+			};
+
+			var main = Application.Current.MainWindow;
+			if (main != null && main != window)
+				window.Owner = main;
+
+			window.ShowDialog();
+		}
+
 
 
 		public void RefreshAfterCategoryChange()

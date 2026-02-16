@@ -43,6 +43,11 @@
                     Command="{Binding ViewLedgerCommand}"
                     Width="120"
                     Margin="5,0,0,0"/>
+			<Button Content="Smart Planner"
+        Width="140"
+        Margin="4"
+        Command="{Binding OpenSmartPlannerCommand}" />
+
 		</WrapPanel>
 
 		<!-- CATEGORY -->
