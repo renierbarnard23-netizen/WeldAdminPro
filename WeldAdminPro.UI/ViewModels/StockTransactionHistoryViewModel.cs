@@ -64,11 +64,11 @@ namespace WeldAdminPro.UI.ViewModels
 		public StockTransactionHistoryViewModel()
 		{
 			_repo = new StockRepository();
-			Reload(); // Centralized load
+			Reload();
 		}
 
 		// =====================================================
-		// PUBLIC RELOAD (CRITICAL FIX)
+		// PUBLIC RELOAD (CRITICAL FOR LIVE UPDATES)
 		// =====================================================
 		public void Reload()
 		{
@@ -97,13 +97,13 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 
 		// =====================================================
-		// BUILD ITEM FILTER LIST
+		// BUILD ITEM FILTER LIST (NULL SAFE)
 		// =====================================================
 		private void BuildItemCodeList()
 		{
 			var codes = _allTransactions
-				.Select(t => t.ItemCode)
-				.Where(c => !string.IsNullOrWhiteSpace(c))
+				.Where(t => !string.IsNullOrWhiteSpace(t.ItemCode))
+				.Select(t => t.ItemCode!)
 				.Distinct()
 				.OrderBy(c => c)
 				.ToList();
@@ -112,32 +112,42 @@ namespace WeldAdminPro.UI.ViewModels
 
 			ItemCodes = new ObservableCollection<string>(codes);
 
-			if (!codes.Contains(SelectedItemCode))
+			// Null-safe validation
+			if (string.IsNullOrWhiteSpace(SelectedItemCode) ||
+				!codes.Contains(SelectedItemCode))
+			{
 				SelectedItemCode = "All";
+			}
 		}
 
 		// =====================================================
-		// FILTERING
+		// FILTERING ENGINE
 		// =====================================================
 		private void ApplyFilters()
 		{
 			IEnumerable<StockTransaction> filtered = _allTransactions;
 
+			// Filter by Item
 			if (!string.IsNullOrWhiteSpace(SelectedItemCode) &&
 				SelectedItemCode != "All")
 			{
 				filtered = filtered.Where(t => t.ItemCode == SelectedItemCode);
 			}
 
+			// Filter by From Date
 			if (FromDate.HasValue)
 			{
-				filtered = filtered.Where(t => t.TransactionDate >= FromDate.Value);
+				filtered = filtered.Where(t =>
+					t.TransactionDate >= FromDate.Value);
 			}
 
+			// Filter by To Date
 			if (ToDate.HasValue)
 			{
 				filtered = filtered.Where(t =>
-					t.TransactionDate <= ToDate.Value.AddDays(1).AddSeconds(-1));
+					t.TransactionDate <= ToDate.Value
+						.AddDays(1)
+						.AddSeconds(-1));
 			}
 
 			Transactions = new ObservableCollection<StockTransaction>(filtered);

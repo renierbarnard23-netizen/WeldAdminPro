@@ -16,8 +16,8 @@ namespace WeldAdminPro.UI.ViewModels
 	public enum StockStatusFilter
 	{
 		All,
-		Low,
-		Out
+		ReorderRequired,
+		Critical
 	}
 
 	public partial class StockViewModel : ObservableObject
@@ -50,7 +50,6 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private int outOfStockCount;
 
-		// ✅ Category Breakdown
 		public ObservableCollection<CategoryValueBreakdown> CategoryBreakdown { get; }
 			= new();
 
@@ -62,22 +61,19 @@ namespace WeldAdminPro.UI.ViewModels
 			_allItems.Sum(i => i.TotalStockValue);
 
 		public decimal TotalLowStockValue =>
-			_allItems
-				.Where(i => i.Status == StockStatus.Low)
-				.Sum(i => i.TotalStockValue);
+			_allItems.Where(i => i.SmartStatus == SmartStockStatus.ReorderRequired)
+					 .Sum(i => i.TotalStockValue);
 
 		public decimal TotalOutOfStockValue =>
-			_allItems
-				.Where(i => i.Status == StockStatus.Out)
-				.Sum(i => i.TotalStockValue);
+			_allItems.Where(i => i.SmartStatus == SmartStockStatus.Critical)
+					 .Sum(i => i.TotalStockValue);
 
 		public int TotalUnitsInStock =>
 			_allItems.Sum(i => i.Quantity);
 
 		public IEnumerable<StockItem> TopValuableItems =>
-			_allItems
-				.OrderByDescending(i => i.TotalStockValue)
-				.Take(5);
+			_allItems.OrderByDescending(i => i.TotalStockValue)
+					 .Take(5);
 
 		public bool HasStockWarnings =>
 			LowStockCount > 0 || OutOfStockCount > 0;
@@ -94,7 +90,10 @@ namespace WeldAdminPro.UI.ViewModels
 		public IRelayCommand EditItemCommand { get; }
 		public IRelayCommand StockInCommand { get; }
 		public IRelayCommand StockOutCommand { get; }
+
 		public IRelayCommand ViewHistoryCommand { get; }
+		public IRelayCommand ViewLedgerCommand { get; }
+
 		public IRelayCommand ExportWarningsCommand { get; }
 
 		public StockViewModel()
@@ -103,20 +102,22 @@ namespace WeldAdminPro.UI.ViewModels
 			_categoryRepo = new CategoryRepository();
 
 			ShowAllCommand = new RelayCommand(() => ApplyStatusFilter(StockStatusFilter.All));
-			ShowLowCommand = new RelayCommand(() => ApplyStatusFilter(StockStatusFilter.Low));
-			ShowOutCommand = new RelayCommand(() => ApplyStatusFilter(StockStatusFilter.Out));
+			ShowLowCommand = new RelayCommand(() => ApplyStatusFilter(StockStatusFilter.ReorderRequired));
+			ShowOutCommand = new RelayCommand(() => ApplyStatusFilter(StockStatusFilter.Critical));
 
 			ExportWarningsCommand = new RelayCommand(ExportWarningsToExcel, () => HasStockWarnings);
-
-			LoadCategories();
-			RestoreLastStatusFilter();
-			LoadItems();
 
 			NewItemCommand = new RelayCommand(OpenNewItem);
 			EditItemCommand = new RelayCommand(OpenEditItem, () => SelectedItem != null);
 			StockInCommand = new RelayCommand(OpenStockIn, () => SelectedItem != null);
 			StockOutCommand = new RelayCommand(OpenStockOut, () => SelectedItem != null);
+
 			ViewHistoryCommand = new RelayCommand(OpenHistory);
+			ViewLedgerCommand = new RelayCommand(OpenLedger);
+
+			LoadCategories();
+			RestoreLastStatusFilter();
+			LoadItems();
 		}
 
 		// =========================
@@ -163,13 +164,6 @@ namespace WeldAdminPro.UI.ViewModels
 			);
 
 			ApplyFilters();
-
-			if (Items.Count == 0 && SelectedStatusFilter != StockStatusFilter.All)
-			{
-				SelectedStatusFilter = StockStatusFilter.All;
-				ApplyFilters();
-			}
-
 			RecalculateStatusCounters();
 			BuildCategoryBreakdown();
 
@@ -221,11 +215,15 @@ namespace WeldAdminPro.UI.ViewModels
 
 			Items = SelectedStatusFilter switch
 			{
-				StockStatusFilter.Low =>
-					new ObservableCollection<StockItem>(_allItems.Where(i => i.Status == StockStatus.Low)),
+				StockStatusFilter.ReorderRequired =>
+					new ObservableCollection<StockItem>(
+						_allItems.Where(i =>
+							i.SmartStatus == SmartStockStatus.ReorderRequired)),
 
-				StockStatusFilter.Out =>
-					new ObservableCollection<StockItem>(_allItems.Where(i => i.Status == StockStatus.Out)),
+				StockStatusFilter.Critical =>
+					new ObservableCollection<StockItem>(
+						_allItems.Where(i =>
+							i.SmartStatus == SmartStockStatus.Critical)),
 
 				_ => new ObservableCollection<StockItem>(_allItems)
 			};
@@ -233,8 +231,11 @@ namespace WeldAdminPro.UI.ViewModels
 
 		private void RecalculateStatusCounters()
 		{
-			OutOfStockCount = _allItems.Count(i => i.Status == StockStatus.Out);
-			LowStockCount = _allItems.Count(i => i.Status == StockStatus.Low);
+			OutOfStockCount = _allItems.Count(i =>
+				i.SmartStatus == SmartStockStatus.Critical);
+
+			LowStockCount = _allItems.Count(i =>
+				i.SmartStatus == SmartStockStatus.ReorderRequired);
 
 			OnPropertyChanged(nameof(HasStockWarnings));
 		}
@@ -247,7 +248,7 @@ namespace WeldAdminPro.UI.ViewModels
 		private void RestoreLastStatusFilter()
 		{
 			if (Application.Current.Properties[LastStatusFilterKey]
-	is StockStatusFilter filter)
+				is StockStatusFilter filter)
 			{
 				SelectedStatusFilter = filter;
 			}
@@ -255,17 +256,18 @@ namespace WeldAdminPro.UI.ViewModels
 			{
 				SelectedStatusFilter = StockStatusFilter.All;
 			}
-
 		}
 
 		// =========================
-		// EXPORT
+		// EXPORT WARNINGS
 		// =========================
 
 		private void ExportWarningsToExcel()
 		{
 			var warnings = _allItems
-				.Where(i => i.Status == StockStatus.Low || i.Status == StockStatus.Out)
+				.Where(i =>
+					i.SmartStatus == SmartStockStatus.Critical ||
+					i.SmartStatus == SmartStockStatus.ReorderRequired)
 				.ToList();
 
 			if (!warnings.Any())
@@ -288,9 +290,10 @@ namespace WeldAdminPro.UI.ViewModels
 			ws.Cell(1, 3).Value = "Quantity";
 			ws.Cell(1, 4).Value = "Unit";
 			ws.Cell(1, 5).Value = "Category";
-			ws.Cell(1, 6).Value = "Status";
+			ws.Cell(1, 6).Value = "Smart Status";
+			ws.Cell(1, 7).Value = "Suggested Reorder Qty";
 
-			ws.Range(1, 1, 1, 6).Style.Font.Bold = true;
+			ws.Range(1, 1, 1, 7).Style.Font.Bold = true;
 
 			int row = 2;
 			foreach (var item in warnings)
@@ -300,7 +303,8 @@ namespace WeldAdminPro.UI.ViewModels
 				ws.Cell(row, 3).Value = item.Quantity;
 				ws.Cell(row, 4).Value = item.Unit;
 				ws.Cell(row, 5).Value = item.Category;
-				ws.Cell(row, 6).Value = item.Status.ToString();
+				ws.Cell(row, 6).Value = item.SmartStatus.ToString();
+				ws.Cell(row, 7).Value = item.SuggestedReorderQuantity;
 				row++;
 			}
 
@@ -315,18 +319,24 @@ namespace WeldAdminPro.UI.ViewModels
 		private void OpenNewItem()
 		{
 			var vm = new NewStockItemViewModel();
-
 			var window = new NewStockItemWindow(vm)
 			{
-				Owner = Application.Current.MainWindow,
-				Title = "New Stock Item"
+				Title = "New Stock Item",
+				WindowStartupLocation = WindowStartupLocation.CenterOwner
 			};
+
+			if (Application.Current.MainWindow != null &&
+				Application.Current.MainWindow != window)
+			{
+				window.Owner = Application.Current.MainWindow;
+			}
 
 			vm.ItemCreated += RefreshAfterCategoryChange;
 			vm.RequestClose += window.Close;
 
 			window.ShowDialog();
 		}
+
 
 		private void OpenEditItem()
 		{
@@ -334,18 +344,24 @@ namespace WeldAdminPro.UI.ViewModels
 				return;
 
 			var vm = new NewStockItemViewModel(SelectedItem);
-
 			var window = new NewStockItemWindow(vm)
 			{
-				Owner = Application.Current.MainWindow,
-				Title = "Edit Stock Item"
+				Title = "Edit Stock Item",
+				WindowStartupLocation = WindowStartupLocation.CenterOwner
 			};
+
+			if (Application.Current.MainWindow != null &&
+				Application.Current.MainWindow != window)
+			{
+				window.Owner = Application.Current.MainWindow;
+			}
 
 			vm.ItemCreated += RefreshAfterCategoryChange;
 			vm.RequestClose += window.Close;
 
 			window.ShowDialog();
 		}
+
 
 		private void OpenStockIn() => OpenTransaction(true);
 		private void OpenStockOut() => OpenTransaction(false);
@@ -356,8 +372,16 @@ namespace WeldAdminPro.UI.ViewModels
 				return;
 
 			var vm = new StockTransactionViewModel(SelectedItem, isStockIn);
+			var window = new StockTransactionWindow(vm)
+			{
+				WindowStartupLocation = WindowStartupLocation.CenterOwner
+			};
 
-			var window = new StockTransactionWindow(vm);
+			if (Application.Current.MainWindow != null &&
+				Application.Current.MainWindow != window)
+			{
+				window.Owner = Application.Current.MainWindow;
+			}
 
 			vm.TransactionCompleted += LoadItems;
 			vm.RequestClose += window.Close;
@@ -375,13 +399,41 @@ namespace WeldAdminPro.UI.ViewModels
 				Title = "Stock Transaction History",
 				Content = historyView,
 				Width = 900,
-				Height = 600
+				Height = 600,
+				WindowStartupLocation = WindowStartupLocation.CenterOwner
 			};
 
-			if (Application.Current.MainWindow != window)
+			// SAFETY CHECK – prevent self-owner crash
+			if (Application.Current.MainWindow != null &&
+				Application.Current.MainWindow != window)
 			{
 				window.Owner = Application.Current.MainWindow;
 			}
+
+			window.ShowDialog();
+		}
+
+
+		private void OpenLedger()
+		{
+			var ledgerView = new StockLedgerView();
+
+			var window = new Window
+			{
+				Title = "Stock Ledger",
+				Content = ledgerView,
+				Width = 1000,
+				Height = 700
+			};
+
+			// Only assign owner if this is NOT already the main window
+			if (Application.Current.MainWindow != null &&
+				Application.Current.MainWindow != window)
+			{
+				window.Owner = Application.Current.MainWindow;
+			}
+
+			window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
 			window.ShowDialog();
 		}

@@ -1,0 +1,72 @@
+<UserControl x:Class="WeldAdminPro.UI.Views.StockLedgerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d">
+
+	<ScrollViewer VerticalScrollBarVisibility="Auto">
+		<ItemsControl ItemsSource="{Binding LedgerGroups}">
+
+			<ItemsControl.ItemTemplate>
+				<DataTemplate>
+
+					<Expander IsExpanded="False" Margin="0,0,0,10">
+
+						<Expander.Header>
+							<DockPanel>
+								<TextBlock Text="{Binding ItemCode}"
+                                           FontWeight="Bold"
+                                           Width="120"/>
+								<TextBlock Text="{Binding Description}"
+                                           Margin="10,0,0,0"
+                                           Width="250"/>
+								<TextBlock Text="Current Balance:"
+                                           Margin="30,0,5,0"
+                                           FontWeight="SemiBold"/>
+								<TextBlock Text="{Binding CurrentBalance}"
+                                           FontWeight="Bold"/>
+							</DockPanel>
+						</Expander.Header>
+
+						<DataGrid ItemsSource="{Binding Transactions}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  CanUserAddRows="False"
+                                  GridLinesVisibility="All"
+                                  Margin="0,5,0,0">
+
+							<DataGrid.Columns>
+
+								<DataGridTextColumn Header="Date"
+                                    Binding="{Binding TransactionDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}" />
+
+								<DataGridTextColumn Header="Type"
+                                    Binding="{Binding Type}" />
+
+								<DataGridTextColumn Header="Quantity"
+                                    Binding="{Binding Quantity}" />
+
+								<DataGridTextColumn Header="Project"
+                                    Binding="{Binding ProjectName}"
+                                    Width="150"/>
+
+								<DataGridTextColumn Header="Reference"
+                                    Binding="{Binding Reference}"
+                                    Width="120"/>
+
+								<DataGridTextColumn Header="Balance After"
+                                    Binding="{Binding BalanceAfter}" />
+
+							</DataGrid.Columns>
+
+						</DataGrid>
+
+					</Expander>
+
+				</DataTemplate>
+			</ItemsControl.ItemTemplate>
+
+		</ItemsControl>
+	</ScrollViewer>
+</UserControl>

@@ -4,6 +4,14 @@ using System.Runtime.CompilerServices;
 
 namespace WeldAdminPro.Core.Models
 {
+	public enum SmartStockStatus
+	{
+		Critical,          // Quantity = 0
+		ReorderRequired,   // Quantity <= MinLevel
+		BelowTarget,       // Quantity < MaxLevel
+		Healthy            // Quantity >= MaxLevel
+	}
+
 	public class StockItem : INotifyPropertyChanged
 	{
 		public Guid Id { get; set; }
@@ -24,11 +32,7 @@ namespace WeldAdminPro.Core.Models
 				if (_quantity != value)
 				{
 					_quantity = value;
-					OnPropertyChanged();
-					OnPropertyChanged(nameof(IsOutOfStock));
-					OnPropertyChanged(nameof(IsLowStock));
-					OnPropertyChanged(nameof(Status));
-					OnPropertyChanged(nameof(TotalStockValue));
+					RaiseAllStockSignals();
 				}
 			}
 		}
@@ -47,13 +51,14 @@ namespace WeldAdminPro.Core.Models
 				if (_minLevel != value)
 				{
 					_minLevel = value;
-					OnPropertyChanged();
-					OnPropertyChanged(nameof(IsLowStock));
-					OnPropertyChanged(nameof(Status));
+					RaiseAllStockSignals();
 				}
 			}
 		}
 
+		// =========================
+		// MAX LEVEL (Reactive)
+		// =========================
 		private decimal? _maxLevel;
 		public decimal? MaxLevel
 		{
@@ -63,7 +68,7 @@ namespace WeldAdminPro.Core.Models
 				if (_maxLevel != value)
 				{
 					_maxLevel = value;
-					OnPropertyChanged();
+					RaiseAllStockSignals();
 				}
 			}
 		}
@@ -84,6 +89,7 @@ namespace WeldAdminPro.Core.Models
 					_averageUnitCost = value;
 					OnPropertyChanged();
 					OnPropertyChanged(nameof(TotalStockValue));
+					OnPropertyChanged(nameof(StockValueRisk));
 				}
 			}
 		}
@@ -93,29 +99,63 @@ namespace WeldAdminPro.Core.Models
 		// =========================
 		public decimal TotalStockValue => Quantity * AverageUnitCost;
 
-		// =========================
-		// STATUS LOGIC
-		// =========================
-		public bool IsOutOfStock => Quantity <= 0;
+		// If item is below MinLevel, this is financial exposure
+		public decimal StockValueRisk =>
+			IsReorderRequired
+				? SuggestedReorderQuantity * AverageUnitCost
+				: 0;
 
-		public bool IsLowStock =>
+		// =========================
+		// SMART STATUS LOGIC
+		// =========================
+
+		public bool IsCritical => Quantity <= 0;
+
+		public bool IsReorderRequired =>
 			MinLevel.HasValue &&
-			Quantity > 0 &&
 			Quantity <= MinLevel.Value;
 
-		public StockStatus Status
+		public bool IsBelowTarget =>
+			MaxLevel.HasValue &&
+			Quantity < MaxLevel.Value &&
+			!IsReorderRequired;
+
+		public SmartStockStatus SmartStatus
 		{
 			get
 			{
-				if (IsOutOfStock)
-					return StockStatus.Out;
+				if (IsCritical)
+					return SmartStockStatus.Critical;
 
-				if (IsLowStock)
-					return StockStatus.Low;
+				if (IsReorderRequired)
+					return SmartStockStatus.ReorderRequired;
 
-				return StockStatus.Normal;
+				if (IsBelowTarget)
+					return SmartStockStatus.BelowTarget;
+
+				return SmartStockStatus.Healthy;
 			}
 		}
+
+		// =========================
+		// SMART REORDER ENGINE
+		// =========================
+
+		public int SuggestedReorderQuantity
+		{
+			get
+			{
+				if (!MaxLevel.HasValue)
+					return 0;
+
+				var suggested = (int)Math.Ceiling(MaxLevel.Value - Quantity);
+
+				return suggested > 0 ? suggested : 0;
+			}
+		}
+
+		public bool NeedsReorder =>
+			SuggestedReorderQuantity > 0;
 
 		// =========================
 		// PROPERTY CHANGED
@@ -125,6 +165,19 @@ namespace WeldAdminPro.Core.Models
 		protected void OnPropertyChanged([CallerMemberName] string? name = null)
 		{
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+		}
+
+		private void RaiseAllStockSignals()
+		{
+			OnPropertyChanged(nameof(Quantity));
+			OnPropertyChanged(nameof(IsCritical));
+			OnPropertyChanged(nameof(IsReorderRequired));
+			OnPropertyChanged(nameof(IsBelowTarget));
+			OnPropertyChanged(nameof(SmartStatus));
+			OnPropertyChanged(nameof(SuggestedReorderQuantity));
+			OnPropertyChanged(nameof(NeedsReorder));
+			OnPropertyChanged(nameof(TotalStockValue));
+			OnPropertyChanged(nameof(StockValueRisk));
 		}
 	}
 }
