@@ -13,7 +13,6 @@ namespace WeldAdminPro.Data.Repositories
 		public CategoryRepository()
 		{
 			_connectionString = $"Data Source={DatabasePath.Get()}";
-			EnsureSchema();
 		}
 
 		private void EnsureSchema()

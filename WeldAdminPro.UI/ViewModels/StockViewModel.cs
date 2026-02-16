@@ -368,17 +368,24 @@ namespace WeldAdminPro.UI.ViewModels
 
 		private void OpenHistory()
 		{
+			var historyView = new StockTransactionHistoryView();
+
 			var window = new Window
 			{
 				Title = "Stock Transaction History",
-				Content = new StockTransactionHistoryView(),
-				Owner = Application.Current.MainWindow,
+				Content = historyView,
 				Width = 900,
 				Height = 600
 			};
 
+			if (Application.Current.MainWindow != window)
+			{
+				window.Owner = Application.Current.MainWindow;
+			}
+
 			window.ShowDialog();
 		}
+
 
 		public void RefreshAfterCategoryChange()
 		{

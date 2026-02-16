@@ -343,48 +343,57 @@ VALUES ($id, $stockId, $projId, $date,
 		}
 
 		public List<StockTransaction> GetAllTransactions()
-		{
-			var list = new List<StockTransaction>();
+{
+    var list = new List<StockTransaction>();
 
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
+    using var connection = new SqliteConnection(_connectionString);
+    connection.Open();
 
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = @"
-SELECT t.Id,
-       t.StockItemId,
-       t.ProjectId,
-       t.TransactionDate,
-       t.Quantity,
-       t.Type,
-       t.UnitCost,
-       t.Reference,
-       t.BalanceAfter,
-       p.ProjectName
+    using var cmd = connection.CreateCommand();
+    cmd.CommandText = @"
+SELECT 
+    t.Id,
+    t.StockItemId,
+    t.ProjectId,
+    t.TransactionDate,
+    t.Quantity,
+    t.Type,
+    t.UnitCost,
+    t.Reference,
+    t.BalanceAfter,
+    p.ProjectName,
+    s.ItemCode,
+    s.Description
 FROM StockTransactions t
-LEFT JOIN Projects p ON p.Id = t.ProjectId
-ORDER BY t.TransactionDate DESC;";
+LEFT JOIN Projects p ON LOWER(p.Id) = LOWER(t.ProjectId)
+LEFT JOIN StockItems s ON s.Id = t.StockItemId
+ORDER BY t.TransactionDate ASC;";
 
-			using var reader = cmd.ExecuteReader();
-			while (reader.Read())
-			{
-				list.Add(new StockTransaction
-				{
-					Id = Guid.Parse(reader.GetString(0)),
-					StockItemId = Guid.Parse(reader.GetString(1)),
-					ProjectId = reader.IsDBNull(2) ? null : Guid.Parse(reader.GetString(2)),
-					TransactionDate = DateTime.Parse(reader.GetString(3)),
-					Quantity = reader.GetInt32(4),
-					Type = reader.GetString(5),
-					UnitCost = reader.GetDecimal(6),
-					Reference = reader.IsDBNull(7) ? "" : reader.GetString(7),
-					BalanceAfter = reader.IsDBNull(8) ? 0 : reader.GetInt32(8),
-					ProjectName = reader.IsDBNull(9) ? null : reader.GetString(9)
-				});
-			}
+    using var reader = cmd.ExecuteReader();
+    while (reader.Read())
+    {
+        list.Add(new StockTransaction
+        {
+            Id = Guid.Parse(reader.GetString(0)),
+            StockItemId = Guid.Parse(reader.GetString(1)),
+            ProjectId = reader.IsDBNull(2) ? null : Guid.Parse(reader.GetString(2)),
+            TransactionDate = DateTime.Parse(reader.GetString(3)),
+            Quantity = reader.GetInt32(4),
+            Type = reader.GetString(5),
+            UnitCost = reader.GetDecimal(6),
+            Reference = reader.IsDBNull(7) ? "" : reader.GetString(7),
+            BalanceAfter = reader.IsDBNull(8) ? 0 : reader.GetInt32(8),
 
-			return list;
-		}
+            ProjectName = reader.IsDBNull(9) ? null : reader.GetString(9),
+            ItemCode = reader.IsDBNull(10) ? "" : reader.GetString(10),
+            ItemDescription = reader.IsDBNull(11) ? "" : reader.GetString(11)
+        });
+    }
+
+    return list;
+}
+
+
 
 	}
 }

@@ -14,7 +14,7 @@ namespace WeldAdminPro.Data.Services
 		}
 
 		// =========================================================
-		// ISSUE STOCK (ATOMIC)
+		// ISSUE STOCK (ATOMIC + HISTORY SAFE)
 		// =========================================================
 		public void IssueStock(
 			Project project,
@@ -31,7 +31,9 @@ namespace WeldAdminPro.Data.Services
 
 			try
 			{
-				// Check stock
+				// -------------------------------------------------
+				// 1. CHECK CURRENT STOCK
+				// -------------------------------------------------
 				using var checkCmd = connection.CreateCommand();
 				checkCmd.Transaction = tx;
 				checkCmd.CommandText =
@@ -43,7 +45,35 @@ namespace WeldAdminPro.Data.Services
 				if (currentQty < quantity)
 					throw new InvalidOperationException("Insufficient stock available.");
 
-				// Insert usage
+				int newBalance = currentQty - (int)quantity;
+
+				// -------------------------------------------------
+				// 2. INSERT INTO STOCK TRANSACTIONS (HISTORY)
+				// -------------------------------------------------
+				using var insertTxCmd = connection.CreateCommand();
+				insertTxCmd.Transaction = tx;
+				insertTxCmd.CommandText = @"
+INSERT INTO StockTransactions
+(Id, StockItemId, ProjectId, TransactionDate,
+ Quantity, Type, UnitCost, Reference, BalanceAfter)
+VALUES
+($id, $stockId, $projectId, $date,
+ $qty, 'OUT', $cost, $ref, $balance);";
+
+				insertTxCmd.Parameters.AddWithValue("$id", Guid.NewGuid().ToString());
+				insertTxCmd.Parameters.AddWithValue("$stockId", stockItem.Id.ToString());
+				insertTxCmd.Parameters.AddWithValue("$projectId", project.Id.ToString());
+				insertTxCmd.Parameters.AddWithValue("$date", DateTime.UtcNow.ToString("o"));
+				insertTxCmd.Parameters.AddWithValue("$qty", quantity);
+				insertTxCmd.Parameters.AddWithValue("$cost", stockItem.AverageUnitCost);
+				insertTxCmd.Parameters.AddWithValue("$ref", project.JobNumber.ToString());
+				insertTxCmd.Parameters.AddWithValue("$balance", newBalance);
+
+				insertTxCmd.ExecuteNonQuery();
+
+				// -------------------------------------------------
+				// 3. INSERT PROJECT USAGE
+				// -------------------------------------------------
 				using var usageCmd = connection.CreateCommand();
 				usageCmd.Transaction = tx;
 				usageCmd.CommandText = @"
@@ -63,16 +93,20 @@ VALUES
 
 				usageCmd.ExecuteNonQuery();
 
-				// Reduce stock
+				// -------------------------------------------------
+				// 4. UPDATE STOCK QUANTITY
+				// -------------------------------------------------
 				using var updateStockCmd = connection.CreateCommand();
 				updateStockCmd.Transaction = tx;
 				updateStockCmd.CommandText =
-					"UPDATE StockItems SET Quantity = Quantity - $qty WHERE Id = $id;";
-				updateStockCmd.Parameters.AddWithValue("$qty", quantity);
+					"UPDATE StockItems SET Quantity = $qty WHERE Id = $id;";
+				updateStockCmd.Parameters.AddWithValue("$qty", newBalance);
 				updateStockCmd.Parameters.AddWithValue("$id", stockItem.Id.ToString());
 				updateStockCmd.ExecuteNonQuery();
 
-				// Update project financials
+				// -------------------------------------------------
+				// 5. UPDATE PROJECT COST
+				// -------------------------------------------------
 				decimal issueCost = quantity * stockItem.AverageUnitCost;
 				project.ActualCost += issueCost;
 				project.LastModifiedOn = DateTime.UtcNow;
@@ -82,7 +116,7 @@ VALUES
 				updateProjectCmd.CommandText = @"
 UPDATE Projects
 SET ActualCost = $cost,
-    LastModifiedOn = $modified
+	LastModifiedOn = $modified
 WHERE Id = $id;";
 
 				updateProjectCmd.Parameters.AddWithValue("$cost", project.ActualCost);
@@ -100,7 +134,7 @@ WHERE Id = $id;";
 		}
 
 		// =========================================================
-		// RETURN STOCK (ATOMIC)
+		// RETURN STOCK (ATOMIC + HISTORY SAFE)
 		// =========================================================
 		public void ReturnStock(
 			Project project,
@@ -118,7 +152,39 @@ WHERE Id = $id;";
 
 			try
 			{
-				// Insert return usage (negative)
+				// 1. Get current stock
+				using var checkCmd = connection.CreateCommand();
+				checkCmd.Transaction = tx;
+				checkCmd.CommandText =
+					"SELECT Quantity FROM StockItems WHERE Id = $id;";
+				checkCmd.Parameters.AddWithValue("$id", stockItem.Id.ToString());
+
+				int currentQty = Convert.ToInt32(checkCmd.ExecuteScalar());
+				int newBalance = currentQty + (int)quantity;
+
+				// 2. Insert Stock Transaction (IN)
+				using var insertTxCmd = connection.CreateCommand();
+				insertTxCmd.Transaction = tx;
+				insertTxCmd.CommandText = @"
+INSERT INTO StockTransactions
+(Id, StockItemId, ProjectId, TransactionDate,
+ Quantity, Type, UnitCost, Reference, BalanceAfter)
+VALUES
+($id, $stockId, $projectId, $date,
+ $qty, 'IN', $cost, $ref, $balance);";
+
+				insertTxCmd.Parameters.AddWithValue("$id", Guid.NewGuid().ToString());
+				insertTxCmd.Parameters.AddWithValue("$stockId", stockItem.Id.ToString());
+				insertTxCmd.Parameters.AddWithValue("$projectId", project.Id.ToString());
+				insertTxCmd.Parameters.AddWithValue("$date", DateTime.UtcNow.ToString("o"));
+				insertTxCmd.Parameters.AddWithValue("$qty", quantity);
+				insertTxCmd.Parameters.AddWithValue("$cost", originalUnitCost);
+				insertTxCmd.Parameters.AddWithValue("$ref", project.JobNumber.ToString());
+				insertTxCmd.Parameters.AddWithValue("$balance", newBalance);
+
+				insertTxCmd.ExecuteNonQuery();
+
+				// 3. Insert Project Usage (negative)
 				using var usageCmd = connection.CreateCommand();
 				usageCmd.Transaction = tx;
 				usageCmd.CommandText = @"
@@ -138,19 +204,18 @@ VALUES
 
 				usageCmd.ExecuteNonQuery();
 
-				// Increase stock
+				// 4. Update Stock
 				using var updateStockCmd = connection.CreateCommand();
 				updateStockCmd.Transaction = tx;
 				updateStockCmd.CommandText =
-					"UPDATE StockItems SET Quantity = Quantity + $qty WHERE Id = $id;";
-				updateStockCmd.Parameters.AddWithValue("$qty", quantity);
+					"UPDATE StockItems SET Quantity = $qty WHERE Id = $id;";
+				updateStockCmd.Parameters.AddWithValue("$qty", newBalance);
 				updateStockCmd.Parameters.AddWithValue("$id", stockItem.Id.ToString());
 				updateStockCmd.ExecuteNonQuery();
 
-				// Reverse cost using ORIGINAL unit cost
+				// 5. Reverse cost
 				decimal returnCost = quantity * originalUnitCost;
 				project.ActualCost -= returnCost;
-
 				if (project.ActualCost < 0)
 					project.ActualCost = 0;
 
@@ -161,7 +226,7 @@ VALUES
 				updateProjectCmd.CommandText = @"
 UPDATE Projects
 SET ActualCost = $cost,
-    LastModifiedOn = $modified
+	LastModifiedOn = $modified
 WHERE Id = $id;";
 
 				updateProjectCmd.Parameters.AddWithValue("$cost", project.ActualCost);

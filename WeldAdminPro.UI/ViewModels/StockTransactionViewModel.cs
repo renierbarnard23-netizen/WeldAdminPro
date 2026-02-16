@@ -29,7 +29,17 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private string reference = string.Empty;
 
+		partial void OnSelectedProjectChanged(Project? value)
+		{
+			if (!_isStockIn && value != null)
+			{
+				Reference = value.JobNumber.ToString();
+			}
+		}
+
 		public string Title => _isStockIn ? "Stock IN" : "Stock OUT";
+		public bool IsStockOut => !_isStockIn;
+
 
 		public IRelayCommand SaveCommand { get; }
 		public IRelayCommand CancelCommand { get; }
@@ -89,14 +99,28 @@ namespace WeldAdminPro.UI.ViewModels
 			{
 				Id = Guid.NewGuid(),
 				StockItemId = Item.Id,
-				ProjectId = !_isStockIn ? SelectedProject?.Id : null,   // ✅ ADDED
+				ProjectId = !_isStockIn ? SelectedProject?.Id : null,
 				TransactionDate = DateTime.Now,
 				Quantity = quantity,
 				Type = _isStockIn ? "IN" : "OUT",
-				Reference = Reference
+				Reference = !_isStockIn && SelectedProject != null
+		? SelectedProject.JobNumber.ToString()
+		: Reference
 			};
+			
+			MessageBox.Show($"SelectedProject: {SelectedProject?.ProjectName} | Id: {SelectedProject?.Id}");
+
+			MessageBox.Show(
+				$"IsStockIn: {_isStockIn}\n" +
+				$"SelectedProject: {SelectedProject?.ProjectName}\n" +
+				$"SelectedProjectId: {SelectedProject?.Id}"
+			);
+
+			MessageBox.Show($"ProjectId: {SelectedProject?.Id}");
 
 			_repo.AddTransaction(tx);
+
+		
 
 			TransactionCompleted?.Invoke();
 			RequestClose?.Invoke();

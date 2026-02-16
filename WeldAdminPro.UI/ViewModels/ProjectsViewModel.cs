@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Models;
@@ -77,18 +78,18 @@ namespace WeldAdminPro.UI.ViewModels
 		private static int GetStatusSortOrder(Project p, DateTime today)
 		{
 			if (p.StartDate.HasValue && p.StartDate.Value.Date > today)
-				return 1; // Planned
+				return 1;
 
 			if (p.StartDate.HasValue &&
 				p.StartDate.Value.Date <= today &&
 				(!p.EndDate.HasValue || p.EndDate.Value.Date >= today))
-				return 0; // Active
+				return 0;
 
 			if (!p.StartDate.HasValue)
-				return 2; // Unscheduled
+				return 2;
 
 			if (p.EndDate.HasValue && p.EndDate.Value.Date < today)
-				return 3; // Completed
+				return 3;
 
 			return 99;
 		}
@@ -132,20 +133,25 @@ namespace WeldAdminPro.UI.ViewModels
 		// =========================
 		// UI COMMANDS
 		// =========================
+
 		[RelayCommand]
 		private void NewProject()
 		{
-			var vm = new NewProjectViewModel();
+			var newProject = new Project();
 
-			var window = new NewProjectWindow(vm)
+			var vm = new ProjectDetailsViewModel(newProject);
+			var window = new ProjectDetailsWindow(vm)
 			{
-				Owner = System.Windows.Application.Current.MainWindow,
 				Title = "New Project"
 			};
+
+			SetSafeOwner(window);
 
 			window.ShowDialog();
 			LoadProjects();
 		}
+
+
 
 		[RelayCommand(CanExecute = nameof(CanEditProject))]
 		private void EditProject()
@@ -154,12 +160,12 @@ namespace WeldAdminPro.UI.ViewModels
 				return;
 
 			var vm = new ProjectDetailsViewModel(SelectedProject);
-
 			var window = new ProjectDetailsWindow(vm)
 			{
-				Owner = System.Windows.Application.Current.MainWindow,
 				Title = "Project Details"
 			};
+
+			SetSafeOwner(window);
 
 			window.ShowDialog();
 			LoadProjects();
@@ -170,6 +176,19 @@ namespace WeldAdminPro.UI.ViewModels
 		partial void OnSelectedProjectChanged(Project? value)
 		{
 			EditProjectCommand.NotifyCanExecuteChanged();
+		}
+
+		// =========================
+		// SAFE OWNER HANDLER
+		// =========================
+		private static void SetSafeOwner(Window window)
+		{
+			var owner = Application.Current.Windows
+				.OfType<Window>()
+				.FirstOrDefault(w => w.IsActive && w != window);
+
+			if (owner != null)
+				window.Owner = owner;
 		}
 	}
 }
