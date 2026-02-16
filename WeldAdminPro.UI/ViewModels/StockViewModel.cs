@@ -357,16 +357,14 @@ namespace WeldAdminPro.UI.ViewModels
 
 			var vm = new StockTransactionViewModel(SelectedItem, isStockIn);
 
-			var window = new StockTransactionWindow(vm)
-			{
-				Owner = Application.Current.MainWindow
-			};
+			var window = new StockTransactionWindow(vm);
 
 			vm.TransactionCompleted += LoadItems;
 			vm.RequestClose += window.Close;
 
 			window.ShowDialog();
 		}
+
 
 		private void OpenHistory()
 		{

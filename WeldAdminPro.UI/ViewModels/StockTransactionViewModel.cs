@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Globalization;
 using System.Windows;
+using System.Collections.ObjectModel;          // ✅ ADDED
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
@@ -11,9 +12,16 @@ namespace WeldAdminPro.UI.ViewModels
 	public partial class StockTransactionViewModel : ObservableObject
 	{
 		private readonly StockRepository _repo;
+		private readonly ProjectRepository _projectRepo;   // ✅ ADDED
 		private readonly bool _isStockIn;
 
 		public StockItem Item { get; }
+
+		// ✅ ADDED: Project support
+		public ObservableCollection<Project> Projects { get; } = new();
+
+		[ObservableProperty]
+		private Project? selectedProject;
 
 		[ObservableProperty]
 		private string quantityText = string.Empty;
@@ -34,9 +42,21 @@ namespace WeldAdminPro.UI.ViewModels
 			Item = item;
 			_isStockIn = isStockIn;
 			_repo = new StockRepository();
+			_projectRepo = new ProjectRepository();   // ✅ ADDED
+
+			LoadProjects();                            // ✅ ADDED
 
 			SaveCommand = new RelayCommand(Save);
 			CancelCommand = new RelayCommand(() => RequestClose?.Invoke());
+		}
+
+		// ✅ ADDED
+		private void LoadProjects()
+		{
+			Projects.Clear();
+
+			foreach (var project in _projectRepo.GetAll())
+				Projects.Add(project);
 		}
 
 		private void Save()
@@ -58,13 +78,21 @@ namespace WeldAdminPro.UI.ViewModels
 				return;
 			}
 
+			// ✅ ADDED: Require project for Stock OUT
+			if (!_isStockIn && SelectedProject == null)
+			{
+				MessageBox.Show("Please select a project for Stock OUT.");
+				return;
+			}
+
 			var tx = new StockTransaction
 			{
 				Id = Guid.NewGuid(),
 				StockItemId = Item.Id,
+				ProjectId = !_isStockIn ? SelectedProject?.Id : null,   // ✅ ADDED
 				TransactionDate = DateTime.Now,
-				Quantity = quantity,              // ✅ ALWAYS POSITIVE
-				Type = _isStockIn ? "IN" : "OUT",  // ✅ Repository handles sign
+				Quantity = quantity,
+				Type = _isStockIn ? "IN" : "OUT",
 				Reference = Reference
 			};
 

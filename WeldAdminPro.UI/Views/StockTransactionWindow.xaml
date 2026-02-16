@@ -3,49 +3,47 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="{Binding Title}"
         SizeToContent="WidthAndHeight"
+        ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner">
 
-    <Grid Margin="15">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+	<StackPanel Margin="20" Width="300">
 
-        <TextBlock Text="Item"/>
-        <TextBox Grid.Row="1"
-                 Width="250"
+		<TextBlock Text="Item"/>
+		<TextBox Text="{Binding Item.ItemCode}"
                  IsReadOnly="True"
-                 Text="{Binding Item.ItemCode}" />
+                 Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="2" Text="Quantity" Margin="0,10,0,0"/>
-        <TextBox Grid.Row="3"
-                 Width="100"
-                 Text="{Binding QuantityText,
-                                Mode=TwoWay,
-                                UpdateSourceTrigger=PropertyChanged}" />
+		<TextBlock Text="Quantity"/>
+		<TextBox Text="{Binding QuantityText}"
+                 Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="4" Text="Reference" Margin="0,10,0,0"/>
-        <TextBox Grid.Row="5"
-                 Width="250"
-                 Text="{Binding Reference}" />
+		<!-- ✅ Project Dropdown (Only visible for Stock OUT) -->
+		<StackPanel Margin="0,0,0,10"
+                    Visibility="{Binding IsStockOut,
+                                 Converter={StaticResource BooleanToVisibilityConverter}}">
 
-        <StackPanel Grid.Row="6"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Margin="0,15,0,0">
-            <Button Content="Save"
-                    Width="100"
-                    Margin="5"
-                    Command="{Binding SaveCommand}" />
-            <Button Content="Cancel"
-                    Width="100"
-                    Margin="5"
-                    Command="{Binding CancelCommand}" />
-        </StackPanel>
-    </Grid>
+			<TextBlock Text="Project"/>
+			<ComboBox ItemsSource="{Binding Projects}"
+                      SelectedItem="{Binding SelectedProject}"
+                      DisplayMemberPath="ProjectName"/>
+		</StackPanel>
+
+		<TextBlock Text="Reference"/>
+		<TextBox Text="{Binding Reference}"
+                 Margin="0,0,0,15"/>
+
+		<StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Right">
+
+			<Button Content="Save"
+                    Command="{Binding SaveCommand}"
+                    Width="80"
+                    Margin="0,0,10,0"/>
+
+			<Button Content="Cancel"
+                    Command="{Binding CancelCommand}"
+                    Width="80"/>
+		</StackPanel>
+
+	</StackPanel>
 </Window>

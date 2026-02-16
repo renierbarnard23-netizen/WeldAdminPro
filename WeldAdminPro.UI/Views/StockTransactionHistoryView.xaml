@@ -64,6 +64,10 @@
 				<DataGridTextColumn Header="Type"
                                     Binding="{Binding Type}" />
 
+				<DataGridTextColumn Header="Project"
+                    Binding="{Binding ProjectName}"
+                    Width="150"/>
+
 				<DataGridTextColumn Header="Quantity"
                                     Binding="{Binding Quantity}" />
 

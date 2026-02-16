@@ -351,11 +351,19 @@ VALUES ($id, $stockId, $projId, $date,
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-SELECT Id, StockItemId, ProjectId,
-       TransactionDate, Quantity, Type,
-       UnitCost, Reference, BalanceAfter
-FROM StockTransactions
-ORDER BY TransactionDate DESC;";
+SELECT t.Id,
+       t.StockItemId,
+       t.ProjectId,
+       t.TransactionDate,
+       t.Quantity,
+       t.Type,
+       t.UnitCost,
+       t.Reference,
+       t.BalanceAfter,
+       p.ProjectName
+FROM StockTransactions t
+LEFT JOIN Projects p ON p.Id = t.ProjectId
+ORDER BY t.TransactionDate DESC;";
 
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
@@ -370,11 +378,13 @@ ORDER BY TransactionDate DESC;";
 					Type = reader.GetString(5),
 					UnitCost = reader.GetDecimal(6),
 					Reference = reader.IsDBNull(7) ? "" : reader.GetString(7),
-					BalanceAfter = reader.IsDBNull(8) ? 0 : reader.GetInt32(8)
+					BalanceAfter = reader.IsDBNull(8) ? 0 : reader.GetInt32(8),
+					ProjectName = reader.IsDBNull(9) ? null : reader.GetString(9)
 				});
 			}
 
 			return list;
 		}
+
 	}
 }
