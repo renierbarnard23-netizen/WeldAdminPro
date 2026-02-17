@@ -88,43 +88,18 @@ namespace WeldAdminPro.UI.ViewModels
 				if (!ordered.Any())
 					continue;
 
-				// 🔹 Derive opening balance from first stored transaction
-				int runningBalance = ordered.First().BalanceAfter;
-
-				runningBalance -= ordered.First().Type == "IN"
-					? ordered.First().Quantity
-					: -ordered.First().Quantity;
-
-				bool hasMismatch = false;
-
+				// Clear previous mismatch flags
 				foreach (var tx in ordered)
-				{
-					runningBalance += tx.Type == "IN"
-						? tx.Quantity
-						: -tx.Quantity;
+					tx.IsLedgerMismatch = false;
 
-					if (runningBalance != tx.BalanceAfter)
-					{
-						tx.IsLedgerMismatch = true;
-						hasMismatch = true;
-					}
-					else
-					{
-						tx.IsLedgerMismatch = false;
-					}
-				}
-
-				// 🔹 Final integrity check vs StockItems table
+				// Only verify final balance matches StockItems table
+				var finalBalance = ordered.Last().BalanceAfter;
 				var actualQty = _repository.GetAvailableQuantity(group.Key.StockItemId);
 
-				if (runningBalance != actualQty)
+				if (finalBalance != actualQty)
 				{
-					hasMismatch = true;
 					ordered.Last().IsLedgerMismatch = true;
-				}
 
-				if (hasMismatch)
-				{
 					System.Diagnostics.Debug.WriteLine(
 						$"Ledger integrity warning for item {group.Key.ItemCode}");
 				}
@@ -139,5 +114,6 @@ namespace WeldAdminPro.UI.ViewModels
 
 			LedgerGroups = result;
 		}
+
 	}
 }

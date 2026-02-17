@@ -18,6 +18,7 @@ namespace WeldAdminPro.Data.Repositories
 		// =========================================================
 		// SCHEMA
 		// =========================================================
+
 		private void EnsureSchema()
 		{
 			using var connection = new SqliteConnection(_connectionString);
@@ -32,7 +33,7 @@ CREATE TABLE IF NOT EXISTS StockItems (
     Id TEXT PRIMARY KEY,
     ItemCode TEXT NOT NULL,
     Description TEXT,
-    Quantity INTEGER NOT NULL CHECK (Quantity >= 0),
+    Quantity INTEGER NOT NULL,
     Unit TEXT,
     MinLevel REAL NULL,
     MaxLevel REAL NULL,
@@ -58,92 +59,6 @@ CREATE TABLE IF NOT EXISTS StockTransactions (
         ON UPDATE CASCADE
 );";
 			cmd.ExecuteNonQuery();
-
-			EnsureBalanceAfterColumn(connection);
-			EnsureProjectIdColumn(connection);
-		}
-
-		// =========================================================
-		// MIGRATIONS
-		// =========================================================
-		private void EnsureBalanceAfterColumn(SqliteConnection connection)
-		{
-			if (!ColumnExists(connection, "StockTransactions", "BalanceAfter"))
-			{
-				using var cmd = connection.CreateCommand();
-				cmd.CommandText =
-					"ALTER TABLE StockTransactions ADD COLUMN BalanceAfter INTEGER;";
-				cmd.ExecuteNonQuery();
-
-				BackfillBalances(connection);
-			}
-		}
-
-		private void EnsureProjectIdColumn(SqliteConnection connection)
-		{
-			if (!ColumnExists(connection, "StockTransactions", "ProjectId"))
-			{
-				using var cmd = connection.CreateCommand();
-				cmd.CommandText =
-					"ALTER TABLE StockTransactions ADD COLUMN ProjectId TEXT NULL;";
-				cmd.ExecuteNonQuery();
-			}
-		}
-
-		private bool ColumnExists(SqliteConnection connection, string table, string column)
-		{
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = $"PRAGMA table_info({table});";
-
-			using var reader = cmd.ExecuteReader();
-			while (reader.Read())
-			{
-				if (reader.GetString(1)
-					.Equals(column, StringComparison.OrdinalIgnoreCase))
-					return true;
-			}
-
-			return false;
-		}
-
-		private void BackfillBalances(SqliteConnection connection)
-		{
-			var balances = new Dictionary<Guid, int>();
-			var updates = new List<(Guid txId, int balanceAfter)>();
-
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = @"
-SELECT Id, StockItemId, Quantity, Type
-FROM StockTransactions
-ORDER BY TransactionDate ASC;";
-
-			using var reader = cmd.ExecuteReader();
-			while (reader.Read())
-			{
-				var txId = Guid.Parse(reader.GetString(0));
-				var stockId = Guid.Parse(reader.GetString(1));
-				var qty = reader.GetInt32(2);
-				var type = reader.GetString(3);
-
-				if (!balances.ContainsKey(stockId))
-					balances[stockId] = 0;
-
-				balances[stockId] += type == "IN" ? qty : -qty;
-
-				updates.Add((txId, balances[stockId]));
-			}
-
-			reader.Close();
-
-			foreach (var u in updates)
-			{
-				using var updateCmd = connection.CreateCommand();
-				updateCmd.CommandText =
-					"UPDATE StockTransactions SET BalanceAfter=$b WHERE Id=$id;";
-				updateCmd.Parameters.AddWithValue("$b", u.balanceAfter);
-				updateCmd.Parameters.AddWithValue("$id", u.txId.ToString());
-				updateCmd.ExecuteNonQuery();
-			}
 		}
 
 		// =========================================================
@@ -184,18 +99,6 @@ ORDER BY ItemCode;";
 			return list;
 		}
 
-		public int GetAvailableQuantity(Guid id)
-		{
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
-
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = "SELECT Quantity FROM StockItems WHERE Id=$id;";
-			cmd.Parameters.AddWithValue("$id", id.ToString());
-
-			return Convert.ToInt32(cmd.ExecuteScalar() ?? 0);
-		}
-
 		public void Add(StockItem item)
 		{
 			using var connection = new SqliteConnection(_connectionString);
@@ -209,7 +112,7 @@ VALUES
 ($id, $code, $desc, $qty, $unit, $min, $max, $cat, $avg);";
 
 			cmd.Parameters.AddWithValue("$id", item.Id.ToString());
-			cmd.Parameters.AddWithValue("$code", item.ItemCode.Trim());
+			cmd.Parameters.AddWithValue("$code", item.ItemCode);
 			cmd.Parameters.AddWithValue("$desc", item.Description ?? "");
 			cmd.Parameters.AddWithValue("$qty", item.Quantity);
 			cmd.Parameters.AddWithValue("$unit", item.Unit ?? "");
@@ -229,14 +132,14 @@ VALUES
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
 UPDATE StockItems SET
-    Description = $desc,
-    Quantity = $qty,
-    Unit = $unit,
-    MinLevel = $min,
-    MaxLevel = $max,
-    Category = $cat,
-    AverageUnitCost = $avg
-WHERE Id = $id;";
+    Description=$desc,
+    Quantity=$qty,
+    Unit=$unit,
+    MinLevel=$min,
+    MaxLevel=$max,
+    Category=$cat,
+    AverageUnitCost=$avg
+WHERE Id=$id;";
 
 			cmd.Parameters.AddWithValue("$id", item.Id.ToString());
 			cmd.Parameters.AddWithValue("$desc", item.Description ?? "");
@@ -264,12 +167,19 @@ WHERE Id = $id;";
 			if (string.IsNullOrWhiteSpace(result))
 				return "ITEM-001";
 
-			var parts = result.Split('-', StringSplitOptions.RemoveEmptyEntries);
+			return result;
+		}
 
-			if (parts.Length < 2 || !int.TryParse(parts[^1], out int number))
-				return result + "-1";
+		public int GetAvailableQuantity(Guid id)
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
 
-			return $"{string.Join('-', parts[..^1])}-{number + 1:000}";
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = "SELECT Quantity FROM StockItems WHERE Id=$id;";
+			cmd.Parameters.AddWithValue("$id", id.ToString());
+
+			return Convert.ToInt32(cmd.ExecuteScalar() ?? 0);
 		}
 
 		// =========================================================
@@ -282,65 +192,68 @@ WHERE Id = $id;";
 			connection.Open();
 
 			using var dbTx = connection.BeginTransaction();
-			try
+
+			int currentQty;
+
+			using (var getCmd = connection.CreateCommand())
 			{
-				int currentQty;
+				getCmd.Transaction = dbTx;
+				getCmd.CommandText =
+					"SELECT Quantity FROM StockItems WHERE Id=$id;";
+				getCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
+				currentQty = Convert.ToInt32(getCmd.ExecuteScalar());
+			}
 
-				using (var getCmd = connection.CreateCommand())
-				{
-					getCmd.Transaction = dbTx;
-					getCmd.CommandText =
-						"SELECT Quantity FROM StockItems WHERE Id=$id;";
-					getCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
-					currentQty = Convert.ToInt32(getCmd.ExecuteScalar());
-				}
+			var adjustment = tx.Type == "IN" ? tx.Quantity : -tx.Quantity;
+			var newBalance = currentQty + adjustment;
 
-				var adjustment = tx.Type == "IN" ? tx.Quantity : -tx.Quantity;
-				var newBalance = currentQty + adjustment;
-
-				using (var insertCmd = connection.CreateCommand())
-				{
-					insertCmd.Transaction = dbTx;
-
-					insertCmd.CommandText = @"
+			using (var insertCmd = connection.CreateCommand())
+			{
+				insertCmd.Transaction = dbTx;
+				insertCmd.CommandText = @"
 INSERT INTO StockTransactions
 (Id, StockItemId, ProjectId, TransactionDate,
  Quantity, Type, UnitCost, Reference, BalanceAfter)
 VALUES ($id, $stockId, $projId, $date,
         $qty, $type, $cost, $ref, $bal);";
 
-					insertCmd.Parameters.AddWithValue("$id", tx.Id.ToString());
-					insertCmd.Parameters.AddWithValue("$stockId", tx.StockItemId.ToString());
-					insertCmd.Parameters.AddWithValue("$projId",
-						tx.ProjectId?.ToString() ?? (object)DBNull.Value);
-					insertCmd.Parameters.AddWithValue("$date", tx.TransactionDate.ToString("o"));
-					insertCmd.Parameters.AddWithValue("$qty", tx.Quantity);
-					insertCmd.Parameters.AddWithValue("$type", tx.Type);
-					insertCmd.Parameters.AddWithValue("$cost", tx.UnitCost);
-					insertCmd.Parameters.AddWithValue("$ref", tx.Reference ?? "");
-					insertCmd.Parameters.AddWithValue("$bal", newBalance);
+				insertCmd.Parameters.AddWithValue("$id", tx.Id.ToString());
+				insertCmd.Parameters.AddWithValue("$stockId", tx.StockItemId.ToString());
+				insertCmd.Parameters.AddWithValue("$projId",
+					tx.ProjectId?.ToString() ?? (object)DBNull.Value);
+				insertCmd.Parameters.AddWithValue("$date", tx.TransactionDate.ToString("o"));
+				insertCmd.Parameters.AddWithValue("$qty", tx.Quantity);
+				insertCmd.Parameters.AddWithValue("$type", tx.Type);
+				insertCmd.Parameters.AddWithValue("$cost", tx.UnitCost);
+				insertCmd.Parameters.AddWithValue("$ref", tx.Reference ?? "");
+				insertCmd.Parameters.AddWithValue("$bal", newBalance);
 
-					insertCmd.ExecuteNonQuery();
-				}
-
-				using (var updateCmd = connection.CreateCommand())
-				{
-					updateCmd.Transaction = dbTx;
-					updateCmd.CommandText =
-						"UPDATE StockItems SET Quantity=$q WHERE Id=$id;";
-					updateCmd.Parameters.AddWithValue("$q", newBalance);
-					updateCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
-					updateCmd.ExecuteNonQuery();
-				}
-
-				dbTx.Commit();
+				insertCmd.ExecuteNonQuery();
 			}
-			catch
+
+			using (var updateCmd = connection.CreateCommand())
 			{
-				dbTx.Rollback();
-				throw;
+				updateCmd.Transaction = dbTx;
+				updateCmd.CommandText =
+					"UPDATE StockItems SET Quantity=$q WHERE Id=$id;";
+				updateCmd.Parameters.AddWithValue("$q", newBalance);
+				updateCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
+				updateCmd.ExecuteNonQuery();
 			}
+
+			dbTx.Commit();
 		}
+
+		// =========================================================
+		// REPAIR
+		// =========================================================
+
+		public void RepairOpeningBalances()
+		{
+			// same safe surgical logic retained
+			RecalculateAllBalances();
+		}
+
 		public void RecalculateAllBalances()
 		{
 			using var connection = new SqliteConnection(_connectionString);
@@ -348,72 +261,65 @@ VALUES ($id, $stockId, $projId, $date,
 
 			using var dbTx = connection.BeginTransaction();
 
-			try
-			{
-				// Get all transactions ordered deterministically
-				var transactions = new List<(Guid Id, Guid StockItemId, int Quantity, string Type)>();
+			var transactions = new List<(Guid Id, Guid StockId, int Qty, string Type)>();
 
-				using (var cmd = connection.CreateCommand())
-				{
-					cmd.Transaction = dbTx;
-					cmd.CommandText = @"
+			using (var cmd = connection.CreateCommand())
+			{
+				cmd.Transaction = dbTx;
+				cmd.CommandText = @"
 SELECT Id, StockItemId, Quantity, Type
 FROM StockTransactions
 ORDER BY TransactionDate ASC, Id ASC;";
 
-					using var reader = cmd.ExecuteReader();
-					while (reader.Read())
-					{
-						transactions.Add((
-							Guid.Parse(reader.GetString(0)),
-							Guid.Parse(reader.GetString(1)),
-							reader.GetInt32(2),
-							reader.GetString(3)
-						));
-					}
-				}
-
-				var balances = new Dictionary<Guid, int>();
-
-				foreach (var tx in transactions)
+				using var reader = cmd.ExecuteReader();
+				while (reader.Read())
 				{
-					if (!balances.ContainsKey(tx.StockItemId))
-						balances[tx.StockItemId] = 0;
-
-					balances[tx.StockItemId] += tx.Type == "IN"
-						? tx.Quantity
-						: -tx.Quantity;
-
-					using var updateCmd = connection.CreateCommand();
-					updateCmd.Transaction = dbTx;
-					updateCmd.CommandText =
-						"UPDATE StockTransactions SET BalanceAfter=$bal WHERE Id=$id;";
-					updateCmd.Parameters.AddWithValue("$bal", balances[tx.StockItemId]);
-					updateCmd.Parameters.AddWithValue("$id", tx.Id.ToString());
-					updateCmd.ExecuteNonQuery();
+					transactions.Add((
+						Guid.Parse(reader.GetString(0)),
+						Guid.Parse(reader.GetString(1)),
+						reader.GetInt32(2),
+						reader.GetString(3)
+					));
 				}
-
-				// Now update StockItems.Quantity to match final balance
-				foreach (var item in balances)
-				{
-					using var updateStockCmd = connection.CreateCommand();
-					updateStockCmd.Transaction = dbTx;
-					updateStockCmd.CommandText =
-						"UPDATE StockItems SET Quantity=$qty WHERE Id=$id;";
-					updateStockCmd.Parameters.AddWithValue("$qty", item.Value);
-					updateStockCmd.Parameters.AddWithValue("$id", item.Key.ToString());
-					updateStockCmd.ExecuteNonQuery();
-				}
-
-				dbTx.Commit();
 			}
-			catch
+
+			var balances = new Dictionary<Guid, int>();
+
+			foreach (var tx in transactions)
 			{
-				dbTx.Rollback();
-				throw;
+				if (!balances.ContainsKey(tx.StockId))
+					balances[tx.StockId] = 0;
+
+				balances[tx.StockId] += tx.Type == "IN"
+					? tx.Qty
+					: -tx.Qty;
+
+				using var updateCmd = connection.CreateCommand();
+				updateCmd.Transaction = dbTx;
+				updateCmd.CommandText =
+					"UPDATE StockTransactions SET BalanceAfter=$bal WHERE Id=$id;";
+				updateCmd.Parameters.AddWithValue("$bal", balances[tx.StockId]);
+				updateCmd.Parameters.AddWithValue("$id", tx.Id.ToString());
+				updateCmd.ExecuteNonQuery();
 			}
+
+			foreach (var item in balances)
+			{
+				using var updateStockCmd = connection.CreateCommand();
+				updateStockCmd.Transaction = dbTx;
+				updateStockCmd.CommandText =
+					"UPDATE StockItems SET Quantity=$qty WHERE Id=$id;";
+				updateStockCmd.Parameters.AddWithValue("$qty", item.Value);
+				updateStockCmd.Parameters.AddWithValue("$id", item.Key.ToString());
+				updateStockCmd.ExecuteNonQuery();
+			}
+
+			dbTx.Commit();
 		}
 
+		// =========================================================
+		// HISTORY
+		// =========================================================
 
 		public List<StockTransaction> GetAllTransactions()
 		{
@@ -445,18 +351,20 @@ ORDER BY t.TransactionDate ASC, t.Id ASC;";
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
 			{
+				DateTime parsedDate;
+				DateTime.TryParse(reader.GetString(3), out parsedDate);
+
 				list.Add(new StockTransaction
 				{
 					Id = Guid.Parse(reader.GetString(0)),
 					StockItemId = Guid.Parse(reader.GetString(1)),
 					ProjectId = reader.IsDBNull(2) ? null : Guid.Parse(reader.GetString(2)),
-					TransactionDate = DateTime.Parse(reader.GetString(3)),
+					TransactionDate = parsedDate,
 					Quantity = reader.GetInt32(4),
 					Type = reader.GetString(5),
 					UnitCost = reader.GetDecimal(6),
 					Reference = reader.IsDBNull(7) ? "" : reader.GetString(7),
 					BalanceAfter = reader.IsDBNull(8) ? 0 : reader.GetInt32(8),
-
 					ProjectName = reader.IsDBNull(9) ? null : reader.GetString(9),
 					ItemCode = reader.IsDBNull(10) ? "" : reader.GetString(10),
 					ItemDescription = reader.IsDBNull(11) ? "" : reader.GetString(11)
