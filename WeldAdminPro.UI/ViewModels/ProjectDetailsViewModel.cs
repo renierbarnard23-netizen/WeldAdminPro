@@ -1,13 +1,14 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Guards;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
+using WeldAdminPro.UI.Views;
 
 namespace WeldAdminPro.UI.ViewModels
 {
@@ -18,6 +19,8 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly StockRepository _stockRepository;
 		private readonly StockAvailabilityService _stockAvailability;
 		private readonly FinancialService _financialService;
+		private readonly SmartPurchaseOrderService _smartPOService;
+
 
 		// 🔒 NEW ATOMIC SERVICE
 		private readonly StockProjectTransactionService _transactionService;
@@ -149,6 +152,8 @@ namespace WeldAdminPro.UI.ViewModels
 			_stockAvailability = new StockAvailabilityService();
 			_financialService = new FinancialService();
 			_transactionService = new StockProjectTransactionService(); // 🔒
+			_smartPOService = new SmartPurchaseOrderService();
+
 
 			Statuses = Enum.GetValues(typeof(ProjectStatus))
 				.Cast<ProjectStatus>()
@@ -260,6 +265,25 @@ namespace WeldAdminPro.UI.ViewModels
 					System.Windows.MessageBoxButton.OK,
 					System.Windows.MessageBoxImage.Warning);
 			}
+		}
+
+		[RelayCommand]
+		private void GenerateSmartPO()
+		{
+			var po = _smartPOService.GenerateAutoPO(Project, "Default Supplier");
+
+			if (po == null)
+			{
+				System.Windows.MessageBox.Show("No items require reorder.");
+				return;
+			}
+
+			var window = new PurchaseOrderReviewWindow(po)
+			{
+				Owner = System.Windows.Application.Current.MainWindow
+			};
+
+			window.ShowDialog();
 		}
 
 		[RelayCommand]
