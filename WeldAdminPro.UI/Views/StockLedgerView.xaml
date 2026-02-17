@@ -5,68 +5,98 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d">
 
-	<ScrollViewer VerticalScrollBarVisibility="Auto">
-		<ItemsControl ItemsSource="{Binding LedgerGroups}">
+	<DockPanel Margin="10">
 
-			<ItemsControl.ItemTemplate>
-				<DataTemplate>
+		<!-- 🔵 Top Action Bar -->
+		<StackPanel DockPanel.Dock="Top"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,0,0,10">
 
-					<Expander IsExpanded="False" Margin="0,0,0,10">
+			<Button Content="Recalculate Stored Balances"
+                    Width="220"
+                    Command="{Binding RecalculateCommand}"/>
+		</StackPanel>
 
-						<Expander.Header>
-							<DockPanel>
-								<TextBlock Text="{Binding ItemCode}"
-                                           FontWeight="Bold"
-                                           Width="120"/>
-								<TextBlock Text="{Binding Description}"
-                                           Margin="10,0,0,0"
-                                           Width="250"/>
-								<TextBlock Text="Current Balance:"
-                                           Margin="30,0,5,0"
-                                           FontWeight="SemiBold"/>
-								<TextBlock Text="{Binding CurrentBalance}"
-                                           FontWeight="Bold"/>
-							</DockPanel>
-						</Expander.Header>
+		<!-- 🔵 Ledger Area -->
+		<ScrollViewer VerticalScrollBarVisibility="Auto">
 
-						<DataGrid ItemsSource="{Binding Transactions}"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True"
-                                  CanUserAddRows="False"
-                                  GridLinesVisibility="All"
-                                  Margin="0,5,0,0">
+			<ItemsControl ItemsSource="{Binding LedgerGroups}">
 
-							<DataGrid.Columns>
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
 
-								<DataGridTextColumn Header="Date"
-                                    Binding="{Binding TransactionDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}" />
+						<Expander IsExpanded="False" Margin="0,0,0,10">
 
-								<DataGridTextColumn Header="Type"
-                                    Binding="{Binding Type}" />
+							<Expander.Header>
+								<DockPanel>
+									<TextBlock Text="{Binding ItemCode}"
+                                               FontWeight="Bold"
+                                               Width="120"/>
+									<TextBlock Text="{Binding Description}"
+                                               Margin="10,0,0,0"
+                                               Width="250"/>
+									<TextBlock Text="Current Balance:"
+                                               Margin="30,0,5,0"
+                                               FontWeight="SemiBold"/>
+									<TextBlock Text="{Binding CurrentBalance}"
+                                               FontWeight="Bold"/>
+								</DockPanel>
+							</Expander.Header>
 
-								<DataGridTextColumn Header="Quantity"
-                                    Binding="{Binding Quantity}" />
+							<DataGrid ItemsSource="{Binding Transactions}"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      CanUserAddRows="False"
+                                      GridLinesVisibility="All"
+                                      Margin="0,5,0,0">
 
-								<DataGridTextColumn Header="Project"
-                                    Binding="{Binding ProjectName}"
-                                    Width="150"/>
+								<!-- 🔴 Integrity Highlight -->
+								<DataGrid.RowStyle>
+									<Style TargetType="DataGridRow">
+										<Style.Triggers>
+											<DataTrigger Binding="{Binding IsLedgerMismatch}" Value="True">
+												<Setter Property="Background" Value="#FFCDD2"/>
+												<Setter Property="Foreground" Value="Black"/>
+											</DataTrigger>
+										</Style.Triggers>
+									</Style>
+								</DataGrid.RowStyle>
 
-								<DataGridTextColumn Header="Reference"
-                                    Binding="{Binding Reference}"
-                                    Width="120"/>
+								<DataGrid.Columns>
 
-								<DataGridTextColumn Header="Balance After"
-                                    Binding="{Binding BalanceAfter}" />
+									<DataGridTextColumn Header="Date"
+                                        Binding="{Binding TransactionDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}" />
 
-							</DataGrid.Columns>
+									<DataGridTextColumn Header="Type"
+                                        Binding="{Binding Type}" />
 
-						</DataGrid>
+									<DataGridTextColumn Header="Quantity"
+                                        Binding="{Binding Quantity}" />
 
-					</Expander>
+									<DataGridTextColumn Header="Project"
+                                        Binding="{Binding ProjectName}"
+                                        Width="150"/>
 
-				</DataTemplate>
-			</ItemsControl.ItemTemplate>
+									<DataGridTextColumn Header="Reference"
+                                        Binding="{Binding Reference}"
+                                        Width="120"/>
 
-		</ItemsControl>
-	</ScrollViewer>
+									<DataGridTextColumn Header="Balance After"
+                                        Binding="{Binding BalanceAfter}" />
+
+								</DataGrid.Columns>
+
+							</DataGrid>
+
+						</Expander>
+
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+
+			</ItemsControl>
+
+		</ScrollViewer>
+
+	</DockPanel>
 </UserControl>

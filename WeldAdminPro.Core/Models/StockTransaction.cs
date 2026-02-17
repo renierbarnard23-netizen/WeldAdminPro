@@ -32,5 +32,9 @@ namespace WeldAdminPro.Core.Models
 		public string ItemCode { get; set; } = string.Empty;
 
 		public string ItemDescription { get; set; } = string.Empty;
+
+		// UI-only integrity flag (not stored in DB)
+		public bool IsLedgerMismatch { get; set; }
+
 	}
 }

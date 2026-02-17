@@ -341,16 +341,89 @@ VALUES ($id, $stockId, $projId, $date,
 				throw;
 			}
 		}
+		public void RecalculateAllBalances()
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var dbTx = connection.BeginTransaction();
+
+			try
+			{
+				// Get all transactions ordered deterministically
+				var transactions = new List<(Guid Id, Guid StockItemId, int Quantity, string Type)>();
+
+				using (var cmd = connection.CreateCommand())
+				{
+					cmd.Transaction = dbTx;
+					cmd.CommandText = @"
+SELECT Id, StockItemId, Quantity, Type
+FROM StockTransactions
+ORDER BY TransactionDate ASC, Id ASC;";
+
+					using var reader = cmd.ExecuteReader();
+					while (reader.Read())
+					{
+						transactions.Add((
+							Guid.Parse(reader.GetString(0)),
+							Guid.Parse(reader.GetString(1)),
+							reader.GetInt32(2),
+							reader.GetString(3)
+						));
+					}
+				}
+
+				var balances = new Dictionary<Guid, int>();
+
+				foreach (var tx in transactions)
+				{
+					if (!balances.ContainsKey(tx.StockItemId))
+						balances[tx.StockItemId] = 0;
+
+					balances[tx.StockItemId] += tx.Type == "IN"
+						? tx.Quantity
+						: -tx.Quantity;
+
+					using var updateCmd = connection.CreateCommand();
+					updateCmd.Transaction = dbTx;
+					updateCmd.CommandText =
+						"UPDATE StockTransactions SET BalanceAfter=$bal WHERE Id=$id;";
+					updateCmd.Parameters.AddWithValue("$bal", balances[tx.StockItemId]);
+					updateCmd.Parameters.AddWithValue("$id", tx.Id.ToString());
+					updateCmd.ExecuteNonQuery();
+				}
+
+				// Now update StockItems.Quantity to match final balance
+				foreach (var item in balances)
+				{
+					using var updateStockCmd = connection.CreateCommand();
+					updateStockCmd.Transaction = dbTx;
+					updateStockCmd.CommandText =
+						"UPDATE StockItems SET Quantity=$qty WHERE Id=$id;";
+					updateStockCmd.Parameters.AddWithValue("$qty", item.Value);
+					updateStockCmd.Parameters.AddWithValue("$id", item.Key.ToString());
+					updateStockCmd.ExecuteNonQuery();
+				}
+
+				dbTx.Commit();
+			}
+			catch
+			{
+				dbTx.Rollback();
+				throw;
+			}
+		}
+
 
 		public List<StockTransaction> GetAllTransactions()
-{
-    var list = new List<StockTransaction>();
+		{
+			var list = new List<StockTransaction>();
 
-    using var connection = new SqliteConnection(_connectionString);
-    connection.Open();
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
 
-    using var cmd = connection.CreateCommand();
-    cmd.CommandText = @"
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = @"
 SELECT 
     t.Id,
     t.StockItemId,
@@ -367,33 +440,30 @@ SELECT
 FROM StockTransactions t
 LEFT JOIN Projects p ON LOWER(p.Id) = LOWER(t.ProjectId)
 LEFT JOIN StockItems s ON s.Id = t.StockItemId
-ORDER BY t.TransactionDate ASC;";
+ORDER BY t.TransactionDate ASC, t.Id ASC;";
 
-    using var reader = cmd.ExecuteReader();
-    while (reader.Read())
-    {
-        list.Add(new StockTransaction
-        {
-            Id = Guid.Parse(reader.GetString(0)),
-            StockItemId = Guid.Parse(reader.GetString(1)),
-            ProjectId = reader.IsDBNull(2) ? null : Guid.Parse(reader.GetString(2)),
-            TransactionDate = DateTime.Parse(reader.GetString(3)),
-            Quantity = reader.GetInt32(4),
-            Type = reader.GetString(5),
-            UnitCost = reader.GetDecimal(6),
-            Reference = reader.IsDBNull(7) ? "" : reader.GetString(7),
-            BalanceAfter = reader.IsDBNull(8) ? 0 : reader.GetInt32(8),
+			using var reader = cmd.ExecuteReader();
+			while (reader.Read())
+			{
+				list.Add(new StockTransaction
+				{
+					Id = Guid.Parse(reader.GetString(0)),
+					StockItemId = Guid.Parse(reader.GetString(1)),
+					ProjectId = reader.IsDBNull(2) ? null : Guid.Parse(reader.GetString(2)),
+					TransactionDate = DateTime.Parse(reader.GetString(3)),
+					Quantity = reader.GetInt32(4),
+					Type = reader.GetString(5),
+					UnitCost = reader.GetDecimal(6),
+					Reference = reader.IsDBNull(7) ? "" : reader.GetString(7),
+					BalanceAfter = reader.IsDBNull(8) ? 0 : reader.GetInt32(8),
 
-            ProjectName = reader.IsDBNull(9) ? null : reader.GetString(9),
-            ItemCode = reader.IsDBNull(10) ? "" : reader.GetString(10),
-            ItemDescription = reader.IsDBNull(11) ? "" : reader.GetString(11)
-        });
-    }
+					ProjectName = reader.IsDBNull(9) ? null : reader.GetString(9),
+					ItemCode = reader.IsDBNull(10) ? "" : reader.GetString(10),
+					ItemDescription = reader.IsDBNull(11) ? "" : reader.GetString(11)
+				});
+			}
 
-    return list;
-}
-
-
-
+			return list;
+		}
 	}
 }
