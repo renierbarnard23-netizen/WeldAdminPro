@@ -17,17 +17,6 @@
 		<TextBox Text="{Binding QuantityText}"
                  Margin="0,0,0,10"/>
 
-		<!-- ✅ Project Dropdown (Only visible for Stock OUT) -->
-		<StackPanel Margin="0,0,0,10"
-                    Visibility="{Binding IsStockOut,
-                                 Converter={StaticResource BooleanToVisibilityConverter}}">
-
-			<TextBlock Text="Project"/>
-			<ComboBox ItemsSource="{Binding Projects}"
-                      SelectedItem="{Binding SelectedProject}"
-                      DisplayMemberPath="ProjectName"/>
-		</StackPanel>
-
 		<TextBlock Text="Reference"/>
 		<TextBox Text="{Binding Reference}"
                  Margin="0,0,0,15"/>
