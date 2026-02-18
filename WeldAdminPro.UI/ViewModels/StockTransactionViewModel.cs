@@ -19,9 +19,13 @@ namespace WeldAdminPro.UI.ViewModels
 		private string quantityText = string.Empty;
 
 		[ObservableProperty]
+		private string unitCostText = string.Empty;
+
+		[ObservableProperty]
 		private string reference = string.Empty;
 
 		public string Title => _isStockIn ? "Stock IN" : "Stock OUT";
+		public bool IsStockIn => _isStockIn;
 		public bool IsStockOut => !_isStockIn;
 
 		public IRelayCommand SaveCommand { get; }
@@ -35,6 +39,10 @@ namespace WeldAdminPro.UI.ViewModels
 			Item = item;
 			_isStockIn = isStockIn;
 			_repo = new StockRepository();
+
+			// Auto-fill cost with current average when Stock IN
+			if (_isStockIn)
+				UnitCostText = item.AverageUnitCost.ToString("0.00");
 
 			SaveCommand = new RelayCommand(Save);
 			CancelCommand = new RelayCommand(() => RequestClose?.Invoke());
@@ -52,6 +60,21 @@ namespace WeldAdminPro.UI.ViewModels
 				return;
 			}
 
+			decimal unitCost = 0;
+
+			if (_isStockIn)
+			{
+				if (!decimal.TryParse(
+					UnitCostText,
+					NumberStyles.Number,
+					CultureInfo.InvariantCulture,
+					out unitCost) || unitCost < 0)
+				{
+					MessageBox.Show("Please enter a valid unit cost.");
+					return;
+				}
+			}
+
 			// Stock OUT safety
 			if (!_isStockIn && quantity > Item.Quantity)
 			{
@@ -63,10 +86,11 @@ namespace WeldAdminPro.UI.ViewModels
 			{
 				Id = Guid.NewGuid(),
 				StockItemId = Item.Id,
-				ProjectId = null, // Project no longer handled here
+				ProjectId = null,
 				TransactionDate = DateTime.Now,
 				Quantity = quantity,
 				Type = _isStockIn ? "IN" : "OUT",
+				UnitCost = _isStockIn ? unitCost : Item.AverageUnitCost,
 				Reference = Reference
 			};
 

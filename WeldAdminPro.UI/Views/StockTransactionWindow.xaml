@@ -17,6 +17,14 @@
 		<TextBox Text="{Binding QuantityText}"
                  Margin="0,0,0,10"/>
 
+		<!-- Unit Cost (only visible for Stock IN) -->
+		<TextBlock Text="Unit Cost (R)"
+                   Visibility="{Binding IsStockIn, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+		<TextBox Text="{Binding UnitCostText}"
+                 Margin="0,0,0,10"
+                 Visibility="{Binding IsStockIn, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
 		<TextBlock Text="Reference"/>
 		<TextBox Text="{Binding Reference}"
                  Margin="0,0,0,15"/>

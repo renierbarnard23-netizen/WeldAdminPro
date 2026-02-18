@@ -26,19 +26,22 @@
 				<ItemsControl.ItemTemplate>
 					<DataTemplate>
 
-						<Expander IsExpanded="False" Margin="0,0,0,10">
+						<Expander IsExpanded="False" Margin="0,0,0,12">
 
 							<Expander.Header>
 								<DockPanel>
 									<TextBlock Text="{Binding ItemCode}"
                                                FontWeight="Bold"
                                                Width="120"/>
+
 									<TextBlock Text="{Binding Description}"
                                                Margin="10,0,0,0"
                                                Width="250"/>
+
 									<TextBlock Text="Current Balance:"
                                                Margin="30,0,5,0"
                                                FontWeight="SemiBold"/>
+
 									<TextBlock Text="{Binding CurrentBalance}"
                                                FontWeight="Bold"/>
 								</DockPanel>
@@ -66,13 +69,28 @@
 								<DataGrid.Columns>
 
 									<DataGridTextColumn Header="Date"
-                                        Binding="{Binding TransactionDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}" />
+                                        Binding="{Binding TransactionDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}"
+                                        Width="150"/>
 
 									<DataGridTextColumn Header="Type"
-                                        Binding="{Binding Type}" />
+                                        Binding="{Binding Type}"
+                                        Width="70"/>
 
-									<DataGridTextColumn Header="Quantity"
-                                        Binding="{Binding Quantity}" />
+									<DataGridTextColumn Header="Qty In"
+                                        Binding="{Binding QtyIn}"
+                                        Width="80"/>
+
+									<DataGridTextColumn Header="Qty Out"
+                                        Binding="{Binding QtyOut}"
+                                        Width="80"/>
+
+									<DataGridTextColumn Header="Unit Cost"
+                                        Binding="{Binding UnitCost, StringFormat={}{0:N2}}"
+                                        Width="100"/>
+
+									<DataGridTextColumn Header="Tx Value"
+                                        Binding="{Binding TransactionValue, StringFormat={}{0:N2}}"
+                                        Width="110"/>
 
 									<DataGridTextColumn Header="Project"
                                         Binding="{Binding ProjectName}"
@@ -83,7 +101,8 @@
                                         Width="120"/>
 
 									<DataGridTextColumn Header="Balance After"
-                                        Binding="{Binding BalanceAfter}" />
+                                        Binding="{Binding BalanceAfter}"
+                                        Width="110"/>
 
 								</DataGrid.Columns>
 

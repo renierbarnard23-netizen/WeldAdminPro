@@ -8,10 +8,7 @@ namespace WeldAdminPro.UI.Views
 		public StockInWindow()
 		{
 			InitializeComponent();
-
-			var vm = new StockInViewModel();
-			vm.RequestClose += () => this.Close();
-			DataContext = vm;
+			DataContext = new StockInViewModel();
 		}
 	}
 }

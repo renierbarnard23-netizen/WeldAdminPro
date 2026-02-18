@@ -193,56 +193,100 @@ WHERE Id=$id;";
 
 			using var dbTx = connection.BeginTransaction();
 
-			int currentQty;
-
-			using (var getCmd = connection.CreateCommand())
+			try
 			{
-				getCmd.Transaction = dbTx;
-				getCmd.CommandText =
-					"SELECT Quantity FROM StockItems WHERE Id=$id;";
-				getCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
-				currentQty = Convert.ToInt32(getCmd.ExecuteScalar());
-			}
+				int currentQty;
+				decimal currentAvgCost;
 
-			var adjustment = tx.Type == "IN" ? tx.Quantity : -tx.Quantity;
-			var newBalance = currentQty + adjustment;
+				// Get current stock state
+				using (var getCmd = connection.CreateCommand())
+				{
+					getCmd.Transaction = dbTx;
+					getCmd.CommandText =
+						"SELECT Quantity, AverageUnitCost FROM StockItems WHERE Id=$id;";
+					getCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
 
-			using (var insertCmd = connection.CreateCommand())
-			{
-				insertCmd.Transaction = dbTx;
-				insertCmd.CommandText = @"
+					using var reader = getCmd.ExecuteReader();
+
+					if (!reader.Read())
+						throw new Exception("Stock item not found.");
+
+					currentQty = reader.GetInt32(0);
+					currentAvgCost = reader.GetDecimal(1);
+				}
+
+				// 🔒 STRICT MODE — Prevent negative stock
+				if (tx.Type == "OUT" && tx.Quantity > currentQty)
+					throw new InvalidOperationException(
+						"Insufficient stock available for this OUT transaction.");
+
+				int adjustment = tx.Type == "IN"
+					? tx.Quantity
+					: -tx.Quantity;
+
+				int newQty = currentQty + adjustment;
+
+				decimal newAvgCost = currentAvgCost;
+
+				// 📈 Weighted Average Cost update (IN only, cost > 0)
+				if (tx.Type == "IN" && tx.UnitCost > 0 && tx.Quantity > 0)
+				{
+					decimal totalExistingValue = currentQty * currentAvgCost;
+					decimal totalIncomingValue = tx.Quantity * tx.UnitCost;
+
+					newAvgCost = (totalExistingValue + totalIncomingValue)
+								 / (currentQty + tx.Quantity);
+				}
+
+				// Insert transaction
+				using (var insertCmd = connection.CreateCommand())
+				{
+					insertCmd.Transaction = dbTx;
+
+					insertCmd.CommandText = @"
 INSERT INTO StockTransactions
 (Id, StockItemId, ProjectId, TransactionDate,
  Quantity, Type, UnitCost, Reference, BalanceAfter)
 VALUES ($id, $stockId, $projId, $date,
         $qty, $type, $cost, $ref, $bal);";
 
-				insertCmd.Parameters.AddWithValue("$id", tx.Id.ToString());
-				insertCmd.Parameters.AddWithValue("$stockId", tx.StockItemId.ToString());
-				insertCmd.Parameters.AddWithValue("$projId",
-					tx.ProjectId?.ToString() ?? (object)DBNull.Value);
-				insertCmd.Parameters.AddWithValue("$date", tx.TransactionDate.ToString("o"));
-				insertCmd.Parameters.AddWithValue("$qty", tx.Quantity);
-				insertCmd.Parameters.AddWithValue("$type", tx.Type);
-				insertCmd.Parameters.AddWithValue("$cost", tx.UnitCost);
-				insertCmd.Parameters.AddWithValue("$ref", tx.Reference ?? "");
-				insertCmd.Parameters.AddWithValue("$bal", newBalance);
+					insertCmd.Parameters.AddWithValue("$id", tx.Id.ToString());
+					insertCmd.Parameters.AddWithValue("$stockId", tx.StockItemId.ToString());
+					insertCmd.Parameters.AddWithValue("$projId",
+						tx.ProjectId?.ToString() ?? (object)DBNull.Value);
+					insertCmd.Parameters.AddWithValue("$date", tx.TransactionDate.ToString("o"));
+					insertCmd.Parameters.AddWithValue("$qty", tx.Quantity);
+					insertCmd.Parameters.AddWithValue("$type", tx.Type);
+					insertCmd.Parameters.AddWithValue("$cost", tx.UnitCost);
+					insertCmd.Parameters.AddWithValue("$ref", tx.Reference ?? "");
+					insertCmd.Parameters.AddWithValue("$bal", newQty);
 
-				insertCmd.ExecuteNonQuery();
+					insertCmd.ExecuteNonQuery();
+				}
+
+				// Update stock item quantity + average cost
+				using (var updateCmd = connection.CreateCommand())
+				{
+					updateCmd.Transaction = dbTx;
+					updateCmd.CommandText =
+						"UPDATE StockItems SET Quantity=$qty, AverageUnitCost=$avg WHERE Id=$id;";
+
+					updateCmd.Parameters.AddWithValue("$qty", newQty);
+					updateCmd.Parameters.AddWithValue("$avg", newAvgCost);
+					updateCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
+
+					updateCmd.ExecuteNonQuery();
+				}
+
+				dbTx.Commit();
 			}
-
-			using (var updateCmd = connection.CreateCommand())
+			catch
 			{
-				updateCmd.Transaction = dbTx;
-				updateCmd.CommandText =
-					"UPDATE StockItems SET Quantity=$q WHERE Id=$id;";
-				updateCmd.Parameters.AddWithValue("$q", newBalance);
-				updateCmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
-				updateCmd.ExecuteNonQuery();
+				dbTx.Rollback();
+				throw;
 			}
-
-			dbTx.Commit();
 		}
+
 
 		// =========================================================
 		// REPAIR

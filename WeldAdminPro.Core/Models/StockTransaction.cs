@@ -7,10 +7,9 @@ namespace WeldAdminPro.Core.Models
 		public Guid Id { get; set; }
 
 		public Guid StockItemId { get; set; }
-		
+
 		public string? ProjectName { get; set; }
 
-		// ✅ NEW – optional project link
 		public Guid? ProjectId { get; set; }
 
 		public DateTime TransactionDate { get; set; }
@@ -36,5 +35,14 @@ namespace WeldAdminPro.Core.Models
 		// UI-only integrity flag (not stored in DB)
 		public bool IsLedgerMismatch { get; set; }
 
+		// =========================================================
+		// 🔵 AUDIT-GRADE UI PROPERTIES (Computed – Not Stored)
+		// =========================================================
+
+		public int QtyIn => Type == "IN" ? Quantity : 0;
+
+		public int QtyOut => Type == "OUT" ? Quantity : 0;
+
+		public decimal TransactionValue => Quantity * UnitCost;
 	}
 }
