@@ -195,6 +195,42 @@
 				<ScrollViewer VerticalScrollBarVisibility="Auto">
 					<StackPanel Margin="10">
 
+						<WrapPanel Margin="0,0,0,20">
+
+							<Border Background="#F0F4F8" Padding="12" Margin="5" Width="220">
+								<StackPanel>
+									<TextBlock Text="Top Moving Item (Value)" FontWeight="SemiBold"/>
+									<TextBlock Text="{Binding TopMovingItem}" FontSize="14" FontWeight="Bold"/>
+									<TextBlock Text="{Binding TopMovingItemValue, StringFormat={}{0:N2}}"/>
+								</StackPanel>
+							</Border>
+
+							<Border Background="#F0F4F8" Padding="12" Margin="5" Width="220">
+								<StackPanel>
+									<TextBlock Text="Most Consumed Item" FontWeight="SemiBold"/>
+									<TextBlock Text="{Binding MostConsumedItem}" FontSize="14" FontWeight="Bold"/>
+									<TextBlock Text="{Binding MostConsumedUnits}"/>
+								</StackPanel>
+							</Border>
+
+							<Border Background="#F0F4F8" Padding="12" Margin="5" Width="220">
+								<StackPanel>
+									<TextBlock Text="Highest Growth Item" FontWeight="SemiBold"/>
+									<TextBlock Text="{Binding HighestGrowthItem}" FontSize="14" FontWeight="Bold"/>
+									<TextBlock Text="{Binding HighestGrowthUnits}"/>
+								</StackPanel>
+							</Border>
+
+							<Border Background="#F0F4F8" Padding="12" Margin="5" Width="220">
+								<StackPanel>
+									<TextBlock Text="Dead Stock Items" FontWeight="SemiBold"/>
+									<TextBlock Text="{Binding DeadStockCount}" FontSize="18" FontWeight="Bold"/>
+								</StackPanel>
+							</Border>
+
+						</WrapPanel>
+
+
 						<TextBlock Text="Top Moving Inventory (By Value)"
                                    FontSize="16"
                                    FontWeight="Bold"
@@ -214,6 +250,18 @@
 								<DataGridTextColumn Header="Movement Value" Binding="{Binding MovementValue, StringFormat={}{0:N2}}" Width="130"/>
 								<DataGridTextColumn Header="Current Balance" Binding="{Binding CurrentBalance}" Width="120"/>
 								<DataGridTextColumn Header="Stock Value" Binding="{Binding CurrentStockValue, StringFormat={}{0:N2}}" Width="130"/>
+								<DataGridTextColumn Header="Avg Inventory" 
+                    Binding="{Binding AverageInventory}" Width="110"/>
+
+								<DataGridTextColumn Header="Turnover"
+                    Binding="{Binding TurnoverRate}" Width="90"/>
+
+								<DataGridTextColumn Header="Days in Stock"
+                    Binding="{Binding DaysInInventory}" Width="110"/>
+
+								<DataGridTextColumn Header="Category"
+                    Binding="{Binding MovementCategory}" Width="120"/>
+
 							</DataGrid.Columns>
 
 						</DataGrid>
@@ -258,6 +306,8 @@
 								<DataGridTextColumn Header="Net Value"
             Binding="{Binding NetValue, StringFormat={}{0:N2}}"
             Width="130"/>
+
+
 
 							</DataGrid.Columns>
 

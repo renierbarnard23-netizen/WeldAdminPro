@@ -49,26 +49,17 @@ namespace WeldAdminPro.UI.ViewModels
 		public IRelayCommand RecalculateCommand { get; }
 		public IRelayCommand ApplyFilterCommand { get; }
 
-		// ==============================
 		// GLOBAL SUMMARY
-		// ==============================
-
 		[ObservableProperty] private int totalStockItems;
 		[ObservableProperty] private int totalUnitsInStock;
 		[ObservableProperty] private decimal totalInventoryValue;
 		[ObservableProperty] private int totalTransactions;
 
-		// ==============================
 		// DATE FILTER
-		// ==============================
-
 		[ObservableProperty] private DateTime? startDate;
 		[ObservableProperty] private DateTime? endDate;
 
-		// ==============================
 		// PERIOD SUMMARY
-		// ==============================
-
 		[ObservableProperty] private int periodTotalIn;
 		[ObservableProperty] private int periodTotalOut;
 		[ObservableProperty] private int periodNetMovement;
@@ -76,31 +67,24 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty] private decimal periodValueOut;
 		[ObservableProperty] private decimal periodNetValue;
 
-		// ==============================
-		// COLLECTIONS
-		// ==============================
+		// KPIs
+		[ObservableProperty] private string topMovingItem = "-";
+		[ObservableProperty] private decimal topMovingItemValue;
+		[ObservableProperty] private string mostConsumedItem = "-";
+		[ObservableProperty] private int mostConsumedUnits;
+		[ObservableProperty] private string highestGrowthItem = "-";
+		[ObservableProperty] private int highestGrowthUnits;
+		[ObservableProperty] private int deadStockCount;
 
-		private ObservableCollection<StockLedgerGroup> _ledgerGroups = new();
-		public ObservableCollection<StockLedgerGroup> LedgerGroups
-		{
-			get => _ledgerGroups;
-			set => SetProperty(ref _ledgerGroups, value);
-		}
+		[ObservableProperty]
+		private ObservableCollection<StockLedgerGroup> ledgerGroups = new();
 
-		private ObservableCollection<MonthlyMovementSummary> _monthlySummaries = new();
-		public ObservableCollection<MonthlyMovementSummary> MonthlySummaries
-		{
-			get => _monthlySummaries;
-			set => SetProperty(ref _monthlySummaries, value);
-		}
+		[ObservableProperty]
+		private ObservableCollection<MonthlyMovementSummary> monthlySummaries = new();
 
+		[ObservableProperty]
+		private ObservableCollection<ItemMovementSummary> itemMovementSummaries = new();
 
-		private ObservableCollection<ItemMovementSummary> _itemMovementSummaries = new();
-		public ObservableCollection<ItemMovementSummary> ItemMovementSummaries
-		{
-			get => _itemMovementSummaries;
-			set => SetProperty(ref _itemMovementSummaries, value);
-		}
 
 		public StockLedgerViewModel()
 		{
@@ -121,19 +105,13 @@ namespace WeldAdminPro.UI.ViewModels
 			var allItems = _repository.GetAll();
 			var allTransactions = _repository.GetAllTransactions();
 
-			// ==============================
 			// GLOBAL SUMMARY
-			// ==============================
-
 			TotalStockItems = allItems.Count;
 			TotalUnitsInStock = allItems.Sum(i => i.Quantity);
 			TotalInventoryValue = allItems.Sum(i => i.Quantity * i.AverageUnitCost);
 			TotalTransactions = allTransactions.Count;
 
-			// ==============================
-			// FILTER
-			// ==============================
-
+			// DATE FILTER
 			var filtered = allTransactions.AsEnumerable();
 
 			if (StartDate.HasValue)
@@ -147,27 +125,18 @@ namespace WeldAdminPro.UI.ViewModels
 				.ThenBy(t => t.Id)
 				.ToList();
 
-			// ==============================
 			// PERIOD SUMMARY
-			// ==============================
-
 			PeriodTotalIn = transactions.Sum(t => t.QtyIn);
 			PeriodTotalOut = transactions.Sum(t => t.QtyOut);
 			PeriodNetMovement = PeriodTotalIn - PeriodTotalOut;
 
-			PeriodValueIn = transactions
-				.Where(t => t.Type == "IN")
-				.Sum(t => t.TransactionValue);
-
-			PeriodValueOut = transactions
-				.Where(t => t.Type == "OUT")
-				.Sum(t => t.TransactionValue);
-
+			PeriodValueIn = transactions.Where(t => t.Type == "IN").Sum(t => t.TransactionValue);
+			PeriodValueOut = transactions.Where(t => t.Type == "OUT").Sum(t => t.TransactionValue);
 			PeriodNetValue = PeriodValueIn - PeriodValueOut;
 
-			// ==============================
-			// EXECUTIVE MOVEMENT RANKING
-			// ==============================
+			// EXECUTIVE MOVEMENT + TURNOVER (SAFE VERSION)
+
+			const decimal periodDays = 30m;
 
 			ItemMovementSummaries = new ObservableCollection<ItemMovementSummary>(
 				transactions
@@ -176,27 +145,69 @@ namespace WeldAdminPro.UI.ViewModels
 					{
 						var item = allItems.FirstOrDefault(i => i.Id == g.Key.StockItemId);
 
+						var totalIn = g.Sum(x => x.QtyIn);
+						var totalOut = g.Sum(x => x.QtyOut);
+						var closingQty = item?.Quantity ?? 0;
+
+						decimal avgInventory = closingQty > 0 ? closingQty : 1;
+						decimal turnover = totalOut / avgInventory;
+						decimal daysInInventory = turnover > 0 ? periodDays / turnover : 0;
+
+						string category = turnover switch
+						{
+							> 5 => "Fast Moving",
+							> 2 => "Healthy",
+							> 0 => "Slow Moving",
+							_ => "Dead Stock"
+						};
+
 						return new ItemMovementSummary
 						{
 							StockItemId = g.Key.StockItemId,
 							ItemCode = g.Key.ItemCode,
 							Description = g.Key.ItemDescription,
-							TotalIn = g.Sum(x => x.QtyIn),
-							TotalOut = g.Sum(x => x.QtyOut),
+							TotalIn = totalIn,
+							TotalOut = totalOut,
 							MovementValue = g.Sum(x => x.TransactionValue),
-							CurrentBalance = item?.Quantity ?? 0,
+							CurrentBalance = closingQty,
 							CurrentStockValue = item != null
 								? item.Quantity * item.AverageUnitCost
-								: 0
+								: 0,
+
+							AverageInventory = Math.Round(avgInventory, 2),
+							TurnoverRate = Math.Round(turnover, 2),
+							DaysInInventory = Math.Round(daysInInventory, 1),
+							MovementCategory = category
 						};
 					})
 					.OrderByDescending(x => x.MovementValue)
 					.ToList());
 
-			// ==============================
-			// LEDGER GROUPING
-			// ==============================
+			// KPIs
+			var topValueItem = ItemMovementSummaries.OrderByDescending(x => x.MovementValue).FirstOrDefault();
+			if (topValueItem != null)
+			{
+				TopMovingItem = topValueItem.ItemCode;
+				TopMovingItemValue = topValueItem.MovementValue;
+			}
 
+			var mostConsumed = ItemMovementSummaries.OrderByDescending(x => x.TotalOut).FirstOrDefault();
+			if (mostConsumed != null)
+			{
+				MostConsumedItem = mostConsumed.ItemCode;
+				MostConsumedUnits = mostConsumed.TotalOut;
+			}
+
+			var highestGrowth = ItemMovementSummaries.OrderByDescending(x => x.NetMovement).FirstOrDefault();
+			if (highestGrowth != null)
+			{
+				HighestGrowthItem = highestGrowth.ItemCode;
+				HighestGrowthUnits = highestGrowth.NetMovement;
+			}
+
+			DeadStockCount = ItemMovementSummaries.Count(x => x.TotalIn == 0 && x.TotalOut == 0);
+
+			// LEDGER GROUPING
 			LedgerGroups = new ObservableCollection<StockLedgerGroup>(
 				transactions
 					.GroupBy(t => new { t.StockItemId, t.ItemCode, t.ItemDescription })
@@ -209,21 +220,21 @@ namespace WeldAdminPro.UI.ViewModels
 							g.OrderBy(t => t.TransactionDate)
 							 .ThenBy(t => t.Id))
 					}));
+
+			// MONTHLY TREND
 			MonthlySummaries = new ObservableCollection<MonthlyMovementSummary>(
-	transactions
-		.GroupBy(t => new DateTime(t.TransactionDate.Year, t.TransactionDate.Month, 1))
-		.OrderBy(g => g.Key)
-		.Select(g => new MonthlyMovementSummary
-		{
-			Month = g.Key,
-			TotalIn = g.Sum(x => x.QtyIn),
-			TotalOut = g.Sum(x => x.QtyOut),
-			ValueIn = g.Where(x => x.Type == "IN").Sum(x => x.TransactionValue),
-			ValueOut = g.Where(x => x.Type == "OUT").Sum(x => x.TransactionValue)
-		})
-		.ToList());
-
-
+				transactions
+					.GroupBy(t => new DateTime(t.TransactionDate.Year, t.TransactionDate.Month, 1))
+					.OrderBy(g => g.Key)
+					.Select(g => new MonthlyMovementSummary
+					{
+						Month = g.Key,
+						TotalIn = g.Sum(x => x.QtyIn),
+						TotalOut = g.Sum(x => x.QtyOut),
+						ValueIn = g.Where(x => x.Type == "IN").Sum(x => x.TransactionValue),
+						ValueOut = g.Where(x => x.Type == "OUT").Sum(x => x.TransactionValue)
+					})
+					.ToList());
 		}
 	}
 }

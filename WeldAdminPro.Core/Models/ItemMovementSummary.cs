@@ -9,6 +9,10 @@ namespace WeldAdminPro.Core.Models
 		public string ItemCode { get; set; } = string.Empty;
 		public string Description { get; set; } = string.Empty;
 
+		// ==============================
+		// MOVEMENT DATA
+		// ==============================
+
 		public int TotalIn { get; set; }
 		public int TotalOut { get; set; }
 
@@ -16,8 +20,41 @@ namespace WeldAdminPro.Core.Models
 
 		public decimal MovementValue { get; set; }
 
-		public int CurrentBalance { get; set; }
+		// ==============================
+		// STOCK POSITION
+		// ==============================
 
+		public int CurrentBalance { get; set; }
 		public decimal CurrentStockValue { get; set; }
+
+		// ==============================
+		// INVENTORY TURNOVER INTELLIGENCE
+		// ==============================
+
+		public decimal AverageInventory { get; set; }
+		public decimal TurnoverRate { get; set; }
+		public decimal DaysInInventory { get; set; }
+
+		public string MovementCategory { get; set; } = "-";
+
+		// ==============================
+		// REORDER RISK INTELLIGENCE
+		// ==============================
+
+		public decimal AverageDailyUsage { get; set; }
+		public decimal DaysUntilStockout { get; set; }
+
+		public string ReorderRiskLevel { get; set; } = "-";
+
+
+		// ==============================
+		// PROCUREMENT INTELLIGENCE
+		// ==============================
+
+		public int SuggestedReorderQuantity { get; set; }
+		public decimal SuggestedOrderValue { get; set; }
+
+		public DateTime? EstimatedStockoutDate { get; set; }
+
 	}
 }
