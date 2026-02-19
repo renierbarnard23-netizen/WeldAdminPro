@@ -6,223 +6,270 @@
              mc:Ignorable="d">
 
 	<DockPanel Margin="10">
-		<!-- 🔵 Global Summary Panel -->
-		<Border DockPanel.Dock="Top"
-        Background="#F5F5F5"
-        Padding="12"
-        CornerRadius="6"
-        Margin="0,0,0,10">
 
-			<UniformGrid Columns="4">
+		<TabControl>
 
-				<StackPanel>
-					<TextBlock Text="Stock Items"
-                       FontWeight="SemiBold"/>
-					<TextBlock Text="{Binding TotalStockItems}"
-                       FontSize="18"
-                       FontWeight="Bold"/>
-				</StackPanel>
+			<!-- ===================================================== -->
+			<!-- TAB 1 – LEDGER -->
+			<!-- ===================================================== -->
 
-				<StackPanel>
-					<TextBlock Text="Total Units In Stock"
-                       FontWeight="SemiBold"/>
-					<TextBlock Text="{Binding TotalUnitsInStock}"
-                       FontSize="18"
-                       FontWeight="Bold"/>
-				</StackPanel>
+			<TabItem Header="Stock Ledger">
 
-				<StackPanel>
-					<TextBlock Text="Inventory Value"
-                       FontWeight="SemiBold"/>
-					<TextBlock Text="{Binding TotalInventoryValue, StringFormat={}{0:N2}}"
-                       FontSize="18"
-                       FontWeight="Bold"/>
-				</StackPanel>
+				<DockPanel Margin="10">
 
-				<StackPanel>
-					<TextBlock Text="Total Transactions"
-                       FontWeight="SemiBold"/>
-					<TextBlock Text="{Binding TotalTransactions}"
-                       FontSize="18"
-                       FontWeight="Bold"/>
-				</StackPanel>
+					<!-- Recalculate -->
+					<StackPanel DockPanel.Dock="Top"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Margin="0,0,0,10">
+						<Button Content="Recalculate Stored Balances"
+                                Width="220"
+                                Command="{Binding RecalculateCommand}"/>
+					</StackPanel>
 
-			</UniformGrid>
+					<!-- Date Filter -->
+					<StackPanel DockPanel.Dock="Top"
+                                Orientation="Horizontal"
+                                Margin="0,0,0,10">
 
-		</Border>
+						<TextBlock Text="Start:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+						<DatePicker SelectedDate="{Binding StartDate}"
+                                    Width="140"
+                                    Margin="0,0,15,0"/>
+
+						<TextBlock Text="End:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+						<DatePicker SelectedDate="{Binding EndDate}"
+                                    Width="140"
+                                    Margin="0,0,15,0"/>
+
+						<Button Content="Apply Filter"
+                                Width="120"
+                                Command="{Binding ApplyFilterCommand}"/>
+					</StackPanel>
+
+					<!-- Period Summary -->
+					<Border DockPanel.Dock="Top"
+                            Background="#F5F5F5"
+                            Padding="10"
+                            Margin="0,0,0,10"
+                            CornerRadius="4">
+
+						<Grid>
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="40"/>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+
+							<!-- Units -->
+							<StackPanel Grid.Column="0">
+								<TextBlock Text="Period In" FontWeight="SemiBold"/>
+								<TextBlock Text="{Binding PeriodTotalIn}"
+                                           FontSize="16"
+                                           FontWeight="Bold"/>
+							</StackPanel>
+
+							<StackPanel Grid.Column="1">
+								<TextBlock Text="Period Out" FontWeight="SemiBold"/>
+								<TextBlock Text="{Binding PeriodTotalOut}"
+                                           FontSize="16"
+                                           FontWeight="Bold"/>
+							</StackPanel>
+
+							<StackPanel Grid.Column="2">
+								<TextBlock Text="Net Movement" FontWeight="SemiBold"/>
+								<TextBlock Text="{Binding PeriodNetMovement}"
+                                           FontSize="16"
+                                           FontWeight="Bold"/>
+							</StackPanel>
+
+							<Border Grid.Column="3"
+                                    Width="1"
+                                    Background="#CCCCCC"
+                                    Margin="10,0"/>
+
+							<!-- Value -->
+							<StackPanel Grid.Column="4">
+								<TextBlock Text="Value In" FontWeight="SemiBold"/>
+								<TextBlock Text="{Binding PeriodValueIn, StringFormat={}{0:N2}}"
+                                           FontSize="16"
+                                           FontWeight="Bold"/>
+							</StackPanel>
+
+							<StackPanel Grid.Column="5">
+								<TextBlock Text="Value Out" FontWeight="SemiBold"/>
+								<TextBlock Text="{Binding PeriodValueOut, StringFormat={}{0:N2}}"
+                                           FontSize="16"
+                                           FontWeight="Bold"/>
+							</StackPanel>
+
+							<StackPanel Grid.Column="6">
+								<TextBlock Text="Net Value" FontWeight="SemiBold"/>
+								<TextBlock Text="{Binding PeriodNetValue, StringFormat={}{0:N2}}"
+                                           FontSize="16"
+                                           FontWeight="Bold"/>
+							</StackPanel>
+						</Grid>
+					</Border>
+
+					<!-- Ledger -->
+					<ScrollViewer VerticalScrollBarVisibility="Auto">
+						<ItemsControl ItemsSource="{Binding LedgerGroups}">
+							<ItemsControl.ItemTemplate>
+								<DataTemplate>
+									<Expander Margin="0,0,0,12">
+
+										<Expander.Header>
+											<DockPanel>
+												<TextBlock Text="{Binding ItemCode}"
+                                                           FontWeight="Bold"
+                                                           Width="120"/>
+												<TextBlock Text="{Binding Description}"
+                                                           Margin="10,0,0,0"
+                                                           Width="250"/>
+												<TextBlock Text="Current Balance:"
+                                                           Margin="30,0,5,0"
+                                                           FontWeight="SemiBold"/>
+												<TextBlock Text="{Binding CurrentBalance}"
+                                                           FontWeight="Bold"/>
+											</DockPanel>
+										</Expander.Header>
+
+										<DataGrid ItemsSource="{Binding Transactions}"
+                                                  AutoGenerateColumns="False"
+                                                  IsReadOnly="True"
+                                                  CanUserAddRows="False"
+                                                  GridLinesVisibility="All"
+                                                  Margin="0,5,0,0">
+
+											<DataGrid.Columns>
+												<DataGridTextColumn Header="Date"
+                                                    Binding="{Binding TransactionDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}"
+                                                    Width="150"/>
+												<DataGridTextColumn Header="Type"
+                                                    Binding="{Binding Type}"
+                                                    Width="70"/>
+												<DataGridTextColumn Header="Qty In"
+                                                    Binding="{Binding QtyIn}"
+                                                    Width="80"/>
+												<DataGridTextColumn Header="Qty Out"
+                                                    Binding="{Binding QtyOut}"
+                                                    Width="80"/>
+												<DataGridTextColumn Header="Unit Cost"
+                                                    Binding="{Binding UnitCost, StringFormat={}{0:N2}}"
+                                                    Width="100"/>
+												<DataGridTextColumn Header="Tx Value"
+                                                    Binding="{Binding TransactionValue, StringFormat={}{0:N2}}"
+                                                    Width="110"/>
+												<DataGridTextColumn Header="Project"
+                                                    Binding="{Binding ProjectName}"
+                                                    Width="150"/>
+												<DataGridTextColumn Header="Reference"
+                                                    Binding="{Binding Reference}"
+                                                    Width="120"/>
+												<DataGridTextColumn Header="Balance After"
+                                                    Binding="{Binding BalanceAfter}"
+                                                    Width="110"/>
+											</DataGrid.Columns>
+
+										</DataGrid>
+									</Expander>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+					</ScrollViewer>
+
+				</DockPanel>
+			</TabItem>
+
+			<!-- ===================================================== -->
+			<!-- TAB 2 – EXECUTIVE ANALYTICS -->
+			<!-- ===================================================== -->
+
+			<TabItem Header="Executive Movement Analytics">
+
+				<ScrollViewer VerticalScrollBarVisibility="Auto">
+					<StackPanel Margin="10">
+
+						<TextBlock Text="Top Moving Inventory (By Value)"
+                                   FontSize="16"
+                                   FontWeight="Bold"
+                                   Margin="0,0,0,10"/>
+
+						<DataGrid ItemsSource="{Binding ItemMovementSummaries}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  Height="300">
+
+							<DataGrid.Columns>
+								<DataGridTextColumn Header="Item Code" Binding="{Binding ItemCode}" Width="120"/>
+								<DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="200"/>
+								<DataGridTextColumn Header="Total In" Binding="{Binding TotalIn}" Width="90"/>
+								<DataGridTextColumn Header="Total Out" Binding="{Binding TotalOut}" Width="90"/>
+								<DataGridTextColumn Header="Net Movement" Binding="{Binding NetMovement}" Width="110"/>
+								<DataGridTextColumn Header="Movement Value" Binding="{Binding MovementValue, StringFormat={}{0:N2}}" Width="130"/>
+								<DataGridTextColumn Header="Current Balance" Binding="{Binding CurrentBalance}" Width="120"/>
+								<DataGridTextColumn Header="Stock Value" Binding="{Binding CurrentStockValue, StringFormat={}{0:N2}}" Width="130"/>
+							</DataGrid.Columns>
+
+						</DataGrid>
+
+						<TextBlock Text="Monthly Movement Trend (Visual)"
+                                   FontSize="16"
+                                   FontWeight="Bold"
+                                   Margin="0,25,0,10"/>
+						<DataGrid ItemsSource="{Binding MonthlySummaries}"
+          AutoGenerateColumns="False"
+          IsReadOnly="True"
+          CanUserAddRows="False"
+          GridLinesVisibility="All"
+          Height="250">
+
+							<DataGrid.Columns>
+
+								<DataGridTextColumn Header="Month"
+            Binding="{Binding Month, StringFormat={}{0:yyyy-MM}}"
+            Width="120"/>
+
+								<DataGridTextColumn Header="Total In"
+            Binding="{Binding TotalIn}"
+            Width="100"/>
+
+								<DataGridTextColumn Header="Total Out"
+            Binding="{Binding TotalOut}"
+            Width="100"/>
+
+								<DataGridTextColumn Header="Net Movement"
+            Binding="{Binding NetMovement}"
+            Width="120"/>
+
+								<DataGridTextColumn Header="Value In"
+            Binding="{Binding ValueIn, StringFormat={}{0:N2}}"
+            Width="130"/>
+
+								<DataGridTextColumn Header="Value Out"
+            Binding="{Binding ValueOut, StringFormat={}{0:N2}}"
+            Width="130"/>
+
+								<DataGridTextColumn Header="Net Value"
+            Binding="{Binding NetValue, StringFormat={}{0:N2}}"
+            Width="130"/>
+
+							</DataGrid.Columns>
+
+						</DataGrid>
 
 
-		<!-- 🔵 Top Action Bar -->
-		<StackPanel DockPanel.Dock="Top"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Margin="0,0,0,10">
-			<!-- 🔵 Date Filter Bar -->
-			<StackPanel DockPanel.Dock="Top"
-            Orientation="Horizontal"
-            Margin="0,0,0,10"
-            VerticalAlignment="Center">
+					</StackPanel>
+				</ScrollViewer>
 
-				<TextBlock Text="Start:"
-               VerticalAlignment="Center"
-               Margin="0,0,5,0"/>
+			</TabItem>
 
-				<DatePicker SelectedDate="{Binding StartDate}"
-                Width="140"
-                Margin="0,0,15,0"/>
-
-				<TextBlock Text="End:"
-               VerticalAlignment="Center"
-               Margin="0,0,5,0"/>
-
-				<DatePicker SelectedDate="{Binding EndDate}"
-                Width="140"
-                Margin="0,0,15,0"/>
-
-				<Button Content="Apply Filter"
-            Width="120"
-            Command="{Binding ApplyFilterCommand}"/>
-
-			</StackPanel>
-
-
-			<Button Content="Recalculate Stored Balances"
-                    Width="220"
-                    Command="{Binding RecalculateCommand}"/>
-		</StackPanel>
-
-		<!-- 🔵 Ledger Area -->
-		<ScrollViewer VerticalScrollBarVisibility="Auto">
-
-			<ItemsControl ItemsSource="{Binding LedgerGroups}">
-
-				<ItemsControl.ItemTemplate>
-					<DataTemplate>
-
-						<Expander IsExpanded="False" Margin="0,0,0,12">
-
-							<Expander.Header>
-								<StackPanel Orientation="Vertical">
-
-									<StackPanel Orientation="Horizontal">
-										<TextBlock Text="{Binding ItemCode}"
-                       FontWeight="Bold"
-                       Width="120"/>
-
-										<TextBlock Text="{Binding Description}"
-                       Margin="10,0,0,0"
-                       Width="250"/>
-
-										<TextBlock Text="Closing:"
-                       Margin="30,0,5,0"
-                       FontWeight="SemiBold"/>
-
-										<TextBlock Text="{Binding CurrentBalance}"
-                       FontWeight="Bold"/>
-									</StackPanel>
-
-									<StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-
-										<TextBlock Text="Opening:"
-                       Width="80"/>
-
-										<TextBlock Text="{Binding OpeningBalance}"
-                       Width="80"/>
-
-										<TextBlock Text="Total IN:"
-                       Margin="20,0,0,0"
-                       Width="70"/>
-
-										<TextBlock Text="{Binding TotalIn}"
-                       Width="80"/>
-
-										<TextBlock Text="Total OUT:"
-                       Width="80"/>
-
-										<TextBlock Text="{Binding TotalOut}"
-                       Width="80"/>
-
-										<TextBlock Text="Value:"
-                       Margin="20,0,0,0"
-                       Width="50"/>
-
-										<TextBlock Text="{Binding TotalMovementValue, StringFormat={}{0:N2}}"
-                       FontWeight="SemiBold"/>
-									</StackPanel>
-
-								</StackPanel>
-							</Expander.Header>
-
-
-							<DataGrid ItemsSource="{Binding Transactions}"
-                                      AutoGenerateColumns="False"
-                                      IsReadOnly="True"
-                                      CanUserAddRows="False"
-                                      GridLinesVisibility="All"
-                                      Margin="0,5,0,0">
-
-								<!-- 🔴 Integrity Highlight -->
-								<DataGrid.RowStyle>
-									<Style TargetType="DataGridRow">
-										<Style.Triggers>
-											<DataTrigger Binding="{Binding IsLedgerMismatch}" Value="True">
-												<Setter Property="Background" Value="#FFCDD2"/>
-												<Setter Property="Foreground" Value="Black"/>
-											</DataTrigger>
-										</Style.Triggers>
-									</Style>
-								</DataGrid.RowStyle>
-
-								<DataGrid.Columns>
-
-									<DataGridTextColumn Header="Date"
-                                        Binding="{Binding TransactionDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}"
-                                        Width="150"/>
-
-									<DataGridTextColumn Header="Type"
-                                        Binding="{Binding Type}"
-                                        Width="70"/>
-
-									<DataGridTextColumn Header="Qty In"
-                                        Binding="{Binding QtyIn}"
-                                        Width="80"/>
-
-									<DataGridTextColumn Header="Qty Out"
-                                        Binding="{Binding QtyOut}"
-                                        Width="80"/>
-
-									<DataGridTextColumn Header="Unit Cost"
-                                        Binding="{Binding UnitCost, StringFormat={}{0:N2}}"
-                                        Width="100"/>
-
-									<DataGridTextColumn Header="Tx Value"
-                                        Binding="{Binding TransactionValue, StringFormat={}{0:N2}}"
-                                        Width="110"/>
-
-									<DataGridTextColumn Header="Project"
-                                        Binding="{Binding ProjectName}"
-                                        Width="150"/>
-
-									<DataGridTextColumn Header="Reference"
-                                        Binding="{Binding Reference}"
-                                        Width="120"/>
-
-									<DataGridTextColumn Header="Balance After"
-                                        Binding="{Binding BalanceAfter}"
-                                        Width="110"/>
-
-								</DataGrid.Columns>
-
-							</DataGrid>
-
-						</Expander>
-
-					</DataTemplate>
-				</ItemsControl.ItemTemplate>
-
-			</ItemsControl>
-
-		</ScrollViewer>
+		</TabControl>
 
 	</DockPanel>
 </UserControl>

@@ -8,62 +8,77 @@ using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.UI.ViewModels
 {
+	public class MonthlyMovementSummary
+	{
+		public DateTime Month { get; set; }
+
+		public int TotalIn { get; set; }
+		public int TotalOut { get; set; }
+
+		public int NetMovement => TotalIn - TotalOut;
+
+		public decimal ValueIn { get; set; }
+		public decimal ValueOut { get; set; }
+
+		public decimal NetValue => ValueIn - ValueOut;
+	}
+
 	public class StockLedgerGroup
 	{
 		public string ItemCode { get; set; } = string.Empty;
 		public string Description { get; set; } = string.Empty;
 
 		public ObservableCollection<StockTransaction> Transactions { get; set; }
-			= new();
-
-		public int OpeningBalance =>
-			Transactions.FirstOrDefault()?.BalanceAfter -
-			(Transactions.FirstOrDefault()?.Type == "IN"
-				? Transactions.FirstOrDefault()?.Quantity ?? 0
-				: -(Transactions.FirstOrDefault()?.Quantity ?? 0)) ?? 0;
-
-		public int TotalIn => Transactions.Sum(t => t.QtyIn);
-
-		public int TotalOut => Transactions.Sum(t => t.QtyOut);
-
-		public int NetMovement => TotalIn - TotalOut;
+			= new ObservableCollection<StockTransaction>();
 
 		public int CurrentBalance =>
 			Transactions.LastOrDefault()?.BalanceAfter ?? 0;
 
+		public int TotalIn => Transactions.Sum(t => t.QtyIn);
+		public int TotalOut => Transactions.Sum(t => t.QtyOut);
+		public int NetMovement => TotalIn - TotalOut;
+
 		public decimal TotalMovementValue =>
 			Transactions.Sum(t => t.TransactionValue);
 	}
-
 
 	public partial class StockLedgerViewModel : ObservableObject
 	{
 		private readonly StockRepository _repository;
 
 		public IRelayCommand RecalculateCommand { get; }
-
-		// 🔵 GLOBAL SUMMARY PROPERTIES (Correct Location)
-
-		[ObservableProperty]
-		private int totalStockItems;
-
-		[ObservableProperty]
-		private int totalUnitsInStock;
-
-		[ObservableProperty]
-		private decimal totalInventoryValue;
-
-		[ObservableProperty]
-		private int totalTransactions;
-
-		[ObservableProperty]
-		private DateTime? startDate;
-
-		[ObservableProperty]
-		private DateTime? endDate;
-
 		public IRelayCommand ApplyFilterCommand { get; }
 
+		// ==============================
+		// GLOBAL SUMMARY
+		// ==============================
+
+		[ObservableProperty] private int totalStockItems;
+		[ObservableProperty] private int totalUnitsInStock;
+		[ObservableProperty] private decimal totalInventoryValue;
+		[ObservableProperty] private int totalTransactions;
+
+		// ==============================
+		// DATE FILTER
+		// ==============================
+
+		[ObservableProperty] private DateTime? startDate;
+		[ObservableProperty] private DateTime? endDate;
+
+		// ==============================
+		// PERIOD SUMMARY
+		// ==============================
+
+		[ObservableProperty] private int periodTotalIn;
+		[ObservableProperty] private int periodTotalOut;
+		[ObservableProperty] private int periodNetMovement;
+		[ObservableProperty] private decimal periodValueIn;
+		[ObservableProperty] private decimal periodValueOut;
+		[ObservableProperty] private decimal periodNetValue;
+
+		// ==============================
+		// COLLECTIONS
+		// ==============================
 
 		private ObservableCollection<StockLedgerGroup> _ledgerGroups = new();
 		public ObservableCollection<StockLedgerGroup> LedgerGroups
@@ -72,37 +87,33 @@ namespace WeldAdminPro.UI.ViewModels
 			set => SetProperty(ref _ledgerGroups, value);
 		}
 
-		public StockLedgerViewModel()
+		private ObservableCollection<MonthlyMovementSummary> _monthlySummaries = new();
+		public ObservableCollection<MonthlyMovementSummary> MonthlySummaries
 		{
-			_repository = new StockRepository();
-
-			RecalculateCommand = new RelayCommand(RecalculateBalances);
-			ApplyFilterCommand = new RelayCommand(LoadLedger);
-
-			LoadLedger();
+			get => _monthlySummaries;
+			set => SetProperty(ref _monthlySummaries, value);
 		}
 
 
+		private ObservableCollection<ItemMovementSummary> _itemMovementSummaries = new();
+		public ObservableCollection<ItemMovementSummary> ItemMovementSummaries
+		{
+			get => _itemMovementSummaries;
+			set => SetProperty(ref _itemMovementSummaries, value);
+		}
+
+		public StockLedgerViewModel()
+		{
+			_repository = new StockRepository();
+			RecalculateCommand = new RelayCommand(RecalculateBalances);
+			ApplyFilterCommand = new RelayCommand(LoadLedger);
+			LoadLedger();
+		}
+
 		private void RecalculateBalances()
 		{
-			var result = System.Windows.MessageBox.Show(
-				"This will recalculate all stored balances and stock quantities.\n\nContinue?",
-				"Confirm Recalculation",
-				System.Windows.MessageBoxButton.YesNo,
-				System.Windows.MessageBoxImage.Warning);
-
-			if (result != System.Windows.MessageBoxResult.Yes)
-				return;
-
 			_repository.RecalculateAllBalances();
-
 			LoadLedger();
-
-			System.Windows.MessageBox.Show(
-				"Recalculation complete.",
-				"Success",
-				System.Windows.MessageBoxButton.OK,
-				System.Windows.MessageBoxImage.Information);
 		}
 
 		private void LoadLedger()
@@ -110,69 +121,109 @@ namespace WeldAdminPro.UI.ViewModels
 			var allItems = _repository.GetAll();
 			var allTransactions = _repository.GetAllTransactions();
 
-			// 🔵 Populate Global Summary
+			// ==============================
+			// GLOBAL SUMMARY
+			// ==============================
+
 			TotalStockItems = allItems.Count;
 			TotalUnitsInStock = allItems.Sum(i => i.Quantity);
 			TotalInventoryValue = allItems.Sum(i => i.Quantity * i.AverageUnitCost);
 			TotalTransactions = allTransactions.Count;
 
-			var filteredTransactions = allTransactions.AsEnumerable();
+			// ==============================
+			// FILTER
+			// ==============================
+
+			var filtered = allTransactions.AsEnumerable();
 
 			if (StartDate.HasValue)
-				filteredTransactions = filteredTransactions
-					.Where(t => t.TransactionDate.Date >= StartDate.Value.Date);
+				filtered = filtered.Where(t => t.TransactionDate.Date >= StartDate.Value.Date);
 
 			if (EndDate.HasValue)
-				filteredTransactions = filteredTransactions
-					.Where(t => t.TransactionDate.Date <= EndDate.Value.Date);
+				filtered = filtered.Where(t => t.TransactionDate.Date <= EndDate.Value.Date);
 
-			var transactions = filteredTransactions
+			var transactions = filtered
 				.OrderBy(t => t.TransactionDate)
 				.ThenBy(t => t.Id)
 				.ToList();
 
+			// ==============================
+			// PERIOD SUMMARY
+			// ==============================
 
-			var grouped = transactions
-				.GroupBy(t => new { t.StockItemId, t.ItemCode, t.ItemDescription })
-				.OrderBy(g => g.Key.ItemCode);
+			PeriodTotalIn = transactions.Sum(t => t.QtyIn);
+			PeriodTotalOut = transactions.Sum(t => t.QtyOut);
+			PeriodNetMovement = PeriodTotalIn - PeriodTotalOut;
 
-			var result = new ObservableCollection<StockLedgerGroup>();
+			PeriodValueIn = transactions
+				.Where(t => t.Type == "IN")
+				.Sum(t => t.TransactionValue);
 
-			foreach (var group in grouped)
-			{
-				var ordered = group
-					.OrderBy(t => t.TransactionDate)
-					.ThenBy(t => t.Id)
-					.ToList();
+			PeriodValueOut = transactions
+				.Where(t => t.Type == "OUT")
+				.Sum(t => t.TransactionValue);
 
-				if (!ordered.Any())
-					continue;
+			PeriodNetValue = PeriodValueIn - PeriodValueOut;
 
-				// Clear mismatch flags
-				foreach (var tx in ordered)
-					tx.IsLedgerMismatch = false;
+			// ==============================
+			// EXECUTIVE MOVEMENT RANKING
+			// ==============================
 
-				// Verify final balance integrity
-				var finalBalance = ordered.Last().BalanceAfter;
-				var actualQty = _repository.GetAvailableQuantity(group.Key.StockItemId);
+			ItemMovementSummaries = new ObservableCollection<ItemMovementSummary>(
+				transactions
+					.GroupBy(t => new { t.StockItemId, t.ItemCode, t.ItemDescription })
+					.Select(g =>
+					{
+						var item = allItems.FirstOrDefault(i => i.Id == g.Key.StockItemId);
 
-				if (finalBalance != actualQty)
-				{
-					ordered.Last().IsLedgerMismatch = true;
+						return new ItemMovementSummary
+						{
+							StockItemId = g.Key.StockItemId,
+							ItemCode = g.Key.ItemCode,
+							Description = g.Key.ItemDescription,
+							TotalIn = g.Sum(x => x.QtyIn),
+							TotalOut = g.Sum(x => x.QtyOut),
+							MovementValue = g.Sum(x => x.TransactionValue),
+							CurrentBalance = item?.Quantity ?? 0,
+							CurrentStockValue = item != null
+								? item.Quantity * item.AverageUnitCost
+								: 0
+						};
+					})
+					.OrderByDescending(x => x.MovementValue)
+					.ToList());
 
-					System.Diagnostics.Debug.WriteLine(
-						$"Ledger integrity warning for item {group.Key.ItemCode}");
-				}
+			// ==============================
+			// LEDGER GROUPING
+			// ==============================
 
-				result.Add(new StockLedgerGroup
-				{
-					ItemCode = group.Key.ItemCode,
-					Description = group.Key.ItemDescription,
-					Transactions = new ObservableCollection<StockTransaction>(ordered)
-				});
-			}
+			LedgerGroups = new ObservableCollection<StockLedgerGroup>(
+				transactions
+					.GroupBy(t => new { t.StockItemId, t.ItemCode, t.ItemDescription })
+					.OrderBy(g => g.Key.ItemCode)
+					.Select(g => new StockLedgerGroup
+					{
+						ItemCode = g.Key.ItemCode,
+						Description = g.Key.ItemDescription,
+						Transactions = new ObservableCollection<StockTransaction>(
+							g.OrderBy(t => t.TransactionDate)
+							 .ThenBy(t => t.Id))
+					}));
+			MonthlySummaries = new ObservableCollection<MonthlyMovementSummary>(
+	transactions
+		.GroupBy(t => new DateTime(t.TransactionDate.Year, t.TransactionDate.Month, 1))
+		.OrderBy(g => g.Key)
+		.Select(g => new MonthlyMovementSummary
+		{
+			Month = g.Key,
+			TotalIn = g.Sum(x => x.QtyIn),
+			TotalOut = g.Sum(x => x.QtyOut),
+			ValueIn = g.Where(x => x.Type == "IN").Sum(x => x.TransactionValue),
+			ValueOut = g.Where(x => x.Type == "OUT").Sum(x => x.TransactionValue)
+		})
+		.ToList());
 
-			LedgerGroups = result;
+
 		}
 	}
 }
