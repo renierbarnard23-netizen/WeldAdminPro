@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Data.Sqlite;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
@@ -88,5 +89,36 @@ namespace WeldAdminPro.Data.Services
 			var variance = CalculateVariance(project);
 			return RoundCurrency((variance / project.Budget) * 100m);
 		}
+		public decimal CalculateProjectActualCost(Guid projectId)
+		{
+			using var connection = new SqliteConnection(
+				$"Data Source={DatabasePath.Get()}");
+
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = @"
+SELECT
+    IFNULL(SUM(
+        CASE
+            WHEN Type = 'OUT' THEN Quantity * UnitCost
+            WHEN Type = 'IN'  THEN -Quantity * UnitCost
+        END
+    ), 0)
+FROM StockTransactions
+WHERE LOWER(ProjectId) = LOWER($projectId);";
+
+			cmd.Parameters.AddWithValue("$projectId", projectId.ToString());
+
+			var result = cmd.ExecuteScalar();
+
+			decimal value = result == null || result == DBNull.Value
+				? 0m
+				: Convert.ToDecimal(result);
+
+			return Math.Round(value, 2, MidpointRounding.AwayFromZero);
+		}
+
 	}
+
 }

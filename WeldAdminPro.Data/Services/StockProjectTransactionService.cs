@@ -14,7 +14,37 @@ namespace WeldAdminPro.Data.Services
 		}
 
 		// =========================================================
-		// ISSUE STOCK (ATOMIC + HISTORY SAFE)
+		// INTERNAL COST REBUILD (AUDIT-GRADE)
+		// =========================================================
+		private decimal RecalculateProjectCost(SqliteConnection connection, SqliteTransaction tx, Guid projectId)
+		{
+			using var cmd = connection.CreateCommand();
+			cmd.Transaction = tx;
+
+			cmd.CommandText = @"
+SELECT
+	IFNULL(SUM(
+		CASE
+			WHEN Type = 'OUT' THEN Quantity * UnitCost
+			WHEN Type = 'IN'  THEN -Quantity * UnitCost
+		END
+	), 0)
+FROM StockTransactions
+WHERE LOWER(ProjectId) = LOWER($projectId);";
+
+			cmd.Parameters.AddWithValue("$projectId", projectId.ToString());
+
+			var result = cmd.ExecuteScalar();
+
+			decimal value = result == null || result == DBNull.Value
+				? 0m
+				: Convert.ToDecimal(result);
+
+			return Math.Round(value, 2, MidpointRounding.AwayFromZero);
+		}
+
+		// =========================================================
+		// ISSUE STOCK (ATOMIC + DERIVED COST)
 		// =========================================================
 		public void IssueStock(
 			Project project,
@@ -31,9 +61,7 @@ namespace WeldAdminPro.Data.Services
 
 			try
 			{
-				// -------------------------------------------------
 				// 1. CHECK CURRENT STOCK
-				// -------------------------------------------------
 				using var checkCmd = connection.CreateCommand();
 				checkCmd.Transaction = tx;
 				checkCmd.CommandText =
@@ -47,9 +75,7 @@ namespace WeldAdminPro.Data.Services
 
 				int newBalance = currentQty - (int)quantity;
 
-				// -------------------------------------------------
-				// 2. INSERT INTO STOCK TRANSACTIONS (HISTORY)
-				// -------------------------------------------------
+				// 2. INSERT STOCK TRANSACTION (OUT)
 				using var insertTxCmd = connection.CreateCommand();
 				insertTxCmd.Transaction = tx;
 				insertTxCmd.CommandText = @"
@@ -71,9 +97,7 @@ VALUES
 
 				insertTxCmd.ExecuteNonQuery();
 
-				// -------------------------------------------------
 				// 3. INSERT PROJECT USAGE
-				// -------------------------------------------------
 				using var usageCmd = connection.CreateCommand();
 				usageCmd.Transaction = tx;
 				usageCmd.CommandText = @"
@@ -93,9 +117,7 @@ VALUES
 
 				usageCmd.ExecuteNonQuery();
 
-				// -------------------------------------------------
 				// 4. UPDATE STOCK QUANTITY
-				// -------------------------------------------------
 				using var updateStockCmd = connection.CreateCommand();
 				updateStockCmd.Transaction = tx;
 				updateStockCmd.CommandText =
@@ -104,11 +126,8 @@ VALUES
 				updateStockCmd.Parameters.AddWithValue("$id", stockItem.Id.ToString());
 				updateStockCmd.ExecuteNonQuery();
 
-				// -------------------------------------------------
-				// 5. UPDATE PROJECT COST
-				// -------------------------------------------------
-				decimal issueCost = quantity * stockItem.AverageUnitCost;
-				project.ActualCost += issueCost;
+				// 5. REBUILD PROJECT COST FROM HISTORY
+				project.ActualCost = RecalculateProjectCost(connection, tx, project.Id);
 				project.LastModifiedOn = DateTime.UtcNow;
 
 				using var updateProjectCmd = connection.CreateCommand();
@@ -134,7 +153,7 @@ WHERE Id = $id;";
 		}
 
 		// =========================================================
-		// RETURN STOCK (ATOMIC + HISTORY SAFE)
+		// RETURN STOCK (ATOMIC + DERIVED COST)
 		// =========================================================
 		public void ReturnStock(
 			Project project,
@@ -152,7 +171,7 @@ WHERE Id = $id;";
 
 			try
 			{
-				// 1. Get current stock
+				// 1. GET CURRENT STOCK
 				using var checkCmd = connection.CreateCommand();
 				checkCmd.Transaction = tx;
 				checkCmd.CommandText =
@@ -162,7 +181,7 @@ WHERE Id = $id;";
 				int currentQty = Convert.ToInt32(checkCmd.ExecuteScalar());
 				int newBalance = currentQty + (int)quantity;
 
-				// 2. Insert Stock Transaction (IN)
+				// 2. INSERT STOCK TRANSACTION (IN)
 				using var insertTxCmd = connection.CreateCommand();
 				insertTxCmd.Transaction = tx;
 				insertTxCmd.CommandText = @"
@@ -184,7 +203,7 @@ VALUES
 
 				insertTxCmd.ExecuteNonQuery();
 
-				// 3. Insert Project Usage (negative)
+				// 3. INSERT PROJECT USAGE (NEGATIVE)
 				using var usageCmd = connection.CreateCommand();
 				usageCmd.Transaction = tx;
 				usageCmd.CommandText = @"
@@ -204,7 +223,7 @@ VALUES
 
 				usageCmd.ExecuteNonQuery();
 
-				// 4. Update Stock
+				// 4. UPDATE STOCK
 				using var updateStockCmd = connection.CreateCommand();
 				updateStockCmd.Transaction = tx;
 				updateStockCmd.CommandText =
@@ -213,12 +232,8 @@ VALUES
 				updateStockCmd.Parameters.AddWithValue("$id", stockItem.Id.ToString());
 				updateStockCmd.ExecuteNonQuery();
 
-				// 5. Reverse cost
-				decimal returnCost = quantity * originalUnitCost;
-				project.ActualCost -= returnCost;
-				if (project.ActualCost < 0)
-					project.ActualCost = 0;
-
+				// 5. REBUILD PROJECT COST FROM HISTORY
+				project.ActualCost = RecalculateProjectCost(connection, tx, project.Id);
 				project.LastModifiedOn = DateTime.UtcNow;
 
 				using var updateProjectCmd = connection.CreateCommand();

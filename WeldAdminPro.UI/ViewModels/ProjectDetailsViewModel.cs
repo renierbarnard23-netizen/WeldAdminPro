@@ -32,6 +32,8 @@ namespace WeldAdminPro.UI.ViewModels
 		public ObservableCollection<StockItem> StockItems { get; }
 		public ObservableCollection<ProjectStockUsage> IssuedStockHistory { get; }
 		public ObservableCollection<ProjectStockSummary> ProjectStockSummary { get; }
+		public ObservableCollection<StockTransaction> ProjectCostTransactions { get; }
+
 
 		public event Action? RequestClose;
 
@@ -167,6 +169,9 @@ namespace WeldAdminPro.UI.ViewModels
 
 			ProjectStockSummary = new ObservableCollection<ProjectStockSummary>(
 				_usageRepository.GetProjectStockSummary(Project.Id));
+			ProjectCostTransactions = new ObservableCollection<StockTransaction>(
+				_stockRepository.GetProjectTransactions(Project.Id));
+
 		}
 
 		private void RefreshSummary()
@@ -174,6 +179,10 @@ namespace WeldAdminPro.UI.ViewModels
 			ProjectStockSummary.Clear();
 			foreach (var row in _usageRepository.GetProjectStockSummary(Project.Id))
 				ProjectStockSummary.Add(row);
+			ProjectCostTransactions.Clear();
+			foreach (var tx in _stockRepository.GetProjectTransactions(Project.Id))
+				ProjectCostTransactions.Add(tx);
+
 
 			OnPropertyChanged(nameof(ReturnableIssuedItems));
 			OnPropertyChanged(nameof(RemainingIssuedBalance));

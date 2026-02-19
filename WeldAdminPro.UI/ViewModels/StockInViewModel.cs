@@ -15,14 +15,12 @@ namespace WeldAdminPro.UI.ViewModels
 		public ObservableCollection<StockItem> StockItems { get; }
 		public ObservableCollection<Project> Projects { get; }
 
+		// =====================================================
+		// OBSERVABLE PROPERTIES
+		// =====================================================
+
 		[ObservableProperty]
 		private StockItem? selectedStockItem;
-
-		partial void OnSelectedStockItemChanged(StockItem? value)
-		{
-			if (value != null)
-				UnitCost = value.AverageUnitCost;
-		}
 
 		[ObservableProperty]
 		private Project? selectedProject;
@@ -36,6 +34,10 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private string reference = string.Empty;
 
+		// =====================================================
+		// CONSTRUCTOR
+		// =====================================================
+
 		public event Action? RequestClose;
 
 		public StockInViewModel()
@@ -46,6 +48,10 @@ namespace WeldAdminPro.UI.ViewModels
 			StockItems = new ObservableCollection<StockItem>(_repository.GetAll());
 			Projects = new ObservableCollection<Project>(_projectRepository.GetAll());
 		}
+
+		// =====================================================
+		// COMMANDS
+		// =====================================================
 
 		[RelayCommand]
 		private void Save()
@@ -58,17 +64,6 @@ namespace WeldAdminPro.UI.ViewModels
 
 			if (UnitCost <= 0)
 				return;
-
-			// Weighted average calculation
-			var currentQty = SelectedStockItem.Quantity;
-			var currentAvg = SelectedStockItem.AverageUnitCost;
-
-			var newTotalQty = currentQty + Quantity;
-
-			var newAverage =
-				newTotalQty == 0
-				? UnitCost
-				: ((currentQty * currentAvg) + (Quantity * UnitCost)) / newTotalQty;
 
 			var tx = new StockTransaction
 			{
@@ -83,12 +78,6 @@ namespace WeldAdminPro.UI.ViewModels
 			};
 
 			_repository.AddTransaction(tx);
-
-			// Update stock average cost
-			SelectedStockItem.AverageUnitCost = Math.Round(newAverage, 2);
-			SelectedStockItem.Quantity = newTotalQty;
-
-			_repository.Update(SelectedStockItem);
 
 			RequestClose?.Invoke();
 		}

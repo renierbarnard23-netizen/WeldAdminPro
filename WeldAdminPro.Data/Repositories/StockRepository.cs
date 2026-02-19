@@ -15,6 +15,59 @@ namespace WeldAdminPro.Data.Repositories
 			EnsureSchema();
 		}
 
+		public List<StockTransaction> GetProjectTransactions(Guid projectId)
+		{
+			var list = new List<StockTransaction>();
+
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = @"
+SELECT 
+    t.Id,
+    t.StockItemId,
+    t.ProjectId,
+    t.TransactionDate,
+    t.Quantity,
+    t.Type,
+    t.UnitCost,
+    t.Reference,
+    t.BalanceAfter,
+    s.ItemCode,
+    s.Description
+FROM StockTransactions t
+LEFT JOIN StockItems s ON s.Id = t.StockItemId
+WHERE LOWER(t.ProjectId) = LOWER($projectId)
+ORDER BY t.TransactionDate ASC, t.Id ASC;";
+
+			cmd.Parameters.AddWithValue("$projectId", projectId.ToString());
+
+			using var reader = cmd.ExecuteReader();
+			while (reader.Read())
+			{
+				DateTime parsedDate;
+				DateTime.TryParse(reader.GetString(3), out parsedDate);
+
+				list.Add(new StockTransaction
+				{
+					Id = Guid.Parse(reader.GetString(0)),
+					StockItemId = Guid.Parse(reader.GetString(1)),
+					ProjectId = reader.IsDBNull(2) ? null : Guid.Parse(reader.GetString(2)),
+					TransactionDate = parsedDate,
+					Quantity = reader.GetInt32(4),
+					Type = reader.GetString(5),
+					UnitCost = reader.GetDecimal(6),
+					Reference = reader.IsDBNull(7) ? "" : reader.GetString(7),
+					BalanceAfter = reader.IsDBNull(8) ? 0 : reader.GetInt32(8),
+					ItemCode = reader.IsDBNull(9) ? "" : reader.GetString(9),
+					ItemDescription = reader.IsDBNull(10) ? "" : reader.GetString(10)
+				});
+			}
+
+			return list;
+		}
+
 		// =========================================================
 		// SCHEMA
 		// =========================================================

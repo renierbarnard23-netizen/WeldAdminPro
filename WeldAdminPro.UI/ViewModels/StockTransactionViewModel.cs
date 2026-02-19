@@ -40,9 +40,8 @@ namespace WeldAdminPro.UI.ViewModels
 			_isStockIn = isStockIn;
 			_repo = new StockRepository();
 
-			// Auto-fill cost with current average when Stock IN
 			if (_isStockIn)
-				UnitCostText = item.AverageUnitCost.ToString("0.00");
+				UnitCostText = item.AverageUnitCost.ToString("0.00", CultureInfo.CurrentCulture);
 
 			SaveCommand = new RelayCommand(Save);
 			CancelCommand = new RelayCommand(() => RequestClose?.Invoke());
@@ -53,7 +52,7 @@ namespace WeldAdminPro.UI.ViewModels
 			if (!int.TryParse(
 				QuantityText,
 				NumberStyles.Integer,
-				CultureInfo.InvariantCulture,
+				CultureInfo.CurrentCulture,
 				out var quantity) || quantity <= 0)
 			{
 				MessageBox.Show("Please enter a valid quantity greater than zero.");
@@ -67,7 +66,7 @@ namespace WeldAdminPro.UI.ViewModels
 				if (!decimal.TryParse(
 					UnitCostText,
 					NumberStyles.Number,
-					CultureInfo.InvariantCulture,
+					CultureInfo.CurrentCulture,
 					out unitCost) || unitCost < 0)
 				{
 					MessageBox.Show("Please enter a valid unit cost.");
@@ -75,7 +74,6 @@ namespace WeldAdminPro.UI.ViewModels
 				}
 			}
 
-			// Stock OUT safety
 			if (!_isStockIn && quantity > Item.Quantity)
 			{
 				MessageBox.Show("Cannot stock out more than the available quantity.");
