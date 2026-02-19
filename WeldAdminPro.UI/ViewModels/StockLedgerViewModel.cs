@@ -16,15 +16,54 @@ namespace WeldAdminPro.UI.ViewModels
 		public ObservableCollection<StockTransaction> Transactions { get; set; }
 			= new();
 
+		public int OpeningBalance =>
+			Transactions.FirstOrDefault()?.BalanceAfter -
+			(Transactions.FirstOrDefault()?.Type == "IN"
+				? Transactions.FirstOrDefault()?.Quantity ?? 0
+				: -(Transactions.FirstOrDefault()?.Quantity ?? 0)) ?? 0;
+
+		public int TotalIn => Transactions.Sum(t => t.QtyIn);
+
+		public int TotalOut => Transactions.Sum(t => t.QtyOut);
+
+		public int NetMovement => TotalIn - TotalOut;
+
 		public int CurrentBalance =>
 			Transactions.LastOrDefault()?.BalanceAfter ?? 0;
+
+		public decimal TotalMovementValue =>
+			Transactions.Sum(t => t.TransactionValue);
 	}
+
 
 	public partial class StockLedgerViewModel : ObservableObject
 	{
 		private readonly StockRepository _repository;
 
 		public IRelayCommand RecalculateCommand { get; }
+
+		// 🔵 GLOBAL SUMMARY PROPERTIES (Correct Location)
+
+		[ObservableProperty]
+		private int totalStockItems;
+
+		[ObservableProperty]
+		private int totalUnitsInStock;
+
+		[ObservableProperty]
+		private decimal totalInventoryValue;
+
+		[ObservableProperty]
+		private int totalTransactions;
+
+		[ObservableProperty]
+		private DateTime? startDate;
+
+		[ObservableProperty]
+		private DateTime? endDate;
+
+		public IRelayCommand ApplyFilterCommand { get; }
+
 
 		private ObservableCollection<StockLedgerGroup> _ledgerGroups = new();
 		public ObservableCollection<StockLedgerGroup> LedgerGroups
@@ -38,9 +77,11 @@ namespace WeldAdminPro.UI.ViewModels
 			_repository = new StockRepository();
 
 			RecalculateCommand = new RelayCommand(RecalculateBalances);
+			ApplyFilterCommand = new RelayCommand(LoadLedger);
 
 			LoadLedger();
 		}
+
 
 		private void RecalculateBalances()
 		{
@@ -66,11 +107,30 @@ namespace WeldAdminPro.UI.ViewModels
 
 		private void LoadLedger()
 		{
-			var transactions = _repository
-				.GetAllTransactions()
+			var allItems = _repository.GetAll();
+			var allTransactions = _repository.GetAllTransactions();
+
+			// 🔵 Populate Global Summary
+			TotalStockItems = allItems.Count;
+			TotalUnitsInStock = allItems.Sum(i => i.Quantity);
+			TotalInventoryValue = allItems.Sum(i => i.Quantity * i.AverageUnitCost);
+			TotalTransactions = allTransactions.Count;
+
+			var filteredTransactions = allTransactions.AsEnumerable();
+
+			if (StartDate.HasValue)
+				filteredTransactions = filteredTransactions
+					.Where(t => t.TransactionDate.Date >= StartDate.Value.Date);
+
+			if (EndDate.HasValue)
+				filteredTransactions = filteredTransactions
+					.Where(t => t.TransactionDate.Date <= EndDate.Value.Date);
+
+			var transactions = filteredTransactions
 				.OrderBy(t => t.TransactionDate)
 				.ThenBy(t => t.Id)
 				.ToList();
+
 
 			var grouped = transactions
 				.GroupBy(t => new { t.StockItemId, t.ItemCode, t.ItemDescription })
@@ -88,11 +148,11 @@ namespace WeldAdminPro.UI.ViewModels
 				if (!ordered.Any())
 					continue;
 
-				// Clear previous mismatch flags
+				// Clear mismatch flags
 				foreach (var tx in ordered)
 					tx.IsLedgerMismatch = false;
 
-				// Only verify final balance matches StockItems table
+				// Verify final balance integrity
 				var finalBalance = ordered.Last().BalanceAfter;
 				var actualQty = _repository.GetAvailableQuantity(group.Key.StockItemId);
 
@@ -114,6 +174,5 @@ namespace WeldAdminPro.UI.ViewModels
 
 			LedgerGroups = result;
 		}
-
 	}
 }

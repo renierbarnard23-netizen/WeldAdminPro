@@ -6,12 +6,85 @@
              mc:Ignorable="d">
 
 	<DockPanel Margin="10">
+		<!-- 🔵 Global Summary Panel -->
+		<Border DockPanel.Dock="Top"
+        Background="#F5F5F5"
+        Padding="12"
+        CornerRadius="6"
+        Margin="0,0,0,10">
+
+			<UniformGrid Columns="4">
+
+				<StackPanel>
+					<TextBlock Text="Stock Items"
+                       FontWeight="SemiBold"/>
+					<TextBlock Text="{Binding TotalStockItems}"
+                       FontSize="18"
+                       FontWeight="Bold"/>
+				</StackPanel>
+
+				<StackPanel>
+					<TextBlock Text="Total Units In Stock"
+                       FontWeight="SemiBold"/>
+					<TextBlock Text="{Binding TotalUnitsInStock}"
+                       FontSize="18"
+                       FontWeight="Bold"/>
+				</StackPanel>
+
+				<StackPanel>
+					<TextBlock Text="Inventory Value"
+                       FontWeight="SemiBold"/>
+					<TextBlock Text="{Binding TotalInventoryValue, StringFormat={}{0:N2}}"
+                       FontSize="18"
+                       FontWeight="Bold"/>
+				</StackPanel>
+
+				<StackPanel>
+					<TextBlock Text="Total Transactions"
+                       FontWeight="SemiBold"/>
+					<TextBlock Text="{Binding TotalTransactions}"
+                       FontSize="18"
+                       FontWeight="Bold"/>
+				</StackPanel>
+
+			</UniformGrid>
+
+		</Border>
+
 
 		<!-- 🔵 Top Action Bar -->
 		<StackPanel DockPanel.Dock="Top"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Margin="0,0,0,10">
+			<!-- 🔵 Date Filter Bar -->
+			<StackPanel DockPanel.Dock="Top"
+            Orientation="Horizontal"
+            Margin="0,0,0,10"
+            VerticalAlignment="Center">
+
+				<TextBlock Text="Start:"
+               VerticalAlignment="Center"
+               Margin="0,0,5,0"/>
+
+				<DatePicker SelectedDate="{Binding StartDate}"
+                Width="140"
+                Margin="0,0,15,0"/>
+
+				<TextBlock Text="End:"
+               VerticalAlignment="Center"
+               Margin="0,0,5,0"/>
+
+				<DatePicker SelectedDate="{Binding EndDate}"
+                Width="140"
+                Margin="0,0,15,0"/>
+
+				<Button Content="Apply Filter"
+            Width="120"
+            Command="{Binding ApplyFilterCommand}"/>
+
+			</StackPanel>
+
 
 			<Button Content="Recalculate Stored Balances"
                     Width="220"
@@ -29,23 +102,57 @@
 						<Expander IsExpanded="False" Margin="0,0,0,12">
 
 							<Expander.Header>
-								<DockPanel>
-									<TextBlock Text="{Binding ItemCode}"
-                                               FontWeight="Bold"
-                                               Width="120"/>
+								<StackPanel Orientation="Vertical">
 
-									<TextBlock Text="{Binding Description}"
-                                               Margin="10,0,0,0"
-                                               Width="250"/>
+									<StackPanel Orientation="Horizontal">
+										<TextBlock Text="{Binding ItemCode}"
+                       FontWeight="Bold"
+                       Width="120"/>
 
-									<TextBlock Text="Current Balance:"
-                                               Margin="30,0,5,0"
-                                               FontWeight="SemiBold"/>
+										<TextBlock Text="{Binding Description}"
+                       Margin="10,0,0,0"
+                       Width="250"/>
 
-									<TextBlock Text="{Binding CurrentBalance}"
-                                               FontWeight="Bold"/>
-								</DockPanel>
+										<TextBlock Text="Closing:"
+                       Margin="30,0,5,0"
+                       FontWeight="SemiBold"/>
+
+										<TextBlock Text="{Binding CurrentBalance}"
+                       FontWeight="Bold"/>
+									</StackPanel>
+
+									<StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+
+										<TextBlock Text="Opening:"
+                       Width="80"/>
+
+										<TextBlock Text="{Binding OpeningBalance}"
+                       Width="80"/>
+
+										<TextBlock Text="Total IN:"
+                       Margin="20,0,0,0"
+                       Width="70"/>
+
+										<TextBlock Text="{Binding TotalIn}"
+                       Width="80"/>
+
+										<TextBlock Text="Total OUT:"
+                       Width="80"/>
+
+										<TextBlock Text="{Binding TotalOut}"
+                       Width="80"/>
+
+										<TextBlock Text="Value:"
+                       Margin="20,0,0,0"
+                       Width="50"/>
+
+										<TextBlock Text="{Binding TotalMovementValue, StringFormat={}{0:N2}}"
+                       FontWeight="SemiBold"/>
+									</StackPanel>
+
+								</StackPanel>
 							</Expander.Header>
+
 
 							<DataGrid ItemsSource="{Binding Transactions}"
                                       AutoGenerateColumns="False"
