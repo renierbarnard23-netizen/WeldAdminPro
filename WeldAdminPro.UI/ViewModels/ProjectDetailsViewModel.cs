@@ -8,7 +8,6 @@ using WeldAdminPro.Core.Guards;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
-using WeldAdminPro.UI.Views;
 
 namespace WeldAdminPro.UI.ViewModels
 {
@@ -19,10 +18,6 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly StockRepository _stockRepository;
 		private readonly StockAvailabilityService _stockAvailability;
 		private readonly FinancialService _financialService;
-		private readonly SmartPurchaseOrderService _smartPOService;
-
-
-		// 🔒 NEW ATOMIC SERVICE
 		private readonly StockProjectTransactionService _transactionService;
 
 		public Project Project { get; }
@@ -34,26 +29,27 @@ namespace WeldAdminPro.UI.ViewModels
 		public ObservableCollection<ProjectStockSummary> ProjectStockSummary { get; }
 		public ObservableCollection<StockTransaction> ProjectCostTransactions { get; }
 
-
 		public event Action? RequestClose;
 
+		public bool IsPersisted => Project.Id != Guid.Empty;
+
+		public bool IsLocked =>
+			Project.IsInvoiced ||
+			Project.Status == ProjectStatus.Completed;
+
 		public bool IsEditable =>
-			ProjectCompletionGuard.IsEditable(Project);
+			ProjectCompletionGuard.IsEditable(Project) && !IsLocked;
 
 		public bool CanSave => IsEditable;
 
-		// =========================
-		// FINANCIAL CALCULATED
-		// =========================
 		public decimal Variance =>
 			_financialService.CalculateVariance(Project);
 
 		public decimal MarginPercentage =>
 			_financialService.CalculateMarginPercentage(Project);
 
-		// =========================
-		// ISSUE FIELDS
-		// =========================
+		// ================= ISSUE FIELDS =================
+
 		private StockItem? _selectedStockItem;
 		public StockItem? SelectedStockItem
 		{
@@ -117,8 +113,10 @@ namespace WeldAdminPro.UI.ViewModels
 				: _stockAvailability.GetAvailableQuantity(SelectedStockItem.Id);
 
 		public bool CanIssueStock =>
+			IsPersisted &&
 			IsEditable &&
 			SelectedStockItem != null &&
+			IssueQuantity > 0 &&
 			_stockAvailability.CanIssue(SelectedStockItem.Id, IssueQuantity) &&
 			!string.IsNullOrWhiteSpace(IssuedBy);
 
@@ -139,23 +137,27 @@ namespace WeldAdminPro.UI.ViewModels
 				.Where(x => GetRemainingIssuedBalance(x.StockItemId) > 0);
 
 		public bool CanReturnStock =>
+			IsPersisted &&
 			IsEditable &&
 			SelectedIssuedUsage != null &&
 			ReturnQuantity > 0 &&
 			ReturnQuantity <= RemainingIssuedBalance;
 
+		// ================= CONSTRUCTOR =================
+
 		public ProjectDetailsViewModel(Project project)
 		{
-			Project = project;
-
 			_projectRepository = new ProjectRepository();
 			_usageRepository = new ProjectStockUsageRepository();
 			_stockRepository = new StockRepository();
 			_stockAvailability = new StockAvailabilityService();
 			_financialService = new FinancialService();
-			_transactionService = new StockProjectTransactionService(); // 🔒
-			_smartPOService = new SmartPurchaseOrderService();
+			_transactionService = new StockProjectTransactionService();
 
+			Project = project;
+
+			if (Project.JobNumber == 0)
+				Project.JobNumber = _projectRepository.GetNextJobNumber();
 
 			Statuses = Enum.GetValues(typeof(ProjectStatus))
 				.Cast<ProjectStatus>()
@@ -164,106 +166,139 @@ namespace WeldAdminPro.UI.ViewModels
 			StockItems = new ObservableCollection<StockItem>(
 				_stockRepository.GetAll());
 
-			IssuedStockHistory = new ObservableCollection<ProjectStockUsage>(
-				_usageRepository.GetByProjectId(Project.Id));
+			IssuedStockHistory = new ObservableCollection<ProjectStockUsage>();
+			ProjectStockSummary = new ObservableCollection<ProjectStockSummary>();
+			ProjectCostTransactions = new ObservableCollection<StockTransaction>();
 
-			ProjectStockSummary = new ObservableCollection<ProjectStockSummary>(
-				_usageRepository.GetProjectStockSummary(Project.Id));
-			ProjectCostTransactions = new ObservableCollection<StockTransaction>(
-				_stockRepository.GetProjectTransactions(Project.Id));
-
+			RefreshProjectData();
 		}
 
-		private void RefreshSummary()
-		{
-			ProjectStockSummary.Clear();
-			foreach (var row in _usageRepository.GetProjectStockSummary(Project.Id))
-				ProjectStockSummary.Add(row);
-			ProjectCostTransactions.Clear();
-			foreach (var tx in _stockRepository.GetProjectTransactions(Project.Id))
-				ProjectCostTransactions.Add(tx);
+		// ================= ISSUE STOCK =================
 
-
-			OnPropertyChanged(nameof(ReturnableIssuedItems));
-			OnPropertyChanged(nameof(RemainingIssuedBalance));
-			OnPropertyChanged(nameof(CanReturnStock));
-			OnPropertyChanged(nameof(AvailableQuantity));
-
-			OnPropertyChanged(nameof(Project));
-			OnPropertyChanged(nameof(Project.ActualCost));
-			OnPropertyChanged(nameof(Variance));
-			OnPropertyChanged(nameof(MarginPercentage));
-		}
-
-		// =========================
-		// 🔒 ISSUE STOCK (ATOMIC)
-		// =========================
 		[RelayCommand]
 		private void IssueStock()
 		{
-			if (!CanIssueStock || SelectedStockItem == null)
-				return;
+			try
+			{
+				if (!CanIssueStock)
+					return;
 
-			_transactionService.IssueStock(
-				Project,
-				SelectedStockItem,
-				IssueQuantity,
-				IssuedBy);
+				_transactionService.IssueStock(
+					Project,
+					SelectedStockItem!,
+					IssueQuantity,
+					IssuedBy);
 
-			ReloadAfterTransaction();
+				IssueQuantity = 0;
+				RefreshProjectData();
+			}
+			catch (Exception ex)
+			{
+				System.Windows.MessageBox.Show(
+					ex.Message,
+					"Issue Failed",
+					System.Windows.MessageBoxButton.OK,
+					System.Windows.MessageBoxImage.Warning);
+			}
 		}
 
-		// =========================
-		// 🔒 RETURN STOCK (ATOMIC)
-		// =========================
+		// ================= RETURN STOCK =================
+
 		[RelayCommand]
 		private void ReturnStock()
 		{
-			if (!CanReturnStock || SelectedIssuedUsage == null)
-				return;
+			try
+			{
+				if (!CanReturnStock || SelectedIssuedUsage == null)
+					return;
 
-			var stockItem = StockItems.FirstOrDefault(x => x.Id == SelectedIssuedUsage.StockItemId);
-			if (stockItem == null)
-				return;
+				var stockItem = _stockRepository.GetById(SelectedIssuedUsage.StockItemId);
+				if (stockItem == null)
+					throw new InvalidOperationException("Stock item not found.");
 
-			_transactionService.ReturnStock(
-				Project,
-				stockItem,
-				ReturnQuantity,
-				SelectedIssuedUsage.UnitCostAtIssue,
-				IssuedBy);
+				_transactionService.ReturnStock(
+					Project,
+					stockItem,
+					ReturnQuantity,
+					SelectedIssuedUsage.UnitCostAtIssue,
+					SelectedIssuedUsage.IssuedBy ?? "");
 
-			ReloadAfterTransaction();
+				ReturnQuantity = 0;
+				SelectedIssuedUsage = null;
+
+				RefreshProjectData();
+			}
+			catch (Exception ex)
+			{
+				System.Windows.MessageBox.Show(
+					ex.Message,
+					"Return Stock Error",
+					System.Windows.MessageBoxButton.OK,
+					System.Windows.MessageBoxImage.Warning);
+			}
 		}
 
+		// ================= INVOICE RULES =================
 
-		// =========================
-		// CENTRALIZED RELOAD
-		// =========================
-		private void ReloadAfterTransaction()
+		public void ApplyInvoiceRules()
+		{
+			if (Project.IsInvoiced)
+			{
+				Project.Status = ProjectStatus.Completed;
+
+				if (!Project.CompletedOn.HasValue)
+					Project.CompletedOn = DateTime.UtcNow;
+			}
+
+			OnPropertyChanged(nameof(IsLocked));
+			OnPropertyChanged(nameof(IsEditable));
+			OnPropertyChanged(nameof(CanIssueStock));
+			OnPropertyChanged(nameof(CanReturnStock));
+		}
+
+		// ================= REFRESH =================
+
+		private void RefreshProjectData()
 		{
 			IssuedStockHistory.Clear();
 			foreach (var u in _usageRepository.GetByProjectId(Project.Id))
 				IssuedStockHistory.Add(u);
 
-			RefreshSummary();
+			ProjectStockSummary.Clear();
+			foreach (var s in _usageRepository.GetProjectStockSummary(Project.Id))
+				ProjectStockSummary.Add(s);
 
-			IssueQuantity = 0;
-			ReturnQuantity = 0;
-			IssuedBy = string.Empty;
-			SelectedIssuedUsage = null;
+			ProjectCostTransactions.Clear();
+			foreach (var t in _stockRepository.GetProjectTransactions(Project.Id))
+				ProjectCostTransactions.Add(t);
+
+			OnPropertyChanged(nameof(ReturnableIssuedItems));
+			OnPropertyChanged(nameof(RemainingIssuedBalance));
+			OnPropertyChanged(nameof(AvailableQuantity));
+			OnPropertyChanged(nameof(CanIssueStock));
+			OnPropertyChanged(nameof(CanReturnStock));
+			OnPropertyChanged(nameof(Variance));
+			OnPropertyChanged(nameof(MarginPercentage));
 		}
 
-		// =========================
-		// SAVE
-		// =========================
+		// ================= SAVE =================
+
 		[RelayCommand]
 		private void Save()
 		{
 			try
 			{
+				ApplyInvoiceRules();
+
 				ProjectCompletionGuard.ValidateBeforeSave(Project);
-				_projectRepository.Update(Project);
+
+				var existing = _projectRepository.GetById(Project.Id);
+
+				if (existing == null)
+					_projectRepository.Add(Project);
+				else
+					_projectRepository.Update(Project);
+
 				RequestClose?.Invoke();
 			}
 			catch (Exception ex)
@@ -274,25 +309,6 @@ namespace WeldAdminPro.UI.ViewModels
 					System.Windows.MessageBoxButton.OK,
 					System.Windows.MessageBoxImage.Warning);
 			}
-		}
-
-		[RelayCommand]
-		private void GenerateSmartPO()
-		{
-			var po = _smartPOService.GenerateAutoPO(Project, "Default Supplier");
-
-			if (po == null)
-			{
-				System.Windows.MessageBox.Show("No items require reorder.");
-				return;
-			}
-
-			var window = new PurchaseOrderReviewWindow(po)
-			{
-				Owner = System.Windows.Application.Current.MainWindow
-			};
-
-			window.ShowDialog();
 		}
 
 		[RelayCommand]

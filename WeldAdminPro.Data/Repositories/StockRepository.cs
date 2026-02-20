@@ -5,7 +5,7 @@ using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Data.Repositories
 {
-	public class StockRepository
+		public class StockRepository
 	{
 		private readonly string _connectionString;
 
@@ -66,7 +66,42 @@ ORDER BY t.TransactionDate ASC, t.Id ASC;";
 			}
 
 			return list;
+
 		}
+			public StockItem? GetById(Guid id)
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = @"
+SELECT Id, ItemCode, Description, Quantity, Unit,
+       MinLevel, MaxLevel, Category, AverageUnitCost
+FROM StockItems
+WHERE LOWER(Id) = LOWER($id);";
+
+			cmd.Parameters.AddWithValue("$id", id.ToString());
+
+			using var reader = cmd.ExecuteReader();
+
+			if (!reader.Read())
+				return null;
+
+			return new StockItem
+			{
+				Id = Guid.Parse(reader.GetString(0)),
+				ItemCode = reader.GetString(1),
+				Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
+				Quantity = reader.GetInt32(3),
+				Unit = reader.IsDBNull(4) ? "" : reader.GetString(4),
+				MinLevel = reader.IsDBNull(5) ? null : reader.GetDecimal(5),
+				MaxLevel = reader.IsDBNull(6) ? null : reader.GetDecimal(6),
+				Category = reader.IsDBNull(7) ? "Uncategorised" : reader.GetString(7),
+				AverageUnitCost = reader.IsDBNull(8) ? 0m : reader.GetDecimal(8)
+			};
+		}
+		
+
 
 		// =========================================================
 		// SCHEMA
