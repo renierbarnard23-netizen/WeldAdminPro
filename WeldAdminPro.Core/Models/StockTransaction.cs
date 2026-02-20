@@ -44,5 +44,11 @@ namespace WeldAdminPro.Core.Models
 		public int QtyOut => Type == "OUT" ? Quantity : 0;
 
 		public decimal TransactionValue => Quantity * UnitCost;
+
+		// ================= AUDIT (NOT STORED IN DB) =================
+		public int CalculatedBalance { get; set; }
+		public bool IsBalanceMismatch { get; set; }
+		public bool IsNegativeDrift { get; set; }
 	}
+
 }

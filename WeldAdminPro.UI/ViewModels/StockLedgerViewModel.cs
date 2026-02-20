@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -11,15 +12,11 @@ namespace WeldAdminPro.UI.ViewModels
 	public class MonthlyMovementSummary
 	{
 		public DateTime Month { get; set; }
-
 		public int TotalIn { get; set; }
 		public int TotalOut { get; set; }
-
 		public int NetMovement => TotalIn - TotalOut;
-
 		public decimal ValueIn { get; set; }
 		public decimal ValueOut { get; set; }
-
 		public decimal NetValue => ValueIn - ValueOut;
 	}
 
@@ -85,6 +82,10 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private ObservableCollection<ItemMovementSummary> itemMovementSummaries = new();
 
+		// ✅ GLOBAL INTEGRITY FLAG
+		public bool HasLedgerMismatch =>
+			LedgerGroups.Any(g =>
+				g.Transactions.Any(t => t.IsBalanceMismatch));
 
 		public StockLedgerViewModel()
 		{
@@ -105,14 +106,12 @@ namespace WeldAdminPro.UI.ViewModels
 			var allItems = _repository.GetAll();
 			var allTransactions = _repository.GetAllTransactions();
 
-			// GLOBAL SUMMARY
 			TotalStockItems = allItems.Count;
 			TotalUnitsInStock = allItems.Sum(i => i.Quantity);
 			TotalInventoryValue = allItems.Sum(i => i.Quantity * i.AverageUnitCost);
 			TotalTransactions = allTransactions.Count;
 
-			// DATE FILTER
-			var filtered = allTransactions.AsEnumerable();
+			IEnumerable<StockTransaction> filtered = allTransactions;
 
 			if (StartDate.HasValue)
 				filtered = filtered.Where(t => t.TransactionDate.Date >= StartDate.Value.Date);
@@ -120,12 +119,32 @@ namespace WeldAdminPro.UI.ViewModels
 			if (EndDate.HasValue)
 				filtered = filtered.Where(t => t.TransactionDate.Date <= EndDate.Value.Date);
 
+			// ✅ DECLARE FIRST
 			var transactions = filtered
 				.OrderBy(t => t.TransactionDate)
 				.ThenBy(t => t.Id)
 				.ToList();
 
-			// PERIOD SUMMARY
+			// ✅ THEN CHECK
+			if (!transactions.Any())
+			{
+				ItemMovementSummaries = new ObservableCollection<ItemMovementSummary>();
+				MonthlySummaries = new ObservableCollection<MonthlyMovementSummary>();
+				LedgerGroups = new ObservableCollection<StockLedgerGroup>();
+
+				TopMovingItem = "-";
+				MostConsumedItem = "-";
+				HighestGrowthItem = "-";
+				TopMovingItemValue = 0;
+				MostConsumedUnits = 0;
+				HighestGrowthUnits = 0;
+				DeadStockCount = 0;
+
+				return;
+			}
+
+			// ================= PERIOD SUMMARY =================
+
 			PeriodTotalIn = transactions.Sum(t => t.QtyIn);
 			PeriodTotalOut = transactions.Sum(t => t.QtyOut);
 			PeriodNetMovement = PeriodTotalIn - PeriodTotalOut;
@@ -134,9 +153,9 @@ namespace WeldAdminPro.UI.ViewModels
 			PeriodValueOut = transactions.Where(t => t.Type == "OUT").Sum(t => t.TransactionValue);
 			PeriodNetValue = PeriodValueIn - PeriodValueOut;
 
-			// EXECUTIVE MOVEMENT + TURNOVER (SAFE VERSION)
-
 			const decimal periodDays = 30m;
+
+			// ================= EXECUTIVE ANALYTICS =================
 
 			ItemMovementSummaries = new ObservableCollection<ItemMovementSummary>(
 				transactions
@@ -153,13 +172,28 @@ namespace WeldAdminPro.UI.ViewModels
 						decimal turnover = totalOut / avgInventory;
 						decimal daysInInventory = turnover > 0 ? periodDays / turnover : 0;
 
-						string category = turnover switch
+						string category;
+
+						if (totalIn == 0 && totalOut == 0)
 						{
-							> 5 => "Fast Moving",
-							> 2 => "Healthy",
-							> 0 => "Slow Moving",
-							_ => "Dead Stock"
-						};
+							category = "Dead Stock";
+						}
+						else if (totalOut > 0 && totalOut >= totalIn)
+						{
+							category = "High Consumption";
+						}
+						else if (totalOut > 0)
+						{
+							category = "Fast Moving";
+						}
+						else if (totalIn > 0 && totalOut == 0)
+						{
+							category = "New Stock";
+						}
+						else
+						{
+							category = "Slow Moving";
+						}
 
 						return new ItemMovementSummary
 						{
@@ -173,7 +207,6 @@ namespace WeldAdminPro.UI.ViewModels
 							CurrentStockValue = item != null
 								? item.Quantity * item.AverageUnitCost
 								: 0,
-
 							AverageInventory = Math.Round(avgInventory, 2),
 							TurnoverRate = Math.Round(turnover, 2),
 							DaysInInventory = Math.Round(daysInInventory, 1),
@@ -183,8 +216,7 @@ namespace WeldAdminPro.UI.ViewModels
 					.OrderByDescending(x => x.MovementValue)
 					.ToList());
 
-			// KPIs
-			var topValueItem = ItemMovementSummaries.OrderByDescending(x => x.MovementValue).FirstOrDefault();
+			var topValueItem = ItemMovementSummaries.FirstOrDefault();
 			if (topValueItem != null)
 			{
 				TopMovingItem = topValueItem.ItemCode;
@@ -207,21 +239,27 @@ namespace WeldAdminPro.UI.ViewModels
 
 			DeadStockCount = ItemMovementSummaries.Count(x => x.TotalIn == 0 && x.TotalOut == 0);
 
-			// LEDGER GROUPING
+			// ================= LEDGER GROUPS =================
+
 			LedgerGroups = new ObservableCollection<StockLedgerGroup>(
 				transactions
 					.GroupBy(t => new { t.StockItemId, t.ItemCode, t.ItemDescription })
 					.OrderBy(g => g.Key.ItemCode)
-					.Select(g => new StockLedgerGroup
+					.Select(g =>
 					{
-						ItemCode = g.Key.ItemCode,
-						Description = g.Key.ItemDescription,
-						Transactions = new ObservableCollection<StockTransaction>(
-							g.OrderBy(t => t.TransactionDate)
-							 .ThenBy(t => t.Id))
+						var ordered = g.ToList();
+						ValidateRunningBalance(ordered);
+
+						return new StockLedgerGroup
+						{
+							ItemCode = g.Key.ItemCode,
+							Description = g.Key.ItemDescription,
+							Transactions = new ObservableCollection<StockTransaction>(ordered)
+						};
 					}));
 
-			// MONTHLY TREND
+			// ================= MONTHLY TREND =================
+
 			MonthlySummaries = new ObservableCollection<MonthlyMovementSummary>(
 				transactions
 					.GroupBy(t => new DateTime(t.TransactionDate.Year, t.TransactionDate.Month, 1))
@@ -233,8 +271,25 @@ namespace WeldAdminPro.UI.ViewModels
 						TotalOut = g.Sum(x => x.QtyOut),
 						ValueIn = g.Where(x => x.Type == "IN").Sum(x => x.TransactionValue),
 						ValueOut = g.Where(x => x.Type == "OUT").Sum(x => x.TransactionValue)
-					})
-					.ToList());
+					}));
+
+			OnPropertyChanged(nameof(HasLedgerMismatch));
+		}
+
+		private void ValidateRunningBalance(List<StockTransaction> transactions)
+		{
+			int runningBalance = 0;
+
+			foreach (var tx in transactions)
+			{
+				runningBalance += tx.Type == "IN"
+					? tx.Quantity
+					: -tx.Quantity;
+
+				tx.CalculatedBalance = runningBalance;
+				tx.IsBalanceMismatch = runningBalance != tx.BalanceAfter;
+				tx.IsNegativeDrift = runningBalance < 0;
+			}
 		}
 	}
 }

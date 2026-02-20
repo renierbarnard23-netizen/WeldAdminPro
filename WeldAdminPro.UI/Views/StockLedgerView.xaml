@@ -5,6 +5,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d">
 
+	<UserControl.Resources>
+		<BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+	</UserControl.Resources>
+
 	<DockPanel Margin="10">
 
 		<TabControl>
@@ -47,75 +51,6 @@
                                 Command="{Binding ApplyFilterCommand}"/>
 					</StackPanel>
 
-					<!-- Period Summary -->
-					<Border DockPanel.Dock="Top"
-                            Background="#F5F5F5"
-                            Padding="10"
-                            Margin="0,0,0,10"
-                            CornerRadius="4">
-
-						<Grid>
-							<Grid.ColumnDefinitions>
-								<ColumnDefinition Width="*"/>
-								<ColumnDefinition Width="*"/>
-								<ColumnDefinition Width="*"/>
-								<ColumnDefinition Width="40"/>
-								<ColumnDefinition Width="*"/>
-								<ColumnDefinition Width="*"/>
-								<ColumnDefinition Width="*"/>
-							</Grid.ColumnDefinitions>
-
-							<!-- Units -->
-							<StackPanel Grid.Column="0">
-								<TextBlock Text="Period In" FontWeight="SemiBold"/>
-								<TextBlock Text="{Binding PeriodTotalIn}"
-                                           FontSize="16"
-                                           FontWeight="Bold"/>
-							</StackPanel>
-
-							<StackPanel Grid.Column="1">
-								<TextBlock Text="Period Out" FontWeight="SemiBold"/>
-								<TextBlock Text="{Binding PeriodTotalOut}"
-                                           FontSize="16"
-                                           FontWeight="Bold"/>
-							</StackPanel>
-
-							<StackPanel Grid.Column="2">
-								<TextBlock Text="Net Movement" FontWeight="SemiBold"/>
-								<TextBlock Text="{Binding PeriodNetMovement}"
-                                           FontSize="16"
-                                           FontWeight="Bold"/>
-							</StackPanel>
-
-							<Border Grid.Column="3"
-                                    Width="1"
-                                    Background="#CCCCCC"
-                                    Margin="10,0"/>
-
-							<!-- Value -->
-							<StackPanel Grid.Column="4">
-								<TextBlock Text="Value In" FontWeight="SemiBold"/>
-								<TextBlock Text="{Binding PeriodValueIn, StringFormat={}{0:N2}}"
-                                           FontSize="16"
-                                           FontWeight="Bold"/>
-							</StackPanel>
-
-							<StackPanel Grid.Column="5">
-								<TextBlock Text="Value Out" FontWeight="SemiBold"/>
-								<TextBlock Text="{Binding PeriodValueOut, StringFormat={}{0:N2}}"
-                                           FontSize="16"
-                                           FontWeight="Bold"/>
-							</StackPanel>
-
-							<StackPanel Grid.Column="6">
-								<TextBlock Text="Net Value" FontWeight="SemiBold"/>
-								<TextBlock Text="{Binding PeriodNetValue, StringFormat={}{0:N2}}"
-                                           FontSize="16"
-                                           FontWeight="Bold"/>
-							</StackPanel>
-						</Grid>
-					</Border>
-
 					<!-- Ledger -->
 					<ScrollViewer VerticalScrollBarVisibility="Auto">
 						<ItemsControl ItemsSource="{Binding LedgerGroups}">
@@ -136,6 +71,15 @@
                                                            FontWeight="SemiBold"/>
 												<TextBlock Text="{Binding CurrentBalance}"
                                                            FontWeight="Bold"/>
+
+												<!-- ✅ FIXED WARNING BANNER -->
+												<TextBlock Margin="20,0,0,0"
+                                                           FontWeight="Bold"
+                                                           Foreground="DarkRed"
+                                                           Text="⚠ Ledger integrity issue detected!"
+                                                           Visibility="{Binding DataContext.HasLedgerMismatch,
+                                                               RelativeSource={RelativeSource AncestorType=UserControl},
+                                                               Converter={StaticResource BoolToVisibilityConverter}}"/>
 											</DockPanel>
 										</Expander.Header>
 
@@ -176,7 +120,26 @@
                                                     Width="110"/>
 											</DataGrid.Columns>
 
+											<DataGrid.RowStyle>
+												<Style TargetType="DataGridRow">
+													<Style.Triggers>
+
+														<!-- 🔴 Balance Mismatch -->
+														<DataTrigger Binding="{Binding IsBalanceMismatch}" Value="True">
+															<Setter Property="Background" Value="#FFCCCC"/>
+														</DataTrigger>
+
+														<!-- 🟠 Negative Drift -->
+														<DataTrigger Binding="{Binding IsNegativeDrift}" Value="True">
+															<Setter Property="Background" Value="#FFE6CC"/>
+														</DataTrigger>
+
+													</Style.Triggers>
+												</Style>
+											</DataGrid.RowStyle>
+
 										</DataGrid>
+
 									</Expander>
 								</DataTemplate>
 							</ItemsControl.ItemTemplate>
@@ -195,6 +158,7 @@
 				<ScrollViewer VerticalScrollBarVisibility="Auto">
 					<StackPanel Margin="10">
 
+						<!-- KPI CARDS -->
 						<WrapPanel Margin="0,0,0,20">
 
 							<Border Background="#F0F4F8" Padding="12" Margin="5" Width="220">
@@ -230,16 +194,17 @@
 
 						</WrapPanel>
 
-
+						<!-- ITEM MOVEMENT GRID -->
 						<TextBlock Text="Top Moving Inventory (By Value)"
-                                   FontSize="16"
-                                   FontWeight="Bold"
-                                   Margin="0,0,0,10"/>
+                       FontSize="16"
+                       FontWeight="Bold"
+                       Margin="0,0,0,10"/>
 
 						<DataGrid ItemsSource="{Binding ItemMovementSummaries}"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True"
-                                  Height="300">
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      Height="300"
+                      CanUserAddRows="False">
 
 							<DataGrid.Columns>
 								<DataGridTextColumn Header="Item Code" Binding="{Binding ItemCode}" Width="120"/>
@@ -250,69 +215,51 @@
 								<DataGridTextColumn Header="Movement Value" Binding="{Binding MovementValue, StringFormat={}{0:N2}}" Width="130"/>
 								<DataGridTextColumn Header="Current Balance" Binding="{Binding CurrentBalance}" Width="120"/>
 								<DataGridTextColumn Header="Stock Value" Binding="{Binding CurrentStockValue, StringFormat={}{0:N2}}" Width="130"/>
-								<DataGridTextColumn Header="Avg Inventory" 
-                    Binding="{Binding AverageInventory}" Width="110"/>
-
-								<DataGridTextColumn Header="Turnover"
-                    Binding="{Binding TurnoverRate}" Width="90"/>
-
-								<DataGridTextColumn Header="Days in Stock"
-                    Binding="{Binding DaysInInventory}" Width="110"/>
-
-								<DataGridTextColumn Header="Category"
-                    Binding="{Binding MovementCategory}" Width="120"/>
-
+								<DataGridTextColumn Header="Avg Inventory" Binding="{Binding AverageInventory}" Width="110"/>
+								<DataGridTextColumn Header="Turnover" Binding="{Binding TurnoverRate}" Width="90"/>
+								<DataGridTextColumn Header="Days in Stock" Binding="{Binding DaysInInventory}" Width="110"/>
+								<DataGridTextColumn Header="Category" Binding="{Binding MovementCategory}" Width="120"/>
 							</DataGrid.Columns>
 
 						</DataGrid>
 
-						<TextBlock Text="Monthly Movement Trend (Visual)"
-                                   FontSize="16"
-                                   FontWeight="Bold"
-                                   Margin="0,25,0,10"/>
+						<!-- MONTHLY TREND -->
+						<TextBlock Text="Monthly Movement Trend"
+                       FontSize="16"
+                       FontWeight="Bold"
+                       Margin="0,25,0,10"/>
+
 						<DataGrid ItemsSource="{Binding MonthlySummaries}"
-          AutoGenerateColumns="False"
-          IsReadOnly="True"
-          CanUserAddRows="False"
-          GridLinesVisibility="All"
-          Height="250">
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      Height="250"
+                      CanUserAddRows="False">
 
 							<DataGrid.Columns>
-
 								<DataGridTextColumn Header="Month"
-            Binding="{Binding Month, StringFormat={}{0:yyyy-MM}}"
-            Width="120"/>
-
+                        Binding="{Binding Month, StringFormat={}{0:yyyy-MM}}"
+                        Width="120"/>
 								<DataGridTextColumn Header="Total In"
-            Binding="{Binding TotalIn}"
-            Width="100"/>
-
+                        Binding="{Binding TotalIn}"
+                        Width="100"/>
 								<DataGridTextColumn Header="Total Out"
-            Binding="{Binding TotalOut}"
-            Width="100"/>
-
+                        Binding="{Binding TotalOut}"
+                        Width="100"/>
 								<DataGridTextColumn Header="Net Movement"
-            Binding="{Binding NetMovement}"
-            Width="120"/>
-
+                        Binding="{Binding NetMovement}"
+                        Width="120"/>
 								<DataGridTextColumn Header="Value In"
-            Binding="{Binding ValueIn, StringFormat={}{0:N2}}"
-            Width="130"/>
-
+                        Binding="{Binding ValueIn, StringFormat={}{0:N2}}"
+                        Width="130"/>
 								<DataGridTextColumn Header="Value Out"
-            Binding="{Binding ValueOut, StringFormat={}{0:N2}}"
-            Width="130"/>
-
+                        Binding="{Binding ValueOut, StringFormat={}{0:N2}}"
+                        Width="130"/>
 								<DataGridTextColumn Header="Net Value"
-            Binding="{Binding NetValue, StringFormat={}{0:N2}}"
-            Width="130"/>
-
-
-
+                        Binding="{Binding NetValue, StringFormat={}{0:N2}}"
+                        Width="130"/>
 							</DataGrid.Columns>
 
 						</DataGrid>
-
 
 					</StackPanel>
 				</ScrollViewer>
