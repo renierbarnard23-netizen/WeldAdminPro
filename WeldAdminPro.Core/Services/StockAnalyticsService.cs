@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WeldAdminPro.Core.Models;
+using WeldAdminPro.Core.Enums;
 
 namespace WeldAdminPro.Core.Services
 {
@@ -44,6 +45,8 @@ namespace WeldAdminPro.Core.Services
 
 			const decimal periodDays = 30m;
 
+			// ================= ITEM SUMMARIES =================
+
 			result.ItemSummaries = transactions
 				.GroupBy(t => new { t.StockItemId, t.ItemCode, t.ItemDescription })
 				.Select(g =>
@@ -58,18 +61,19 @@ namespace WeldAdminPro.Core.Services
 					decimal turnover = totalOut / avgInventory;
 					decimal daysInInventory = turnover > 0 ? periodDays / turnover : 0;
 
-					string category;
+					// ✅ Deterministic inventory classification
+					ItemInventoryCategory category;
 
-					if (totalIn == 0 && totalOut == 0)
-						category = "Dead Stock";
-					else if (totalOut > 0 && totalOut >= totalIn)
-						category = "High Consumption";
-					else if (totalOut > 0)
-						category = "Fast Moving";
+					if (totalIn == 0 && totalOut == 0 && closingQty == 0)
+						category = ItemInventoryCategory.Inactive;
+					else if (totalIn == 0 && totalOut == 0 && closingQty > 0)
+						category = ItemInventoryCategory.Stocked;
 					else if (totalIn > 0 && totalOut == 0)
-						category = "New Stock";
+						category = ItemInventoryCategory.Replenished;
+					else if (totalOut > 0 && totalIn == 0)
+						category = ItemInventoryCategory.ActiveConsumption;
 					else
-						category = "Slow Moving";
+						category = ItemInventoryCategory.Balanced;
 
 					return new ItemMovementSummary
 					{
@@ -86,11 +90,13 @@ namespace WeldAdminPro.Core.Services
 						AverageInventory = Math.Round(avgInventory, 2),
 						TurnoverRate = Math.Round(turnover, 2),
 						DaysInInventory = Math.Round(daysInInventory, 1),
-						MovementCategory = category
+						InventoryCategory = category
 					};
 				})
 				.OrderByDescending(x => x.MovementValue)
 				.ToList();
+
+			// ================= KPI CALCULATIONS =================
 
 			var topValueItem = result.ItemSummaries.FirstOrDefault();
 			if (topValueItem != null)
@@ -119,8 +125,12 @@ namespace WeldAdminPro.Core.Services
 				result.HighestGrowthUnits = highestGrowth.NetMovement;
 			}
 
+			// ✅ Dead stock now aligned with domain classification
 			result.DeadStockCount =
-				result.ItemSummaries.Count(x => x.TotalIn == 0 && x.TotalOut == 0);
+				result.ItemSummaries.Count(x =>
+					x.InventoryCategory == ItemInventoryCategory.Inactive);
+
+			// ================= MONTHLY SUMMARIES =================
 
 			result.MonthlySummaries = transactions
 				.GroupBy(t => new DateTime(t.TransactionDate.Year, t.TransactionDate.Month, 1))

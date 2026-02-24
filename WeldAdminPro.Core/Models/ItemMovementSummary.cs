@@ -1,4 +1,5 @@
 using System;
+using WeldAdminPro.Core.Enums;
 
 namespace WeldAdminPro.Core.Models
 {
@@ -6,8 +7,21 @@ namespace WeldAdminPro.Core.Models
 	{
 		public Guid StockItemId { get; set; }
 
+		// ==============================
+		// IDENTIFICATION
+		// ==============================
+
 		public string ItemCode { get; set; } = string.Empty;
 		public string Description { get; set; } = string.Empty;
+
+		// ==============================
+		// INVENTORY CLASSIFICATION
+		// ==============================
+
+		public ItemInventoryCategory InventoryCategory { get; set; }
+
+		public string InventoryCategoryDisplay =>
+			InventoryCategory.ToString();
 
 		// ==============================
 		// MOVEMENT DATA
@@ -35,8 +49,6 @@ namespace WeldAdminPro.Core.Models
 		public decimal TurnoverRate { get; set; }
 		public decimal DaysInInventory { get; set; }
 
-		public string MovementCategory { get; set; } = "-";
-
 		// ==============================
 		// REORDER RISK INTELLIGENCE
 		// ==============================
@@ -46,7 +58,6 @@ namespace WeldAdminPro.Core.Models
 
 		public string ReorderRiskLevel { get; set; } = "-";
 
-
 		// ==============================
 		// PROCUREMENT INTELLIGENCE
 		// ==============================
@@ -55,6 +66,5 @@ namespace WeldAdminPro.Core.Models
 		public decimal SuggestedOrderValue { get; set; }
 
 		public DateTime? EstimatedStockoutDate { get; set; }
-
 	}
 }
