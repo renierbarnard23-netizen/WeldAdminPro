@@ -48,17 +48,14 @@ namespace WeldAdminPro.UI.ViewModels
 		public IRelayCommand RecalculateCommand { get; }
 		public IRelayCommand ApplyFilterCommand { get; }
 
-		// GLOBAL SUMMARY
 		[ObservableProperty] private int totalStockItems;
 		[ObservableProperty] private int totalUnitsInStock;
 		[ObservableProperty] private decimal totalInventoryValue;
 		[ObservableProperty] private int totalTransactions;
 
-		// DATE FILTER
 		[ObservableProperty] private DateTime? startDate;
 		[ObservableProperty] private DateTime? endDate;
 
-		// PERIOD SUMMARY
 		[ObservableProperty] private int periodTotalIn;
 		[ObservableProperty] private int periodTotalOut;
 		[ObservableProperty] private int periodNetMovement;
@@ -66,7 +63,6 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty] private decimal periodValueOut;
 		[ObservableProperty] private decimal periodNetValue;
 
-		// KPIs
 		[ObservableProperty] private string topMovingItem = "-";
 		[ObservableProperty] private decimal topMovingItemValue;
 		[ObservableProperty] private string mostConsumedItem = "-";
@@ -75,16 +71,11 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty] private int highestGrowthUnits;
 		[ObservableProperty] private int deadStockCount;
 
-		[ObservableProperty]
-		private ObservableCollection<StockLedgerGroup> ledgerGroups = new();
+		[ObservableProperty] private ObservableCollection<StockLedgerGroup> ledgerGroups = new();
+		[ObservableProperty] private ObservableCollection<MonthlyMovementSummary> monthlySummaries = new();
+		[ObservableProperty] private ObservableCollection<ItemMovementSummary> itemMovementSummaries = new();
+		[ObservableProperty] private ObservableCollection<ItemMovementSummary> reorderAlerts = new();
 
-		[ObservableProperty]
-		private ObservableCollection<MonthlyMovementSummary> monthlySummaries = new();
-
-		[ObservableProperty]
-		private ObservableCollection<ItemMovementSummary> itemMovementSummaries = new();
-
-		// GLOBAL INTEGRITY FLAG
 		public bool HasLedgerMismatch =>
 			LedgerGroups.Any(g =>
 				g.Transactions.Any(t => t.IsBalanceMismatch));
@@ -131,22 +122,12 @@ namespace WeldAdminPro.UI.ViewModels
 
 			if (!transactions.Any())
 			{
-				ItemMovementSummaries = new ObservableCollection<ItemMovementSummary>();
-				MonthlySummaries = new ObservableCollection<MonthlyMovementSummary>();
-				LedgerGroups = new ObservableCollection<StockLedgerGroup>();
-
-				TopMovingItem = "-";
-				MostConsumedItem = "-";
-				HighestGrowthItem = "-";
-				TopMovingItemValue = 0;
-				MostConsumedUnits = 0;
-				HighestGrowthUnits = 0;
-				DeadStockCount = 0;
-
+				ItemMovementSummaries = new();
+				MonthlySummaries = new();
+				LedgerGroups = new();
+				ReorderAlerts = new();
 				return;
 			}
-
-			// ================= PERIOD SUMMARY =================
 
 			PeriodTotalIn = transactions.Sum(t => t.QtyIn);
 			PeriodTotalOut = transactions.Sum(t => t.QtyOut);
@@ -156,12 +137,18 @@ namespace WeldAdminPro.UI.ViewModels
 			PeriodValueOut = transactions.Where(t => t.Type == "OUT").Sum(t => t.TransactionValue);
 			PeriodNetValue = PeriodValueIn - PeriodValueOut;
 
-			// ================= EXECUTIVE ANALYTICS (SERVICE DRIVEN) =================
-
 			var analytics = _analyticsService.BuildAnalytics(transactions, allItems);
 
-			ItemMovementSummaries =
-				new ObservableCollection<ItemMovementSummary>(analytics.ItemSummaries);
+			ItemMovementSummaries = new(analytics.ItemSummaries);
+
+			ReorderAlerts = new(
+				analytics.ItemSummaries
+					.Where(x =>
+						x.ReorderRiskLevel == "Critical" ||
+						x.ReorderRiskLevel == "High" ||
+						x.ReorderRiskLevel == "Medium")
+					.OrderBy(x => x.DaysUntilStockout)
+			);
 
 			TopMovingItem = analytics.TopMovingItem;
 			TopMovingItemValue = analytics.TopMovingItemValue;
@@ -171,20 +158,17 @@ namespace WeldAdminPro.UI.ViewModels
 			HighestGrowthUnits = analytics.HighestGrowthUnits;
 			DeadStockCount = analytics.DeadStockCount;
 
-			MonthlySummaries =
-				new ObservableCollection<MonthlyMovementSummary>(
-					analytics.MonthlySummaries.Select(m => new MonthlyMovementSummary
-					{
-						Month = m.Month,
-						TotalIn = m.TotalIn,
-						TotalOut = m.TotalOut,
-						ValueIn = m.ValueIn,
-						ValueOut = m.ValueOut
-					}));
+			MonthlySummaries = new(
+				analytics.MonthlySummaries.Select(m => new MonthlyMovementSummary
+				{
+					Month = m.Month,
+					TotalIn = m.TotalIn,
+					TotalOut = m.TotalOut,
+					ValueIn = m.ValueIn,
+					ValueOut = m.ValueOut
+				}));
 
-			// ================= LEDGER GROUPS =================
-
-			LedgerGroups = new ObservableCollection<StockLedgerGroup>(
+			LedgerGroups = new(
 				transactions
 					.GroupBy(t => new { t.StockItemId, t.ItemCode, t.ItemDescription })
 					.OrderBy(g => g.Key.ItemCode)
@@ -210,9 +194,8 @@ namespace WeldAdminPro.UI.ViewModels
 
 			foreach (var tx in transactions)
 			{
-				runningBalance += tx.Type == "IN"
-					? tx.Quantity
-					: -tx.Quantity;
+				runningBalance += tx.QtyIn;
+				runningBalance -= tx.QtyOut;
 
 				tx.CalculatedBalance = runningBalance;
 				tx.IsBalanceMismatch = runningBalance != tx.BalanceAfter;

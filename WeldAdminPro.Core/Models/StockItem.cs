@@ -19,6 +19,7 @@ namespace WeldAdminPro.Core.Models
 		public string ItemCode { get; set; } = string.Empty;
 
 		public string Description { get; set; } = string.Empty;
+		public int MinimumStockLevel { get; set; } = 0;
 
 		// =========================
 		// QUANTITY (Reactive)

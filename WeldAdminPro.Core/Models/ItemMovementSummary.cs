@@ -23,6 +23,16 @@ namespace WeldAdminPro.Core.Models
 		public string InventoryCategoryDisplay =>
 			InventoryCategory.ToString();
 
+
+		// ==============================
+		// HEALTH STATUS
+		// ==============================
+
+		public InventoryHealthStatus HealthStatus { get; set; }
+
+		public string HealthStatusDisplay =>
+			HealthStatus.ToString();
+
 		// ==============================
 		// MOVEMENT DATA
 		// ==============================
@@ -38,7 +48,7 @@ namespace WeldAdminPro.Core.Models
 		// STOCK POSITION
 		// ==============================
 
-		public int CurrentBalance { get; set; }
+		public decimal CurrentBalance { get; set; }
 		public decimal CurrentStockValue { get; set; }
 
 		// ==============================
@@ -50,21 +60,17 @@ namespace WeldAdminPro.Core.Models
 		public decimal DaysInInventory { get; set; }
 
 		// ==============================
-		// REORDER RISK INTELLIGENCE
+		// USAGE & REORDER INTELLIGENCE
 		// ==============================
 
 		public decimal AverageDailyUsage { get; set; }
 		public decimal DaysUntilStockout { get; set; }
 
-		public string ReorderRiskLevel { get; set; } = "-";
-
-		// ==============================
-		// PROCUREMENT INTELLIGENCE
-		// ==============================
-
 		public int SuggestedReorderQuantity { get; set; }
 		public decimal SuggestedOrderValue { get; set; }
 
 		public DateTime? EstimatedStockoutDate { get; set; }
+
+		public string ReorderRiskLevel { get; set; } = "-";
 	}
 }

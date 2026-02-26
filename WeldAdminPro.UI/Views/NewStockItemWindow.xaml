@@ -75,9 +75,9 @@
                  Width="120"
                  Text="{Binding Item.Unit, UpdateSourceTrigger=PropertyChanged}"/>
 
-		<!-- Min Level -->
+		<!-- Minimum Stock Level -->
 		<TextBlock Grid.Row="4" Grid.Column="0"
-                   Text="Min Level:"
+                   Text="Minimum Stock Level:"
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 
@@ -86,9 +86,9 @@
                  Width="120"
                  Text="{Binding Item.MinLevel, UpdateSourceTrigger=PropertyChanged}"/>
 
-		<!-- Max Level -->
+		<!-- Maximum Stock Level -->
 		<TextBlock Grid.Row="5" Grid.Column="0"
-                   Text="Max Level:"
+                   Text="Maximum Stock Level:"
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 

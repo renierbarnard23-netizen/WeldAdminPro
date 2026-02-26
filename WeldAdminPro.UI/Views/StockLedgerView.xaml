@@ -14,14 +14,12 @@
 		<TabControl>
 
 			<!-- ===================================================== -->
-			<!-- TAB 1 – LEDGER -->
+			<!-- TAB 1 – STOCK LEDGER -->
 			<!-- ===================================================== -->
 
 			<TabItem Header="Stock Ledger">
-
 				<DockPanel Margin="10">
 
-					<!-- Recalculate -->
 					<StackPanel DockPanel.Dock="Top"
                                 Orientation="Horizontal"
                                 HorizontalAlignment="Right"
@@ -31,55 +29,32 @@
                                 Command="{Binding RecalculateCommand}"/>
 					</StackPanel>
 
-					<!-- Date Filter -->
 					<StackPanel DockPanel.Dock="Top"
                                 Orientation="Horizontal"
                                 Margin="0,0,0,10">
 
 						<TextBlock Text="Start:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-						<DatePicker SelectedDate="{Binding StartDate}"
-                                    Width="140"
-                                    Margin="0,0,15,0"/>
+						<DatePicker SelectedDate="{Binding StartDate}" Width="140" Margin="0,0,15,0"/>
 
 						<TextBlock Text="End:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-						<DatePicker SelectedDate="{Binding EndDate}"
-                                    Width="140"
-                                    Margin="0,0,15,0"/>
+						<DatePicker SelectedDate="{Binding EndDate}" Width="140" Margin="0,0,15,0"/>
 
 						<Button Content="Apply Filter"
                                 Width="120"
                                 Command="{Binding ApplyFilterCommand}"/>
 					</StackPanel>
 
-					<!-- Ledger -->
 					<ScrollViewer VerticalScrollBarVisibility="Auto">
 						<ItemsControl ItemsSource="{Binding LedgerGroups}">
 							<ItemsControl.ItemTemplate>
 								<DataTemplate>
 									<Expander Margin="0,0,0,12">
-
 										<Expander.Header>
 											<DockPanel>
-												<TextBlock Text="{Binding ItemCode}"
-                                                           FontWeight="Bold"
-                                                           Width="120"/>
-												<TextBlock Text="{Binding Description}"
-                                                           Margin="10,0,0,0"
-                                                           Width="250"/>
-												<TextBlock Text="Current Balance:"
-                                                           Margin="30,0,5,0"
-                                                           FontWeight="SemiBold"/>
-												<TextBlock Text="{Binding CurrentBalance}"
-                                                           FontWeight="Bold"/>
-
-												<!-- ✅ FIXED WARNING BANNER -->
-												<TextBlock Margin="20,0,0,0"
-                                                           FontWeight="Bold"
-                                                           Foreground="DarkRed"
-                                                           Text="⚠ Ledger integrity issue detected!"
-                                                           Visibility="{Binding DataContext.HasLedgerMismatch,
-                                                               RelativeSource={RelativeSource AncestorType=UserControl},
-                                                               Converter={StaticResource BoolToVisibilityConverter}}"/>
+												<TextBlock Text="{Binding ItemCode}" FontWeight="Bold" Width="120"/>
+												<TextBlock Text="{Binding Description}" Margin="10,0,0,0" Width="250"/>
+												<TextBlock Text="Current Balance:" Margin="30,0,5,0" FontWeight="SemiBold"/>
+												<TextBlock Text="{Binding CurrentBalance}" FontWeight="Bold"/>
 											</DockPanel>
 										</Expander.Header>
 
@@ -119,27 +94,7 @@
                                                     Binding="{Binding BalanceAfter}"
                                                     Width="110"/>
 											</DataGrid.Columns>
-
-											<DataGrid.RowStyle>
-												<Style TargetType="DataGridRow">
-													<Style.Triggers>
-
-														<!-- 🔴 Balance Mismatch -->
-														<DataTrigger Binding="{Binding IsBalanceMismatch}" Value="True">
-															<Setter Property="Background" Value="#FFCCCC"/>
-														</DataTrigger>
-
-														<!-- 🟠 Negative Drift -->
-														<DataTrigger Binding="{Binding IsNegativeDrift}" Value="True">
-															<Setter Property="Background" Value="#FFE6CC"/>
-														</DataTrigger>
-
-													</Style.Triggers>
-												</Style>
-											</DataGrid.RowStyle>
-
 										</DataGrid>
-
 									</Expander>
 								</DataTemplate>
 							</ItemsControl.ItemTemplate>
@@ -196,15 +151,15 @@
 
 						<!-- ITEM MOVEMENT GRID -->
 						<TextBlock Text="Top Moving Inventory (By Value)"
-                       FontSize="16"
-                       FontWeight="Bold"
-                       Margin="0,0,0,10"/>
+                                   FontSize="16"
+                                   FontWeight="Bold"
+                                   Margin="0,0,0,10"/>
 
 						<DataGrid ItemsSource="{Binding ItemMovementSummaries}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      Height="300"
-                      CanUserAddRows="False">
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  Height="300"
+                                  CanUserAddRows="False">
 
 							<DataGrid.Columns>
 								<DataGridTextColumn Header="Item Code" Binding="{Binding ItemCode}" Width="120"/>
@@ -218,51 +173,74 @@
 								<DataGridTextColumn Header="Avg Inventory" Binding="{Binding AverageInventory}" Width="110"/>
 								<DataGridTextColumn Header="Turnover" Binding="{Binding TurnoverRate}" Width="90"/>
 								<DataGridTextColumn Header="Days in Stock" Binding="{Binding DaysInInventory}" Width="110"/>
-								<DataGridTextColumn Header="Category" Binding="{Binding MovementCategory}" Width="120"/>
+								<DataGridTextColumn Header="Category" Binding="{Binding InventoryCategoryDisplay}" Width="140"/>
+								<DataGridTextColumn Header="Health" Binding="{Binding HealthStatusDisplay}" Width="140"/>
 							</DataGrid.Columns>
-
 						</DataGrid>
 
 						<!-- MONTHLY TREND -->
 						<TextBlock Text="Monthly Movement Trend"
-                       FontSize="16"
-                       FontWeight="Bold"
-                       Margin="0,25,0,10"/>
+                                   FontSize="16"
+                                   FontWeight="Bold"
+                                   Margin="0,25,0,10"/>
 
 						<DataGrid ItemsSource="{Binding MonthlySummaries}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      Height="250"
-                      CanUserAddRows="False">
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  Height="250"
+                                  CanUserAddRows="False">
 
 							<DataGrid.Columns>
 								<DataGridTextColumn Header="Month"
-                        Binding="{Binding Month, StringFormat={}{0:yyyy-MM}}"
-                        Width="120"/>
-								<DataGridTextColumn Header="Total In"
-                        Binding="{Binding TotalIn}"
-                        Width="100"/>
-								<DataGridTextColumn Header="Total Out"
-                        Binding="{Binding TotalOut}"
-                        Width="100"/>
-								<DataGridTextColumn Header="Net Movement"
-                        Binding="{Binding NetMovement}"
-                        Width="120"/>
-								<DataGridTextColumn Header="Value In"
-                        Binding="{Binding ValueIn, StringFormat={}{0:N2}}"
-                        Width="130"/>
-								<DataGridTextColumn Header="Value Out"
-                        Binding="{Binding ValueOut, StringFormat={}{0:N2}}"
-                        Width="130"/>
-								<DataGridTextColumn Header="Net Value"
-                        Binding="{Binding NetValue, StringFormat={}{0:N2}}"
-                        Width="130"/>
+                                    Binding="{Binding Month, StringFormat={}{0:yyyy-MM}}"
+                                    Width="120"/>
+								<DataGridTextColumn Header="Total In" Binding="{Binding TotalIn}" Width="100"/>
+								<DataGridTextColumn Header="Total Out" Binding="{Binding TotalOut}" Width="100"/>
+								<DataGridTextColumn Header="Net Movement" Binding="{Binding NetMovement}" Width="120"/>
+								<DataGridTextColumn Header="Value In" Binding="{Binding ValueIn, StringFormat={}{0:N2}}" Width="130"/>
+								<DataGridTextColumn Header="Value Out" Binding="{Binding ValueOut, StringFormat={}{0:N2}}" Width="130"/>
+								<DataGridTextColumn Header="Net Value" Binding="{Binding NetValue, StringFormat={}{0:N2}}" Width="130"/>
 							</DataGrid.Columns>
-
 						</DataGrid>
 
 					</StackPanel>
 				</ScrollViewer>
+			</TabItem>
+
+			<!-- ===================================================== -->
+			<!-- TAB 3 – SMART REORDER PLANNER -->
+			<!-- ===================================================== -->
+
+			<TabItem Header="Smart Reorder Planner">
+
+				<StackPanel Margin="10">
+
+					<TextBlock Text="Items Requiring Attention"
+                               FontSize="16"
+                               FontWeight="Bold"
+                               Margin="0,0,0,10"/>
+
+					<DataGrid ItemsSource="{Binding ReorderAlerts}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              Height="350"
+                              CanUserAddRows="False">
+
+						<DataGrid.Columns>
+							<DataGridTextColumn Header="Item" Binding="{Binding ItemCode}" Width="120"/>
+							<DataGridTextColumn Header="Balance" Binding="{Binding CurrentBalance}" Width="100"/>
+							<DataGridTextColumn Header="Avg Daily Usage" Binding="{Binding AverageDailyUsage}" Width="130"/>
+							<DataGridTextColumn Header="Days Left" Binding="{Binding DaysUntilStockout}" Width="100"/>
+							<DataGridTextColumn Header="Risk" Binding="{Binding ReorderRiskLevel}" Width="100"/>
+							<DataGridTextColumn Header="Suggested Qty" Binding="{Binding SuggestedReorderQuantity}" Width="130"/>
+							<DataGridTextColumn Header="Order Value"
+                                Binding="{Binding SuggestedOrderValue, StringFormat={}{0:N2}}"
+                                Width="130"/>
+						</DataGrid.Columns>
+
+					</DataGrid>
+
+				</StackPanel>
 
 			</TabItem>
 
