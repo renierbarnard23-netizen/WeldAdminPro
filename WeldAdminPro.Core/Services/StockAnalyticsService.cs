@@ -237,6 +237,27 @@ decimal maxLevel = item?.MaxLevel ?? 0m;
 				})
 				.ToList();
 
+			// --- ABC CLASSIFICATION (Rank Based) ---
+
+			var ordered = result.ItemSummaries
+				.OrderByDescending(x => x.MovementValue)
+				.ToList();
+
+			int totalItems = ordered.Count;
+
+			int aCount = (int)Math.Ceiling(totalItems * 0.2m);
+			int bCount = (int)Math.Ceiling(totalItems * 0.3m);
+
+			for (int i = 0; i < totalItems; i++)
+			{
+				if (i < aCount)
+					ordered[i].ABCClass = "A";
+				else if (i < aCount + bCount)
+					ordered[i].ABCClass = "B";
+				else
+					ordered[i].ABCClass = "C";
+			}
+
 			return result;
 		}
 	}

@@ -23,6 +23,7 @@ namespace WeldAdminPro.Core.Models
 		public string InventoryCategoryDisplay =>
 			InventoryCategory.ToString();
 
+		public string ABCClass { get; set; } = "C";
 
 		// ==============================
 		// HEALTH STATUS

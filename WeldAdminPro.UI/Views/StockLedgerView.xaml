@@ -163,6 +163,7 @@
 
 							<DataGrid.Columns>
 								<DataGridTextColumn Header="Item Code" Binding="{Binding ItemCode}" Width="120"/>
+								<DataGridTextColumn Header="ABC" Binding="{Binding ABCClass}" Width="60"/>
 								<DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="200"/>
 								<DataGridTextColumn Header="Total In" Binding="{Binding TotalIn}" Width="90"/>
 								<DataGridTextColumn Header="Total Out" Binding="{Binding TotalOut}" Width="90"/>
