@@ -11,7 +11,9 @@
 
 	<DockPanel Margin="10">
 
-		<TabControl>
+		<TabControl Margin="0"
+            HorizontalContentAlignment="Stretch"
+            VerticalContentAlignment="Stretch">
 
 			<!-- ===================================================== -->
 			<!-- TAB 1 – STOCK LEDGER -->
@@ -113,6 +115,55 @@
 				<ScrollViewer VerticalScrollBarVisibility="Auto">
 					<StackPanel Margin="10">
 
+					<!-- Export Button -->
+						<Button Content="Export Executive PDF"
+								Width="220"
+								Height="36"
+								Background="#1976D2"
+								Foreground="White"
+								FontWeight="Bold"
+								BorderThickness="0"
+								HorizontalAlignment="Right"
+								Margin="0,0,0,15"
+								Command="{Binding ExportExecutiveReportCommand}"/>
+
+						<Border Background="{Binding ExecutiveRiskColor}"
+								Padding="15"
+								CornerRadius="6"
+								Margin="0,0,0,15">
+
+							<TextBlock Text="{Binding ExecutiveRiskLevel}"
+               Foreground="White"
+               FontSize="18"
+               FontWeight="Bold"
+               HorizontalAlignment="Center"/>
+						</Border>
+
+						<Border Background="{Binding InventoryHealthColor}"
+        Padding="15"
+        CornerRadius="6"
+        Margin="0,0,0,15">
+
+							<StackPanel HorizontalAlignment="Center">
+								<TextBlock Text="Inventory Health Score"
+                   Foreground="White"
+                   FontSize="14"
+                   HorizontalAlignment="Center"/>
+
+								<TextBlock Text="{Binding InventoryHealthScore}"
+                   Foreground="White"
+                   FontSize="32"
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"/>
+
+								<TextBlock Text="{Binding InventoryHealthLabel}"
+                   Foreground="White"
+                   FontSize="14"
+                   HorizontalAlignment="Center"/>
+							</StackPanel>
+
+						</Border>
+
 						<!-- KPI CARDS -->
 						<WrapPanel Margin="0,0,0,20">
 
@@ -148,18 +199,112 @@
 							</Border>
 
 						</WrapPanel>
+						
+					</StackPanel>
+				</ScrollViewer>
+			</TabItem>
+
+			<TabItem Header="Stock Analytics">
+				<ScrollViewer VerticalScrollBarVisibility="Auto">
+					<StackPanel Margin="15">
+
+						<!-- Pareto Section -->
+						<StackPanel Margin="0,0,0,15">
+
+							
+							<GroupBox Header="Pareto Analysis (Value Concentration)" Margin="0,15,0,0">
+								<Grid Height="350">
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition Width="201*"/>
+										<ColumnDefinition Width="707*"/>
+									</Grid.ColumnDefinitions>
+
+									<ItemsControl ItemsSource="{Binding ParetoItems}" Grid.ColumnSpan="2">
+										<ItemsControl.ItemTemplate>
+											<DataTemplate>
+												<Grid Margin="0,2">
+													<Grid.ColumnDefinitions>
+														<ColumnDefinition Width="120"/>
+														<ColumnDefinition Width="*"/>
+														<ColumnDefinition Width="80"/>
+													</Grid.ColumnDefinitions>
+
+													<TextBlock Text="{Binding ItemCode}" VerticalAlignment="Center"/>
+
+													<!-- Value Bar -->
+													<Border Grid.Column="1"
+                 Height="18"
+                 Background="#1976D2"
+                 Width="{Binding ParetoBarWidth}"
+                 HorizontalAlignment="Left"/>
+
+													<!-- Cumulative % -->
+													<TextBlock Grid.Column="2"
+                    Text="{Binding CumulativePercentage, StringFormat={}{0}%}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"/>
+												</Grid>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+								</Grid>
+							</GroupBox>
+
+							<Grid Height="30">
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="{Binding APercentage, StringFormat={}{0}*}" />
+									<ColumnDefinition Width="{Binding BPercentage, StringFormat={}{0}*}" />
+									<ColumnDefinition Width="{Binding CPercentage, StringFormat={}{0}*}" />
+								</Grid.ColumnDefinitions>
+
+								<!-- A -->
+								<Border Grid.Column="0" Background="#2E7D32">
+									<TextBlock Text="{Binding APercentage, StringFormat=A {0}%}"
+        Foreground="White"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+        FontWeight="Bold"/>
+								</Border>
+
+								<!-- B -->
+								<Border Grid.Column="1" Background="#EF6C00">
+									<TextBlock Text="{Binding BPercentage, StringFormat=B {0}%}"
+        Foreground="White"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+        FontWeight="Bold"/>
+								</Border>
+
+								<!-- C -->
+								<Border Grid.Column="2" Background="#616161">
+									<TextBlock Text="{Binding CPercentage, StringFormat=C {0}%}"
+        Foreground="White"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+        FontWeight="Bold"/>
+								</Border>
+
+							</Grid>
+
+						</StackPanel>
+
+						<!-- ABC Distribution -->
+						<TextBlock Text="Portfolio Distribution (ABC)"
+FontWeight="Bold"
+Margin="0,0,0,5"/>
 
 						<!-- ITEM MOVEMENT GRID -->
 						<TextBlock Text="Top Moving Inventory (By Value)"
-                                   FontSize="16"
-                                   FontWeight="Bold"
-                                   Margin="0,0,0,10"/>
+            FontSize="16"
+            FontWeight="Bold"
+            Margin="0,0,0,10"/>
+						
 
 						<DataGrid ItemsSource="{Binding ItemMovementSummaries}"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True"
-                                  Height="300"
-                                  CanUserAddRows="False">
+           AutoGenerateColumns="False"
+           IsReadOnly="True"
+           Height="300"
+           CanUserAddRows="False">
 
 							<DataGrid.Columns>
 								<DataGridTextColumn Header="Item Code" Binding="{Binding ItemCode}" Width="120"/>
@@ -176,25 +321,70 @@
 								<DataGridTextColumn Header="Days in Stock" Binding="{Binding DaysInInventory}" Width="110"/>
 								<DataGridTextColumn Header="Category" Binding="{Binding InventoryCategoryDisplay}" Width="140"/>
 								<DataGridTextColumn Header="Health" Binding="{Binding HealthStatusDisplay}" Width="140"/>
+
+								<DataGridTextColumn Header="Heat Zone"
+										Binding="{Binding RiskHeatZone}"
+										Width="120"/>
 							</DataGrid.Columns>
 						</DataGrid>
 
 						<!-- MONTHLY TREND -->
+						<GroupBox Header="Risk Heat Map (ABC × Risk)" Margin="0,15,0,15">
+
+							<ItemsControl ItemsSource="{Binding RiskMatrix}"
+                  HorizontalAlignment="Left">
+
+								<!-- THIS is the important fix -->
+								<ItemsControl.ItemsPanel>
+									<ItemsPanelTemplate>
+										<UniformGrid Rows="3"
+                             Columns="3"
+                             Width="360"
+                             Height="360"/>
+									</ItemsPanelTemplate>
+								</ItemsControl.ItemsPanel>
+
+								<ItemsControl.ItemTemplate>
+									<DataTemplate>
+										<Border Background="{Binding BackgroundColor}"
+                        Margin="6"
+                        CornerRadius="6">
+											<Grid>
+												<StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center">
+													<TextBlock Text="{Binding Label}"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       TextAlignment="Center"
+                                       HorizontalAlignment="Center"/>
+													<TextBlock Text="{Binding ItemCount}"
+                                       FontSize="20"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Center"/>
+												</StackPanel>
+											</Grid>
+										</Border>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+
+							</ItemsControl>
+
+						</GroupBox>
 						<TextBlock Text="Monthly Movement Trend"
-                                   FontSize="16"
-                                   FontWeight="Bold"
-                                   Margin="0,25,0,10"/>
+           FontSize="16"
+           FontWeight="Bold"
+           Margin="0,25,0,10"/>
 
 						<DataGrid ItemsSource="{Binding MonthlySummaries}"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True"
-                                  Height="250"
-                                  CanUserAddRows="False">
+          AutoGenerateColumns="False"
+          IsReadOnly="True"
+          Height="250"
+          CanUserAddRows="False">
 
 							<DataGrid.Columns>
 								<DataGridTextColumn Header="Month"
-                                    Binding="{Binding Month, StringFormat={}{0:yyyy-MM}}"
-                                    Width="120"/>
+            Binding="{Binding Month, StringFormat={}{0:yyyy-MM}}"
+            Width="120"/>
 								<DataGridTextColumn Header="Total In" Binding="{Binding TotalIn}" Width="100"/>
 								<DataGridTextColumn Header="Total Out" Binding="{Binding TotalOut}" Width="100"/>
 								<DataGridTextColumn Header="Net Movement" Binding="{Binding NetMovement}" Width="120"/>

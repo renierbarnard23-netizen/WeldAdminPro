@@ -21,6 +21,26 @@ namespace WeldAdminPro.Core.Services
 		public int HighestGrowthUnits { get; set; }
 
 		public int DeadStockCount { get; set; }
+
+		public decimal TotalInventoryValue { get; set; }
+		public decimal CapitalLockedValue { get; set; }
+
+		public decimal CapitalLockedPercentage =>
+			TotalInventoryValue > 0
+				? Math.Round(CapitalLockedValue / TotalInventoryValue * 100m, 2)
+				: 0m;
+
+		public int AItemCount { get; set; }
+		public int BItemCount { get; set; }
+		public int CItemCount { get; set; }
+
+		public decimal AValue { get; set; }
+		public decimal BValue { get; set; }
+		public decimal CValue { get; set; }
+
+		public int CriticalACount { get; set; }
+		public int HighRiskCount { get; set; }
+		public int MediumRiskCount { get; set; }
 	}
 
 	public class MonthlyMovementSummaryDto
@@ -46,11 +66,82 @@ namespace WeldAdminPro.Core.Services
 			if (!transactions.Any())
 				return result;
 
+			result.ItemSummaries = BuildItemSummaries(transactions, allItems);
+
+			ApplyABCPareto(result.ItemSummaries);
+			ApplyRiskHeatmap(result.ItemSummaries);
+			ApplyReorderPolicy(result.ItemSummaries);
+			BuildKPIs(result);
+
+			result.MonthlySummaries = BuildMonthlySummaries(transactions);
+
+			CalculateCapitalExposure(result);
+
+			return result;
+		}
+
+		// =========================================================
+		// CAPITAL EXPOSURE CALCULATION
+		// =========================================================
+
+		private void CalculateCapitalExposure(StockAnalyticsResult result)
+		{
+			result.TotalInventoryValue =
+				result.ItemSummaries.Sum(x => x.CurrentStockValue);
+
+			result.CapitalLockedValue =
+				result.ItemSummaries
+					.Where(x => x.ReorderRiskLevel == "Capital Lock Risk")
+					.Sum(x => x.CurrentStockValue);
+
+			result.AItemCount =
+				result.ItemSummaries.Count(x => x.ABCClass == "A");
+
+			result.BItemCount =
+				result.ItemSummaries.Count(x => x.ABCClass == "B");
+
+			result.CItemCount =
+				result.ItemSummaries.Count(x => x.ABCClass == "C");
+
+			result.AValue =
+				result.ItemSummaries
+					.Where(x => x.ABCClass == "A")
+					.Sum(x => x.CurrentStockValue);
+
+			result.BValue =
+				result.ItemSummaries
+					.Where(x => x.ABCClass == "B")
+					.Sum(x => x.CurrentStockValue);
+
+			result.CValue =
+				result.ItemSummaries
+					.Where(x => x.ABCClass == "C")
+					.Sum(x => x.CurrentStockValue);
+
+			result.CriticalACount =
+				result.ItemSummaries.Count(x => x.ReorderRiskLevel == "Critical-A");
+
+			result.HighRiskCount =
+				result.ItemSummaries.Count(x => x.ReorderRiskLevel == "High");
+
+			result.MediumRiskCount =
+				result.ItemSummaries.Count(x => x.ReorderRiskLevel == "Medium");
+		}
+
+		// =========================================================
+		// BUILD BASE METRICS
+		// =========================================================
+
+		private List<ItemMovementSummary> BuildItemSummaries(
+			List<StockTransaction> transactions,
+			List<StockItem> allItems)
+		{
 			var globalFirstDate = transactions.Min(t => t.TransactionDate).Date;
 			var globalLastDate = transactions.Max(t => t.TransactionDate).Date;
-			var globalPeriodDays = Math.Max((globalLastDate - globalFirstDate).TotalDays, 1);
+			var globalPeriodDays =
+				Math.Max((globalLastDate - globalFirstDate).TotalDays, 1);
 
-			result.ItemSummaries = transactions
+			return transactions
 				.GroupBy(t => new { t.StockItemId, t.ItemCode, t.ItemDescription })
 				.Select(g =>
 				{
@@ -59,107 +150,20 @@ namespace WeldAdminPro.Core.Services
 					int totalIn = g.Sum(x => x.QtyIn);
 					int totalOut = g.Sum(x => x.QtyOut);
 
-					decimal closingQtyDecimal = item?.Quantity ?? 0m;
-					int closingQty = (int)Math.Floor(closingQtyDecimal);
+					decimal closingQty = item?.Quantity ?? 0m;
+					decimal avgInventory = closingQty > 0 ? closingQty : 1m;
 
-					decimal avgInventory = closingQtyDecimal > 0 ? closingQtyDecimal : 1m;
 					decimal turnover = totalOut / avgInventory;
-					decimal daysInInventory = turnover > 0 ? 30m / turnover : 0m;
+					decimal daysInInventory =
+						turnover > 0 ? 30m / turnover : 0m;
 
-					// ================= INVENTORY CATEGORY =================
-
-					ItemInventoryCategory category;
-
-					if (totalIn == 0 && totalOut == 0 && closingQty == 0)
-						category = ItemInventoryCategory.Inactive;
-					else if (totalIn == 0 && totalOut == 0 && closingQty > 0)
-						category = ItemInventoryCategory.Stocked;
-					else if (totalIn > 0 && totalOut == 0)
-						category = ItemInventoryCategory.Replenished;
-					else if (totalOut > 0 && totalIn == 0)
-						category = ItemInventoryCategory.ActiveConsumption;
-					else
-						category = ItemInventoryCategory.Balanced;
-
-					// ================= HEALTH STATUS =================
-
-					InventoryHealthStatus health;
-
-					if (category == ItemInventoryCategory.Inactive)
-						health = InventoryHealthStatus.DeadStock;
-					else if (daysInInventory > 120)
-						health = InventoryHealthStatus.AgingRisk;
-					else if (turnover < 0.2m && totalOut > 0)
-						health = InventoryHealthStatus.SlowMoving;
-					else if (closingQty < 5 && totalOut > 0)
-						health = InventoryHealthStatus.StockoutRisk;
-					else
-						health = InventoryHealthStatus.Healthy;
-
-					// ================= USAGE =================
-
-					decimal averageDailyUsage = totalOut / (decimal)globalPeriodDays;
+					decimal averageDailyUsage =
+						totalOut / (decimal)globalPeriodDays;
 
 					decimal daysUntilStockout =
 						averageDailyUsage > 0
-							? closingQtyDecimal / averageDailyUsage
+							? closingQty / averageDailyUsage
 							: 0m;
-
-					DateTime? estimatedStockoutDate =
-						averageDailyUsage > 0
-							? DateTime.Today.AddDays((double)daysUntilStockout)
-							: null;
-
-					// ================= INDUSTRIAL MIN/MAX REORDER =================
-
-					decimal minLevel = item?.MinLevel ?? 0m;
-decimal maxLevel = item?.MaxLevel ?? 0m;
-
-					int suggestedReorderQty = 0;
-
-					if (maxLevel > 0)
-					{
-						if (closingQtyDecimal <= minLevel)
-						{
-							suggestedReorderQty = (int)Math.Ceiling(maxLevel - closingQtyDecimal);
-							if (suggestedReorderQty < 0)
-								suggestedReorderQty = 0;
-						}
-					}
-					else
-					{
-						const int targetCoverageDays = 30;
-						decimal targetStock = averageDailyUsage * targetCoverageDays;
-
-						if (averageDailyUsage > 0 && closingQtyDecimal < targetStock)
-							suggestedReorderQty =
-								(int)Math.Ceiling(targetStock - closingQtyDecimal);
-
-						if (suggestedReorderQty > totalOut * 2)
-							suggestedReorderQty = totalOut * 2;
-					}
-
-					decimal suggestedOrderValue =
-						item != null
-							? suggestedReorderQty * item.AverageUnitCost
-							: 0m;
-
-					// ================= RISK =================
-
-					string reorderRisk;
-
-					if (averageDailyUsage == 0)
-						reorderRisk = "No Usage";
-					else if (closingQty == 0)
-						reorderRisk = "Critical";
-					else if (closingQty <= minLevel)
-						reorderRisk = "ReorderRequired";
-					else if (daysUntilStockout < 7)
-						reorderRisk = "High";
-					else if (daysUntilStockout < 30)
-						reorderRisk = "Medium";
-					else
-						reorderRisk = "Low";
 
 					return new ItemMovementSummary
 					{
@@ -169,33 +173,160 @@ decimal maxLevel = item?.MaxLevel ?? 0m;
 						TotalIn = totalIn,
 						TotalOut = totalOut,
 						MovementValue = g.Sum(x => x.TransactionValue),
-						CurrentBalance = closingQtyDecimal,
+						CurrentBalance = closingQty,
 						CurrentStockValue = item != null
 							? item.Quantity * item.AverageUnitCost
 							: 0m,
 						AverageInventory = Math.Round(avgInventory, 2),
 						TurnoverRate = Math.Round(turnover, 2),
 						DaysInInventory = Math.Round(daysInInventory, 1),
-						InventoryCategory = category,
-						HealthStatus = health,
 						AverageDailyUsage = Math.Round(averageDailyUsage, 2),
 						DaysUntilStockout = Math.Round(daysUntilStockout, 1),
-						EstimatedStockoutDate = estimatedStockoutDate,
-						SuggestedReorderQuantity = suggestedReorderQty,
-						SuggestedOrderValue = suggestedOrderValue,
-						ReorderRiskLevel = reorderRisk
+						EstimatedStockoutDate =
+							averageDailyUsage > 0
+								? DateTime.Today.AddDays((double)daysUntilStockout)
+								: null,
+						SuggestedReorderQuantity = 0,
+						SuggestedOrderValue = 0,
+						ReorderRiskLevel = "Low"
 					};
 				})
 				.OrderByDescending(x => x.MovementValue)
 				.ToList();
+		}
 
-			// ================= KPI =================
+		// =========================================================
+		// ABC PARETO (CORRECTED)
+		// =========================================================
 
-			var topValueItem = result.ItemSummaries.FirstOrDefault();
-			if (topValueItem != null)
+		private void ApplyABCPareto(List<ItemMovementSummary> items)
+		{
+			var ordered = items
+				.OrderByDescending(x => x.MovementValue)
+				.ToList();
+
+			decimal total = ordered.Sum(x => x.MovementValue);
+			decimal cumulative = 0m;
+
+			decimal maxValue = ordered.Any()
+				? ordered.Max(x => x.MovementValue)
+				: 1m;
+
+			if (maxValue <= 0)
+				maxValue = 1m;
+
+			const double maxBarWidth = 600; // pixels
+
+			foreach (var item in ordered)
 			{
-				result.TopMovingItem = topValueItem.ItemCode;
-				result.TopMovingItemValue = topValueItem.MovementValue;
+				cumulative += item.MovementValue;
+
+				decimal cumulativePercentage =
+					total > 0 ? cumulative / total * 100m : 0m;
+
+				item.CumulativePercentage =
+					Math.Round(cumulativePercentage, 2);
+
+				// ABC classification
+				if (cumulativePercentage <= 80m)
+					item.ABCClass = "A";
+				else if (cumulativePercentage <= 95m)
+					item.ABCClass = "B";
+				else
+					item.ABCClass = "C";
+
+				// NORMALIZED BAR WIDTH
+				item.ParetoBarWidth =
+					(double)(item.MovementValue / maxValue * (decimal)maxBarWidth);
+			}
+		}
+		private void ApplyRiskHeatmap(List<ItemMovementSummary> items)
+		{
+			if (!items.Any())
+				return;
+
+			var orderedByValue = items
+				.OrderByDescending(x => x.MovementValue)
+				.ToList();
+
+			int total = orderedByValue.Count;
+
+			for (int i = 0; i < total; i++)
+			{
+				var item = orderedByValue[i];
+
+				// VALUE TIER
+				string valueTier =
+					i < total * 0.3 ? "High" :
+					i < total * 0.7 ? "Medium" :
+					"Low";
+
+				// USAGE TIER (based on TurnoverRate)
+				string usageTier =
+					item.TurnoverRate > 10 ? "High" :
+					item.TurnoverRate > 3 ? "Medium" :
+					"Low";
+
+				item.RiskHeatZone = $"{valueTier}-{usageTier}";
+			}
+		}
+
+		// =========================================================
+		// REORDER POLICY
+		// =========================================================
+
+		private void ApplyReorderPolicy(List<ItemMovementSummary> items)
+		{
+			decimal totalPortfolioValue =
+				items.Sum(x => x.CurrentStockValue);
+
+			if (totalPortfolioValue <= 0)
+				totalPortfolioValue = 1m;
+
+			decimal capitalLockThreshold =
+				totalPortfolioValue * 0.05m;
+
+			foreach (var item in items)
+			{
+				if (item.ABCClass == "C"
+					&& item.AverageDailyUsage < 0.1m
+					&& item.CurrentStockValue > capitalLockThreshold)
+				{
+					item.ReorderRiskLevel = "Capital Lock Risk";
+					continue;
+				}
+
+				if (item.AverageDailyUsage <= 0)
+				{
+					item.ReorderRiskLevel = "No Usage";
+					continue;
+				}
+
+				if (item.ABCClass == "A" && item.DaysUntilStockout < 14)
+					item.ReorderRiskLevel = "Critical-A";
+				else if (item.DaysUntilStockout < 7)
+					item.ReorderRiskLevel = "High";
+				else if (item.DaysUntilStockout < 30)
+					item.ReorderRiskLevel = "Medium";
+				else
+					item.ReorderRiskLevel = "Low";
+			}
+		}
+
+		// =========================================================
+		// KPI BUILDER
+		// =========================================================
+
+		private void BuildKPIs(StockAnalyticsResult result)
+		{
+			var topValue = result.ItemSummaries
+				.OrderByDescending(x => x.MovementValue)
+				.FirstOrDefault();
+
+			if (topValue != null)
+			{
+				result.TopMovingItem = topValue.ItemCode;
+				result.TopMovingItemValue = topValue.MovementValue;
 			}
 
 			var mostConsumed = result.ItemSummaries
@@ -221,44 +352,28 @@ decimal maxLevel = item?.MaxLevel ?? 0m;
 			result.DeadStockCount =
 				result.ItemSummaries.Count(x =>
 					x.InventoryCategory == ItemInventoryCategory.Inactive);
+		}
 
-			// ================= MONTHLY =================
-
-			result.MonthlySummaries = transactions
-				.GroupBy(t => new DateTime(t.TransactionDate.Year, t.TransactionDate.Month, 1))
+		private List<MonthlyMovementSummaryDto> BuildMonthlySummaries(
+			List<StockTransaction> transactions)
+		{
+			return transactions
+				.GroupBy(t => new DateTime(
+					t.TransactionDate.Year,
+					t.TransactionDate.Month,
+					1))
 				.OrderBy(g => g.Key)
 				.Select(g => new MonthlyMovementSummaryDto
 				{
 					Month = g.Key,
 					TotalIn = g.Sum(x => x.QtyIn),
 					TotalOut = g.Sum(x => x.QtyOut),
-					ValueIn = g.Where(x => x.Type == "IN").Sum(x => x.TransactionValue),
-					ValueOut = g.Where(x => x.Type == "OUT").Sum(x => x.TransactionValue)
+					ValueIn = g.Where(x => x.Type == "IN")
+							   .Sum(x => x.TransactionValue),
+					ValueOut = g.Where(x => x.Type == "OUT")
+								.Sum(x => x.TransactionValue)
 				})
 				.ToList();
-
-			// --- ABC CLASSIFICATION (Rank Based) ---
-
-			var ordered = result.ItemSummaries
-				.OrderByDescending(x => x.MovementValue)
-				.ToList();
-
-			int totalItems = ordered.Count;
-
-			int aCount = (int)Math.Ceiling(totalItems * 0.2m);
-			int bCount = (int)Math.Ceiling(totalItems * 0.3m);
-
-			for (int i = 0; i < totalItems; i++)
-			{
-				if (i < aCount)
-					ordered[i].ABCClass = "A";
-				else if (i < aCount + bCount)
-					ordered[i].ABCClass = "B";
-				else
-					ordered[i].ABCClass = "C";
-			}
-
-			return result;
 		}
 	}
 }

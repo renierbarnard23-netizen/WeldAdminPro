@@ -25,6 +25,7 @@ namespace WeldAdminPro.Core.Models
 
 		public string ABCClass { get; set; } = "C";
 
+
 		// ==============================
 		// HEALTH STATUS
 		// ==============================
@@ -68,10 +69,16 @@ namespace WeldAdminPro.Core.Models
 		public decimal DaysUntilStockout { get; set; }
 
 		public int SuggestedReorderQuantity { get; set; }
+		public decimal CumulativePercentage { get; set; }
+
+		public int LeadTimeDays { get; set; }
 		public decimal SuggestedOrderValue { get; set; }
 
 		public DateTime? EstimatedStockoutDate { get; set; }
 
 		public string ReorderRiskLevel { get; set; } = "-";
+
+		public double ParetoBarWidth { get; set; }
+		public string RiskHeatZone { get; set; } = string.Empty;
 	}
 }

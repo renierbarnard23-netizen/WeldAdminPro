@@ -158,6 +158,8 @@ namespace WeldAdminPro.Core.Models
 		public bool NeedsReorder =>
 			SuggestedReorderQuantity > 0;
 
+		public int LeadTimeDays { get; set; } = 7;
+
 		// =========================
 		// PROPERTY CHANGED
 		// =========================
