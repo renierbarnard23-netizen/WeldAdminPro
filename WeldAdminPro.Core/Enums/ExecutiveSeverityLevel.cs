@@ -4,6 +4,7 @@ namespace WeldAdminPro.Core.Enums
 	{
 		Stable,
 		Moderate,
-		AtRisk
+		AtRisk,
+		Critical
 	}
 }
