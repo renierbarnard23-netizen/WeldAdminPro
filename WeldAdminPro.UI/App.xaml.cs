@@ -8,6 +8,7 @@ using WeldAdminPro.Core.Configuration;
 
 namespace WeldAdminPro.UI
 {
+
 	public partial class App : Application
 	{
 		public static ApplicationDbContext DbContext { get; private set; } = null!;
@@ -17,9 +18,10 @@ namespace WeldAdminPro.UI
 		{
 			base.OnStartup(e);
 
-			// ==========================================
-			// 1️⃣ Load Executive Severity Configuration
-			// ==========================================
+			// 1️⃣ Ensure DB schema FIRST
+			DatabaseInitializer.Initialize();
+
+			// 2️⃣ Load Executive Severity Configuration
 			try
 			{
 				var configPath = Path.Combine(
@@ -43,22 +45,17 @@ namespace WeldAdminPro.UI
 			}
 			catch
 			{
-				// Fallback to defaults automatically
 				ExecutiveSeverityOptions = new ExecutiveSeverityOptions();
 			}
 
-			// ==========================================
-			// 2️⃣ Create EF DbContext
-			// ==========================================
+			// 3️⃣ Create EF DbContext
 			var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>()
 				.UseSqlite($"Data Source={DatabasePath.Get()}")
 				.Options;
 
 			DbContext = new ApplicationDbContext(optionsBuilder);
 
-			// ==========================================
-			// 3️⃣ Global exception handler
-			// ==========================================
+			// 4️⃣ Global exception handler
 			DispatcherUnhandledException += (sender, args) =>
 			{
 				MessageBox.Show(

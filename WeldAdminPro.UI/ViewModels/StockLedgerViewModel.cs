@@ -99,6 +99,14 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty] private string executiveRiskLevel = "Healthy";
 		[ObservableProperty] private string executiveRiskColor = "#2E7D32"; // Green default
 
+		// =============================
+		// LEDGER INTEGRITY
+		// =============================
+
+		[ObservableProperty] private bool hasIntegrityFailure;
+
+		[ObservableProperty] private string integrityMessage = string.Empty;
+
 		[ObservableProperty] private decimal aPercentage;
 		[ObservableProperty] private decimal bPercentage;
 		[ObservableProperty] private decimal cPercentage;
@@ -109,37 +117,55 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty] private int inventoryHealthScore;
 		[ObservableProperty] private string inventoryHealthLabel = "Healthy";
 		[ObservableProperty] private string inventoryHealthColor = "#2E7D32";
+		[ObservableProperty] private string interpretationBackground = "#F5F7FA";
+		[ObservableProperty] private int negativeDriftCount;
+
+		// =============================
+		// EXECUTIVE INTERPRETATION
+		// =============================
+
+		[ObservableProperty]
+		private string strategicInterpretation = string.Empty;
 
 		private void CalculateHealthScore()
-{
-	int score =
-		100
-		- (CriticalACount * 20)
-		- (HighRiskCount * 10)
-		- (MediumRiskCount * 5)
-		- (int)(CapitalLockedPercentage / 2);
+		{
+			int score =
+				100
+				- (CriticalACount * 20)
+				- (HighRiskCount * 10)
+				- (MediumRiskCount * 5)
+				- (int)(CapitalLockedPercentage / 2);
 
-	if (score < 0) score = 0;
-	if (score > 100) score = 100;
+			if (score < 0) score = 0;
+			if (score > 100) score = 100;
 
-	InventoryHealthScore = score;
+			InventoryHealthScore = score;
 
-	if (score >= 85)
-	{
-		InventoryHealthLabel = "STRONG";
-		InventoryHealthColor = "#2E7D32"; // Green
-	}
-	else if (score >= 60)
-	{
-		InventoryHealthLabel = "WATCH";
-		InventoryHealthColor = "#F9A825"; // Yellow
-	}
-	else
-	{
-		InventoryHealthLabel = "RISK";
-		InventoryHealthColor = "#C62828"; // Red
-	}
-}
+			if (score >= 85)
+			{
+				InventoryHealthLabel = "STRONG";
+				InventoryHealthColor = "#2E7D32"; // Green
+			}
+			else if (score >= 60)
+			{
+				InventoryHealthLabel = "WATCH";
+				InventoryHealthColor = "#F9A825"; // Yellow
+			}
+			else
+			{
+				InventoryHealthLabel = "RISK";
+				InventoryHealthColor = "#C62828"; // Red
+			}
+		}
+		private void UpdateInterpretationVisuals()
+		{
+			if (InventoryHealthScore < 50)
+				InterpretationBackground = "#FFEBEE";     // Soft red
+			else if (InventoryHealthScore < 75)
+				InterpretationBackground = "#FFF8E1";     // Soft amber
+			else
+				InterpretationBackground = "#F1F8E9";     // Soft green
+		}
 
 		// =============================
 		// DATA COLLECTIONS
@@ -151,6 +177,9 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty] private ObservableCollection<ItemMovementSummary> reorderAlerts = new();
 		public ObservableCollection<RiskMatrixCell> RiskMatrix { get; set; }
 	= new ObservableCollection<RiskMatrixCell>();
+		
+		// 🔥 Nested Audit ViewModel
+		public AuditViewModel AuditVM { get; } = new AuditViewModel();
 
 		public bool HasLedgerMismatch =>
 			LedgerGroups.Any(g =>
@@ -166,6 +195,7 @@ namespace WeldAdminPro.UI.ViewModels
 			ExportExecutiveReportCommand = new RelayCommand(ExportExecutiveReport);
 
 			LoadLedger();
+			AuditVM.LoadCommand.Execute(null);
 		}
 
 		private void RecalculateBalances()
@@ -177,25 +207,12 @@ namespace WeldAdminPro.UI.ViewModels
 		private void LoadLedger()
 		{
 			var allItems = _repository.GetAll();
-			var allTransactions = _repository.GetAllTransactions();
+			var transactions = _repository .GetTransactionsByDateRange(StartDate, EndDate);
+			MessageBox.Show($"Transactions found: {transactions.Count}");
+			TotalTransactions = transactions.Count;
 
-			TotalStockItems = allItems.Count;
-			TotalUnitsInStock = allItems.Sum(i => i.Quantity);
-			DashboardInventoryValue = allItems.Sum(i => i.Quantity * i.AverageUnitCost);
-			TotalTransactions = allTransactions.Count;
-
-			IEnumerable<StockTransaction> filtered = allTransactions;
-
-			if (StartDate.HasValue)
-				filtered = filtered.Where(t => t.TransactionDate.Date >= StartDate.Value.Date);
-
-			if (EndDate.HasValue)
-				filtered = filtered.Where(t => t.TransactionDate.Date <= EndDate.Value.Date);
-
-			var transactions = filtered
-				.OrderBy(t => t.TransactionDate)
-				.ThenBy(t => t.Id)
-				.ToList();
+			// Reset once per full ledger evaluation
+			NegativeDriftCount = 0;
 
 			if (!transactions.Any())
 			{
@@ -203,8 +220,13 @@ namespace WeldAdminPro.UI.ViewModels
 				MonthlySummaries = new();
 				LedgerGroups = new();
 				ReorderAlerts = new();
+				HasIntegrityFailure = false;
+				IntegrityMessage = string.Empty;
 				return;
 			}
+
+
+
 
 			PeriodTotalIn = transactions.Sum(t => t.QtyIn);
 			PeriodTotalOut = transactions.Sum(t => t.QtyOut);
@@ -215,7 +237,7 @@ namespace WeldAdminPro.UI.ViewModels
 			PeriodNetValue = PeriodValueIn - PeriodValueOut;
 
 			var analytics = _analyticsService.BuildAnalytics(transactions, allItems);
-			
+
 			ItemMovementSummaries = new(analytics.ItemSummaries);
 			BuildRiskMatrix(analytics.ItemSummaries);
 			ParetoItems = new(
@@ -250,6 +272,7 @@ namespace WeldAdminPro.UI.ViewModels
 			MediumRiskCount = analytics.MediumRiskCount;
 			EvaluateExecutiveRisk();
 			CalculateHealthScore();
+			UpdateInterpretationVisuals();
 
 			TopMovingItem = analytics.TopMovingItem;
 			TopMovingItemValue = analytics.TopMovingItemValue;
@@ -258,8 +281,7 @@ namespace WeldAdminPro.UI.ViewModels
 			HighestGrowthItem = analytics.HighestGrowthItem;
 			HighestGrowthUnits = analytics.HighestGrowthUnits;
 			DeadStockCount = analytics.DeadStockCount;
-
-			ItemMovementSummaries = new(analytics.ItemSummaries);
+			StrategicInterpretation = GenerateStrategicInterpretation();
 
 			ReorderAlerts = new(
 				analytics.ItemSummaries
@@ -283,6 +305,7 @@ namespace WeldAdminPro.UI.ViewModels
 			LedgerGroups = new(
 				transactions
 					.GroupBy(t => new { t.StockItemId, t.ItemCode, t.ItemDescription })
+
 					.OrderBy(g => g.Key.ItemCode)
 					.Select(g =>
 					{
@@ -296,8 +319,27 @@ namespace WeldAdminPro.UI.ViewModels
 							Transactions = new ObservableCollection<StockTransaction>(ordered)
 						};
 					}));
+			MessageBox.Show($"Ledger groups: {LedgerGroups.Count}");
 
 			OnPropertyChanged(nameof(HasLedgerMismatch));
+
+			// =============================
+			// INTEGRITY EVALUATION (CORRECT POSITION)
+			// =============================
+
+			if (NegativeDriftCount > 0 || HasLedgerMismatch)
+			{
+				HasIntegrityFailure = true;
+
+				IntegrityMessage =
+					$"Ledger integrity warning: {NegativeDriftCount} negative drift event(s) detected " +
+					$"{(HasLedgerMismatch ? "and balance mismatches found." : "with no balance mismatches.")}";
+			}
+			else
+			{
+				HasIntegrityFailure = false;
+				IntegrityMessage = string.Empty;
+			}
 		}
 		private void BuildRiskMatrix(List<ItemMovementSummary> items)
 		{
@@ -358,9 +400,58 @@ namespace WeldAdminPro.UI.ViewModels
 				ExecutiveRiskLevel = "SYSTEM HEALTHY";
 				ExecutiveRiskColor = "#2E7D32"; // Green
 			}
+
 		}
 
+		private string GenerateStrategicInterpretation()
+		{
+			var interpretation = new System.Text.StringBuilder();
 
+			// ABC Capital Structure
+			if (CPercentage > 60)
+			{
+				interpretation.AppendLine("• Structural capital concentration detected within low-impact C-class inventory.");
+				interpretation.AppendLine("This indicates inefficient capital deployment and working capital drag.");
+			}
+			else if (APercentage < 20)
+			{
+				interpretation.AppendLine("A-class exposure is below strategic threshold.");
+				interpretation.AppendLine("High-value inventory allocation may be insufficient.");
+			}
+			else
+			{
+				interpretation.AppendLine("ABC capital allocation appears structurally balanced.");
+				interpretation.AppendLine("Working capital exposure remains controlled.");
+			}
+
+			interpretation.AppendLine(); // blank line spacing
+
+			// Dead Stock
+			if (DeadStockCount > 0)
+			{
+				interpretation.AppendLine($"Dead stock exposure identified: {DeadStockCount} items require review.");
+				interpretation.AppendLine("Disposal, discounting, or reallocation strategy recommended.");
+				interpretation.AppendLine();
+			}
+
+			// Health Score
+			if (InventoryHealthScore < 50)
+			{
+				interpretation.AppendLine("Overall inventory health is below executive threshold.");
+				interpretation.AppendLine("Immediate corrective action is recommended.");
+			}
+			else if (InventoryHealthScore < 75)
+			{
+				interpretation.AppendLine("Inventory health reflects moderate operational risk.");
+				interpretation.AppendLine("Targeted optimisation opportunities exist.");
+			}
+			else
+			{
+				interpretation.AppendLine("Inventory health indicators reflect stable operational performance.");
+			}
+
+			return interpretation.ToString();
+		}
 
 		private void ExportExecutiveReport()
 		{
@@ -391,6 +482,9 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			int runningBalance = 0;
 
+			// 🔴 RESET DRIFT COUNTER HERE
+
+
 			foreach (var tx in transactions)
 			{
 				runningBalance += tx.QtyIn;
@@ -398,7 +492,24 @@ namespace WeldAdminPro.UI.ViewModels
 
 				tx.CalculatedBalance = runningBalance;
 				tx.IsBalanceMismatch = runningBalance != tx.BalanceAfter;
+
+				if (tx.IsBalanceMismatch)
+				{
+					System.Diagnostics.Debug.WriteLine(
+						$"❌ MISMATCH | Item: {tx.ItemCode} | Date: {tx.TransactionDate} | " +
+						$"TxId: {tx.Id} | Stored: {tx.BalanceAfter} | Calculated: {runningBalance}");
+
+				}
 				tx.IsNegativeDrift = runningBalance < 0;
+
+				if (tx.IsNegativeDrift)
+				{
+					NegativeDriftCount++;
+
+					System.Diagnostics.Debug.WriteLine(
+						$"🔻 NEGATIVE DRIFT | Item: {tx.ItemCode} | Date: {tx.TransactionDate} | " +
+						$"TxId: {tx.Id} | Calculated Balance: {runningBalance}");
+				}
 			}
 		}
 	}

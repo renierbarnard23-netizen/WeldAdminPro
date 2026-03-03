@@ -15,23 +15,7 @@ namespace WeldAdminPro.Data.Repositories
 			_connectionString = $"Data Source={DatabasePath.Get()}";
 		}
 
-		private void EnsureSchema()
-		{
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
-
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = @"
-				CREATE TABLE IF NOT EXISTS Categories (
-					Id TEXT PRIMARY KEY,
-					Name TEXT NOT NULL UNIQUE,
-					IsActive INTEGER NOT NULL DEFAULT 1
-				);
-			";
-			cmd.ExecuteNonQuery();
-
-			EnsureDefaultCategory(connection);
-		}
+		
 
 		private static void EnsureDefaultCategory(SqliteConnection connection)
 		{

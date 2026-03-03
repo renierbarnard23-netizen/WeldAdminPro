@@ -7,6 +7,13 @@
 
 	<UserControl.Resources>
 		<BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+
+		<!-- Executive Section Header Style -->
+		<Style x:Key="ExecutiveSectionHeaderStyle" TargetType="TextBlock">
+			<Setter Property="FontSize" Value="18"/>
+			<Setter Property="FontWeight" Value="Bold"/>
+			<Setter Property="Margin" Value="0,25,0,8"/>
+		</Style>
 	</UserControl.Resources>
 
 	<DockPanel Margin="10">
@@ -114,8 +121,24 @@
 
 				<ScrollViewer VerticalScrollBarVisibility="Auto">
 					<StackPanel Margin="10">
+						<!-- ============================= -->
+						<!-- LEDGER INTEGRITY BANNER -->
+						<!-- ============================= -->
 
-					<!-- Export Button -->
+						<Border Background="#4A0000"
+        Padding="15"
+        CornerRadius="6"
+        Margin="0,0,0,15"
+        Visibility="{Binding HasIntegrityFailure, Converter={StaticResource BoolToVisibilityConverter}}">
+
+							<TextBlock Text="{Binding IntegrityMessage}"
+               Foreground="White"
+               FontSize="14"
+               FontWeight="Bold"
+               TextWrapping="Wrap"/>
+						</Border>
+
+						<!-- Export Button -->
 						<Button Content="Export Executive PDF"
 								Width="220"
 								Height="36"
@@ -165,9 +188,9 @@
 						</Border>
 
 						<!-- KPI CARDS -->
-						<WrapPanel Margin="0,0,0,20">
+						<WrapPanel Margin="0,0,0,25">
 
-							<Border Background="#F0F4F8" Padding="12" Margin="5" Width="220">
+							<Border Background="#F0F4F8" Padding="15" Margin="5" Width="240" CornerRadius="6">
 								<StackPanel>
 									<TextBlock Text="Top Moving Item (Value)" FontWeight="SemiBold"/>
 									<TextBlock Text="{Binding TopMovingItem}" FontSize="14" FontWeight="Bold"/>
@@ -175,7 +198,7 @@
 								</StackPanel>
 							</Border>
 
-							<Border Background="#F0F4F8" Padding="12" Margin="5" Width="220">
+							<Border Background="#F0F4F8" Padding="15" Margin="5" Width="240" CornerRadius="6">
 								<StackPanel>
 									<TextBlock Text="Most Consumed Item" FontWeight="SemiBold"/>
 									<TextBlock Text="{Binding MostConsumedItem}" FontSize="14" FontWeight="Bold"/>
@@ -183,7 +206,7 @@
 								</StackPanel>
 							</Border>
 
-							<Border Background="#F0F4F8" Padding="12" Margin="5" Width="220">
+							<Border Background="#F0F4F8" Padding="15" Margin="5" Width="240" CornerRadius="6">
 								<StackPanel>
 									<TextBlock Text="Highest Growth Item" FontWeight="SemiBold"/>
 									<TextBlock Text="{Binding HighestGrowthItem}" FontSize="14" FontWeight="Bold"/>
@@ -191,17 +214,50 @@
 								</StackPanel>
 							</Border>
 
-							<Border Background="#F0F4F8" Padding="12" Margin="5" Width="220">
+							<Border Background="#F0F4F8" Padding="15" Margin="5" Width="240" CornerRadius="6">
 								<StackPanel>
 									<TextBlock Text="Dead Stock Items" FontWeight="SemiBold"/>
-									<TextBlock Text="{Binding DeadStockCount}" FontSize="18" FontWeight="Bold"/>
+									<TextBlock Text="{Binding DeadStockCount}" FontSize="22" FontWeight="Bold"/>
 								</StackPanel>
 							</Border>
 
 						</WrapPanel>
-						
+
+
+						<!-- ABC SECTION HEADER -->
+						<TextBlock Text="ABC Portfolio Distribution – Capital Efficiency Overview"
+           Style="{StaticResource ExecutiveSectionHeaderStyle}" />
+
+						<TextBlock Text="Inventory classified by capital contribution and strategic impact."
+           Foreground="Gray"
+           Margin="0,0,0,15"/>
+
+
+						<!-- STRATEGIC INTERPRETATION BLOCK -->
+						<Border Background="{Binding InterpretationBackground}"
+							Padding="18"
+							CornerRadius="8"
+							Margin="0,0,0,25">
+
+							<StackPanel>
+								<TextBlock Text="Executive Strategic Interpretation"
+									FontWeight="Bold"
+									FontSize="14"
+									Margin="0,0,0,10"/>
+
+								<TextBlock Text="{Binding StrategicInterpretation}"
+									TextWrapping="Wrap"
+									FontSize="13"
+									LineHeight="22"/>
+							</StackPanel>
+
+						</Border>
+
+
 					</StackPanel>
+
 				</ScrollViewer>
+
 			</TabItem>
 
 			<TabItem Header="Stock Analytics">
@@ -433,6 +489,64 @@ Margin="0,0,0,5"/>
 
 				</StackPanel>
 
+			</TabItem>
+
+			<!-- ===================================================== -->
+			<!-- TAB 4 – Audit Log -->
+			<!-- ===================================================== -->
+
+			<TabItem Header="Audit Log">
+				<Grid Margin="10">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+					</Grid.RowDefinitions>
+
+					<!-- Filters -->
+					<StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+						<DatePicker SelectedDate="{Binding AuditVM.FromDate}" Width="140"/>
+						<DatePicker SelectedDate="{Binding AuditVM.ToDate}" Width="140" Margin="5,0"/>
+							<ComboBox Width="120"
+								SelectedValue="{Binding AuditVM.SelectedSeverity}"
+								SelectedValuePath="Content">
+							<ComboBoxItem Content=""/>
+							<ComboBoxItem Content="Info"/>
+							<ComboBoxItem Content="Warning"/>
+							<ComboBoxItem Content="Critical"/>
+						</ComboBox>
+
+						<Button Content="Apply"
+                    Command="{Binding AuditVM.LoadCommand}"
+                    Margin="5,0"/>
+					</StackPanel>
+
+					<!-- Grid -->
+					<DataGrid Grid.Row="1"
+                  ItemsSource="{Binding AuditVM.AuditEntries}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True">
+						<DataGrid.Columns>
+							<DataGridTextColumn Header="Time"
+                                    Binding="{Binding Timestamp}"
+                                    Width="150"/>
+							<DataGridTextColumn Header="Severity"
+                                    Binding="{Binding Severity}"
+                                    Width="90"/>
+							<DataGridTextColumn Header="Action"
+                                    Binding="{Binding ActionType}"
+                                    Width="150"/>
+							<DataGridTextColumn Header="User"
+                                    Binding="{Binding Username}"
+                                    Width="120"/>
+							<DataGridTextColumn Header="Machine"
+                                    Binding="{Binding MachineName}"
+                                    Width="120"/>
+							<DataGridTextColumn Header="Description"
+                                    Binding="{Binding Description}"
+                                    Width="*"/>
+						</DataGrid.Columns>
+					</DataGrid>
+				</Grid>
 			</TabItem>
 
 		</TabControl>

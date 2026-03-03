@@ -13,45 +13,10 @@ namespace WeldAdminPro.Data.Repositories
 		public PurchaseOrderRepository()
 		{
 			_connectionString = $"Data Source={DatabasePath.Get()}";
-			EnsureSchema();
+			
 		}
 
-		private void EnsureSchema()
-		{
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
-
-			using var cmd = connection.CreateCommand();
-
-			cmd.CommandText = @"
-CREATE TABLE IF NOT EXISTS PurchaseOrders (
-    Id TEXT PRIMARY KEY,
-    ProjectId TEXT NOT NULL,
-    JobNumber INTEGER NOT NULL,
-    PONumber TEXT NOT NULL UNIQUE,
-    SupplierName TEXT,
-    CreatedDate TEXT NOT NULL,
-    Status TEXT NOT NULL,
-    TotalAmount REAL NOT NULL
-);";
-			cmd.ExecuteNonQuery();
-
-			cmd.CommandText = @"
-CREATE TABLE IF NOT EXISTS PurchaseOrderLines (
-    Id TEXT PRIMARY KEY,
-    PurchaseOrderId TEXT NOT NULL,
-    StockItemId TEXT NOT NULL,
-    ItemCode TEXT,
-    Description TEXT,
-    Quantity INTEGER NOT NULL,
-    UnitCost REAL NOT NULL,
-    LineTotal REAL NOT NULL,
-    FOREIGN KEY (PurchaseOrderId)
-        REFERENCES PurchaseOrders(Id)
-        ON DELETE CASCADE
-);";
-			cmd.ExecuteNonQuery();
-		}
+		
 
 		// =========================================================
 		// SAFE PO NUMBER GENERATION

@@ -1,3 +1,4 @@
+using System.Text;
 using WeldAdminPro.Core.Enums;
 
 namespace WeldAdminPro.Core.Analytics.Executive
@@ -59,7 +60,7 @@ namespace WeldAdminPro.Core.Analytics.Executive
 				Paragraph = paragraph
 			};
 		}
-
+		
 		public ExecutiveSummaryBlock BuildReorderBlock(
 			ExecutiveSeverityLevel severity,
 			int itemsBelow30Days,
@@ -80,12 +81,14 @@ namespace WeldAdminPro.Core.Analytics.Executive
 				_ => string.Empty
 			};
 
+
 			return new ExecutiveSummaryBlock
 			{
 				Title = "Reorder & Stockout Pressure",
 				Severity = severity,
 				Paragraph = paragraph
 			};
+
 		}
 	}
 }

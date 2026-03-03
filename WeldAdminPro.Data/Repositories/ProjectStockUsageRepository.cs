@@ -12,42 +12,10 @@ namespace WeldAdminPro.Data.Repositories
 		public ProjectStockUsageRepository()
 		{
 			_connectionString = $"Data Source={DatabasePath.Get()}";
-			EnsureSchema();
+			
 		}
 
-		private void EnsureSchema()
-		{
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
-
-			using var cmd = connection.CreateCommand();
-
-			cmd.CommandText = "PRAGMA foreign_keys = ON;";
-			cmd.ExecuteNonQuery();
-
-			cmd.CommandText = @"
-CREATE TABLE IF NOT EXISTS ProjectStockUsages (
-    Id TEXT PRIMARY KEY,
-    ProjectId TEXT NOT NULL,
-    StockItemId TEXT NOT NULL,
-    Quantity REAL NOT NULL,
-    UnitCostAtIssue REAL NOT NULL DEFAULT 0,
-    IssuedOn TEXT NOT NULL,
-    IssuedBy TEXT,
-    Notes TEXT,
-
-    FOREIGN KEY (ProjectId)
-        REFERENCES Projects(Id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
-
-    FOREIGN KEY (StockItemId)
-        REFERENCES StockItems(Id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE
-);";
-			cmd.ExecuteNonQuery();
-		}
+		
 
 		// =========================================================
 		// HARD PROTECTION: NO OVER-RETURN
@@ -213,18 +181,18 @@ VALUES
 
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
-SELECT
-    s.Id,
-    s.ItemCode,
-    s.Description,
-    s.Unit,
-    SUM(CASE WHEN u.Quantity > 0 THEN u.Quantity ELSE 0 END) AS IssuedQty,
-    ABS(SUM(CASE WHEN u.Quantity < 0 THEN u.Quantity ELSE 0 END)) AS ReturnedQty
-FROM ProjectStockUsages u
-JOIN StockItems s ON s.Id = u.StockItemId
-WHERE u.ProjectId = $projectId
-GROUP BY s.Id, s.ItemCode, s.Description, s.Unit
-ORDER BY s.ItemCode;";
+				SELECT
+					s.Id,
+					s.ItemCode,
+					s.Description,
+					s.Unit,
+					SUM(CASE WHEN u.Quantity > 0 THEN u.Quantity ELSE 0 END) AS IssuedQty,
+					ABS(SUM(CASE WHEN u.Quantity < 0 THEN u.Quantity ELSE 0 END)) AS ReturnedQty
+					FROM ProjectStockUsages u
+					JOIN StockItems s ON s.Id = u.StockItemId
+					WHERE u.ProjectId = $projectId
+					GROUP BY s.Id, s.ItemCode, s.Description, s.Unit
+					ORDER BY s.ItemCode;";
 
 			cmd.Parameters.AddWithValue("$projectId", projectId.ToString());
 
