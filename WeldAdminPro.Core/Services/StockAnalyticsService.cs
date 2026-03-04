@@ -317,14 +317,24 @@ namespace WeldAdminPro.Core.Services
 					continue;
 				}
 
-				if (item.ABCClass == "A" && item.DaysUntilStockout < 14)
-					item.ReorderRiskLevel = "Critical-A";
-				else if (item.DaysUntilStockout < 7)
+				int leadTime = item.LeadTimeDays > 0 ? item.LeadTimeDays : 7;
+
+				if (item.DaysUntilStockout <= leadTime)
+				{
+					item.ReorderRiskLevel = "Critical";
+				}
+				else if (item.DaysUntilStockout <= leadTime * 1.5m)
+				{
 					item.ReorderRiskLevel = "High";
-				else if (item.DaysUntilStockout < 30)
+				}
+				else if (item.DaysUntilStockout <= 30)
+				{
 					item.ReorderRiskLevel = "Medium";
+				}
 				else
+				{
 					item.ReorderRiskLevel = "Low";
+				}
 			}
 		}
 

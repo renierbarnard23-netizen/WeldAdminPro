@@ -15,6 +15,9 @@ namespace WeldAdminPro.Core.Models
 	public class StockItem : INotifyPropertyChanged
 	{
 		public Guid Id { get; set; }
+		public string SKU { get; set; } = string.Empty;
+
+		public string Barcode { get; set; } = string.Empty;
 
 		public string ItemCode { get; set; } = string.Empty;
 

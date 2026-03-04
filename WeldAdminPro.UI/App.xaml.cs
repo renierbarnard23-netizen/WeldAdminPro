@@ -5,6 +5,7 @@ using System.Windows;
 using Microsoft.EntityFrameworkCore;
 using WeldAdminPro.Data;
 using WeldAdminPro.Core.Configuration;
+using WeldAdminPro.Data.Migrations;
 
 namespace WeldAdminPro.UI
 {
@@ -20,6 +21,8 @@ namespace WeldAdminPro.UI
 
 			// 1️⃣ Ensure DB schema FIRST
 			DatabaseInitializer.Initialize();
+			var migration = new DatabaseMigrationService($"Data Source={DatabasePath.Get()}");
+			migration.RunMigrations();
 
 			// 2️⃣ Load Executive Severity Configuration
 			try
