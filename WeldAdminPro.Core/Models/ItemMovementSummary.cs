@@ -80,5 +80,7 @@ namespace WeldAdminPro.Core.Models
 
 		public double ParetoBarWidth { get; set; }
 		public string RiskHeatZone { get; set; } = string.Empty;
+		public decimal UsageVarianceScore { get; set; }
+		public string DemandPattern { get; set; } = "Unknown";
 	}
 }

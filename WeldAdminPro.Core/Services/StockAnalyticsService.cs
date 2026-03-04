@@ -75,6 +75,9 @@ namespace WeldAdminPro.Core.Services
 			// NEW CLASSIFICATION ENGINE
 			ApplyMovementClassification(result.ItemSummaries);
 
+			// NEW ENGINE
+			ApplyUsageVarianceDetection(result.ItemSummaries, transactions);
+
 			BuildKPIs(result);
 
 			result.MonthlySummaries = BuildMonthlySummaries(transactions);
@@ -362,6 +365,60 @@ namespace WeldAdminPro.Core.Services
 		// KPI BUILDER
 		// =========================================================
 
+		// =========================================================
+		// USAGE VARIANCE DETECTION
+		// =========================================================
+
+		private void ApplyUsageVarianceDetection(
+			List<ItemMovementSummary> items,
+			List<StockTransaction> transactions)
+		{
+			foreach (var item in items)
+			{
+				var monthlyUsage = transactions
+					.Where(t => t.StockItemId == item.StockItemId)
+					.GroupBy(t => new DateTime(
+						t.TransactionDate.Year,
+						t.TransactionDate.Month,
+						1))
+					.Select(g => g.Sum(x => x.QtyOut))
+					.ToList();
+
+				if (monthlyUsage.Count < 2)
+				{
+					item.UsageVarianceScore = 0;
+					item.DemandPattern = "Insufficient Data";
+					continue;
+				}
+
+				decimal avg = (decimal)monthlyUsage.Average();
+
+				if (avg == 0)
+				{
+					item.UsageVarianceScore = 0;
+					item.DemandPattern = "No Demand";
+					continue;
+				}
+
+				decimal variance =
+					monthlyUsage.Sum(v => (decimal)Math.Pow((double)(v - avg), 2))
+					/ monthlyUsage.Count;
+
+				decimal stdDev = Convert.ToDecimal(Math.Sqrt((double)variance));
+
+				decimal coefficientOfVariation = stdDev / avg;
+
+				item.UsageVarianceScore =
+					Math.Round(coefficientOfVariation, 2);
+
+				if (coefficientOfVariation < 0.25m)
+					item.DemandPattern = "Stable";
+				else if (coefficientOfVariation < 0.75m)
+					item.DemandPattern = "Fluctuating";
+				else
+					item.DemandPattern = "Volatile";
+			}
+		}
 		private void BuildKPIs(StockAnalyticsResult result)
 		{
 			var topValue = result.ItemSummaries
