@@ -71,6 +71,10 @@ namespace WeldAdminPro.Core.Services
 			ApplyABCPareto(result.ItemSummaries);
 			ApplyRiskHeatmap(result.ItemSummaries);
 			ApplyReorderPolicy(result.ItemSummaries);
+
+			// NEW CLASSIFICATION ENGINE
+			ApplyMovementClassification(result.ItemSummaries);
+
 			BuildKPIs(result);
 
 			result.MonthlySummaries = BuildMonthlySummaries(transactions);
@@ -310,6 +314,47 @@ namespace WeldAdminPro.Core.Services
 					item.ReorderRiskLevel = "Medium";
 				else
 					item.ReorderRiskLevel = "Low";
+			}
+		}
+
+		// =========================================================
+		// MOVEMENT CLASSIFICATION ENGINE
+		// =========================================================
+
+		private void ApplyMovementClassification(List<ItemMovementSummary> items)
+		{
+			foreach (var item in items)
+			{
+				// DEAD STOCK
+				if (item.TotalOut == 0 && item.CurrentBalance > 0)
+				{
+					item.InventoryCategory = ItemInventoryCategory.Inactive;
+					continue;
+				}
+
+				// FAST MOVING ITEMS
+				if (item.TurnoverRate >= 12 || item.AverageDailyUsage >= 5)
+				{
+					item.InventoryCategory = ItemInventoryCategory.FastMoving;
+					continue;
+				}
+
+				// MODERATE MOVEMENT
+				if (item.TurnoverRate >= 4)
+				{
+					item.InventoryCategory = ItemInventoryCategory.Moderate;
+					continue;
+				}
+
+				// SLOW MOVING
+				if (item.TurnoverRate > 0)
+				{
+					item.InventoryCategory = ItemInventoryCategory.SlowMoving;
+					continue;
+				}
+
+				// NO MOVEMENT
+				item.InventoryCategory = ItemInventoryCategory.Inactive;
 			}
 		}
 

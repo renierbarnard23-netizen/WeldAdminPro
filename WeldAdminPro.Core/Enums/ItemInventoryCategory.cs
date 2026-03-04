@@ -6,6 +6,9 @@ namespace WeldAdminPro.Core.Enums
 		Stocked,           // Has stock, no movement this period
 		ActiveConsumption, // Has outbound movement
 		Replenished,       // Has inbound movement
-		Balanced           // In and Out both occurred
+		Balanced,           // In and Out both occurred
+		FastMoving,
+		Moderate,
+		SlowMoving,
 	}
 }
