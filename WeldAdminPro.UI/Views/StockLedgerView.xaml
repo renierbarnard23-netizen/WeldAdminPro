@@ -3,7 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d">
+             xmlns:views="clr-namespace:WeldAdminPro.UI.Views"
+			 mc:Ignorable="d">
+			 
 
 	<UserControl.Resources>
 		<BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
@@ -376,11 +378,11 @@ Margin="0,0,0,5"/>
 								<DataGridTextColumn Header="Turnover" Binding="{Binding TurnoverRate}" Width="90"/>
 								<DataGridTextColumn Header="Days in Stock" Binding="{Binding DaysInInventory}" Width="110"/>
 								<DataGridTextColumn Header="Category" Binding="{Binding InventoryCategoryDisplay}" Width="140"/>
+								<DataGridTextColumn Header="Velocity" Binding="{Binding InventoryCategory}" Width="110"/>
+								<DataGridTextColumn Header="Demand Pattern" Binding="{Binding DemandPattern}" Width="140"/>
+								<DataGridTextColumn Header="Variance Score" Binding="{Binding UsageVarianceScore, StringFormat={}{0:F2}}"/>
 								<DataGridTextColumn Header="Health" Binding="{Binding HealthStatusDisplay}" Width="140"/>
-
-								<DataGridTextColumn Header="Heat Zone"
-										Binding="{Binding RiskHeatZone}"
-										Width="120"/>
+								<DataGridTextColumn Header="Heat Zone" Binding="{Binding RiskHeatZone}" Width="120"/>
 							</DataGrid.Columns>
 						</DataGrid>
 
@@ -460,34 +462,7 @@ Margin="0,0,0,5"/>
 
 			<TabItem Header="Smart Reorder Planner">
 
-				<StackPanel Margin="10">
-
-					<TextBlock Text="Items Requiring Attention"
-                               FontSize="16"
-                               FontWeight="Bold"
-                               Margin="0,0,0,10"/>
-
-					<DataGrid ItemsSource="{Binding ReorderAlerts}"
-                              AutoGenerateColumns="False"
-                              IsReadOnly="True"
-                              Height="350"
-                              CanUserAddRows="False">
-
-						<DataGrid.Columns>
-							<DataGridTextColumn Header="Item" Binding="{Binding ItemCode}" Width="120"/>
-							<DataGridTextColumn Header="Balance" Binding="{Binding CurrentBalance}" Width="100"/>
-							<DataGridTextColumn Header="Avg Daily Usage" Binding="{Binding AverageDailyUsage}" Width="130"/>
-							<DataGridTextColumn Header="Days Left" Binding="{Binding DaysUntilStockout}" Width="100"/>
-							<DataGridTextColumn Header="Risk" Binding="{Binding ReorderRiskLevel}" Width="100"/>
-							<DataGridTextColumn Header="Suggested Qty" Binding="{Binding SuggestedReorderQuantity}" Width="130"/>
-							<DataGridTextColumn Header="Order Value"
-                                Binding="{Binding SuggestedOrderValue, StringFormat={}{0:N2}}"
-                                Width="130"/>
-						</DataGrid.Columns>
-
-					</DataGrid>
-
-				</StackPanel>
+				<views:SmartReorderPlannerView/>
 
 			</TabItem>
 

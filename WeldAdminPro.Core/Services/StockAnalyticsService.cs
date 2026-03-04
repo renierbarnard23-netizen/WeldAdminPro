@@ -164,8 +164,16 @@ namespace WeldAdminPro.Core.Services
 					decimal daysInInventory =
 						turnover > 0 ? 30m / turnover : 0m;
 
+					var usageDays = g
+						.Select(t => t.TransactionDate.Date)
+						.Distinct()
+						.Count();
+
+					if (usageDays == 0)
+						usageDays = 1;
+
 					decimal averageDailyUsage =
-						totalOut / (decimal)globalPeriodDays;
+						totalOut / (decimal)usageDays;
 
 					decimal daysUntilStockout =
 						averageDailyUsage > 0

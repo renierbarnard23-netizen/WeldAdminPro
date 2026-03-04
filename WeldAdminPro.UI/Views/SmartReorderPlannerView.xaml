@@ -59,7 +59,7 @@
                                     Width="120"/>
 
 				<DataGridTextColumn Header="Risk Value (R)"
-                                    Binding="{Binding StockValueRisk, StringFormat=N2}"
+                                    Binding="{Binding StockValueRisk, StringFormat={}{0:N2}}"
                                     Width="140"/>
 
 			</DataGrid.Columns>

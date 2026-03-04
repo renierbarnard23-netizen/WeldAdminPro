@@ -155,10 +155,31 @@ namespace WeldAdminPro.Core.Models
 			}
 		}
 
+		public int SuggestedSmartReorderQuantity(decimal avgDailyUsage)
+		{
+			if (avgDailyUsage <= 0)
+				return SuggestedReorderQuantity;
+
+			var demandDuringLeadTime =
+				avgDailyUsage * SupplierLeadTimeDays;
+
+			var safetyStock =
+				avgDailyUsage * SafetyStockDays;
+
+			var requiredStock =
+				demandDuringLeadTime + safetyStock;
+
+			var suggested =
+				(int)Math.Ceiling(requiredStock - Quantity);
+
+			return suggested > 0 ? suggested : 0;
+		}
+
 		public bool NeedsReorder =>
 			SuggestedReorderQuantity > 0;
 
-		public int LeadTimeDays { get; set; } = 7;
+		public int SupplierLeadTimeDays { get; set; } = 7;
+		public int SafetyStockDays { get; set; } = 3;
 
 		// =========================
 		// PROPERTY CHANGED
