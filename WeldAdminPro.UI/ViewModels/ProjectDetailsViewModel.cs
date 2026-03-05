@@ -15,10 +15,9 @@ namespace WeldAdminPro.UI.ViewModels
 	{
 		private readonly IProjectRepository _projectRepository;
 		private readonly ProjectStockUsageRepository _usageRepository;
-		private readonly StockRepository _stockRepository;
 		private readonly StockAvailabilityService _stockAvailability;
 		private readonly FinancialService _financialService;
-		private readonly StockProjectTransactionService _transactionService;
+		private readonly ProjectMaterialService _materialService;
 
 		public Project Project { get; }
 
@@ -140,10 +139,9 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			_projectRepository = new ProjectRepository();
 			_usageRepository = new ProjectStockUsageRepository();
-			_stockRepository = new StockRepository();
 			_stockAvailability = new StockAvailabilityService();
 			_financialService = new FinancialService();
-			_transactionService = new StockProjectTransactionService();
+			_materialService = new ProjectMaterialService();
 
 			Project = project;
 
@@ -155,7 +153,7 @@ namespace WeldAdminPro.UI.ViewModels
 				.ToList();
 
 			StockItems = new ObservableCollection<StockItem>(
-				_stockRepository.GetAll());
+				_materialService.GetStockItems());
 
 			IssuedStockHistory = new ObservableCollection<ProjectStockUsage>();
 			ProjectStockSummary = new ObservableCollection<ProjectStockSummary>();
@@ -172,13 +170,14 @@ namespace WeldAdminPro.UI.ViewModels
 			if (!CanIssueStock)
 				return;
 
-			_transactionService.IssueStock(
+			_materialService.IssueMaterial(
 				Project,
 				SelectedStockItem!,
 				IssueQuantity,
 				IssuedBy);
 
 			IssueQuantity = 0;
+
 			RefreshProjectData();
 		}
 
@@ -190,12 +189,12 @@ namespace WeldAdminPro.UI.ViewModels
 			if (!CanReturnStock || SelectedIssuedItem == null)
 				return;
 
-			var stockItem = _stockRepository.GetById(SelectedIssuedItem.StockItemId);
+			var stockItem = StockItems.FirstOrDefault(x => x.Id == SelectedIssuedItem.StockItemId);
 
 			if (stockItem == null)
 				throw new InvalidOperationException("Stock item not found.");
 
-			_transactionService.ReturnStock(
+			_materialService.ReturnMaterial(
 				Project,
 				stockItem,
 				ReturnQuantity,
@@ -214,7 +213,7 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			ReturnableIssuedItems.Clear();
 
-			var issued = _stockRepository.GetReturnableItems(Project.Id);
+			var issued = _materialService.GetReturnableItems(Project.Id);
 
 			foreach (var item in issued)
 				ReturnableIssuedItems.Add(item);
@@ -233,7 +232,7 @@ namespace WeldAdminPro.UI.ViewModels
 				ProjectStockSummary.Add(s);
 
 			ProjectCostTransactions.Clear();
-			foreach (var t in _stockRepository.GetProjectTransactions(Project.Id))
+			foreach (var t in _materialService.GetProjectTransactions(Project.Id))
 				ProjectCostTransactions.Add(t);
 
 			LoadReturnableItems();

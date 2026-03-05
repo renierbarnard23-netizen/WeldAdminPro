@@ -1,6 +1,4 @@
-using System;
 using System.Collections.ObjectModel;
-using System.Linq;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -22,7 +20,11 @@ namespace WeldAdminPro.UI.ViewModels
 		public AuditViewModel()
 		{
 			_repository = new StockRepository();
+
 			LoadCommand = new RelayCommand(LoadAuditLog);
+
+			// Auto-load audit log when ViewModel is created
+			LoadAuditLog();
 		}
 
 		private void LoadAuditLog()
