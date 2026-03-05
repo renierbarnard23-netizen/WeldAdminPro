@@ -45,5 +45,21 @@ namespace WeldAdminPro.UI.Views
 		{
 			MainContent.Content = new ProjectProfitabilityView();
 		}
+		private void ProjectRisk_Click(object sender, RoutedEventArgs e)
+		{
+			MainContent.Content = new ExecutiveProjectRiskView();
+		}
+		private void MaterialTrends_Click(object sender, RoutedEventArgs e)
+		{
+			MainContent.Content = new ExecutiveMaterialTrendsView();
+		}
+		private void StockForecast_Click(object sender, RoutedEventArgs e)
+		{
+			MainContent.Content = new ExecutiveStockForecastView();
+		}
+		private void WorkOrders_Click(object sender, RoutedEventArgs e)
+		{
+			MainContent.Content = new WorkOrdersView();
+		}
 	}
 }

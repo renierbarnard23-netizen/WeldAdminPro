@@ -1,46 +1,40 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
+
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using WeldAdminPro.Data.Repositories;
+
 using WeldAdminPro.Core.Models;
+using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.UI.ViewModels
 {
 	public partial class AuditViewModel : ObservableObject
 	{
-		private readonly StockRepository _repository = new();
+		private readonly StockRepository _repository;
 
-		[ObservableProperty]
-		private ObservableCollection<AuditEntry> auditEntries = new();
-
-		[ObservableProperty]
-		private DateTime? fromDate;
-
-		[ObservableProperty]
-		private DateTime? toDate;
-
-		[ObservableProperty]
-		private string selectedSeverity = string.Empty;
+		public ObservableCollection<StockTransaction> AuditEntries { get; }
+			= new ObservableCollection<StockTransaction>();
 
 		public IRelayCommand LoadCommand { get; }
 
 		public AuditViewModel()
 		{
-			LoadCommand = new RelayCommand(LoadAudit);
-			LoadAudit();
+			_repository = new StockRepository();
+			LoadCommand = new RelayCommand(LoadAuditLog);
 		}
 
-		private void LoadAudit()
+		private void LoadAuditLog()
 		{
-			var data = _repository.GetAuditLog(
-				FromDate,
-				ToDate,
-				string.IsNullOrWhiteSpace(SelectedSeverity)
-					? null
-					: SelectedSeverity);
+			AuditEntries.Clear();
 
-			AuditEntries = new ObservableCollection<AuditEntry>(data);
+			var entries = _repository.GetAuditLog();
+
+			foreach (var entry in entries)
+			{
+				AuditEntries.Add(entry);
+			}
 		}
 	}
 }

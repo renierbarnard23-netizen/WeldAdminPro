@@ -1,0 +1,63 @@
+<Window x:Class="WeldAdminPro.UI.Views.NewWorkOrderWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="New Work Order"
+        Height="280"
+        Width="400"
+        WindowStartupLocation="CenterScreen"
+        KeyDown="Window_KeyDown">
+
+	<Grid Margin="15">
+
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- Project -->
+		<TextBlock Text="Project"/>
+		<ComboBox x:Name="ProjectBox"
+                  Grid.Row="1"
+                  Margin="0,5,0,10"
+                  DisplayMemberPath="ProjectName"/>
+
+		<!-- Description -->
+		<TextBlock Text="Description" Grid.Row="2"/>
+		<TextBox x:Name="DescriptionBox"
+                 Grid.Row="3"
+                 Margin="0,5,0,10"/>
+
+		<!-- Status -->
+		<StackPanel Grid.Row="4" Orientation="Vertical">
+
+			<TextBlock Text="Status"/>
+
+			<ComboBox x:Name="StatusBox" Margin="0,5,0,10">
+				<ComboBoxItem Content="Open"/>
+				<ComboBoxItem Content="InProgress"/>
+				<ComboBoxItem Content="Completed"/>
+			</ComboBox>
+
+			<!-- Buttons -->
+			<StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+
+				<Button Content="Cancel"
+                        Width="100"
+                        Margin="0,0,10,0"
+                        Click="Cancel_Click"/>
+
+				<Button Content="Create"
+                        Width="100"
+                        Click="Create_Click"/>
+
+			</StackPanel>
+
+		</StackPanel>
+
+	</Grid>
+
+</Window>

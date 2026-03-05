@@ -224,7 +224,7 @@ namespace WeldAdminPro.UI.ViewModels
 
 			LoadLedger();
 		}
-
+		
 		private void RecalculateBalances()
 		{
 			_repository.RecalculateAllBalances();
@@ -234,7 +234,7 @@ namespace WeldAdminPro.UI.ViewModels
 		private void LoadLedger()
 		{
 			var allItems = _repository.GetAll();
-			var transactions = _repository .GetTransactionsByDateRange(StartDate, EndDate);
+			var transactions = _repository.GetTransactionsByDateRange(StartDate, EndDate);
 			TotalTransactions = transactions.Count;
 
 			// Reset once per full ledger evaluation

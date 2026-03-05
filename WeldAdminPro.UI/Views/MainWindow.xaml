@@ -17,6 +17,10 @@
 			<MenuItem Header="Project Costs" Click="ProjectCosts_Click"/>
 			<MenuItem Header="Material Cost Drivers" Click="MaterialCostDrivers_Click"/>
 			<MenuItem Header="Profitability" Click="Profitability_Click"/>
+			<MenuItem Header="Project Risk" Click="ProjectRisk_Click"/>
+			<MenuItem Header="Material Trends" Click="MaterialTrends_Click"/>
+			<MenuItem Header="Stock Forecast" Click="StockForecast_Click"/>
+			<MenuItem Header="Work Orders" Click="WorkOrders_Click"/>
 
 			<MenuItem Header="Reports" Click="Reports_Click"/>
 			<MenuItem Header="Exit" Click="Exit_Click"/>
