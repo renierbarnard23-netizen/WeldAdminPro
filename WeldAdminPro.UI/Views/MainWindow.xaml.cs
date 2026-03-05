@@ -1,4 +1,5 @@
 using System.Windows;
+using WeldAdminPro.UI.Views;
 
 namespace WeldAdminPro.UI.Views
 {
@@ -24,15 +25,25 @@ namespace WeldAdminPro.UI.Views
         {
             MainContent.Content = new ReportsView();
         }
-	private void Stock_Click(object sender, RoutedEventArgs e)
-	{
+	    private void Stock_Click(object sender, RoutedEventArgs e)
+	    {
     	    MainContent.Content = new StockView();
-	}
-
-
-        private void Exit_Click(object sender, RoutedEventArgs e)
+	    }
+        private void ProjectCosts_Click(object sender, RoutedEventArgs e)
+		{
+			MainContent.Content = new ProjectCostDashboardView();
+		}
+		private void Exit_Click(object sender, RoutedEventArgs e)
         {
             Close();
         }
-    }
+		private void MaterialCostDrivers_Click(object sender, RoutedEventArgs e)
+		{
+			MainContent.Content = new MaterialCostDriversView();
+		}
+		private void Profitability_Click(object sender, RoutedEventArgs e)
+		{
+			MainContent.Content = new ProjectProfitabilityView();
+		}
+	}
 }

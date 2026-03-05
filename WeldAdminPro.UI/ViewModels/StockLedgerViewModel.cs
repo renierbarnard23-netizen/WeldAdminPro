@@ -3,17 +3,22 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
+
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Core.Reporting;
-using WeldAdminPro.Core.Services;
+using WeldAdminPro.Core.Services;     // analytics lives here
+
 using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Data.Services;
+
 using System.IO;
 
 namespace WeldAdminPro.UI.ViewModels
 {
-	public class MonthlyMovementSummary
+		public class MonthlyMovementSummary
 	{
 		public DateTime Month { get; set; }
 		public int TotalIn { get; set; }
@@ -42,11 +47,17 @@ namespace WeldAdminPro.UI.ViewModels
 		public decimal TotalMovementValue =>
 			Transactions.Sum(t => t.TransactionValue);
 	}
+	
 
 	public partial class StockLedgerViewModel : ObservableObject
 	{
+		private readonly WeldAdminPro.Data.Services.LedgerIntegrityService _ledgerIntegrityService;
+
 		private readonly StockRepository _repository;
 		private readonly StockAnalyticsService _analyticsService;
+		private readonly LedgerRepairService _ledgerRepairService;
+
+		public IRelayCommand RepairLedgerCommand { get; }
 
 		public IRelayCommand RecalculateCommand { get; }
 		public IRelayCommand ApplyFilterCommand { get; }
@@ -189,13 +200,29 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			_repository = new StockRepository();
 			_analyticsService = new StockAnalyticsService();
+			_ledgerIntegrityService = new WeldAdminPro.Data.Services.LedgerIntegrityService();
+			_ledgerRepairService = new LedgerRepairService();
 
+			RepairLedgerCommand = new RelayCommand(RepairLedger);
 			RecalculateCommand = new RelayCommand(RecalculateBalances);
 			ApplyFilterCommand = new RelayCommand(LoadLedger);
 			ExportExecutiveReportCommand = new RelayCommand(ExportExecutiveReport);
 
 			LoadLedger();
 			AuditVM.LoadCommand.Execute(null);
+		}
+
+		private void RepairLedger()
+		{
+			var repaired = _ledgerRepairService.RepairLedger();
+
+			MessageBox.Show(
+				$"Ledger repair completed.\n\n{repaired} transactions corrected.",
+				"Ledger Repair",
+				MessageBoxButton.OK,
+				MessageBoxImage.Information);
+
+			LoadLedger();
 		}
 
 		private void RecalculateBalances()
@@ -208,7 +235,6 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			var allItems = _repository.GetAll();
 			var transactions = _repository .GetTransactionsByDateRange(StartDate, EndDate);
-			MessageBox.Show($"Transactions found: {transactions.Count}");
 			TotalTransactions = transactions.Count;
 
 			// Reset once per full ledger evaluation
@@ -319,29 +345,44 @@ namespace WeldAdminPro.UI.ViewModels
 							Transactions = new ObservableCollection<StockTransaction>(ordered)
 						};
 					}));
-			MessageBox.Show($"Ledger groups: {LedgerGroups.Count}");
+			
 
 			OnPropertyChanged(nameof(HasLedgerMismatch));
 
 			// =============================
-			// INTEGRITY EVALUATION (CORRECT POSITION)
+			// LEDGER INTEGRITY VALIDATION
 			// =============================
 
-			if (NegativeDriftCount > 0 || HasLedgerMismatch)
+			var integrity = _ledgerIntegrityService.ValidateLedger();
+
+			if (!integrity.IsValid)
 			{
 				HasIntegrityFailure = true;
 
 				IntegrityMessage =
-					$"Ledger integrity warning: {NegativeDriftCount} negative drift event(s) detected " +
-					$"{(HasLedgerMismatch ? "and balance mismatches found." : "with no balance mismatches.")}";
+					$"⚠ Ledger drift detected. {integrity.ErrorCount} balance inconsistencies found.";
+			}
+			else if (NegativeDriftCount > 0)
+			{
+				HasIntegrityFailure = true;
+
+				IntegrityMessage =
+					$"⚠ Negative inventory drift detected ({NegativeDriftCount} occurrence(s)).";
 			}
 			else
 			{
 				HasIntegrityFailure = false;
-				IntegrityMessage = string.Empty;
+				IntegrityMessage = "";
 			}
-		}
+
+			// 🔵 ADD THIS RIGHT HERE
+			OnPropertyChanged(nameof(HasIntegrityFailure));
+			OnPropertyChanged(nameof(IntegrityMessage));
+
+		} // 🔴 THIS closes LoadLedger()
+
 		private void BuildRiskMatrix(List<ItemMovementSummary> items)
+		
 		{
 			RiskMatrix.Clear();
 

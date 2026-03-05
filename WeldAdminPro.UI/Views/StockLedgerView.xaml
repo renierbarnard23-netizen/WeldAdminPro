@@ -38,6 +38,10 @@
 						<Button Content="Recalculate Stored Balances"
                                 Width="220"
                                 Command="{Binding RecalculateCommand}"/>
+						<Button Content="Repair Ledger"
+								Width="140"
+								Margin="10,0,0,0"
+								Command="{Binding RepairLedgerCommand}"/>
 					</StackPanel>
 
 					<StackPanel DockPanel.Dock="Top"

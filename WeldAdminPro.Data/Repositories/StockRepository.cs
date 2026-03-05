@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using WeldAdminPro.Core.Models;
+using System.Data;
+
 
 namespace WeldAdminPro.Data.Repositories
 {
@@ -48,14 +50,29 @@ WHERE LOWER(Id) = LOWER($id);";
 				AverageUnitCost = reader.IsDBNull(8) ? 0m : reader.GetDecimal(8)
 			};
 		}
-		
+
 
 
 		// =========================================================
 		// SCHEMA
 		// =========================================================
 
-		
+		public void UpdateTransactionBalance(Guid transactionId, int newBalance)
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = @"
+UPDATE StockTransactions
+SET BalanceAfter = $bal
+WHERE Id = $id;";
+
+			cmd.Parameters.AddWithValue("$bal", newBalance);
+			cmd.Parameters.AddWithValue("$id", transactionId.ToString());
+
+			cmd.ExecuteNonQuery();
+		}
 
 		// =========================================================
 		// STOCK ITEMS
@@ -209,7 +226,8 @@ WHERE Id=$id;";
 					currentQty = reader.GetInt32(0);
 					currentAvgCost = reader.GetDecimal(1);
 				}
-
+								
+		
 				// -----------------------------
 				// VALIDATION
 				// -----------------------------

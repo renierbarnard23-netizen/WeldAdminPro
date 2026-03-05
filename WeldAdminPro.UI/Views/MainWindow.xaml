@@ -9,16 +9,22 @@
     <DockPanel>
 
         <!-- TOP MENU -->
-        <Menu DockPanel.Dock="Top">
-    		<MenuItem Header="Home" Click="Home_Click"/>
-    		<MenuItem Header="Projects" Click="Projects_Click"/>
-    		<MenuItem Header="Stock" Click="Stock_Click"/>
-    		<MenuItem Header="Reports" Click="Reports_Click"/>
-    		<MenuItem Header="Exit" Click="Exit_Click"/>
-	</Menu>
+		<Menu DockPanel.Dock="Top">
+			<MenuItem Header="Home" Click="Home_Click"/>
+			<MenuItem Header="Projects" Click="Projects_Click"/>
+			<MenuItem Header="Stock" Click="Stock_Click"/>
+
+			<MenuItem Header="Project Costs" Click="ProjectCosts_Click"/>
+			<MenuItem Header="Material Cost Drivers" Click="MaterialCostDrivers_Click"/>
+			<MenuItem Header="Profitability" Click="Profitability_Click"/>
+
+			<MenuItem Header="Reports" Click="Reports_Click"/>
+			<MenuItem Header="Exit" Click="Exit_Click"/>
+
+		</Menu>
 
 
-        <!-- MAIN CONTENT HOST -->
+		<!-- MAIN CONTENT HOST -->
         <ContentControl x:Name="MainContent"/>
         
     </DockPanel>
