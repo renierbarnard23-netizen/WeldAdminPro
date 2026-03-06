@@ -48,6 +48,19 @@ namespace WeldAdminPro.Data.Services
 				else if (daysRemaining < 30)
 					status = "Reorder Soon";
 
+				int priority = 0;
+
+				if (daysRemaining <= 3)
+					priority = 100;
+				else if (daysRemaining <= 7)
+					priority = 90;
+				else if (daysRemaining <= 14)
+					priority = 75;
+				else if (daysRemaining <= 30)
+					priority = 50;
+				else
+					priority = 10;
+
 				forecasts.Add(new MaterialDemandForecast
 				{
 					ItemCode = item.ItemCode,
@@ -55,12 +68,13 @@ namespace WeldAdminPro.Data.Services
 					CurrentStock = item.Quantity,
 					AverageDailyConsumption = avgDaily,
 					DaysRemaining = daysRemaining,
-					Status = status
+					Status = status,
+					PriorityScore = priority
 				});
 			}
 
 			return forecasts
-				.OrderBy(f => f.DaysRemaining)
+				.OrderByDescending(f => f.PriorityScore)
 				.ToList();
 		}
 	}

@@ -13,5 +13,7 @@ namespace WeldAdminPro.Core.Analytics.Executive
 		public int DaysRemaining { get; set; }
 
 		public string Status { get; set; } = "OK";
+
+		public int PriorityScore { get; set; }
 	}
 }
