@@ -60,6 +60,12 @@ namespace WeldAdminPro.Data.Services
 					priority = 50;
 				else
 					priority = 10;
+				int targetStock = (int)(avgDaily * 60);
+
+				int suggestedOrder = targetStock - item.Quantity;
+
+				if (suggestedOrder < 0)
+					suggestedOrder = 0;
 
 				forecasts.Add(new MaterialDemandForecast
 				{
@@ -69,10 +75,11 @@ namespace WeldAdminPro.Data.Services
 					AverageDailyConsumption = avgDaily,
 					DaysRemaining = daysRemaining,
 					Status = status,
-					PriorityScore = priority
+					PriorityScore = priority,
+					SuggestedOrderQuantity = suggestedOrder
 				});
 			}
-
+				
 			return forecasts
 				.OrderByDescending(f => f.PriorityScore)
 				.ToList();
