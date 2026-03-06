@@ -6,10 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using WeldAdminPro.Data;
 using WeldAdminPro.Core.Configuration;
 using WeldAdminPro.Data.Migrations;
+using WeldAdminPro.Data.Services;
 
 namespace WeldAdminPro.UI
 {
-
 	public partial class App : Application
 	{
 		public static ApplicationDbContext DbContext { get; private set; } = null!;
@@ -21,6 +21,7 @@ namespace WeldAdminPro.UI
 
 			// 1️⃣ Ensure DB schema FIRST
 			DatabaseInitializer.Initialize();
+
 			var migration = new DatabaseMigrationService($"Data Source={DatabasePath.Get()}");
 			migration.RunMigrations();
 
@@ -51,14 +52,29 @@ namespace WeldAdminPro.UI
 				ExecutiveSeverityOptions = new ExecutiveSeverityOptions();
 			}
 
-			// 3️⃣ Create EF DbContext
+			// 3️⃣ Ledger Integrity Check
+			try
+			{
+				var ledgerService = new LedgerService();
+				ledgerService.RepairLedgerIfRequired();
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show(
+					$"Ledger verification failed: {ex.Message}",
+					"Ledger Error",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning);
+			}
+
+			// 4️⃣ Create EF DbContext
 			var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>()
 				.UseSqlite($"Data Source={DatabasePath.Get()}")
 				.Options;
 
 			DbContext = new ApplicationDbContext(optionsBuilder);
 
-			// 4️⃣ Global exception handler
+			// 5️⃣ Global exception handler
 			DispatcherUnhandledException += (sender, args) =>
 			{
 				MessageBox.Show(
