@@ -10,14 +10,17 @@ namespace WeldAdminPro.UI.ViewModels
 	{
 		private readonly InventoryRiskSummaryService _riskSummaryService;
 		private readonly MaterialDemandForecastService _forecastService;
+		private readonly MaterialConsumptionService _consumptionService;
 
 		public HomeViewModel()
 		{
 			_riskSummaryService = new InventoryRiskSummaryService();
 			_forecastService = new MaterialDemandForecastService();
+			_consumptionService = new MaterialConsumptionService();
 
 			LoadRiskSummary();
 			LoadProcurementAlerts();
+			LoadConsumptionStats();
 		}
 
 		// =========================================================
@@ -44,6 +47,9 @@ namespace WeldAdminPro.UI.ViewModels
 
 		[ObservableProperty]
 		private ObservableCollection<MaterialDemandForecast> procurementAlerts = new();
+		
+		[ObservableProperty]
+		private ObservableCollection<MaterialConsumptionStat> topConsumedMaterials = new();
 
 		private void LoadRiskSummary()
 		{
@@ -65,6 +71,12 @@ namespace WeldAdminPro.UI.ViewModels
 				.Take(10);
 
 			ProcurementAlerts = new ObservableCollection<MaterialDemandForecast>(urgentItems);
+		}
+		private void LoadConsumptionStats()
+		{
+			var stats = _consumptionService.GetTopConsumed();
+
+			TopConsumedMaterials = new ObservableCollection<MaterialConsumptionStat>(stats);
 		}
 	}
 }
