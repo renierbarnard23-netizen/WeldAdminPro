@@ -294,7 +294,7 @@
 													<TextBlock Text="{Binding ItemCode}" VerticalAlignment="Center"/>
 
 													<!-- Value Bar -->
-													<Border Grid.Column="1"
+													<Border Grid.Column="0"
                  Height="18"
                  Background="#1976D2"
                  Width="{Binding ParetoBarWidth}"
@@ -329,7 +329,7 @@
 								</Border>
 
 								<!-- B -->
-								<Border Grid.Column="1" Background="#EF6C00">
+								<Border Grid.Column="0" Background="#EF6C00">
 									<TextBlock Text="{Binding BPercentage, StringFormat=B {0}%}"
         Foreground="White"
         HorizontalAlignment="Center"

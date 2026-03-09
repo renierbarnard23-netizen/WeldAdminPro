@@ -3,6 +3,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WeldAdminPro.Core.Analytics.Executive;
 using WeldAdminPro.Core.Analytics.Production;
+using WeldAdminPro.Core.Analytics.Procurement;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Services;
 
@@ -18,6 +19,10 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly ProjectProfitabilityIntelligenceService _profitService;
 		private readonly ExecutiveKpiService _kpiService;
 		private readonly WorkOrderMaterialPlanningService _planningService;
+		private readonly WorkOrderShortageDetectionService _shortageService;
+		private readonly ProcurementSuggestionService _procurementService;
+
+		public ObservableCollection<WorkOrderMaterialShortage> MaterialShortages { get; set; } = new();
 
 		public HomeViewModel()
 		{
@@ -29,6 +34,8 @@ namespace WeldAdminPro.UI.ViewModels
 			_profitService = new ProjectProfitabilityIntelligenceService();
 			_kpiService = new ExecutiveKpiService();
 			_planningService = new WorkOrderMaterialPlanningService();
+			_shortageService = new WorkOrderShortageDetectionService();
+			_procurementService = new ProcurementSuggestionService();
 
 			LoadRiskSummary();
 			LoadProcurementAlerts();
@@ -37,7 +44,7 @@ namespace WeldAdminPro.UI.ViewModels
 			LoadProjectProfitability();
 			LoadKpis();
 			LoadWorkOrderPlan();
-
+			LoadMaterialShortages();
 		}
 
 		// =========================================================
@@ -64,7 +71,7 @@ namespace WeldAdminPro.UI.ViewModels
 
 		[ObservableProperty]
 		private ObservableCollection<MaterialDemandForecast> procurementAlerts = new();
-		
+
 		[ObservableProperty]
 		private ObservableCollection<MaterialConsumptionStat> topConsumedMaterials = new();
 
@@ -83,6 +90,9 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private ObservableCollection<WorkOrderMaterialPlan> workOrderMaterialPlans = new();
 
+		[ObservableProperty]
+		private ObservableCollection<ProcurementSuggestion> procurementSuggestions = new();
+
 		private void LoadRiskSummary()
 		{
 			var summary = _riskSummaryService.BuildSummary();
@@ -94,6 +104,7 @@ namespace WeldAdminPro.UI.ViewModels
 			CriticalInventoryItems = summary.CriticalInventoryItems;
 			InventoryHealthScore = summary.HealthScore;
 		}
+
 		private void LoadProcurementAlerts()
 		{
 			var forecast = _forecastService.GenerateForecast();
@@ -104,6 +115,7 @@ namespace WeldAdminPro.UI.ViewModels
 
 			ProcurementAlerts = new ObservableCollection<MaterialDemandForecast>(urgentItems);
 		}
+
 		private void LoadConsumptionStats()
 		{
 			var stats = _consumptionService.GetTopConsumed();
@@ -117,12 +129,14 @@ namespace WeldAdminPro.UI.ViewModels
 
 			InventoryAnomalies = new ObservableCollection<InventoryAnomaly>(anomalies);
 		}
+
 		private void LoadOperationalAlerts()
 		{
 			var alerts = _alertService.GenerateAlerts();
 
 			OperationalAlerts = new ObservableCollection<OperationalAlert>(alerts);
 		}
+
 		private void LoadProjectProfitability()
 		{
 			var stats = _profitService.GetProjectProfitability();
@@ -130,18 +144,35 @@ namespace WeldAdminPro.UI.ViewModels
 			ProjectProfitability =
 				new ObservableCollection<ProjectProfitabilityStat>(stats);
 		}
+
 		private void LoadKpis()
 		{
 			var kpis = _kpiService.BuildKpis(InventoryHealthScore);
 
 			ExecutiveKpis = new ObservableCollection<ExecutiveKpi>(kpis);
 		}
+
 		private void LoadWorkOrderPlan()
 		{
 			var plan = _planningService.BuildPlan();
 
 			WorkOrderMaterialPlans =
 				new ObservableCollection<WorkOrderMaterialPlan>(plan);
+		}
+
+		private void LoadMaterialShortages()
+		{
+			var shortages = _shortageService.DetectShortages();
+
+			MaterialShortages =
+				new ObservableCollection<WorkOrderMaterialShortage>(shortages);
+		}
+		private void LoadProcurementSuggestions()
+		{
+			var suggestions = _procurementService.GenerateSuggestions();
+
+			ProcurementSuggestions =
+				new ObservableCollection<ProcurementSuggestion>(suggestions);
 		}
 	}
 }

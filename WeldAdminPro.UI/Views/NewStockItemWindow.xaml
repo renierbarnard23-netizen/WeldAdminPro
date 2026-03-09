@@ -38,7 +38,7 @@
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="0" Grid.Column="1"
+		<TextBox Grid.Row="0" Grid.Column="0"
                  Margin="0,0,0,6"
                  Text="{Binding Item.ItemCode, UpdateSourceTrigger=PropertyChanged}"
                  IsReadOnly="{Binding IsEditMode}"/>
@@ -49,7 +49,7 @@
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="1" Grid.Column="1"
+		<TextBox Grid.Row="1" Grid.Column="0"
                  Margin="0,0,0,6"
                  Text="{Binding Item.Description, UpdateSourceTrigger=PropertyChanged}"/>
 
@@ -59,7 +59,7 @@
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="2" Grid.Column="1"
+		<TextBox Grid.Row="2" Grid.Column="0"
                  Margin="0,0,0,6"
                  Width="120"
                  Text="{Binding Item.Quantity, UpdateSourceTrigger=PropertyChanged}"/>
@@ -70,7 +70,7 @@
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="3" Grid.Column="1"
+		<TextBox Grid.Row="3" Grid.Column="0"
                  Margin="0,0,0,6"
                  Width="120"
                  Text="{Binding Item.Unit, UpdateSourceTrigger=PropertyChanged}"/>
@@ -81,7 +81,7 @@
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="4" Grid.Column="1"
+		<TextBox Grid.Row="4" Grid.Column="0"
                  Margin="0,0,0,6"
                  Width="120"
                  Text="{Binding Item.MinLevel, UpdateSourceTrigger=PropertyChanged}"/>
@@ -92,7 +92,7 @@
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="5" Grid.Column="1"
+		<TextBox Grid.Row="5" Grid.Column="0"
                  Margin="0,0,0,6"
                  Width="120"
                  Text="{Binding Item.MaxLevel, UpdateSourceTrigger=PropertyChanged}"/>
@@ -103,7 +103,7 @@
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="6" Grid.Column="1"
+		<TextBox Grid.Row="6" Grid.Column="0"
                  Margin="0,0,0,6"
                  Width="120"
                  Text="{Binding Item.AverageUnitCost, UpdateSourceTrigger=PropertyChanged}"/>
@@ -114,7 +114,7 @@
                    VerticalAlignment="Center"
                    Margin="0,0,10,10"/>
 
-		<ComboBox Grid.Row="7" Grid.Column="1"
+		<ComboBox Grid.Row="7" Grid.Column="0"
                   Margin="0,0,0,10"
                   ItemsSource="{Binding Categories}"
                   SelectedItem="{Binding SelectedCategory}"

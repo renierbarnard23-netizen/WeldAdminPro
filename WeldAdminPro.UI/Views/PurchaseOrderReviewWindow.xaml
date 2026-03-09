@@ -30,7 +30,7 @@
                        VerticalAlignment="Center"
                        FontWeight="Bold"/>
 
-            <TextBox Grid.Column="1"
+            <TextBox Grid.Column="0"
                      Margin="5,0"
                      Text="{Binding PurchaseOrder.PONumber}"
                      IsReadOnly="True"/>

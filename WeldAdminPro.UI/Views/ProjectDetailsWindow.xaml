@@ -28,7 +28,7 @@
                        VerticalAlignment="Center"
                        FontWeight="Bold"/>
 
-			<TextBox Grid.Column="1"
+			<TextBox Grid.Column="0"
                      Margin="5,0"
                      Text="{Binding Project.JobNumber}"
                      IsReadOnly="True"
@@ -102,57 +102,57 @@
 
 						<!-- Basic Info -->
 						<TextBlock Text="Project Name"/>
-						<TextBox Grid.Column="1" Margin="5"
+						<TextBox Grid.Column="0" Margin="5"
                                  Text="{Binding Project.ProjectName}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="1" Text="Client"/>
-						<TextBox Grid.Row="1" Grid.Column="1" Margin="5"
+						<TextBox Grid.Row="1" Grid.Column="0" Margin="5"
                                  Text="{Binding Project.Client}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="2" Text="Client Rep"/>
-						<TextBox Grid.Row="2" Grid.Column="1" Margin="5"
+						<TextBox Grid.Row="2" Grid.Column="0" Margin="5"
                                  Text="{Binding Project.ClientRepresentative}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="3" Text="Quote #"/>
-						<TextBox Grid.Row="3" Grid.Column="1" Margin="5"
+						<TextBox Grid.Row="3" Grid.Column="0" Margin="5"
                                  Text="{Binding Project.QuoteNumber}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="4" Text="Order #"/>
-						<TextBox Grid.Row="4" Grid.Column="1" Margin="5"
+						<TextBox Grid.Row="4" Grid.Column="0" Margin="5"
                                  Text="{Binding Project.OrderNumber}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="5" Text="Budget (R)"/>
-						<TextBox Grid.Row="5" Grid.Column="1" Margin="5"
+						<TextBox Grid.Row="5" Grid.Column="0" Margin="5"
                                  Text="{Binding Project.Budget}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="6" Text="Material"/>
-						<TextBox Grid.Row="6" Grid.Column="1" Margin="5"
+						<TextBox Grid.Row="6" Grid.Column="0" Margin="5"
                                  Text="{Binding Project.Material}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="7" Text="Assigned To"/>
-						<TextBox Grid.Row="7" Grid.Column="1" Margin="5"
+						<TextBox Grid.Row="7" Grid.Column="0" Margin="5"
                                  Text="{Binding Project.AssignedTo}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="8" Text="Start Date"/>
-						<DatePicker Grid.Row="8" Grid.Column="1" Margin="5"
+						<DatePicker Grid.Row="8" Grid.Column="0" Margin="5"
                                     SelectedDate="{Binding Project.StartDate}"
                                     IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="9" Text="End Date"/>
-						<DatePicker Grid.Row="9" Grid.Column="1" Margin="5"
+						<DatePicker Grid.Row="9" Grid.Column="0" Margin="5"
                                     SelectedDate="{Binding Project.EndDate}"
                                     IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="10" Text="Created On"/>
-						<TextBox Grid.Row="10" Grid.Column="1" Margin="5"
+						<TextBox Grid.Row="10" Grid.Column="0" Margin="5"
                                  Text="{Binding Project.CreatedOn, StringFormat={}{0:yyyy-MM-dd HH:mm}}"
                                  IsReadOnly="True"
                                  Background="#EEE"/>
@@ -162,14 +162,14 @@
 						<!-- Invoice Section -->
 						<TextBlock Grid.Row="12" Text="Invoiced"/>
 						<CheckBox Grid.Row="12"
-                                  Grid.Column="1"
+                                  Grid.Column="0"
                                   Margin="5"
                                   IsChecked="{Binding Project.IsInvoiced}"
                                   IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="13" Text="Invoice Number"/>
 						<TextBox Grid.Row="13"
-                                 Grid.Column="1"
+                                 Grid.Column="0"
                                  Margin="5"
                                  Text="{Binding Project.InvoiceNumber}"
                                  IsEnabled="{Binding IsEditable}"/>
@@ -189,7 +189,7 @@
 			</StackPanel>
 
 			<!-- ================= RIGHT SIDE ================= -->
-			<Grid Grid.Column="1">
+			<Grid Grid.Column="0">
 
 				<Grid.RowDefinitions>
 					<RowDefinition Height="Auto"/>
@@ -221,19 +221,19 @@
 							</Grid.RowDefinitions>
 
 							<TextBlock Text="Stock Item"/>
-							<ComboBox Grid.Column="1"
+							<ComboBox Grid.Column="0"
                                       Margin="5"
                                       ItemsSource="{Binding StockItems}"
                                       SelectedItem="{Binding SelectedStockItem}"
                                       DisplayMemberPath="Description"/>
 
 							<TextBlock Grid.Row="1" Text="Quantity"/>
-							<TextBox Grid.Row="1" Grid.Column="1"
+							<TextBox Grid.Row="1" Grid.Column="0"
                                      Margin="5"
                                      Text="{Binding IssueQuantity}"/>
 
 							<TextBlock Grid.Row="2"
-                                       Grid.Column="1"
+                                       Grid.Column="0"
                                        Margin="5,2"
                                        Foreground="DarkGreen"
                                        FontWeight="SemiBold"
@@ -241,12 +241,12 @@
                                        StringFormat=Available: {0}}"/>
 
 							<TextBlock Grid.Row="3" Text="Issued By"/>
-							<TextBox Grid.Row="3" Grid.Column="1"
+							<TextBox Grid.Row="3" Grid.Column="0"
                                      Margin="5"
                                      Text="{Binding IssuedBy}"/>
 
 							<Button Grid.Row="4"
-                                    Grid.Column="1"
+                                    Grid.Column="0"
                                     Content="Issue Stock"
                                     HorizontalAlignment="Right"
                                     Margin="5,10,5,0"
@@ -256,7 +256,7 @@
 					</GroupBox>
 
 					<!-- RETURN -->
-					<GroupBox Header="Return Stock" Grid.Column="1">
+					<GroupBox Header="Return Stock" Grid.Column="0">
 						<Grid Margin="15">
 
 							<Grid.ColumnDefinitions>
@@ -292,12 +292,12 @@
 							</ComboBox>
 
 							<TextBlock Grid.Row="1" Text="Return Qty"/>
-							<TextBox Grid.Row="1" Grid.Column="1"
+							<TextBox Grid.Row="1" Grid.Column="0"
                                      Margin="5"
                                      Text="{Binding ReturnQuantity}"/>
 
 							<TextBlock Grid.Row="2"
-                                       Grid.Column="1"
+                                       Grid.Column="0"
                                        Margin="5,2"
                                        Foreground="Gray"
                                        FontWeight="SemiBold"
@@ -305,7 +305,7 @@
                                               StringFormat=Issued: {0}}"/>
 
 							<Button Grid.Row="3"
-                                    Grid.Column="1"
+                                    Grid.Column="0"
                                     Content="Return Stock"
                                     HorizontalAlignment="Right"
                                     Margin="5,10,5,0"
@@ -336,7 +336,7 @@
 						</DataGrid>
 					</GroupBox>
 
-					<GroupBox Header="Project Cost Breakdown" Grid.Column="1">
+					<GroupBox Header="Project Cost Breakdown" Grid.Column="0">
 						<DataGrid ItemsSource="{Binding ProjectCostTransactions}"
                                   AutoGenerateColumns="False"
                                   IsReadOnly="True"

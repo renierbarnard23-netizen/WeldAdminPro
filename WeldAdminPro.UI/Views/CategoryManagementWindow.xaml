@@ -27,7 +27,7 @@
                      Margin="0,0,10,0"
                      Text="{Binding NewCategoryName, UpdateSourceTrigger=PropertyChanged}" />
 
-			<Button Grid.Column="1"
+			<Button Grid.Column="0"
                     Content="Add"
                     Width="90"
                     Height="28"

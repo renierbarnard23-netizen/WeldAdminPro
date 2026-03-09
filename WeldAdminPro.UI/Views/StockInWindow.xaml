@@ -24,7 +24,7 @@
 
 		<!-- Stock Item -->
 		<TextBlock Text="Stock Item"/>
-		<ComboBox Grid.Column="1"
+		<ComboBox Grid.Column="0"
                   ItemsSource="{Binding StockItems}"
                   SelectedItem="{Binding SelectedStockItem}"
                   DisplayMemberPath="Description"/>
@@ -34,7 +34,7 @@
                    Text="Quantity"
                    Margin="0,10,0,0"/>
 		<TextBox Grid.Row="1"
-                 Grid.Column="1"
+                 Grid.Column="0"
                  Margin="0,10,0,0"
                  Text="{Binding Quantity}"/>
 
@@ -43,7 +43,7 @@
                    Text="Unit Cost (R)"
                    Margin="0,10,0,0"/>
 		<TextBox Grid.Row="2"
-                 Grid.Column="1"
+                 Grid.Column="0"
                  Margin="0,10,0,0"
                  Text="{Binding UnitCost}"/>
 
@@ -52,7 +52,7 @@
                    Text="Reference"
                    Margin="0,10,0,0"/>
 		<TextBox Grid.Row="3"
-                 Grid.Column="1"
+                 Grid.Column="0"
                  Margin="0,10,0,0"
                  Text="{Binding Reference}"/>
 
