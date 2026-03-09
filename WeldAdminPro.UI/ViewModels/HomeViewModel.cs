@@ -23,6 +23,7 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly WorkOrderShortageDetectionService _shortageService;
 		private readonly ProcurementSuggestionService _procurementService;
 		private readonly ProductionReadinessService _productionReadinessService;
+		private readonly ProductionBlockService _productionBlockService;
 
 		public ObservableCollection<WorkOrderMaterialShortage> MaterialShortages { get; set; } = new();
 
@@ -37,6 +38,8 @@ namespace WeldAdminPro.UI.ViewModels
 			_kpiService = new ExecutiveKpiService();
 			_planningService = new WorkOrderMaterialPlanningService();
 			_shortageService = new WorkOrderShortageDetectionService();
+			_procurementService = new ProcurementSuggestionService();
+			_productionBlockService = new ProductionBlockService();
 			_productionReadinessService = new ProductionReadinessService(
 					new WorkOrderRepository(),
 					new WorkOrderShortageDetectionService());
@@ -51,6 +54,8 @@ namespace WeldAdminPro.UI.ViewModels
 			LoadWorkOrderPlan();
 			LoadMaterialShortages();
 			LoadProductionReadiness();
+			LoadProcurementSuggestions();
+			LoadProductionBlocks();
 		}
 
 		// =========================================================
@@ -110,6 +115,9 @@ namespace WeldAdminPro.UI.ViewModels
 
 		[ObservableProperty]
 		private ObservableCollection<string> blockedWorkOrderNumbers = new();
+
+		[ObservableProperty]
+		private ObservableCollection<ProductionBlock> productionBlocks = new();
 
 		private void LoadRiskSummary()
 		{
@@ -202,6 +210,13 @@ namespace WeldAdminPro.UI.ViewModels
 
 			BlockedWorkOrderNumbers =
 				new ObservableCollection<string>(readiness.BlockedWorkOrderNumbers);
+		}
+		private void LoadProductionBlocks()
+		{
+			var blocks = _productionBlockService.GetBlockedWorkOrders();
+
+			ProductionBlocks =
+				new ObservableCollection<ProductionBlock>(blocks);
 		}
 	}
 }
