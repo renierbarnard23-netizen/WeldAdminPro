@@ -32,5 +32,11 @@ namespace WeldAdminPro.Data.Services
 
 			return shortages;
 		}
+
+		// NEW METHOD (used by other intelligence services)
+		public List<WorkOrderMaterialShortage> GetShortages()
+		{
+			return DetectShortages();
+		}
 	}
 }

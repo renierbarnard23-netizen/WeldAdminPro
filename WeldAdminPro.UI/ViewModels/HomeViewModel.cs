@@ -2,9 +2,10 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WeldAdminPro.Core.Analytics.Executive;
-using WeldAdminPro.Core.Analytics.Production;
 using WeldAdminPro.Core.Analytics.Procurement;
+using WeldAdminPro.Core.Analytics.Production;
 using WeldAdminPro.Core.Models;
+using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
 
 namespace WeldAdminPro.UI.ViewModels
@@ -21,6 +22,7 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly WorkOrderMaterialPlanningService _planningService;
 		private readonly WorkOrderShortageDetectionService _shortageService;
 		private readonly ProcurementSuggestionService _procurementService;
+		private readonly ProductionReadinessService _productionReadinessService;
 
 		public ObservableCollection<WorkOrderMaterialShortage> MaterialShortages { get; set; } = new();
 
@@ -35,7 +37,10 @@ namespace WeldAdminPro.UI.ViewModels
 			_kpiService = new ExecutiveKpiService();
 			_planningService = new WorkOrderMaterialPlanningService();
 			_shortageService = new WorkOrderShortageDetectionService();
-			_procurementService = new ProcurementSuggestionService();
+			_productionReadinessService = new ProductionReadinessService(
+					new WorkOrderRepository(),
+					new WorkOrderShortageDetectionService());
+
 
 			LoadRiskSummary();
 			LoadProcurementAlerts();
@@ -45,6 +50,7 @@ namespace WeldAdminPro.UI.ViewModels
 			LoadKpis();
 			LoadWorkOrderPlan();
 			LoadMaterialShortages();
+			LoadProductionReadiness();
 		}
 
 		// =========================================================
@@ -92,6 +98,18 @@ namespace WeldAdminPro.UI.ViewModels
 
 		[ObservableProperty]
 		private ObservableCollection<ProcurementSuggestion> procurementSuggestions = new();
+
+		[ObservableProperty]
+		private double productionReadinessPercentage;
+
+		[ObservableProperty]
+		private int readyWorkOrders;
+
+		[ObservableProperty]
+		private int blockedWorkOrders;
+
+		[ObservableProperty]
+		private ObservableCollection<string> blockedWorkOrderNumbers = new();
 
 		private void LoadRiskSummary()
 		{
@@ -173,6 +191,17 @@ namespace WeldAdminPro.UI.ViewModels
 
 			ProcurementSuggestions =
 				new ObservableCollection<ProcurementSuggestion>(suggestions);
+		}
+		private void LoadProductionReadiness()
+		{
+			var readiness = _productionReadinessService.Calculate();
+
+			ProductionReadinessPercentage = readiness.ReadinessPercentage;
+			ReadyWorkOrders = readiness.ReadyWorkOrders;
+			BlockedWorkOrders = readiness.BlockedWorkOrders;
+
+			BlockedWorkOrderNumbers =
+				new ObservableCollection<string>(readiness.BlockedWorkOrderNumbers);
 		}
 	}
 }
