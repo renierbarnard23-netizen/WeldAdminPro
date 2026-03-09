@@ -17,6 +17,9 @@ namespace WeldAdminPro.Core.Models
 		public DateTime CreatedOn { get; set; }
 
 		public DateTime? CompletedOn { get; set; }
+		public DateTime? PlannedStartDate { get; set; }
+		public DateTime? DueDate { get; set; }
+		public int Priority { get; set; }
 	}
 
 	public enum WorkOrderStatus

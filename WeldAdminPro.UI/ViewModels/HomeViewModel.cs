@@ -24,9 +24,13 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly ProcurementSuggestionService _procurementService;
 		private readonly ProductionReadinessService _productionReadinessService;
 		private readonly ProductionBlockService _productionBlockService;
+		private readonly WorkOrderStatusService _workOrderStatusService;
+		private readonly ProductionTrafficLightService _trafficLightService;
+		private readonly ProductionSchedulingService _schedulingService;
 
 		public ObservableCollection<WorkOrderMaterialShortage> MaterialShortages { get; set; } = new();
-
+		public ObservableCollection<ProductionGanttItem> ProductionTimeline { get; set; }
+		
 		public HomeViewModel()
 		{
 			_riskSummaryService = new InventoryRiskSummaryService();
@@ -43,6 +47,15 @@ namespace WeldAdminPro.UI.ViewModels
 			_productionReadinessService = new ProductionReadinessService(
 					new WorkOrderRepository(),
 					new WorkOrderShortageDetectionService());
+			_workOrderStatusService = new WorkOrderStatusService();
+			_trafficLightService = new ProductionTrafficLightService();
+			_schedulingService = new ProductionSchedulingService();
+
+			var ganttService = new ProductionGanttService(new WorkOrderRepository());
+
+			ProductionTimeline =
+				new ObservableCollection<ProductionGanttItem>(
+					ganttService.GetTimeline());
 
 
 			LoadRiskSummary();
@@ -56,6 +69,9 @@ namespace WeldAdminPro.UI.ViewModels
 			LoadProductionReadiness();
 			LoadProcurementSuggestions();
 			LoadProductionBlocks();
+			LoadWorkOrderStatuses();
+			LoadProductionTrafficLights();
+			LoadProductionQueue();
 		}
 
 		// =========================================================
@@ -118,6 +134,15 @@ namespace WeldAdminPro.UI.ViewModels
 
 		[ObservableProperty]
 		private ObservableCollection<ProductionBlock> productionBlocks = new();
+
+		[ObservableProperty]
+		private ObservableCollection<ProductionQueueItem> productionQueue = new();
+
+		[ObservableProperty]
+		private ObservableCollection<WorkOrderExecutionStatusModel> workOrderStatuses = new();
+
+		[ObservableProperty]
+		private ObservableCollection<ProductionTrafficLightKpi> productionTrafficLights = new();
 
 		private void LoadRiskSummary()
 		{
@@ -218,5 +243,27 @@ namespace WeldAdminPro.UI.ViewModels
 			ProductionBlocks =
 				new ObservableCollection<ProductionBlock>(blocks);
 		}
+		private void LoadWorkOrderStatuses()
+		{
+			var statuses = _workOrderStatusService.GetStatuses();
+
+			WorkOrderStatuses =
+				new ObservableCollection<WorkOrderExecutionStatusModel>(statuses);
+		}
+		private void LoadProductionTrafficLights()
+		{
+			var lights = _trafficLightService.BuildKpis();
+
+			ProductionTrafficLights =
+				new ObservableCollection<ProductionTrafficLightKpi>(lights);
+		}
+		private void LoadProductionQueue()
+		{
+			var queue = _schedulingService.BuildQueue();
+
+			ProductionQueue =
+				new ObservableCollection<ProductionQueueItem>(queue);
+		}
+
 	}
 }

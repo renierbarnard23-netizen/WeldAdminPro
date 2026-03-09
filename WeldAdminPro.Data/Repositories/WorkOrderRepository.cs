@@ -23,20 +23,41 @@ namespace WeldAdminPro.Data.Repositories
 			using var cmd = connection.CreateCommand();
 
 			cmd.CommandText = @"
-CREATE TABLE IF NOT EXISTS WorkOrders (
-    Id TEXT PRIMARY KEY,
-    ProjectId TEXT NOT NULL,
-    WorkOrderNumber TEXT NOT NULL,
-    Description TEXT NOT NULL,
-    Status INTEGER NOT NULL,
-    CreatedOn TEXT NOT NULL,
-    CompletedOn TEXT
-);
+				CREATE TABLE IF NOT EXISTS WorkOrders (
+					Id TEXT PRIMARY KEY,
+					ProjectId TEXT NOT NULL,
+					WorkOrderNumber TEXT NOT NULL,
+					Description TEXT NOT NULL,
+					Status INTEGER NOT NULL,
+					CreatedOn TEXT NOT NULL,
+					CompletedOn TEXT
+					PlannedStartDate TEXT,
+					DueDate TEXT,
+					Priority INTEGER
+			);
 
-CREATE TABLE IF NOT EXISTS WorkOrderSettings (
-    Key TEXT PRIMARY KEY,
-    Value TEXT NOT NULL
-);";
+				CREATE TABLE IF NOT EXISTS WorkOrderSettings (
+					Key TEXT PRIMARY KEY,
+					Value TEXT NOT NULL
+			);";
+
+			cmd.ExecuteNonQuery();
+		}
+
+		public void UpdatePriority(string workOrderNumber, int priority)
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+
+			cmd.CommandText = @"
+UPDATE WorkOrders
+SET Priority = @Priority
+WHERE WorkOrderNumber = @WorkOrderNumber";
+
+			cmd.Parameters.AddWithValue("@Priority", priority);
+			cmd.Parameters.AddWithValue("@WorkOrderNumber", workOrderNumber);
 
 			cmd.ExecuteNonQuery();
 		}
