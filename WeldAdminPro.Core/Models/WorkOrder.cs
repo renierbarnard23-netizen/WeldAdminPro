@@ -33,10 +33,9 @@ namespace WeldAdminPro.Core.Models
 
 	public enum WorkOrderStatus
 	{
-		Created = 1,
-		Ready = 2,
-		InProduction = 3,
-		Paused = 4,
-		Completed = 5
+		Open,
+		Ready,
+		InProduction,
+		Completed
 	}
 }

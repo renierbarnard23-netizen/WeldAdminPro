@@ -182,17 +182,27 @@ VALUES
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
 				SELECT
-					s.Id,
-					s.ItemCode,
-					s.Description,
-					s.Unit,
-					SUM(CASE WHEN u.Quantity > 0 THEN u.Quantity ELSE 0 END) AS IssuedQty,
-					ABS(SUM(CASE WHEN u.Quantity < 0 THEN u.Quantity ELSE 0 END)) AS ReturnedQty
-					FROM ProjectStockUsages u
-					JOIN StockItems s ON s.Id = u.StockItemId
-					WHERE u.ProjectId = $projectId
-					GROUP BY s.Id, s.ItemCode, s.Description, s.Unit
-					ORDER BY s.ItemCode;";
+    s.Id,
+    s.ItemCode,
+    s.Description,
+    s.Unit,
+    SUM(
+        CASE
+            WHEN u.Quantity > 0 THEN u.Quantity
+            ELSE 0
+        END
+    ) AS IssuedQty,
+    ABS(SUM(
+        CASE
+            WHEN u.Quantity < 0 THEN u.Quantity
+            ELSE 0
+        END
+    )) AS ReturnedQty
+FROM ProjectStockUsages u
+JOIN StockItems s ON s.Id = u.StockItemId
+WHERE u.ProjectId = $projectId
+GROUP BY s.Id, s.ItemCode, s.Description, s.Unit
+ORDER BY s.ItemCode;";
 
 			cmd.Parameters.AddWithValue("$projectId", projectId.ToString());
 

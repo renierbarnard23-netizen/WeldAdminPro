@@ -44,6 +44,9 @@
 				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
 			</Grid.RowDefinitions>
 
 			<Grid.ColumnDefinitions>
@@ -101,9 +104,9 @@
 			<!-- PRODUCTION CONTROL TOWER -->
 
 			<GroupBox Header="Production Control Tower"
-          Grid.Row="1"
-          Grid.ColumnSpan="2"
-          Margin="6">
+					  Grid.Row="1"
+					  Grid.ColumnSpan="2"
+					  Margin="6">
 
 				<Grid Margin="10">
 
@@ -319,8 +322,73 @@
 
 			</GroupBox>
 
-			<GroupBox Header="Production Execution"
+			<GroupBox Header="Production Throughput Analytics"
 					  Grid.Row="4"
+					  Grid.ColumnSpan="2"
+					  Margin="6">
+
+				<Grid Margin="10">
+
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition/>
+						<ColumnDefinition/>
+						<ColumnDefinition/>
+						<ColumnDefinition/>
+					</Grid.ColumnDefinitions>
+
+					<StackPanel Grid.Column="0">
+						<TextBlock Text="Completed Today" FontWeight="Bold"/>
+						<TextBlock Text="{Binding ProductionThroughput.CompletedToday}" FontSize="26"/>
+					</StackPanel>
+
+					<StackPanel Grid.Column="1">
+						<TextBlock Text="Avg Duration (hrs)" FontWeight="Bold"/>
+						<TextBlock Text="{Binding ProductionThroughput.AverageDurationHours}" FontSize="26"/>
+					</StackPanel>
+
+					<StackPanel Grid.Column="2">
+						<TextBlock Text="Active Work Orders" FontWeight="Bold"/>
+						<TextBlock Text="{Binding ProductionThroughput.ActiveWorkOrders}" FontSize="26"/>
+					</StackPanel>
+
+					<StackPanel Grid.Column="3">
+						<TextBlock Text="Completion Rate %" FontWeight="Bold"/>
+						<TextBlock Text="{Binding ProductionThroughput.CompletionRate}" FontSize="26"/>
+					</StackPanel>
+
+				</Grid>
+
+			</GroupBox>
+
+			<GroupBox Header="Production Efficiency Trends (Last 7 Days)"
+          Grid.Row="5"
+          Grid.ColumnSpan="2"
+          Margin="6">
+
+				<DataGrid ItemsSource="{Binding ProductionEfficiencyTrend}"
+              AutoGenerateColumns="False"
+              Height="180"
+              RowHeight="32"
+              Margin="6">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Date"
+                                Binding="{Binding Date}"
+                                Width="160"/>
+
+						<DataGridTextColumn Header="Completed Work Orders"
+                                Binding="{Binding CompletedWorkOrders}"
+                                Width="200"/>
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</GroupBox>
+
+			<GroupBox Header="Production Execution"
+					  Grid.Row="6"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -383,9 +451,9 @@
 					<!-- RUNNING WORK ORDERS -->
 
 					<GroupBox Header="Running"
-                  Grid.Row="0"
-                  Grid.Column="1"
-                  Margin="5">
+							  Grid.Row="0"
+							  Grid.Column="1"
+							  Margin="5">
 
 						<DataGrid ItemsSource="{Binding Execution.RunningWorkOrders}"
                       AutoGenerateColumns="False"
@@ -426,7 +494,7 @@
 			<!-- TRAFFIC LIGHTS -->
 
 			<ItemsControl ItemsSource="{Binding ProductionTrafficLights}"
-						  Grid.Row="5"
+						  Grid.Row="7"
 						  Grid.ColumnSpan="2"
 						  Margin="6">
 
@@ -469,7 +537,7 @@
 			<!-- PRODUCTION READINESS -->
 
 			<GroupBox Header="Production Readiness"
-					  Grid.Row="7"
+					  Grid.Row="9"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -489,7 +557,7 @@
 			<!-- PRODUCTION BLOCK -->
 
 			<GroupBox Header="Production Block Monitor"
-					  Grid.Row="8"
+					  Grid.Row="10"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -521,7 +589,7 @@ Width="140"/>
 			<!-- PRODUCTION STATUS -->
 
 			<GroupBox Header="Production Status Board"
-					  Grid.Row="9"
+					  Grid.Row="11"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -600,7 +668,7 @@ Width="*"/>
 			<!-- PRODUCTION QUEUE -->
 
 			<GroupBox Header="Production Scheduling Queue"
-					  Grid.Row="10"
+					  Grid.Row="12"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -633,7 +701,7 @@ Width="*"/>
 			<!-- PRODUCTION TIMELINE -->
 
 			<GroupBox Header="Production Timeline"
-					  Grid.Row="11"
+					  Grid.Row="13"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -677,7 +745,7 @@ Width="*"/>
 			<!-- INVENTORY -->
 
 			<GroupBox Header="Inventory Health"
-					  Grid.Row="12"
+					  Grid.Row="14"
 					  Grid.Column="0"
 					  Margin="6">
 
@@ -696,7 +764,7 @@ Width="*"/>
 			</GroupBox>
 
 			<GroupBox Header="Operational Alerts"
-					  Grid.Row="12"
+					  Grid.Row="14"
 					  Grid.Column="1"
 					  Margin="6">
 
@@ -720,7 +788,7 @@ Width="*"/>
 			<!-- PROCUREMENT -->
 
 			<GroupBox Header="Procurement Alerts"
-					  Grid.Row="13"
+					  Grid.Row="15"
 					  Grid.Column="0"
 					  Margin="6">
 
@@ -746,7 +814,7 @@ Width="*"/>
 			</GroupBox>
 
 			<GroupBox Header="Top Consumed Materials"
-					  Grid.Row="13"
+					  Grid.Row="15"
 					  Grid.Column="1"
 					  Margin="6">
 
@@ -772,7 +840,7 @@ Width="*"/>
 			<!-- FINANCIAL -->
 
 			<GroupBox Header="Project Material Cost Intelligence"
-					  Grid.Row="14"
+					  Grid.Row="16"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -802,7 +870,7 @@ Width="*"/>
 			<!-- WORK ORDER MATERIAL PLANNING -->
 
 			<GroupBox Header="Work Order Material Planning"
-					  Grid.Row="15"
+					  Grid.Row="17"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -836,7 +904,7 @@ Width="*"/>
 			<!-- RESERVATIONS -->
 
 			<GroupBox Header="Material Reservations"
-					  Grid.Row="16"
+					  Grid.Row="18"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -868,7 +936,7 @@ Width="*"/>
 			<!-- PROCUREMENT SUGGESTIONS -->
 
 			<GroupBox Header="Smart Procurement Suggestions"
-					  Grid.Row="17"
+					  Grid.Row="19"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -900,7 +968,7 @@ Width="*"/>
 			<!-- PRODUCTION CAPACITY FORECAST -->
 
 			<GroupBox Header="Production Capacity Forecast (Next 14 Days)"
-					  Grid.Row="18"
+					  Grid.Row="20"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -970,9 +1038,9 @@ Width="*"/>
 			</GroupBox>
 
 			<GroupBox Header="Production Control Center"
-          Grid.Row="6"
-          Grid.ColumnSpan="2"
-          Margin="6">
+					  Grid.Row="8"
+					  Grid.ColumnSpan="2"
+					  Margin="6">
 
 				<Grid Margin="10">
 

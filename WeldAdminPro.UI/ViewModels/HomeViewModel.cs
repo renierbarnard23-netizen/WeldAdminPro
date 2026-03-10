@@ -38,6 +38,8 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly WorkOrderExecutionService _executionService;
 		private readonly ProductionBottleneckDetectionService _bottleneckService;
 		private readonly ProductionRecommendationService _recommendationService;
+		private readonly ProductionThroughputService _throughputService;
+		private readonly ProductionEfficiencyTrendService _efficiencyTrendService;
 
 		public ObservableCollection<WorkOrderMaterialShortage> MaterialShortages { get; set; } = new();
 		public ObservableCollection<ProductionGanttItem> ProductionTimeline { get; set; } = new();
@@ -52,6 +54,8 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public List<ProductionBottleneckModel> ProductionBottlenecks { get; set; }
 		public List<ProductionRecommendationModel> ProductionRecommendations { get; set; }
+		public ProductionThroughputModel ProductionThroughput { get; set; }
+		public List<ProductionEfficiencyTrendModel> ProductionEfficiencyTrend { get; set; }
 
 
 		public HomeViewModel()
@@ -82,6 +86,10 @@ namespace WeldAdminPro.UI.ViewModels
 			ProductionBottlenecks = _bottleneckService.DetectBottlenecks();
 			_recommendationService = new ProductionRecommendationService();
 			ProductionRecommendations = _recommendationService.GetRecommendations();
+			_throughputService = new ProductionThroughputService();
+			ProductionThroughput = _throughputService.GetThroughput();
+			_efficiencyTrendService = new ProductionEfficiencyTrendService();
+			ProductionEfficiencyTrend = _efficiencyTrendService.GetLast7DaysTrend();
 
 
 
