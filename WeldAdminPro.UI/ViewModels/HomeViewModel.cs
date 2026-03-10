@@ -1,15 +1,19 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Analytics.Executive;
 using WeldAdminPro.Core.Analytics.Procurement;
 using WeldAdminPro.Core.Analytics.Production;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
+using WeldAdminPro.UI.ViewModels.Dashboard;
 
 namespace WeldAdminPro.UI.ViewModels
 {
+	
 	public partial class HomeViewModel : ObservableObject
 	{
 		private readonly InventoryRiskSummaryService _riskSummaryService;
@@ -27,10 +31,20 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly WorkOrderStatusService _workOrderStatusService;
 		private readonly ProductionTrafficLightService _trafficLightService;
 		private readonly ProductionSchedulingService _schedulingService;
+		private readonly MaterialReservationService _reservationService;
+		private readonly WorkOrderRepository _workOrderRepository;
+		private readonly WorkOrderExecutionService _executionService;
 
 		public ObservableCollection<WorkOrderMaterialShortage> MaterialShortages { get; set; } = new();
-		public ObservableCollection<ProductionGanttItem> ProductionTimeline { get; set; }
+		public ObservableCollection<ProductionGanttItem> ProductionTimeline { get; set; } = new();
+		public ObservableCollection<ProductionCapacityForecast> CapacityForecast { get; set; } = new();
+
+		public ObservableCollection<DeadlineRisk> DeadlineRisks { get; set; } = new();
+		public ProductionControlViewModel Production { get; }
+
+		public ProductionExecutionViewModel Execution { get; }
 		
+
 		public HomeViewModel()
 		{
 			_riskSummaryService = new InventoryRiskSummaryService();
@@ -50,8 +64,31 @@ namespace WeldAdminPro.UI.ViewModels
 			_workOrderStatusService = new WorkOrderStatusService();
 			_trafficLightService = new ProductionTrafficLightService();
 			_schedulingService = new ProductionSchedulingService();
+			_reservationService = new MaterialReservationService();
+			_workOrderRepository = new WorkOrderRepository();
+			_executionService = new WorkOrderExecutionService(_workOrderRepository);
+			Production = new ProductionControlViewModel();
+			Execution = new ProductionExecutionViewModel();
+			
+					
 
-			var ganttService = new ProductionGanttService(new WorkOrderRepository());
+			var workOrderRepo = _workOrderRepository;
+
+			var capacityService = new ProductionCapacityService(workOrderRepo);
+
+			var riskService = new DeadlineRiskDetectionService(
+				workOrderRepo,
+				capacityService);
+
+			DeadlineRisks =
+				new ObservableCollection<DeadlineRisk>(
+					riskService.DetectRisks());
+
+			CapacityForecast =
+				new ObservableCollection<ProductionCapacityForecast>(
+					capacityService.GetCapacityForecast());
+
+			var ganttService = new ProductionGanttService(workOrderRepo);
 
 			ProductionTimeline =
 				new ObservableCollection<ProductionGanttItem>(
@@ -72,6 +109,7 @@ namespace WeldAdminPro.UI.ViewModels
 			LoadWorkOrderStatuses();
 			LoadProductionTrafficLights();
 			LoadProductionQueue();
+			LoadReservations();
 		}
 
 		// =========================================================
@@ -143,6 +181,9 @@ namespace WeldAdminPro.UI.ViewModels
 
 		[ObservableProperty]
 		private ObservableCollection<ProductionTrafficLightKpi> productionTrafficLights = new();
+
+		[ObservableProperty]
+		private ObservableCollection<MaterialReservation> materialReservations = new();
 
 		private void LoadRiskSummary()
 		{
@@ -264,6 +305,35 @@ namespace WeldAdminPro.UI.ViewModels
 			ProductionQueue =
 				new ObservableCollection<ProductionQueueItem>(queue);
 		}
+		private void LoadReservations()
+		{
+			var reservations = _reservationService.GenerateReservations();
 
+			MaterialReservations =
+				new ObservableCollection<MaterialReservation>(reservations);
+		}
+
+		[RelayCommand]
+		private void StartWorkOrder(Guid id)
+		{
+			_executionService.StartWorkOrder(id);
+
+			LoadProductionQueue();
+		}
+		[RelayCommand]
+		private void PauseWorkOrder(Guid id)
+		{
+			_executionService.PauseWorkOrder(id);
+
+			LoadProductionQueue();
+		}
+		[RelayCommand]
+		private void CompleteWorkOrder(Guid id)
+		{
+			_executionService.CompleteWorkOrder(id);
+
+			LoadProductionQueue();
+		}
+
+		}
 	}
-}

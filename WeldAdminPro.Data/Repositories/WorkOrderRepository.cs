@@ -12,7 +12,9 @@ namespace WeldAdminPro.Data.Repositories
 		public WorkOrderRepository()
 		{
 			_connectionString = $"Data Source={DatabasePath.Get()}";
+
 			EnsureTable();
+			EnsureColumns();
 		}
 
 		private void EnsureTable()
@@ -28,9 +30,11 @@ namespace WeldAdminPro.Data.Repositories
 					ProjectId TEXT NOT NULL,
 					WorkOrderNumber TEXT NOT NULL,
 					Description TEXT NOT NULL,
+					StartDate TEXT,
+					EstimatedHours REAL,
 					Status INTEGER NOT NULL,
 					CreatedOn TEXT NOT NULL,
-					CompletedOn TEXT
+					CompletedOn TEXT,
 					PlannedStartDate TEXT,
 					DueDate TEXT,
 					Priority INTEGER
@@ -42,6 +46,41 @@ namespace WeldAdminPro.Data.Repositories
 			);";
 
 			cmd.ExecuteNonQuery();
+		}
+
+		private void EnsureColumns()
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			void AddColumn(string column, string type)
+			{
+				using var cmd = connection.CreateCommand();
+
+				cmd.CommandText = $@"
+        SELECT COUNT(*) 
+        FROM pragma_table_info('WorkOrders') 
+        WHERE name='{column}'";
+
+				var exists = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+
+				if (!exists)
+				{
+					using var alter = connection.CreateCommand();
+					alter.CommandText = $"ALTER TABLE WorkOrders ADD COLUMN {column} {type}";
+					alter.ExecuteNonQuery();
+				}
+			}
+
+			AddColumn("StartDate", "TEXT");
+			AddColumn("EstimatedHours", "REAL");
+			AddColumn("DueDate", "TEXT");
+			AddColumn("Priority", "INTEGER");
+
+			AddColumn("ActualStartTime", "TEXT");
+			AddColumn("ActualEndTime", "TEXT");
+			AddColumn("ActualHours", "REAL");
+			AddColumn("IsPaused", "INTEGER");
 		}
 
 		public void UpdatePriority(string workOrderNumber, int priority)
@@ -58,6 +97,35 @@ WHERE WorkOrderNumber = @WorkOrderNumber";
 
 			cmd.Parameters.AddWithValue("@Priority", priority);
 			cmd.Parameters.AddWithValue("@WorkOrderNumber", workOrderNumber);
+
+			cmd.ExecuteNonQuery();
+		}
+
+		public void Update(WorkOrder workOrder)
+		{
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+
+			cmd.CommandText = @"
+UPDATE WorkOrders
+SET
+	WorkOrderNumber = @WorkOrderNumber,
+	ProjectId = @ProjectId,
+	Description = @Description,
+	StartDate = @StartDate,
+	EstimatedHours = @EstimatedHours,
+	Status = @Status
+WHERE Id = @Id";
+
+			cmd.Parameters.AddWithValue("@Id", workOrder.Id.ToString());
+			cmd.Parameters.AddWithValue("@ProjectId", workOrder.ProjectId.ToString());
+			cmd.Parameters.AddWithValue("@WorkOrderNumber", workOrder.WorkOrderNumber);
+			cmd.Parameters.AddWithValue("@Description", workOrder.Description);
+			cmd.Parameters.AddWithValue("@StartDate", workOrder.StartDate.ToString("O"));
+			cmd.Parameters.AddWithValue("@EstimatedHours", workOrder.EstimatedHours);
+			cmd.Parameters.AddWithValue("@Status", (int)workOrder.Status);
 
 			cmd.ExecuteNonQuery();
 		}
@@ -115,8 +183,27 @@ WHERE WorkOrderNumber = @WorkOrderNumber";
 					ProjectId = Guid.Parse(reader["ProjectId"].ToString()!),
 					WorkOrderNumber = reader["WorkOrderNumber"].ToString()!,
 					Description = reader["Description"].ToString()!,
+
+					StartDate = reader["StartDate"] == DBNull.Value
+						? DateTime.Today
+						: DateTime.Parse(reader["StartDate"].ToString()!),
+
+					EstimatedHours = reader["EstimatedHours"] == DBNull.Value
+						? 8
+						: Convert.ToDouble(reader["EstimatedHours"]),
+
+					DueDate = reader["DueDate"] == DBNull.Value
+						? DateTime.Today.AddDays(3)
+						: DateTime.Parse(reader["DueDate"].ToString()!),
+
+					Priority = reader["Priority"] == DBNull.Value
+						? 1
+						: Convert.ToInt32(reader["Priority"]),
+
 					Status = (WorkOrderStatus)Convert.ToInt32(reader["Status"]),
+
 					CreatedOn = DateTime.Parse(reader["CreatedOn"].ToString()!),
+
 					CompletedOn = reader["CompletedOn"] == DBNull.Value
 						? null
 						: DateTime.Parse(reader["CompletedOn"].ToString()!)
@@ -125,6 +212,7 @@ WHERE WorkOrderNumber = @WorkOrderNumber";
 
 			return list;
 		}
+
 		public string GetNextWorkOrderNumber()
 		{
 			using var connection = new SqliteConnection(_connectionString);
@@ -149,7 +237,7 @@ VALUES ('NextWorkOrderNumber', '2')";
 			}
 			else
 			{
-				nextNumber = int.Parse(result.ToString());
+				nextNumber = int.Parse(result?.ToString() ?? "1");
 
 				using var update = connection.CreateCommand();
 				update.CommandText = @"

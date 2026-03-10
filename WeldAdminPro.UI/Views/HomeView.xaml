@@ -7,18 +7,40 @@
 		<Grid Margin="12">
 
 			<Grid.RowDefinitions>
-				<RowDefinition Height="Auto"/> <!-- KPI -->
-				<RowDefinition Height="Auto"/> <!-- Readiness -->
-				<RowDefinition Height="Auto"/> <!-- Block Monitor -->
-				<RowDefinition Height="Auto"/> <!-- Production Status -->
-				<RowDefinition Height="Auto"/> <!-- Production Queue -->
-				<RowDefinition Height="Auto"/> <!-- Inventory + Alerts -->
-				<RowDefinition Height="Auto"/> <!-- Procurement + Top -->
-				<RowDefinition Height="Auto"/> <!-- Profitability -->
-				<RowDefinition Height="Auto"/> <!-- Planning -->
-				<RowDefinition Height="Auto"/> <!-- Shortages -->
-				<RowDefinition Height="Auto"/> <!-- Procurement Suggestions -->
-				<RowDefinition Height="Auto"/> <!-- Extra row -->
+				<RowDefinition Height="Auto"/>
+				<!-- KPI -->
+				<RowDefinition Height="Auto"/>
+				<!-- Traffic Lights -->
+				<RowDefinition Height="Auto"/>
+				<!-- Production Control Center -->
+				<RowDefinition Height="Auto"/>
+				<!-- Production Readiness -->
+				<RowDefinition Height="Auto"/>
+				<!-- Production Block -->
+				<RowDefinition Height="Auto"/>
+				<!-- Production Status -->
+				<RowDefinition Height="Auto"/>
+				<!-- Production Queue -->
+				<RowDefinition Height="Auto"/>
+				<!-- Production Timeline -->
+				<RowDefinition Height="Auto"/>
+				<!-- Inventory -->
+				<RowDefinition Height="Auto"/>
+				<!-- Procurement -->
+				<RowDefinition Height="Auto"/>
+				<!-- Financial -->
+				<RowDefinition Height="Auto"/>
+				<!-- Planning -->
+				<RowDefinition Height="Auto"/>
+				<!-- Shortages -->
+				<RowDefinition Height="Auto"/>
+				<!-- Reservations -->
+				<RowDefinition Height="Auto"/>
+				<!-- Procurement Suggestions -->
+				<RowDefinition Height="Auto"/>
+				<!-- Capacity Forecast -->
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="Auto"/>
 			</Grid.RowDefinitions>
 
@@ -27,56 +49,12 @@
 				<ColumnDefinition Width="*"/>
 			</Grid.ColumnDefinitions>
 
-			<GroupBox Header="Production Timeline"
-          Grid.Row="6"
-          Grid.Column="0"
-          Grid.ColumnSpan="2"
-          Margin="6">
-
-				<ScrollViewer HorizontalScrollBarVisibility="Auto">
-
-					<ItemsControl ItemsSource="{Binding ProductionTimeline}">
-
-						<ItemsControl.ItemTemplate>
-
-							<DataTemplate>
-
-								<Grid Height="40" Margin="4">
-
-									<TextBlock Text="{Binding WorkOrderNumber}"
-                                   VerticalAlignment="Center"
-                                   Width="120"/>
-
-									<Canvas Margin="130,0,0,0">
-
-										<Rectangle Height="20"
-                                       Width="{Binding Duration}"
-                                       Canvas.Left="{Binding StartOffset}"
-                                       RadiusX="4"
-                                       RadiusY="4"
-                                       Fill="SteelBlue"/>
-
-									</Canvas>
-
-								</Grid>
-
-							</DataTemplate>
-
-						</ItemsControl.ItemTemplate>
-
-					</ItemsControl>
-
-				</ScrollViewer>
-
-			</GroupBox>
-
-
 			<!-- KPI CARDS -->
+
 			<ItemsControl ItemsSource="{Binding ExecutiveKpis}"
-                          Grid.Row="0"
-                          Grid.Column="0"
-                          Grid.ColumnSpan="2"
-                          Margin="6">
+Grid.Row="0"
+Grid.ColumnSpan="2"
+Margin="6">
 
 				<ItemsControl.ItemsPanel>
 					<ItemsPanelTemplate>
@@ -88,26 +66,26 @@
 					<DataTemplate>
 
 						<Border Background="#2D3E50"
-                                CornerRadius="8"
-                                Margin="6"
-                                Padding="18">
+CornerRadius="8"
+Margin="6"
+Padding="18">
 
 							<StackPanel>
 
 								<TextBlock Text="{Binding Title}"
-                                           Foreground="White"
-                                           FontSize="14"
-                                           FontWeight="Bold"/>
+Foreground="White"
+FontSize="14"
+FontWeight="Bold"/>
 
 								<TextBlock Text="{Binding Value}"
-                                           Foreground="White"
-                                           FontSize="28"
-                                           FontWeight="Bold"
-                                           Margin="0,8,0,0"/>
+Foreground="White"
+FontSize="28"
+FontWeight="Bold"
+Margin="0,8,0,0"/>
 
 								<TextBlock Text="{Binding Description}"
-                                           Foreground="#D0D0D0"
-                                           FontSize="11"/>
+Foreground="#D0D0D0"
+FontSize="11"/>
 
 							</StackPanel>
 
@@ -118,11 +96,114 @@
 
 			</ItemsControl>
 
+			<GroupBox Header="Production Execution"
+					  Grid.Row="1"
+					  Grid.ColumnSpan="2"
+					  Margin="6">
+
+				<Grid Margin="10">
+
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="*"/>
+					</Grid.ColumnDefinitions>
+
+					<!-- READY WORK ORDERS -->
+
+					<GroupBox Header="Ready To Start"
+                  Grid.Row="0"
+                  Grid.Column="0"
+                  Margin="5">
+
+						<DataGrid ItemsSource="{Binding Execution.ReadyWorkOrders}"
+                      AutoGenerateColumns="False"
+                      Height="180">
+
+							<DataGrid.Columns>
+
+								<DataGridTextColumn Header="Work Order"
+                        Binding="{Binding WorkOrderNumber}" Width="120"/>
+
+								<DataGridTextColumn Header="Description"
+                        Binding="{Binding Description}" Width="*"/>
+
+								<DataGridTemplateColumn Header="Action" Width="120">
+
+									<DataGridTemplateColumn.CellTemplate>
+
+										<DataTemplate>
+
+											<Button Content="Start"
+                                        Command="{Binding DataContext.Execution.StartCommand,
+                                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding Id}" />
+
+										</DataTemplate>
+
+									</DataGridTemplateColumn.CellTemplate>
+
+								</DataGridTemplateColumn>
+
+							</DataGrid.Columns>
+
+						</DataGrid>
+
+					</GroupBox>
+
+					<!-- RUNNING WORK ORDERS -->
+
+					<GroupBox Header="Running"
+                  Grid.Row="0"
+                  Grid.Column="1"
+                  Margin="5">
+
+						<DataGrid ItemsSource="{Binding Execution.RunningWorkOrders}"
+                      AutoGenerateColumns="False"
+                      Height="180">
+
+							<DataGrid.Columns>
+
+								<DataGridTextColumn Header="Work Order"
+                        Binding="{Binding WorkOrderNumber}" Width="120"/>
+
+								<DataGridTemplateColumn Header="Complete" Width="120">
+
+									<DataGridTemplateColumn.CellTemplate>
+
+										<DataTemplate>
+
+											<Button Content="Complete"
+                                        Command="{Binding DataContext.Execution.CompleteCommand,
+                                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding Id}" />
+
+										</DataTemplate>
+
+									</DataGridTemplateColumn.CellTemplate>
+
+								</DataGridTemplateColumn>
+
+							</DataGrid.Columns>
+
+						</DataGrid>
+
+					</GroupBox>
+
+				</Grid>
+
+			</GroupBox>
+
+			<!-- TRAFFIC LIGHTS -->
+
 			<ItemsControl ItemsSource="{Binding ProductionTrafficLights}"
-              Grid.Row="1"
-              Grid.Column="0"
-              Grid.ColumnSpan="2"
-              Margin="6">
+Grid.Row="2"
+Grid.ColumnSpan="2"
+Margin="6">
 
 				<ItemsControl.ItemsPanel>
 					<ItemsPanelTemplate>
@@ -134,22 +215,22 @@
 					<DataTemplate>
 
 						<Border Background="{Binding Color}"
-                    CornerRadius="8"
-                    Margin="6"
-                    Padding="16">
+CornerRadius="8"
+Margin="6"
+Padding="16">
 
 							<StackPanel>
 
 								<TextBlock Text="{Binding Title}"
-                               Foreground="White"
-                               FontWeight="Bold"
-                               FontSize="14"/>
+Foreground="White"
+FontWeight="Bold"
+FontSize="14"/>
 
 								<TextBlock Text="{Binding Value}"
-                               Foreground="White"
-                               FontSize="26"
-                               FontWeight="Bold"
-                               Margin="0,6,0,0"/>
+Foreground="White"
+FontSize="26"
+FontWeight="Bold"
+Margin="0,6,0,0"/>
 
 							</StackPanel>
 
@@ -161,51 +242,51 @@
 			</ItemsControl>
 
 			<!-- PRODUCTION READINESS -->
+
 			<GroupBox Header="Production Readiness"
-                      Grid.Row="2"
-                      Grid.Column="0"
-                      Grid.ColumnSpan="2"
-                      Margin="6">
+Grid.Row="4"
+Grid.ColumnSpan="2"
+Margin="6">
 
 				<StackPanel Margin="12">
 
 					<TextBlock FontSize="28"
-                               FontWeight="Bold"
-                               Text="{Binding ProductionReadinessPercentage, StringFormat=Readiness: {0:F0}%}"
-                               Margin="0,0,0,8"/>
+FontWeight="Bold"
+Text="{Binding ProductionReadinessPercentage, StringFormat=Readiness: {0:F0}%}"
+Margin="0,0,0,8"/>
 
 					<TextBlock Text="{Binding ReadyWorkOrders, StringFormat=Ready Work Orders: {0}}"/>
-
 					<TextBlock Text="{Binding BlockedWorkOrders, StringFormat=Blocked Work Orders: {0}}"/>
 
 				</StackPanel>
 
 			</GroupBox>
 
+			<!-- PRODUCTION BLOCK -->
+
 			<GroupBox Header="Production Block Monitor"
-          Grid.Row="3"
-          Grid.Column="0"
-          Grid.ColumnSpan="2"
-          Margin="6">
+Grid.Row="5"
+Grid.ColumnSpan="2"
+Margin="6">
 
 				<DataGrid ItemsSource="{Binding ProductionBlocks}"
-              AutoGenerateColumns="False"
-              Height="180"
-              Margin="6">
+AutoGenerateColumns="False"
+Height="180"
+Margin="6">
 
 					<DataGrid.Columns>
 
 						<DataGridTextColumn Header="Work Order"
-                                Binding="{Binding WorkOrderNumber}"
-                                Width="160"/>
+Binding="{Binding WorkOrderNumber}"
+Width="160"/>
 
 						<DataGridTextColumn Header="Blocking Items"
-                                Binding="{Binding BlockingItems}"
-                                Width="*"/>
+Binding="{Binding BlockingItems}"
+Width="*"/>
 
 						<DataGridTextColumn Header="Total Shortage"
-                                Binding="{Binding TotalShortage}"
-                                Width="140"/>
+Binding="{Binding TotalShortage}"
+Width="140"/>
 
 					</DataGrid.Columns>
 
@@ -213,34 +294,35 @@
 
 			</GroupBox>
 
+			<!-- PRODUCTION STATUS -->
+
 			<GroupBox Header="Production Status Board"
-					  Grid.Row="4"
-					  Grid.Column="0"
-					  Grid.ColumnSpan="2"
-					  Margin="6">
+Grid.Row="6"
+Grid.ColumnSpan="2"
+Margin="6">
 
 				<DataGrid ItemsSource="{Binding WorkOrderStatuses}"
-              AutoGenerateColumns="False"
-              Height="200"
-              Margin="6">
+AutoGenerateColumns="False"
+Height="200"
+Margin="6">
 
 					<DataGrid.Columns>
 
 						<DataGridTextColumn Header="Work Order"
-                                Binding="{Binding WorkOrderNumber}"
-                                Width="160"/>
+Binding="{Binding WorkOrderNumber}"
+Width="160"/>
 
 						<DataGridTemplateColumn Header="Status" Width="140">
 
 							<DataGridTemplateColumn.CellTemplate>
-
 								<DataTemplate>
 
 									<Border CornerRadius="4"
-                    Padding="4"
-                    HorizontalAlignment="Left">
+Padding="4"
+HorizontalAlignment="Left">
 
 										<Border.Style>
+
 											<Style TargetType="Border">
 
 												<Setter Property="Background" Value="Gray"/>
@@ -266,24 +348,24 @@
 												</Style.Triggers>
 
 											</Style>
+
 										</Border.Style>
 
 										<TextBlock Text="{Binding Status}"
-                           Foreground="White"
-                           FontWeight="Bold"
-                           Padding="4,2"/>
+Foreground="White"
+FontWeight="Bold"
+Padding="4,2"/>
 
 									</Border>
 
 								</DataTemplate>
-
 							</DataGridTemplateColumn.CellTemplate>
 
 						</DataGridTemplateColumn>
 
 						<DataGridTextColumn Header="Reason"
-                                Binding="{Binding Reason}"
-                                Width="*"/>
+Binding="{Binding Reason}"
+Width="*"/>
 
 					</DataGrid.Columns>
 
@@ -291,41 +373,42 @@
 
 			</GroupBox>
 
-			<GroupBox Header="Production Scheduling Queue"
-          Grid.Row="5"
-          Grid.Column="0"
-          Grid.ColumnSpan="2"
-          Margin="6">
+			<!-- PRODUCTION QUEUE -->
 
-				<DataGrid ItemsSource="{Binding ProductionQueue}"
-              AutoGenerateColumns="False"
-              AllowDrop="True"
-              PreviewMouseLeftButtonDown="Queue_MouseDown"
-              Drop="Queue_Drop"
-              Height="220"
-              Margin="6">
+			<GroupBox Header="Production Scheduling Queue"
+Grid.Row="7"
+Grid.ColumnSpan="2"
+Margin="6">
+
+				<DataGrid ItemsSource="{Binding Production.ProductionQueue}"
+AutoGenerateColumns="False"
+AllowDrop="True"
+PreviewMouseLeftButtonDown="Queue_MouseDown"
+Drop="Queue_Drop"
+Height="220"
+Margin="6">
 
 					<DataGrid.Columns>
 
 						<DataGridTextColumn Header="Priority"
-                                Binding="{Binding Priority}"
-                                Width="100"/>
+Binding="{Binding Priority}"
+Width="100"/>
 
 						<DataGridTextColumn Header="Work Order"
-                                Binding="{Binding WorkOrderNumber}"
-                                Width="160"/>
+Binding="{Binding WorkOrderNumber}"
+Width="160"/>
 
 						<DataGridTextColumn Header="Status"
-                                Binding="{Binding Status}"
-                                Width="140"/>
+Binding="{Binding Status}"
+Width="140"/>
 
 						<DataGridTextColumn Header="Start"
-                                Binding="{Binding StartDate}"
-                                Width="140"/>
+Binding="{Binding StartDate}"
+Width="140"/>
 
 						<DataGridTextColumn Header="Due"
-                                Binding="{Binding DueDate}"
-                                Width="140"/>
+Binding="{Binding DueDate}"
+Width="140"/>
 
 					</DataGrid.Columns>
 
@@ -333,17 +416,61 @@
 
 			</GroupBox>
 
+			<!-- PRODUCTION TIMELINE -->
 
-			<!-- INVENTORY HEALTH -->
+			<GroupBox Header="Production Timeline"
+Grid.Row="8"
+Grid.ColumnSpan="2"
+Margin="6">
+
+				<ScrollViewer HorizontalScrollBarVisibility="Auto">
+
+					<ItemsControl ItemsSource="{Binding ProductionTimeline}">
+
+						<ItemsControl.ItemTemplate>
+
+							<DataTemplate>
+
+								<Grid Height="40" Margin="4">
+
+									<TextBlock Text="{Binding WorkOrderNumber}"
+VerticalAlignment="Center"
+Width="120"/>
+
+									<Canvas Margin="130,0,0,0">
+
+										<Rectangle Height="20"
+Width="{Binding Duration}"
+Canvas.Left="{Binding StartOffset}"
+RadiusX="4"
+RadiusY="4"
+Fill="SteelBlue"/>
+
+									</Canvas>
+
+								</Grid>
+
+							</DataTemplate>
+
+						</ItemsControl.ItemTemplate>
+
+					</ItemsControl>
+
+				</ScrollViewer>
+
+			</GroupBox>
+
+			<!-- INVENTORY -->
+
 			<GroupBox Header="Inventory Health"
-                      Grid.Row="7"
-                      Grid.Column="0"
-                      Margin="6">
+Grid.Row="9"
+Grid.Column="0"
+Margin="6">
 
 				<StackPanel Margin="10">
 
 					<TextBlock FontWeight="Bold"
-                               Text="{Binding InventoryRiskLevel, StringFormat=Risk Level: {0}}"/>
+Text="{Binding InventoryRiskLevel, StringFormat=Risk Level: {0}}"/>
 
 					<TextBlock Text="{Binding InventoryHealthScore, StringFormat=Health Score: {0}%}"/>
 					<TextBlock Text="{Binding NegativeStockItems, StringFormat=Negative Stock: {0}}"/>
@@ -355,27 +482,25 @@
 
 			</GroupBox>
 
-
-			<!-- OPERATIONAL ALERTS -->
 			<GroupBox Header="Operational Alerts"
-                      Grid.Row="7"
-                      Grid.Column="1"
-                      Margin="6">
+Grid.Row="9"
+Grid.Column="1"
+Margin="6">
 
 				<DataGrid ItemsSource="{Binding OperationalAlerts}"
-                          AutoGenerateColumns="False"
-                          Height="220"
-                          Margin="6">
+AutoGenerateColumns="False"
+Height="220"
+Margin="6">
 
 					<DataGrid.Columns>
 
 						<DataGridTextColumn Header="Severity"
-                                            Binding="{Binding Severity}"
-                                            Width="120"/>
+Binding="{Binding Severity}"
+Width="120"/>
 
 						<DataGridTextColumn Header="Message"
-                                            Binding="{Binding Message}"
-                                            Width="*"/>
+Binding="{Binding Message}"
+Width="*"/>
 
 					</DataGrid.Columns>
 
@@ -383,35 +508,35 @@
 
 			</GroupBox>
 
+			<!-- PROCUREMENT -->
 
-			<!-- PROCUREMENT ALERTS -->
 			<GroupBox Header="Procurement Alerts"
-                      Grid.Row="8"
-                      Grid.Column="0"
-                      Margin="6">
+Grid.Row="10"
+Grid.Column="0"
+Margin="6">
 
 				<DataGrid ItemsSource="{Binding ProcurementAlerts}"
-                          AutoGenerateColumns="False"
-                          MinHeight="240"
-                          Margin="6">
+AutoGenerateColumns="False"
+MinHeight="240"
+Margin="6">
 
 					<DataGrid.Columns>
 
 						<DataGridTextColumn Header="Item"
-                                            Binding="{Binding ItemCode}"
-                                            Width="120"/>
+Binding="{Binding ItemCode}"
+Width="120"/>
 
 						<DataGridTextColumn Header="Days Remaining"
-                                            Binding="{Binding DaysRemaining}"
-                                            Width="120"/>
+Binding="{Binding DaysRemaining}"
+Width="120"/>
 
 						<DataGridTextColumn Header="Priority"
-                                            Binding="{Binding PriorityScore}"
-                                            Width="100"/>
+Binding="{Binding PriorityScore}"
+Width="100"/>
 
 						<DataGridTextColumn Header="Suggested Order"
-                                            Binding="{Binding SuggestedOrderQuantity}"
-                                            Width="140"/>
+Binding="{Binding SuggestedOrderQuantity}"
+Width="140"/>
 
 					</DataGrid.Columns>
 
@@ -419,31 +544,29 @@
 
 			</GroupBox>
 
-
-			<!-- TOP CONSUMED -->
 			<GroupBox Header="Top Consumed Materials"
-                      Grid.Row="8"
-                      Grid.Column="1"
-                      Margin="6">
+Grid.Row="9"
+Grid.Column="1"
+Margin="6">
 
 				<DataGrid ItemsSource="{Binding TopConsumedMaterials}"
-                          AutoGenerateColumns="False"
-                          MinHeight="240"
-                          Margin="6">
+AutoGenerateColumns="False"
+MinHeight="240"
+Margin="6">
 
 					<DataGrid.Columns>
 
 						<DataGridTextColumn Header="Item"
-                                            Binding="{Binding ItemCode}"
-                                            Width="120"/>
+Binding="{Binding ItemCode}"
+Width="120"/>
 
 						<DataGridTextColumn Header="Description"
-                                            Binding="{Binding Description}"
-                                            Width="*"/>
+Binding="{Binding Description}"
+Width="*"/>
 
 						<DataGridTextColumn Header="Total Used"
-                                            Binding="{Binding TotalConsumed}"
-                                            Width="120"/>
+Binding="{Binding TotalConsumed}"
+Width="120"/>
 
 					</DataGrid.Columns>
 
@@ -451,40 +574,39 @@
 
 			</GroupBox>
 
+			<!-- FINANCIAL -->
 
-			<!-- PROJECT PROFITABILITY -->
 			<GroupBox Header="Project Material Cost Intelligence"
-                      Grid.Row="9"
-                      Grid.Column="0"
-                      Grid.ColumnSpan="2"
-                      Margin="6">
+Grid.Row="11"
+Grid.ColumnSpan="2"
+Margin="6">
 
 				<DataGrid ItemsSource="{Binding ProjectProfitability}"
-                          AutoGenerateColumns="False"
-                          MinHeight="240"
-                          Margin="6">
+AutoGenerateColumns="False"
+MinHeight="240"
+Margin="6">
 
 					<DataGrid.Columns>
 
 						<DataGridTextColumn Header="Project"
-                                            Binding="{Binding ProjectName}"
-                                            Width="*"/>
+Binding="{Binding ProjectName}"
+Width="*"/>
 
 						<DataGridTextColumn Header="Revenue"
-                                            Binding="{Binding Revenue}"
-                                            Width="120"/>
+Binding="{Binding Revenue}"
+Width="120"/>
 
 						<DataGridTextColumn Header="Material Cost"
-                                            Binding="{Binding MaterialCost}"
-                                            Width="140"/>
+Binding="{Binding MaterialCost}"
+Width="140"/>
 
 						<DataGridTextColumn Header="Profit"
-                                            Binding="{Binding Profit}"
-                                            Width="120"/>
+Binding="{Binding Profit}"
+Width="120"/>
 
 						<DataGridTextColumn Header="Margin %"
-                                            Binding="{Binding Margin}"
-                                            Width="100"/>
+Binding="{Binding Margin}"
+Width="100"/>
 
 					</DataGrid.Columns>
 
@@ -492,44 +614,43 @@
 
 			</GroupBox>
 
+			<!-- WORK ORDER MATERIAL PLANNING -->
 
-			<!-- WORK ORDER PLANNING -->
 			<GroupBox Header="Work Order Material Planning"
-                      Grid.Row="10"
-                      Grid.Column="0"
-                      Grid.ColumnSpan="2"
-                      Margin="6">
+Grid.Row="12"
+Grid.ColumnSpan="2"
+Margin="6">
 
 				<DataGrid ItemsSource="{Binding WorkOrderMaterialPlans}"
-                          AutoGenerateColumns="False"
-                          MinHeight="240"
-                          Margin="6">
+AutoGenerateColumns="False"
+MinHeight="240"
+Margin="6">
 
 					<DataGrid.Columns>
 
 						<DataGridTextColumn Header="Work Order"
-                                            Binding="{Binding WorkOrderNumber}"
-                                            Width="120"/>
+Binding="{Binding WorkOrderNumber}"
+Width="120"/>
 
 						<DataGridTextColumn Header="Item"
-                                            Binding="{Binding ItemCode}"
-                                            Width="120"/>
+Binding="{Binding ItemCode}"
+Width="120"/>
 
 						<DataGridTextColumn Header="Description"
-                                            Binding="{Binding Description}"
-                                            Width="*"/>
+Binding="{Binding Description}"
+Width="*"/>
 
 						<DataGridTextColumn Header="Required"
-                                            Binding="{Binding RequiredQuantity}"
-                                            Width="100"/>
+Binding="{Binding RequiredQuantity}"
+Width="100"/>
 
 						<DataGridTextColumn Header="In Stock"
-                                            Binding="{Binding StockAvailable}"
-                                            Width="100"/>
+Binding="{Binding StockAvailable}"
+Width="100"/>
 
 						<DataGridTextColumn Header="Shortage"
-                                            Binding="{Binding Shortage}"
-                                            Width="100"/>
+Binding="{Binding Shortage}"
+Width="100"/>
 
 					</DataGrid.Columns>
 
@@ -537,98 +658,338 @@
 
 			</GroupBox>
 
+			
 
-			<!-- MATERIAL SHORTAGES -->
-			<GroupBox Header="Production Material Shortages"
-                      Grid.Row="11"
-                      Grid.Column="0"
-                      Grid.ColumnSpan="2"
-                      Margin="6">
+			<!-- RESERVATIONS -->
 
-				<DataGrid ItemsSource="{Binding MaterialShortages}"
-          AutoGenerateColumns="False"
-          Height="200"
-          Margin="6">
+			<GroupBox Header="Material Reservations"
+Grid.Row="13"
+
+Grid.ColumnSpan="2"
+Margin="6">
+
+				<DataGrid ItemsSource="{Binding MaterialReservations}"
+AutoGenerateColumns="False"
+MinHeight="220"
+Margin="6">
 
 					<DataGrid.Columns>
 
 						<DataGridTextColumn Header="Work Order"
+Binding="{Binding WorkOrderNumber}"
+Width="120"/>
+
+						<DataGridTextColumn Header="Item"
+Binding="{Binding ItemCode}"
+Width="120"/>
+
+						<DataGridTextColumn Header="Required"
+Binding="{Binding RequiredQuantity}"
+Width="100"/>
+
+						<DataGridTextColumn Header="Reserved"
+Binding="{Binding ReservedQuantity}"
+Width="100"/>
+
+						<DataGridTextColumn Header="Available After"
+Binding="{Binding AvailableStock}"
+Width="120"/>
+
+						<DataGridTextColumn Header="Status"
+Binding="{Binding Reason}"
+Width="*"/>
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</GroupBox>
+
+			<!-- PROCUREMENT SUGGESTIONS -->
+
+			<GroupBox Header="Smart Procurement Suggestions"
+Grid.Row="14"
+Grid.ColumnSpan="2"
+Margin="6">
+
+				<DataGrid ItemsSource="{Binding ProcurementSuggestions}"
+AutoGenerateColumns="False"
+Height="220"
+Margin="6">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Item"
+Binding="{Binding ItemCode}"
+Width="120"/>
+
+						<DataGridTextColumn Header="Description"
+Binding="{Binding Description}"
+Width="*"/>
+
+						<DataGridTextColumn Header="Current Stock"
+Binding="{Binding CurrentStock}"
+Width="120"/>
+
+						<DataGridTextColumn Header="Required"
+Binding="{Binding RequiredQuantity}"
+Width="120"/>
+
+						<DataGridTextColumn Header="Suggested Order"
+Binding="{Binding SuggestedOrderQuantity}"
+Width="150"/>
+
+						<DataGridTextColumn Header="Priority"
+Binding="{Binding PriorityScore}"
+Width="100"/>
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</GroupBox>
+
+			<!-- PRODUCTION CAPACITY FORECAST -->
+
+			<GroupBox Header="Production Capacity Forecast (Next 14 Days)"
+Grid.Row="15"
+Grid.ColumnSpan="2"
+Margin="6">
+
+				<DataGrid ItemsSource="{Binding Production.CapacityForecast}"
+              AutoGenerateColumns="False"
+              Height="220"
+              Margin="6">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Date"
+                                Binding="{Binding Date}"
+                                Width="160"/>
+
+						<DataGridTextColumn Header="Capacity (hrs)"
+                                Binding="{Binding CapacityHours}"
+                                Width="140"/>
+
+						<DataGridTextColumn Header="Scheduled (hrs)"
+                                Binding="{Binding ScheduledHours}"
+                                Width="140"/>
+
+						<DataGridTemplateColumn Header="Load %" Width="120">
+
+							<DataGridTemplateColumn.CellTemplate>
+								<DataTemplate>
+
+									<Border Padding="4"
+                                CornerRadius="4">
+
+										<Border.Style>
+
+											<Style TargetType="Border">
+
+												<Setter Property="Background" Value="LightGreen"/>
+
+												<Style.Triggers>
+
+													<!-- Near capacity -->
+
+													<DataTrigger Binding="{Binding LoadPercentage}" Value="80">
+														<Setter Property="Background" Value="Orange"/>
+													</DataTrigger>
+
+													<!-- Over capacity -->
+
+													<DataTrigger Binding="{Binding IsOverloaded}" Value="True">
+														<Setter Property="Background" Value="Red"/>
+													</DataTrigger>
+
+												</Style.Triggers>
+
+											</Style>
+
+										</Border.Style>
+
+										<TextBlock Text="{Binding LoadPercentage, StringFormat={}{0:F0}%}"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Center"/>
+
+									</Border>
+
+								</DataTemplate>
+
+							</DataGridTemplateColumn.CellTemplate>
+
+						</DataGridTemplateColumn>
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</GroupBox>
+
+			<GroupBox Header="Production Control Center"
+          Grid.Row="3"
+          Grid.ColumnSpan="2"
+          Margin="6">
+
+				<Grid Margin="10">
+
+					<Grid.RowDefinitions>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="*"/>
+					</Grid.RowDefinitions>
+
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="*"/>
+					</Grid.ColumnDefinitions>
+
+					<!-- Capacity Forecast -->
+
+					<GroupBox Header="Capacity Forecast" Grid.Row="0" Grid.Column="0">
+						<DataGrid ItemsSource="{Binding CapacityForecast}"
+                      AutoGenerateColumns="False"
+                      Height="160">
+
+							<DataGrid.Columns>
+								<DataGridTextColumn Header="Date"
+                                        Binding="{Binding Date}" Width="100"/>
+								<DataGridTextColumn Header="Capacity"
+                                        Binding="{Binding CapacityHours}" Width="80"/>
+								<DataGridTextColumn Header="Scheduled"
+                                        Binding="{Binding ScheduledHours}" Width="90"/>
+								<DataGridTextColumn Header="Load %"
+                                        Binding="{Binding LoadPercentage}" Width="80"/>
+							</DataGrid.Columns>
+
+						</DataGrid>
+					</GroupBox>
+
+					<!-- Deadline Risks -->
+
+					<GroupBox Header="Deadline Risks" Grid.Row="0" Grid.Column="1">
+						<DataGrid ItemsSource="{Binding Production.DeadlineRisks}"
+                      AutoGenerateColumns="False"
+                      Height="160">
+
+							<DataGrid.Columns>
+								<DataGridTextColumn Header="Work Order"
+                                        Binding="{Binding WorkOrderNumber}" Width="100"/>
+								<DataGridTextColumn Header="Due"
+                                        Binding="{Binding DueDate}" Width="100"/>
+								<DataGridTextColumn Header="Shortage"
+                                        Binding="{Binding HoursShortage}" Width="80"/>
+								<DataGridTextColumn Header="Risk"
+                                        Binding="{Binding RiskLevel}" Width="80"/>
+							</DataGrid.Columns>
+
+						</DataGrid>
+					</GroupBox>
+
+					<!-- SHORTAGES -->
+
+					<GroupBox Header="Material Shortages" Grid.Row="1" Grid.Column="0">
+
+						<DataGrid ItemsSource="{Binding MaterialShortages}"
+  AutoGenerateColumns="False"
+  MinHeight="160">
+
+							<DataGrid.Columns>
+
+								<DataGridTextColumn Header="Work Order"
+                    Binding="{Binding WorkOrderNumber}"
+                    Width="120"/>
+
+								<DataGridTextColumn Header="Item"
+                    Binding="{Binding ItemCode}"
+                    Width="120"/>
+
+								<DataGridTextColumn Header="Required"
+                    Binding="{Binding RequiredQuantity}"
+                    Width="100"/>
+
+								<DataGridTextColumn Header="Available"
+                    Binding="{Binding AvailableQuantity}"
+                    Width="100"/>
+
+								<DataGridTextColumn Header="Shortage"
+                    Binding="{Binding ShortageQuantity}"
+                    Width="100"/>
+
+							</DataGrid.Columns>
+
+						</DataGrid>
+
+					</GroupBox>
+
+					<!-- Production Queue -->
+
+					<GroupBox Header="Production Queue" 
+							  Grid.Row="7" 
+							  Grid.Column="1">
+						<DataGrid ItemsSource="{Binding ProductionQueue}"
+AutoGenerateColumns="False"
+MinHeight="160">
+
+							<DataGrid.Columns>
+
+								<DataGridTextColumn Header="Priority"
+                            Binding="{Binding Priority}"
+                            Width="80"/>
+
+								<DataGridTextColumn Header="Work Order"
                             Binding="{Binding WorkOrderNumber}"
                             Width="120"/>
 
-						<DataGridTextColumn Header="Item"
-                            Binding="{Binding ItemCode}"
-                            Width="120"/>
-
-						<DataGridTextColumn Header="Description"
-                            Binding="{Binding ItemName}"
-                            Width="*"/>
-
-						<DataGridTextColumn Header="Required"
-                            Binding="{Binding RequiredQuantity}"
+								<DataGridTextColumn Header="Status"
+                            Binding="{Binding Status}"
                             Width="100"/>
 
-						<DataGridTextColumn Header="Available"
-                            Binding="{Binding AvailableQuantity}"
-                            Width="100"/>
+								<DataGridTemplateColumn Header="Actions" Width="220">
 
-						<DataGridTextColumn Header="Shortage"
-                            Binding="{Binding ShortageQuantity}"
-                            Width="100"/>
+									<DataGridTemplateColumn.CellTemplate>
+										<DataTemplate>
 
-					</DataGrid.Columns>
+											<StackPanel Orientation="Horizontal">
 
-				</DataGrid>
+												<Button Content="Start"
+                        Margin="2"
+                        Padding="6,2"
+                        Command="{Binding DataContext.StartWorkOrderCommand,
+                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                        CommandParameter="{Binding Id}"/>
 
-			</GroupBox>
+												<Button Content="Pause"
+                        Margin="2"
+                        Padding="6,2"
+                        Command="{Binding DataContext.PauseWorkOrderCommand,
+                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                        CommandParameter="{Binding Id}"/>
 
+												<Button Content="Complete"
+                        Margin="2"
+                        Padding="6,2"
+                        Command="{Binding DataContext.CompleteWorkOrderCommand,
+                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                        CommandParameter="{Binding Id}"/>
 
-			<!-- PROCUREMENT SUGGESTIONS -->
-			<GroupBox Header="Smart Procurement Suggestions"
-                      Grid.Row="12"
-                      Grid.Column="0"
-                      Grid.ColumnSpan="2"
-                      Margin="6">
+											</StackPanel>
 
-				<DataGrid ItemsSource="{Binding ProcurementSuggestions}"
-          AutoGenerateColumns="False"
-          Height="220"
-          Margin="6">
+										</DataTemplate>
+									</DataGridTemplateColumn.CellTemplate>
 
-					<DataGrid.Columns>
+								</DataGridTemplateColumn>
 
-						<DataGridTextColumn Header="Item"
-                            Binding="{Binding ItemCode}"
-                            Width="120"/>
+							</DataGrid.Columns>
 
-						<DataGridTextColumn Header="Description"
-                            Binding="{Binding Description}"
-                            Width="*"/>
+						</DataGrid>
+					</GroupBox>
 
-						<DataGridTextColumn Header="Current Stock"
-                            Binding="{Binding CurrentStock}"
-                            Width="120"/>
-
-						<DataGridTextColumn Header="Required"
-                            Binding="{Binding RequiredQuantity}"
-                            Width="120"/>
-
-						<DataGridTextColumn Header="Suggested Order"
-                            Binding="{Binding SuggestedOrderQuantity}"
-                            Width="150"/>
-
-						<DataGridTextColumn Header="Priority"
-                            Binding="{Binding PriorityScore}"
-                            Width="100"/>
-
-					</DataGrid.Columns>
-
-				</DataGrid>
+				</Grid>
 
 			</GroupBox>
 
 		</Grid>
-		
-	</ScrollViewer>
 
+	</ScrollViewer>
 </UserControl>
