@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -9,6 +10,7 @@ using WeldAdminPro.Core.Analytics.Production;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
+using WeldAdminPro.UI.ViewModels;
 using WeldAdminPro.UI.ViewModels.Dashboard;
 
 namespace WeldAdminPro.UI.ViewModels
@@ -34,6 +36,8 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly MaterialReservationService _reservationService;
 		private readonly WorkOrderRepository _workOrderRepository;
 		private readonly WorkOrderExecutionService _executionService;
+		private readonly ProductionBottleneckDetectionService _bottleneckService;
+		private readonly ProductionRecommendationService _recommendationService;
 
 		public ObservableCollection<WorkOrderMaterialShortage> MaterialShortages { get; set; } = new();
 		public ObservableCollection<ProductionGanttItem> ProductionTimeline { get; set; } = new();
@@ -43,7 +47,12 @@ namespace WeldAdminPro.UI.ViewModels
 		public ProductionControlViewModel Production { get; }
 
 		public ProductionExecutionViewModel Execution { get; }
-		
+
+		public ProductionControlTowerViewModel ProductionControlTower { get; } = new ProductionControlTowerViewModel();
+
+		public List<ProductionBottleneckModel> ProductionBottlenecks { get; set; }
+		public List<ProductionRecommendationModel> ProductionRecommendations { get; set; }
+
 
 		public HomeViewModel()
 		{
@@ -69,8 +78,12 @@ namespace WeldAdminPro.UI.ViewModels
 			_executionService = new WorkOrderExecutionService(_workOrderRepository);
 			Production = new ProductionControlViewModel();
 			Execution = new ProductionExecutionViewModel();
-			
-					
+			_bottleneckService = new ProductionBottleneckDetectionService();
+			ProductionBottlenecks = _bottleneckService.DetectBottlenecks();
+			_recommendationService = new ProductionRecommendationService();
+			ProductionRecommendations = _recommendationService.GetRecommendations();
+
+
 
 			var workOrderRepo = _workOrderRepository;
 

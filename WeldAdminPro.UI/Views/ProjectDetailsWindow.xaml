@@ -14,8 +14,10 @@
 			<RowDefinition Height="*"/>
 		</Grid.RowDefinitions>
 
+
 		<!-- ================= HEADER ================= -->
 		<Grid Grid.Row="0" Margin="0,0,0,20">
+
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="120"/>
 				<ColumnDefinition Width="220"/>
@@ -28,8 +30,8 @@
                        VerticalAlignment="Center"
                        FontWeight="Bold"/>
 
-			<TextBox Grid.Column="0"
-                     Margin="5,0"
+			<TextBox Grid.Column="1"
+                     Margin="5"
                      Text="{Binding Project.JobNumber}"
                      IsReadOnly="True"
                      Background="#EEE"/>
@@ -40,12 +42,10 @@
                        FontWeight="Bold"/>
 
 			<ComboBox Grid.Column="3"
-                      Margin="5,0"
+                      Margin="5"
                       ItemsSource="{Binding Statuses}"
                       SelectedItem="{Binding Project.Status}"
                       IsEnabled="{Binding IsEditable}"/>
-
-
 
 			<StackPanel Grid.Column="4"
                         Orientation="Horizontal"
@@ -60,8 +60,11 @@
 				<Button Content="Cancel"
                         Width="100"
                         Command="{Binding CancelCommand}"/>
+
 			</StackPanel>
+
 		</Grid>
+
 
 		<!-- ================= MAIN CONTENT ================= -->
 		<Grid Grid.Row="1">
@@ -71,9 +74,12 @@
 				<ColumnDefinition Width="1.4*"/>
 			</Grid.ColumnDefinitions>
 
+
 			<!-- ================= LEFT SIDE ================= -->
 			<StackPanel Grid.Column="0" Margin="0,0,20,0">
 
+
+				<!-- PROJECT INFO -->
 				<GroupBox Header="Project Information">
 					<Grid Margin="15">
 
@@ -82,7 +88,6 @@
 							<ColumnDefinition Width="*"/>
 						</Grid.ColumnDefinitions>
 
-						<!-- 14 rows -->
 						<Grid.RowDefinitions>
 							<RowDefinition Height="Auto"/>
 							<RowDefinition Height="Auto"/>
@@ -100,82 +105,81 @@
 							<RowDefinition Height="Auto"/>
 						</Grid.RowDefinitions>
 
-						<!-- Basic Info -->
 						<TextBlock Text="Project Name"/>
-						<TextBox Grid.Column="0" Margin="5"
+						<TextBox Grid.Column="1" Margin="5"
                                  Text="{Binding Project.ProjectName}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="1" Text="Client"/>
-						<TextBox Grid.Row="1" Grid.Column="0" Margin="5"
+						<TextBox Grid.Row="1" Grid.Column="1" Margin="5"
                                  Text="{Binding Project.Client}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="2" Text="Client Rep"/>
-						<TextBox Grid.Row="2" Grid.Column="0" Margin="5"
+						<TextBox Grid.Row="2" Grid.Column="1" Margin="5"
                                  Text="{Binding Project.ClientRepresentative}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="3" Text="Quote #"/>
-						<TextBox Grid.Row="3" Grid.Column="0" Margin="5"
+						<TextBox Grid.Row="3" Grid.Column="1" Margin="5"
                                  Text="{Binding Project.QuoteNumber}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="4" Text="Order #"/>
-						<TextBox Grid.Row="4" Grid.Column="0" Margin="5"
+						<TextBox Grid.Row="4" Grid.Column="1" Margin="5"
                                  Text="{Binding Project.OrderNumber}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="5" Text="Budget (R)"/>
-						<TextBox Grid.Row="5" Grid.Column="0" Margin="5"
+						<TextBox Grid.Row="5" Grid.Column="1" Margin="5"
                                  Text="{Binding Project.Budget}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="6" Text="Material"/>
-						<TextBox Grid.Row="6" Grid.Column="0" Margin="5"
+						<TextBox Grid.Row="6" Grid.Column="1" Margin="5"
                                  Text="{Binding Project.Material}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="7" Text="Assigned To"/>
-						<TextBox Grid.Row="7" Grid.Column="0" Margin="5"
+						<TextBox Grid.Row="7" Grid.Column="1" Margin="5"
                                  Text="{Binding Project.AssignedTo}"
                                  IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="8" Text="Start Date"/>
-						<DatePicker Grid.Row="8" Grid.Column="0" Margin="5"
+						<DatePicker Grid.Row="8" Grid.Column="1" Margin="5"
                                     SelectedDate="{Binding Project.StartDate}"
                                     IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="9" Text="End Date"/>
-						<DatePicker Grid.Row="9" Grid.Column="0" Margin="5"
+						<DatePicker Grid.Row="9" Grid.Column="1" Margin="5"
                                     SelectedDate="{Binding Project.EndDate}"
                                     IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="10" Text="Created On"/>
-						<TextBox Grid.Row="10" Grid.Column="0" Margin="5"
+						<TextBox Grid.Row="10" Grid.Column="1" Margin="5"
                                  Text="{Binding Project.CreatedOn, StringFormat={}{0:yyyy-MM-dd HH:mm}}"
                                  IsReadOnly="True"
                                  Background="#EEE"/>
 
-						<!-- Spacer Row 11 -->
-
-						<!-- Invoice Section -->
 						<TextBlock Grid.Row="12" Text="Invoiced"/>
 						<CheckBox Grid.Row="12"
-                                  Grid.Column="0"
+                                  Grid.Column="1"
                                   Margin="5"
                                   IsChecked="{Binding Project.IsInvoiced}"
                                   IsEnabled="{Binding IsEditable}"/>
 
 						<TextBlock Grid.Row="13" Text="Invoice Number"/>
 						<TextBox Grid.Row="13"
-                                 Grid.Column="0"
+                                 Grid.Column="1"
                                  Margin="5"
                                  Text="{Binding Project.InvoiceNumber}"
                                  IsEnabled="{Binding IsEditable}"/>
+
 					</Grid>
 				</GroupBox>
 
+
+				<!-- FINANCIAL -->
 				<GroupBox Header="Financial Summary" Margin="0,20,0,0">
 					<StackPanel Margin="15">
 						<TextBlock Text="{Binding Project.Budget, StringFormat=Budget: R {0:N2}}"/>
@@ -188,20 +192,24 @@
 
 			</StackPanel>
 
+
 			<!-- ================= RIGHT SIDE ================= -->
-			<Grid Grid.Column="0">
+			<Grid Grid.Column="1">
 
 				<Grid.RowDefinitions>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="*"/>
 				</Grid.RowDefinitions>
 
-				<!-- Issue + Return -->
+
+				<!-- ISSUE / RETURN -->
 				<Grid Grid.Row="0" Margin="0,0,0,20">
+
 					<Grid.ColumnDefinitions>
 						<ColumnDefinition Width="1*"/>
 						<ColumnDefinition Width="1*"/>
 					</Grid.ColumnDefinitions>
+
 
 					<!-- ISSUE -->
 					<GroupBox Header="Issue Stock" Margin="0,0,15,0">
@@ -221,42 +229,43 @@
 							</Grid.RowDefinitions>
 
 							<TextBlock Text="Stock Item"/>
-							<ComboBox Grid.Column="0"
+							<ComboBox Grid.Column="1"
                                       Margin="5"
                                       ItemsSource="{Binding StockItems}"
                                       SelectedItem="{Binding SelectedStockItem}"
                                       DisplayMemberPath="Description"/>
 
 							<TextBlock Grid.Row="1" Text="Quantity"/>
-							<TextBox Grid.Row="1" Grid.Column="0"
+							<TextBox Grid.Row="1" Grid.Column="1"
                                      Margin="5"
                                      Text="{Binding IssueQuantity}"/>
 
 							<TextBlock Grid.Row="2"
-                                       Grid.Column="0"
+                                       Grid.Column="1"
                                        Margin="5,2"
                                        Foreground="DarkGreen"
                                        FontWeight="SemiBold"
-                                       Text="{Binding AvailableQuantity,
-                                       StringFormat=Available: {0}}"/>
+                                       Text="{Binding AvailableQuantity, StringFormat=Available: {0}}"/>
 
 							<TextBlock Grid.Row="3" Text="Issued By"/>
-							<TextBox Grid.Row="3" Grid.Column="0"
+							<TextBox Grid.Row="3" Grid.Column="1"
                                      Margin="5"
                                      Text="{Binding IssuedBy}"/>
 
 							<Button Grid.Row="4"
-                                    Grid.Column="0"
+                                    Grid.Column="1"
                                     Content="Issue Stock"
                                     HorizontalAlignment="Right"
                                     Margin="5,10,5,0"
                                     Command="{Binding IssueStockCommand}"
                                     IsEnabled="{Binding CanIssueStock}"/>
+
 						</Grid>
 					</GroupBox>
 
+
 					<!-- RETURN -->
-					<GroupBox Header="Return Stock" Grid.Column="0">
+					<GroupBox Header="Return Stock" Grid.Column="1">
 						<Grid Margin="15">
 
 							<Grid.ColumnDefinitions>
@@ -271,20 +280,22 @@
 								<RowDefinition Height="Auto"/>
 							</Grid.RowDefinitions>
 
-							<TextBlock Text="Issued Item" Margin="0,0,44,0"/>
-							<ComboBox
-    ItemsSource="{Binding ReturnableIssuedItems}"
-    SelectedItem="{Binding SelectedIssuedItem}" Margin="79,-1,5,30" Grid.RowSpan="2" Grid.ColumnSpan="2">
+							<TextBlock Text="Issued Item"/>
+
+							<ComboBox Grid.Column="1"
+                                      Margin="5"
+                                      ItemsSource="{Binding ReturnableIssuedItems}"
+                                      SelectedItem="{Binding SelectedIssuedItem}">
 
 								<ComboBox.ItemTemplate>
 									<DataTemplate>
 										<TextBlock>
-                <Run Text="{Binding ItemCode}" />
-                <Run Text=" - " />
-                <Run Text="{Binding ItemDescription}" />
-                <Run Text=" (Issued: " />
-                <Run Text="{Binding Quantity}" />
-                <Run Text=")" />
+                                            <Run Text="{Binding ItemCode}" />
+                                            <Run Text=" - " />
+                                            <Run Text="{Binding ItemDescription}" />
+                                            <Run Text=" (Issued: " />
+                                            <Run Text="{Binding Quantity}" />
+                                            <Run Text=")" />
 										</TextBlock>
 									</DataTemplate>
 								</ComboBox.ItemTemplate>
@@ -292,35 +303,39 @@
 							</ComboBox>
 
 							<TextBlock Grid.Row="1" Text="Return Qty"/>
-							<TextBox Grid.Row="1" Grid.Column="0"
+							<TextBox Grid.Row="1" Grid.Column="1"
                                      Margin="5"
                                      Text="{Binding ReturnQuantity}"/>
 
 							<TextBlock Grid.Row="2"
-                                       Grid.Column="0"
+                                       Grid.Column="1"
                                        Margin="5,2"
                                        Foreground="Gray"
                                        FontWeight="SemiBold"
-                                       Text="{Binding RemainingIssuedBalance,
-                                              StringFormat=Issued: {0}}"/>
+                                       Text="{Binding RemainingIssuedBalance, StringFormat=Issued: {0}}"/>
 
 							<Button Grid.Row="3"
-                                    Grid.Column="0"
+                                    Grid.Column="1"
                                     Content="Return Stock"
                                     HorizontalAlignment="Right"
                                     Margin="5,10,5,0"
                                     Command="{Binding ReturnStockCommand}"
                                     IsEnabled="{Binding CanReturnStock}"/>
+
 						</Grid>
 					</GroupBox>
+
 				</Grid>
 
-				<!-- Summary + Cost -->
+
+				<!-- SUMMARY + COST -->
 				<Grid Grid.Row="1">
+
 					<Grid.ColumnDefinitions>
 						<ColumnDefinition Width="1*"/>
 						<ColumnDefinition Width="1.6*"/>
 					</Grid.ColumnDefinitions>
+
 
 					<GroupBox Header="Project Stock Summary" Margin="0,0,15,0">
 						<DataGrid ItemsSource="{Binding ProjectStockSummary}"
@@ -328,48 +343,67 @@
                                   IsReadOnly="True"
                                   CanUserAddRows="False"
                                   Margin="15">
+
 							<DataGrid.Columns>
 								<DataGridTextColumn Header="Code" Binding="{Binding ItemCode}" Width="90"/>
 								<DataGridTextColumn Header="Item" Binding="{Binding Description}" Width="*"/>
 								<DataGridTextColumn Header="Net Used" Binding="{Binding NetQuantity}" Width="80"/>
 							</DataGrid.Columns>
+
 						</DataGrid>
 					</GroupBox>
 
-					<GroupBox Header="Project Cost Breakdown" Grid.Column="0">
+
+					<GroupBox Header="Project Cost Breakdown" Grid.Column="1">
+
 						<DataGrid ItemsSource="{Binding ProjectCostTransactions}"
                                   AutoGenerateColumns="False"
                                   IsReadOnly="True"
                                   CanUserAddRows="False"
                                   Margin="15">
+
 							<DataGrid.Columns>
+
 								<DataGridTextColumn Header="Date"
                                     Binding="{Binding TransactionDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}"
                                     Width="150"/>
+
 								<DataGridTextColumn Header="Item Code"
                                     Binding="{Binding ItemCode}"
                                     Width="90"/>
+
 								<DataGridTextColumn Header="Description"
                                     Binding="{Binding ItemDescription}"
                                     Width="*"/>
+
 								<DataGridTextColumn Header="Type"
                                     Binding="{Binding Type}"
                                     Width="60"/>
+
 								<DataGridTextColumn Header="Qty"
                                     Binding="{Binding Quantity}"
                                     Width="60"/>
+
 								<DataGridTextColumn Header="Unit Cost"
                                     Binding="{Binding UnitCost, StringFormat={}{0:N2}}"
                                     Width="90"/>
+
 								<DataGridTextColumn Header="Line Total"
                                     Binding="{Binding TransactionValue, StringFormat={}{0:N2}}"
                                     Width="110"/>
+
 							</DataGrid.Columns>
+
 						</DataGrid>
+
 					</GroupBox>
 
 				</Grid>
+
 			</Grid>
+
 		</Grid>
+
 	</Grid>
+
 </Window>
