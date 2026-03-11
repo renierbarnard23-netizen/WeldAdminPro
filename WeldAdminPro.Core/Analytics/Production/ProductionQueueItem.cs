@@ -6,7 +6,7 @@ namespace WeldAdminPro.Core.Analytics.Production
 	{
 		public Guid Id { get; set; }
 
-		public string WorkOrderNumber { get; set; }
+		public string WorkOrderNumber { get; set; } = "";
 
 		public int Priority { get; set; }
 

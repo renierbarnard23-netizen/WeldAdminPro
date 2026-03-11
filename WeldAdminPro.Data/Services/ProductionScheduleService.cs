@@ -12,9 +12,16 @@ namespace WeldAdminPro.Data.Services
 		public List<ProductionScheduleItem> GetSchedule()
 		{
 			var repo = new WorkOrderRepository();
+			var shortageService = new WorkOrderShortageDetectionService();
+
+			var shortages = shortageService.DetectShortages()
+				.Select(s => s.WorkOrderNumber)
+				.Distinct()
+				.ToList();
 
 			var workOrders = repo.GetAll()
 				.Where(w => w.Status != WorkOrderStatus.Completed)
+				.Where(w => !shortages.Contains(w.WorkOrderNumber))
 				.OrderBy(w => w.CreatedOn)
 				.ToList();
 

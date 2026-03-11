@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WeldAdminPro.Core.Analytics.Production;
+using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.Data.Services
@@ -42,7 +43,9 @@ namespace WeldAdminPro.Data.Services
 			);
 
 			// NEW: WorkOrderMaterials shortages
-			var workOrders = _workOrderRepo.GetAll();
+			var workOrders = _workOrderRepo.GetAll()
+	.Where(w => w.Status != WorkOrderStatus.Completed)
+	.ToList();
 
 			foreach (var wo in workOrders)
 			{

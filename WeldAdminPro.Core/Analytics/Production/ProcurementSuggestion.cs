@@ -2,9 +2,9 @@ namespace WeldAdminPro.Core.Analytics.Procurement
 {
 	public class ProcurementSuggestion
 	{
-		public string ItemCode { get; set; }
+		public string ItemCode { get; set; } = "";
 
-		public string Description { get; set; }
+		public string Description { get; set; } = "";
 
 		public decimal CurrentStock { get; set; }
 
@@ -14,6 +14,6 @@ namespace WeldAdminPro.Core.Analytics.Procurement
 
 		public int PriorityScore { get; set; }
 
-		public string Reason { get; set; }
+		public string Reason { get; set; } = "";
 	}
 }

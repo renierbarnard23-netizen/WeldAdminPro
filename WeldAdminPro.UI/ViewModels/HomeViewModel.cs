@@ -351,15 +351,24 @@ namespace WeldAdminPro.UI.ViewModels
 			MaterialReservations =
 				new ObservableCollection<MaterialReservation>(reservations);
 		}
+		public void RefreshProductionSystem()
+		{
+			LoadMaterialShortages();
+			LoadProductionBlocks();
+			LoadProductionReadiness();
+			LoadProductionQueue();
+			LoadProductionTrafficLights();
+
+			Execution.Load();
+			ProductionControlTower.Load();
+		}
+
 		[RelayCommand]
 		private void StartWorkOrder(Guid id)
 		{
 			_executionService.StartWorkOrder(id);
 
-			Execution.Load();
-			LoadProductionQueue();
-			LoadProductionTrafficLights();
-			ProductionControlTower.Load();
+			RefreshProductionSystem();
 		}
 
 		[RelayCommand]
@@ -367,10 +376,7 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			_executionService.PauseWorkOrder(id);
 
-			Execution.Load();
-			LoadProductionQueue();
-			LoadProductionTrafficLights();
-			ProductionControlTower.Load();
+			RefreshProductionSystem();
 		}
 
 		[RelayCommand]
@@ -378,11 +384,9 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			_executionService.CompleteWorkOrder(id);
 
-			Execution.Load();
-			LoadProductionQueue();
-			LoadProductionTrafficLights();
-			ProductionControlTower.Load();
+			RefreshProductionSystem();
 		}
+
 
 	}
 	}

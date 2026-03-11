@@ -2,9 +2,9 @@ namespace WeldAdminPro.Core.Analytics.Executive
 {
 	public class StockForecastModel
 	{
-		public string ItemCode { get; set; }
+		public string ItemCode { get; set; } = "";
 
-		public string Description { get; set; }
+		public string Description { get; set; } = "";
 
 		public decimal CurrentStock { get; set; }
 
@@ -12,6 +12,6 @@ namespace WeldAdminPro.Core.Analytics.Executive
 
 		public decimal DaysRemaining { get; set; }
 
-		public string Status { get; set; }
+		public string Status { get; set; } = "";
 	}
 }

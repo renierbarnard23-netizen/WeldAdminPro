@@ -2,9 +2,9 @@ namespace WeldAdminPro.Core.Analytics.Executive
 {
 	public class ProjectRiskModel
 	{
-		public string ProjectId { get; set; }
+		public string ProjectId { get; set; } = "";
 
-		public string ProjectName { get; set; }
+		public string ProjectName { get; set; } = "";
 
 		public decimal Budget { get; set; }
 
@@ -12,6 +12,6 @@ namespace WeldAdminPro.Core.Analytics.Executive
 
 		public decimal BudgetUsedPercent { get; set; }
 
-		public string RiskLevel { get; set; }
+		public string RiskLevel { get; set; } = "";
 	}
 }

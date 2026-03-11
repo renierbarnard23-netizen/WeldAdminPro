@@ -1,8 +1,9 @@
-﻿using Microsoft.Data.Sqlite;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using Microsoft.Data.Sqlite;
 using WeldAdminPro.Core.Models;
+using WeldAdminPro.Data.Services;
 
 namespace WeldAdminPro.Data.Repositories
 {
@@ -219,6 +220,10 @@ WHERE Id = $id;";
 		public void AddTransaction(StockTransaction tx)
 		{
 			_transactionRepo.AddTransaction(tx);
+
+			// Auto production reschedule
+			var rescheduler = new ProductionReschedulerService();
+			rescheduler.RecalculateProduction();
 		}
 
 		public List<StockTransaction> GetAuditLog()

@@ -23,7 +23,7 @@ namespace WeldAdminPro.Data.Services
 				.GroupBy(t => new { t.ProjectId, t.ProjectName })
 				.Select(g => new ProjectCostSummary
 				{
-					ProjectId = g.Key.ProjectId.Value,
+					ProjectId = g.Key.ProjectId ?? Guid.Empty,
 					ProjectName = g.Key.ProjectName ?? "Unknown",
 					TotalUnitsConsumed = g.Sum(x => x.Quantity),
 					TotalMaterialCost = g.Sum(x => x.TransactionValue)

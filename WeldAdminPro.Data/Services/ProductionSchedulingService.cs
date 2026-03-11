@@ -35,8 +35,8 @@ namespace WeldAdminPro.Data.Services
 						WorkOrderNumber = wo.WorkOrderNumber,
 						Priority = wo.Priority,
 						Status = status?.Status.ToString() ?? "Unknown",
-						StartDate = wo.PlannedStartDate?.ToShortDateString(),
-						DueDate = wo.DueDate?.ToShortDateString()
+						StartDate = wo.PlannedStartDate?.ToShortDateString() ?? "",
+						DueDate = wo.DueDate?.ToShortDateString() ?? ""
 					};
 				})
 				.OrderBy(q => q.Priority)
