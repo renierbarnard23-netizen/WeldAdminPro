@@ -46,7 +46,7 @@ namespace WeldAdminPro.UI.ViewModels
 		public ObservableCollection<ProductionCapacityForecast> CapacityForecast { get; set; } = new();
 
 		public ObservableCollection<DeadlineRisk> DeadlineRisks { get; set; } = new();
-		public ProductionControlViewModel Production { get; }
+		public ProductionControlViewModel Production { get; } = new ProductionControlViewModel();
 
 		public ProductionExecutionViewModel Execution { get; }
 
@@ -80,8 +80,14 @@ namespace WeldAdminPro.UI.ViewModels
 			_reservationService = new MaterialReservationService();
 			_workOrderRepository = new WorkOrderRepository();
 			_executionService = new WorkOrderExecutionService(_workOrderRepository);
-			Production = new ProductionControlViewModel();
+			ProductionControlTower = new ProductionControlTowerViewModel();
+			ProductionControlTower.Load();
+
 			Execution = new ProductionExecutionViewModel();
+			Execution.ControlTower = ProductionControlTower;
+			Execution.Load();
+
+			ProductionControlTower.Load();
 			_bottleneckService = new ProductionBottleneckDetectionService();
 			ProductionBottlenecks = _bottleneckService.DetectBottlenecks();
 			_recommendationService = new ProductionRecommendationService();
@@ -125,6 +131,8 @@ namespace WeldAdminPro.UI.ViewModels
 			LoadWorkOrderPlan();
 			LoadMaterialShortages();
 			LoadProductionReadiness();
+			InProduction = Execution.RunningWorkOrders.Count;
+			Completed = Execution.CompletedToday.Count;
 			LoadProcurementSuggestions();
 			LoadProductionBlocks();
 			LoadWorkOrderStatuses();
@@ -189,6 +197,12 @@ namespace WeldAdminPro.UI.ViewModels
 		private int blockedWorkOrders;
 
 		[ObservableProperty]
+		private int inProduction;
+
+		[ObservableProperty]
+		private int completed;
+
+		[ObservableProperty]
 		private ObservableCollection<string> blockedWorkOrderNumbers = new();
 
 		[ObservableProperty]
@@ -234,6 +248,7 @@ namespace WeldAdminPro.UI.ViewModels
 			var stats = _consumptionService.GetTopConsumed();
 
 			TopConsumedMaterials = new ObservableCollection<MaterialConsumptionStat>(stats);
+
 		}
 
 		private void LoadAnomalies()
@@ -297,6 +312,9 @@ namespace WeldAdminPro.UI.ViewModels
 
 			BlockedWorkOrderNumbers =
 				new ObservableCollection<string>(readiness.BlockedWorkOrderNumbers);
+
+			InProduction = Execution.RunningWorkOrders.Count;
+			Completed = Execution.CompletedToday.Count;
 		}
 		private void LoadProductionBlocks()
 		{
@@ -333,28 +351,38 @@ namespace WeldAdminPro.UI.ViewModels
 			MaterialReservations =
 				new ObservableCollection<MaterialReservation>(reservations);
 		}
-
 		[RelayCommand]
 		private void StartWorkOrder(Guid id)
 		{
 			_executionService.StartWorkOrder(id);
 
+			Execution.Load();
 			LoadProductionQueue();
+			LoadProductionTrafficLights();
+			ProductionControlTower.Load();
 		}
+
 		[RelayCommand]
 		private void PauseWorkOrder(Guid id)
 		{
 			_executionService.PauseWorkOrder(id);
 
+			Execution.Load();
 			LoadProductionQueue();
+			LoadProductionTrafficLights();
+			ProductionControlTower.Load();
 		}
+
 		[RelayCommand]
 		private void CompleteWorkOrder(Guid id)
 		{
 			_executionService.CompleteWorkOrder(id);
 
+			Execution.Load();
 			LoadProductionQueue();
+			LoadProductionTrafficLights();
+			ProductionControlTower.Load();
 		}
 
-		}
+	}
 	}

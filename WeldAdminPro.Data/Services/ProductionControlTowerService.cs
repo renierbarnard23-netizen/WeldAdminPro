@@ -17,38 +17,39 @@ namespace WeldAdminPro.Data.Services
 
 		public ProductionControlTowerModel GetControlTower()
 		{
-			var orders = _workOrderRepository.GetAll().ToList();
+			var repo = new WorkOrderRepository();
+			var workOrders = repo.GetAll().ToList();
 
-			var today = DateTime.Today;
+			var model = new ProductionControlTowerModel();
 
-			int ready = orders.Count(o => o.Status == WorkOrderStatus.Ready);
+			model.ReadyOrders =
+				workOrders.Count(w => w.Status == WorkOrderStatus.Ready);
 
-			int running = orders.Count(o => o.Status == WorkOrderStatus.InProduction);
+			model.RunningOrders =
+				workOrders.Count(w => w.Status == WorkOrderStatus.InProduction);
 
-			int completed = orders.Count(o => o.Status == WorkOrderStatus.Completed);
+			model.CompletedToday =
+				workOrders.Count(w =>
+					w.Status == WorkOrderStatus.Completed &&
+					w.CompletedOn?.Date == DateTime.Today);
 
-			int deadlineRisks = orders.Count(o =>
-				o.Status != WorkOrderStatus.Completed &&
-				o.DueDate.HasValue &&
-				o.DueDate.Value.Date <= today.AddDays(2));
+			model.BlockedOrders = 0; // will connect to shortage engine later
 
-			int totalOrders = orders.Count;
+			model.DeadlineRisks = 0; // placeholder until risk engine added
 
-			int activeOrders = ready + running;
+			double totalCapacityPerDay = 32;
 
-			double capacityLoad = totalOrders == 0
+			double scheduledHours =
+				workOrders
+				.Where(w => w.Status == WorkOrderStatus.InProduction)
+				.Sum(w => w.EstimatedHours);
+
+			model.CapacityLoad =
+				totalCapacityPerDay == 0
 				? 0
-				: Math.Round((double)activeOrders / totalOrders * 100, 1);
+				: (scheduledHours / totalCapacityPerDay) * 100;
 
-			return new ProductionControlTowerModel
-			{
-				ReadyOrders = ready,
-				RunningOrders = running,
-				BlockedOrders = 0, // not implemented yet
-				CompletedToday = completed,
-				CapacityLoad = capacityLoad,
-				DeadlineRisks = deadlineRisks
-			};
+			return model;
 		}
 	}
 }

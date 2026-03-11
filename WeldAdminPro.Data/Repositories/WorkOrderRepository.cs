@@ -111,12 +111,16 @@ WHERE WorkOrderNumber = @WorkOrderNumber";
 			cmd.CommandText = @"
 UPDATE WorkOrders
 SET
-	WorkOrderNumber = @WorkOrderNumber,
-	ProjectId = @ProjectId,
-	Description = @Description,
-	StartDate = @StartDate,
-	EstimatedHours = @EstimatedHours,
-	Status = @Status
+    WorkOrderNumber = @WorkOrderNumber,
+    ProjectId = @ProjectId,
+    Description = @Description,
+    StartDate = @StartDate,
+    EstimatedHours = @EstimatedHours,
+    Status = @Status,
+    ActualStartTime = @ActualStartTime,
+    ActualEndTime = @ActualEndTime,
+    ActualHours = @ActualHours,
+    IsPaused = @IsPaused
 WHERE Id = @Id";
 
 			cmd.Parameters.AddWithValue("@Id", workOrder.Id.ToString());
@@ -126,6 +130,19 @@ WHERE Id = @Id";
 			cmd.Parameters.AddWithValue("@StartDate", workOrder.StartDate.ToString("O"));
 			cmd.Parameters.AddWithValue("@EstimatedHours", workOrder.EstimatedHours);
 			cmd.Parameters.AddWithValue("@Status", (int)workOrder.Status);
+			cmd.Parameters.AddWithValue("@ActualStartTime",
+				workOrder.ActualStartTime.HasValue
+					? workOrder.ActualStartTime.Value.ToString("O")
+					: DBNull.Value);
+
+			cmd.Parameters.AddWithValue("@ActualEndTime",
+				workOrder.ActualEndTime.HasValue
+					? workOrder.ActualEndTime.Value.ToString("O")
+					: DBNull.Value);
+
+			cmd.Parameters.AddWithValue("@ActualHours", workOrder.ActualHours);
+
+			cmd.Parameters.AddWithValue("@IsPaused", workOrder.IsPaused ? 1 : 0);
 
 			cmd.ExecuteNonQuery();
 		}
@@ -171,7 +188,13 @@ WHERE Id = @Id";
 			connection.Open();
 
 			using var cmd = connection.CreateCommand();
-			cmd.CommandText = "SELECT * FROM WorkOrders ORDER BY CreatedOn DESC";
+			cmd.CommandText = @"
+				SELECT
+				w.*,
+				p.ProjectName
+				FROM WorkOrders w
+				LEFT JOIN Projects p ON p.Id = w.ProjectId
+				ORDER BY w.CreatedOn DESC;";
 
 			using var reader = cmd.ExecuteReader();
 
@@ -181,6 +204,11 @@ WHERE Id = @Id";
 				{
 					Id = Guid.Parse(reader["Id"].ToString()!),
 					ProjectId = Guid.Parse(reader["ProjectId"].ToString()!),
+
+					ProjectName = reader["ProjectName"] == DBNull.Value
+					? ""
+					: reader["ProjectName"].ToString()!,
+
 					WorkOrderNumber = reader["WorkOrderNumber"].ToString()!,
 					Description = reader["Description"].ToString()!,
 
@@ -206,7 +234,23 @@ WHERE Id = @Id";
 
 					CompletedOn = reader["CompletedOn"] == DBNull.Value
 						? null
-						: DateTime.Parse(reader["CompletedOn"].ToString()!)
+						: DateTime.Parse(reader["CompletedOn"].ToString()!),
+
+					ActualStartTime = reader["ActualStartTime"] == DBNull.Value
+						? null
+						: DateTime.Parse(reader["ActualStartTime"].ToString()!),
+
+					ActualEndTime = reader["ActualEndTime"] == DBNull.Value
+						? null
+						: DateTime.Parse(reader["ActualEndTime"].ToString()!),
+
+					ActualHours = reader["ActualHours"] == DBNull.Value
+						? 0
+						: Convert.ToDouble(reader["ActualHours"]),
+
+					IsPaused = reader["IsPaused"] == DBNull.Value
+						? false
+						: Convert.ToInt32(reader["IsPaused"]) == 1,
 				});
 			}
 
@@ -256,13 +300,19 @@ WHERE Key='NextWorkOrderNumber'";
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
+			if (workOrder.ProjectId == Guid.Empty)
+			{
+				throw new InvalidOperationException(
+					"WorkOrder cannot be saved without a ProjectId.");
+			}
+
 			using var cmd = connection.CreateCommand();
+			
 			if (string.IsNullOrWhiteSpace(workOrder.WorkOrderNumber))
 			{
 				workOrder.WorkOrderNumber = GetNextWorkOrderNumber();
 			}
-
-
+			
 			cmd.CommandText = @"
 INSERT INTO WorkOrders (
     Id,

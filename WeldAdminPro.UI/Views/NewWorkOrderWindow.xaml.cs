@@ -42,16 +42,13 @@ namespace WeldAdminPro.UI.Views
 
 			var project = (Project)ProjectBox.SelectedItem;
 
-			var statusText = ((ComboBoxItem)StatusBox.SelectedItem)?.Content?.ToString() ?? "Open";
-
-			var status = Enum.Parse<WorkOrderStatus>(statusText);
-
 			var workOrder = new WorkOrder
 			{
 				Id = Guid.NewGuid(),
 				ProjectId = project.Id,
 				Description = DescriptionBox.Text,
-				Status = status,
+				EstimatedHours = double.TryParse(EstimatedHoursBox.Text, out var hours) ? hours : 8,
+				Status = WorkOrderStatus.Ready,
 				CreatedOn = DateTime.Now
 			};
 

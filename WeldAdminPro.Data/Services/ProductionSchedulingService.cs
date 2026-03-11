@@ -18,7 +18,9 @@ namespace WeldAdminPro.Data.Services
 
 		public List<ProductionQueueItem> BuildQueue()
 		{
-			var workOrders = _repository.GetAll();
+			var workOrders = _repository
+	.GetAll()
+	.Where(w => w.Status != Core.Models.WorkOrderStatus.Completed);
 			var statuses = _statusService.GetStatuses();
 
 			var queue = workOrders
@@ -29,6 +31,7 @@ namespace WeldAdminPro.Data.Services
 
 					return new ProductionQueueItem
 					{
+						Id = wo.Id,
 						WorkOrderNumber = wo.WorkOrderNumber,
 						Priority = wo.Priority,
 						Status = status?.Status.ToString() ?? "Unknown",

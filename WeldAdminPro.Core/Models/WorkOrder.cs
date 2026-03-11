@@ -10,6 +10,7 @@ namespace WeldAdminPro.Core.Models
 
 		public string WorkOrderNumber { get; set; } = "";
 		public string Description { get; set; } = "";
+		public string ProjectName { get; set; } = "";
 
 		public DateTime StartDate { get; set; } = DateTime.Today;
 		public double EstimatedHours { get; set; }
@@ -33,9 +34,9 @@ namespace WeldAdminPro.Core.Models
 
 	public enum WorkOrderStatus
 	{
-		Open,
-		Ready,
-		InProduction,
-		Completed
+		Ready = 1,
+		InProduction = 2,
+		Paused = 3,
+		Completed = 4
 	}
 }

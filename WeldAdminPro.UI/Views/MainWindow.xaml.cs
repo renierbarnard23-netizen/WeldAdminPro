@@ -25,7 +25,12 @@ namespace WeldAdminPro.UI.Views
         {
             MainContent.Content = new ReportsView();
         }
-	    private void Stock_Click(object sender, RoutedEventArgs e)
+		private void ProductionSettings_Click(object sender, RoutedEventArgs e)
+		{
+			var window = new ProductionSettingsWindow();
+			window.ShowDialog();
+		}
+		private void Stock_Click(object sender, RoutedEventArgs e)
 	    {
     	    MainContent.Content = new StockView();
 	    }

@@ -19,14 +19,18 @@ namespace WeldAdminPro.Data.Services
 		public List<ProductionCapacityForecast> GetCapacityForecast(
 			int days = 14,
 			double hoursPerDay = 8,
-			int stations = 4)
+			int stations = 25)
 		{
 			var forecasts = new List<ProductionCapacityForecast>();
 
-			double dailyCapacity = hoursPerDay * stations;
+			var settingsRepo = new ProductionSettingsRepository();
+
+			var settings = settingsRepo.Get();
+
+			double dailyCapacity = settings.DailyCapacity;
 
 			var workOrders = _workOrderRepository.GetAll()
-					.Where(w => w.Status != WorkOrderStatus.Completed)
+					.Where(w => w.Status == WorkOrderStatus.InProduction)
 					.ToList();
 
 			for (int i = 0; i < days; i++)

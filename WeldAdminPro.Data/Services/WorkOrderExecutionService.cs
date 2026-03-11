@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Data.Sqlite;
+using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.Data.Services
@@ -22,12 +23,13 @@ namespace WeldAdminPro.Data.Services
 
 			cmd.CommandText =
 			@"UPDATE WorkOrders
-              SET Status = 2,
+              SET Status = @Status,
                   ActualStartTime = @StartTime
               WHERE Id = @Id";
 
 			cmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
 			cmd.Parameters.AddWithValue("@StartTime", DateTime.UtcNow.ToString("O"));
+			cmd.Parameters.AddWithValue("@Status", (int)WorkOrderStatus.InProduction);
 
 			cmd.ExecuteNonQuery();
 		}
@@ -41,12 +43,14 @@ namespace WeldAdminPro.Data.Services
 
 			cmd.CommandText =
 			@"UPDATE WorkOrders
-              SET Status = 3,
-                  ActualEndTime = @EndTime
-              WHERE Id = @Id";
+	  SET Status = @Status,
+	      ActualEndTime = @EndTime,
+	      CompletedOn = @EndTime
+	  WHERE Id = @Id";
 
 			cmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
 			cmd.Parameters.AddWithValue("@EndTime", DateTime.UtcNow.ToString("O"));
+			cmd.Parameters.AddWithValue("@Status", (int)WorkOrderStatus.Completed);
 
 			cmd.ExecuteNonQuery();
 		}
@@ -59,10 +63,12 @@ namespace WeldAdminPro.Data.Services
 
 			cmd.CommandText =
 			@"UPDATE WorkOrders
-      SET IsPaused = 1
-      WHERE Id = @Id";
+	  SET IsPaused = 1,
+	      Status = @Status
+	  WHERE Id = @Id";
 
 			cmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
+			cmd.Parameters.AddWithValue("@Status", (int)WorkOrderStatus.Paused);
 
 			cmd.ExecuteNonQuery();
 		}

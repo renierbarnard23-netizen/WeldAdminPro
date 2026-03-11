@@ -14,9 +14,16 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 		private readonly WorkOrderRepository _repository;
 		private readonly WorkOrderExecutionService _executionService;
 
-		public ObservableCollection<WorkOrder> ReadyWorkOrders { get; set; } = new();
-		public ObservableCollection<WorkOrder> RunningWorkOrders { get; set; } = new();
-		public ObservableCollection<WorkOrder> CompletedToday { get; set; } = new();
+		[ObservableProperty]
+		private ObservableCollection<WorkOrder> readyWorkOrders = new();
+
+		[ObservableProperty]
+		private ObservableCollection<WorkOrder> runningWorkOrders = new();
+
+		[ObservableProperty]
+		private ObservableCollection<WorkOrder> completedToday = new();
+
+		public ProductionControlTowerViewModel? ControlTower { get; set; }
 
 		public ProductionExecutionViewModel()
 		{
@@ -25,38 +32,47 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 
 			Load();
 		}
-
-		private void Load()
+		public void Refresh()
 		{
-			var all = _repository.GetAll();
+			Load();
+		}
 
-			ReadyWorkOrders =
-				new ObservableCollection<WorkOrder>(
-					all.Where(w => w.Status == WorkOrderStatus.Ready));
+		public void Load()
+		{
+			var all = _repository.GetAll().ToList();
 
-			RunningWorkOrders =
-				new ObservableCollection<WorkOrder>(
-					all.Where(w => w.Status == WorkOrderStatus.InProduction));
+			foreach (var w in all)
+			{
+				Console.WriteLine($"{w.WorkOrderNumber} - Status: {w.Status}");
+			}
 
-			CompletedToday =
-				new ObservableCollection<WorkOrder>(
-					all.Where(w =>
-						w.Status == WorkOrderStatus.Completed &&
-						w.CompletedOn?.Date == DateTime.Today));
+			ReadyWorkOrders = new ObservableCollection<WorkOrder>(
+	all.Where(w =>
+		w.Status == WorkOrderStatus.Ready));
+
+			RunningWorkOrders = new ObservableCollection<WorkOrder>(
+				all.Where(w =>
+					w.Status == WorkOrderStatus.InProduction));
+
+			CompletedToday = new ObservableCollection<WorkOrder>(
+				all.Where(w =>
+					w.Status == WorkOrderStatus.Completed &&
+					w.CompletedOn?.Date == DateTime.Today));
+
+			OnPropertyChanged(nameof(ReadyWorkOrders));
+			OnPropertyChanged(nameof(RunningWorkOrders));
+			OnPropertyChanged(nameof(CompletedToday));
 		}
 
 		[RelayCommand]
 		private void Start(Guid id)
 		{
 			_executionService.StartWorkOrder(id);
-			Load();
-		}
 
-		[RelayCommand]
-		private void Complete(Guid id)
-		{
-			_executionService.CompleteWorkOrder(id);
-			Load();
+			Load(); // reload lists from DB
+			ControlTower?.Load();
+
+			Console.WriteLine($"Started work order {id}");
 		}
 	}
 }

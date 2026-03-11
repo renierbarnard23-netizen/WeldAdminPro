@@ -176,7 +176,15 @@ WHERE Id=$id;";
 			if (string.IsNullOrWhiteSpace(result))
 				return "ITEM-001";
 
-			return result;
+			// Extract number part
+			var numberPart = result.Replace("ITEM-", "");
+
+			if (!int.TryParse(numberPart, out int number))
+				return "ITEM-001";
+
+			number++;
+
+			return $"ITEM-{number:000}";
 		}
 
 		// =========================================================

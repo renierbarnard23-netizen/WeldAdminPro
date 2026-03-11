@@ -38,8 +38,8 @@
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="0" Grid.Column="0"
-                 Margin="0,0,0,6"
+		<TextBox Grid.Row="0" Grid.Column="1"
+                 Margin="29,3,104,3"
                  Text="{Binding Item.ItemCode, UpdateSourceTrigger=PropertyChanged}"
                  IsReadOnly="{Binding IsEditMode}"/>
 
@@ -49,8 +49,8 @@
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="1" Grid.Column="0"
-                 Margin="0,0,0,6"
+		<TextBox Grid.Row="1" Grid.Column="1"
+                 Margin="29,0,104,6"
                  Text="{Binding Item.Description, UpdateSourceTrigger=PropertyChanged}"/>
 
 		<!-- Quantity -->
@@ -59,10 +59,10 @@
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="2" Grid.Column="0"
-                 Margin="0,0,0,6"
+		<TextBox Grid.Row="1" Grid.Column="1"
+                 Margin="29,23,111,7"
                  Width="120"
-                 Text="{Binding Item.Quantity, UpdateSourceTrigger=PropertyChanged}"/>
+                 Text="{Binding Item.Quantity, UpdateSourceTrigger=PropertyChanged}" Grid.RowSpan="2"/>
 
 		<!-- Unit -->
 		<TextBlock Grid.Row="3" Grid.Column="0"
@@ -70,10 +70,10 @@
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="3" Grid.Column="0"
-                 Margin="0,0,0,6"
+		<TextBox Grid.Row="2" Grid.Column="1"
+                 Margin="29,22,111,7"
                  Width="120"
-                 Text="{Binding Item.Unit, UpdateSourceTrigger=PropertyChanged}"/>
+                 Text="{Binding Item.Unit, UpdateSourceTrigger=PropertyChanged}" Grid.RowSpan="2"/>
 
 		<!-- Minimum Stock Level -->
 		<TextBlock Grid.Row="4" Grid.Column="0"
@@ -81,10 +81,10 @@
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="4" Grid.Column="0"
-                 Margin="0,0,0,6"
+		<TextBox Grid.Row="3" Grid.Column="1"
+                 Margin="29,23,111,6"
                  Width="120"
-                 Text="{Binding Item.MinLevel, UpdateSourceTrigger=PropertyChanged}"/>
+                 Text="{Binding Item.MinLevel, UpdateSourceTrigger=PropertyChanged}" Grid.RowSpan="2"/>
 
 		<!-- Maximum Stock Level -->
 		<TextBlock Grid.Row="5" Grid.Column="0"
@@ -92,8 +92,8 @@
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="5" Grid.Column="0"
-                 Margin="0,0,0,6"
+		<TextBox Grid.Row="5" Grid.Column="1"
+                 Margin="29,3,111,3"
                  Width="120"
                  Text="{Binding Item.MaxLevel, UpdateSourceTrigger=PropertyChanged}"/>
 
@@ -103,8 +103,8 @@
                    VerticalAlignment="Center"
                    Margin="0,0,10,6"/>
 
-		<TextBox Grid.Row="6" Grid.Column="0"
-                 Margin="0,0,0,6"
+		<TextBox Grid.Row="6" Grid.Column="1"
+                 Margin="29,3,111,3"
                  Width="120"
                  Text="{Binding Item.AverageUnitCost, UpdateSourceTrigger=PropertyChanged}"/>
 

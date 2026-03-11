@@ -13,18 +13,22 @@
 		</Grid.RowDefinitions>
 
 		<!-- Toolbar -->
-		<StackPanel Orientation="Horizontal"
-                    Grid.Row="0"
-                    Margin="0,0,0,10">
+		<StackPanel Orientation="Horizontal" Margin="5">
 
 			<Button Content="New Work Order"
-                    		Width="150"
-                    		Height="32"
-                    		Click="NewWorkOrder_Click"/>
+					Width="120"
+					Margin="5"
+					Click="NewWorkOrder_Click"/>
+
+			<Button Content="Add Material"
+					Width="120"
+					Margin="5"
+					Click="AddMaterial_Click"/>
+
 			<Button Content="Issue Material"
-        			Width="140"
-        			Margin="10,0,0,0"
-        			Click="IssueMaterial_Click"/>
+					Width="120"
+					Margin="5"
+					Click="IssueMaterial_Click"/>
 
 		</StackPanel>
 

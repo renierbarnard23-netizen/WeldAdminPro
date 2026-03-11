@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using WeldAdminPro.Core.Analytics.Production;
+using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.Data.Services
 {
@@ -17,19 +19,36 @@ namespace WeldAdminPro.Data.Services
 		{
 			var shortages = _shortageService.DetectShortages();
 
+			var stockRepo = new StockRepository();
+			var stockItems = stockRepo.GetAll();
+
 			var blocks = shortages
-	.GroupBy(s => s.WorkOrderNumber)
-	.Select(g => new ProductionBlock
-	{
-		WorkOrderNumber = g.Key,
+				.GroupBy(s => s.WorkOrderNumber)
+				.Select(g =>
+				{
+					var groupedItems = g
+						.GroupBy(x => x.ItemCode)
+						.Select(itemGroup =>
+						{
+							var stock = stockItems
+								.FirstOrDefault(s => s.ItemCode == itemGroup.Key);
 
-		BlockingItems = g
-			.Select(x => $"{x.ItemCode} ({x.ShortageQuantity})")
-			.ToList(),
+							var name = stock?.Description ?? itemGroup.Key;
 
-		TotalShortage = (double)g.Sum(x => x.ShortageQuantity)
-	})
-	.ToList();
+							var totalShortage = itemGroup.Sum(x => x.ShortageQuantity);
+
+							return $"{name} ({totalShortage})";
+						})
+						.ToList();
+
+					return new ProductionBlock
+					{
+						WorkOrderNumber = g.Key,
+						BlockingItems = groupedItems,
+						TotalShortage = (double)g.Sum(x => x.ShortageQuantity)
+					};
+				})
+				.ToList();
 
 			return blocks;
 		}

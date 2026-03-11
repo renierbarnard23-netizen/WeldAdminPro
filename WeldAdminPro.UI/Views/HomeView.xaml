@@ -387,109 +387,7 @@
 
 			</GroupBox>
 
-			<GroupBox Header="Production Execution"
-					  Grid.Row="6"
-					  Grid.ColumnSpan="2"
-					  Margin="6">
-
-				<Grid Margin="10">
-
-					<Grid.RowDefinitions>
-						<RowDefinition Height="Auto"/>
-						<RowDefinition Height="Auto"/>
-					</Grid.RowDefinitions>
-
-					<Grid.ColumnDefinitions>
-						<ColumnDefinition Width="*"/>
-						<ColumnDefinition Width="*"/>
-					</Grid.ColumnDefinitions>
-
-
-
-					<!-- READY WORK ORDERS -->
-
-					<GroupBox Header="Ready To Start"
-							  Grid.Row="0"
-							  Grid.Column="0"
-							  Margin="5">
-
-						<DataGrid ItemsSource="{Binding Execution.ReadyWorkOrders}"
-                      AutoGenerateColumns="False"
-                      Height="180">
-
-							<DataGrid.Columns>
-
-								<DataGridTextColumn Header="Work Order"
-                        Binding="{Binding WorkOrderNumber}" Width="120"/>
-
-								<DataGridTextColumn Header="Description"
-                        Binding="{Binding Description}" Width="*"/>
-
-								<DataGridTemplateColumn Header="Action" Width="120">
-
-									<DataGridTemplateColumn.CellTemplate>
-
-										<DataTemplate>
-
-											<Button Content="Start"
-                                        Command="{Binding DataContext.Execution.StartCommand,
-                                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding Id}" />
-
-										</DataTemplate>
-
-									</DataGridTemplateColumn.CellTemplate>
-
-								</DataGridTemplateColumn>
-
-							</DataGrid.Columns>
-
-						</DataGrid>
-
-					</GroupBox>
-
-					<!-- RUNNING WORK ORDERS -->
-
-					<GroupBox Header="Running"
-							  Grid.Row="0"
-							  Grid.Column="1"
-							  Margin="5">
-
-						<DataGrid ItemsSource="{Binding Execution.RunningWorkOrders}"
-                      AutoGenerateColumns="False"
-                      Height="180">
-
-							<DataGrid.Columns>
-
-								<DataGridTextColumn Header="Work Order"
-                        Binding="{Binding WorkOrderNumber}" Width="120"/>
-
-								<DataGridTemplateColumn Header="Complete" Width="120">
-
-									<DataGridTemplateColumn.CellTemplate>
-
-										<DataTemplate>
-
-											<Button Content="Complete"
-                                        Command="{Binding DataContext.Execution.CompleteCommand,
-                                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding Id}" />
-
-										</DataTemplate>
-
-									</DataGridTemplateColumn.CellTemplate>
-
-								</DataGridTemplateColumn>
-
-							</DataGrid.Columns>
-
-						</DataGrid>
-
-					</GroupBox>
-
-				</Grid>
-
-			</GroupBox>
+			
 
 			<!-- TRAFFIC LIGHTS -->
 
@@ -572,8 +470,7 @@
 Binding="{Binding WorkOrderNumber}"
 Width="160"/>
 
-						<DataGridTextColumn Header="Blocking Items"
-Binding="{Binding BlockingItems}"
+						<DataGridTextColumn Header="Blocking Items" Binding="{Binding BlockingItemsText}"
 Width="*"/>
 
 						<DataGridTextColumn Header="Total Shortage"
@@ -700,43 +597,33 @@ Width="*"/>
 
 			<!-- PRODUCTION TIMELINE -->
 
-			<GroupBox Header="Production Timeline"
+			<GroupBox Header="Production Gantt Schedule" 
 					  Grid.Row="13"
 					  Grid.ColumnSpan="2"
-					  Margin="6">
+					  Margin="0,10,0,0">
 
-				<ScrollViewer HorizontalScrollBarVisibility="Auto">
+				<ScrollViewer HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
 
-					<ItemsControl ItemsSource="{Binding ProductionTimeline}">
+					<Grid x:Name="GanttGrid">
 
-						<ItemsControl.ItemTemplate>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="120"/>
+							<ColumnDefinition Width="*"/>
+						</Grid.ColumnDefinitions>
 
-							<DataTemplate>
+						<!-- Work Order Labels -->
+						<StackPanel x:Name="GanttLabels"
+                        Grid.Column="0"
+                        Margin="5"/>
 
-								<Grid Height="40" Margin="4">
+						<!-- Timeline Canvas -->
+						<Canvas x:Name="GanttCanvas"
+                    Grid.Column="1"
+                    Height="400"
+                    Background="#F8F8F8"/>
 
-									<TextBlock Text="{Binding WorkOrderNumber}"
-											   VerticalAlignment="Center" 
-											   Width="120"/>
-
-									<Canvas Margin="130,0,0,0">
-
-										<Rectangle Height="20"
-												   Width="{Binding Duration}"
-												   Canvas.Left="{Binding StartOffset}"
-												   RadiusX="4"
-												   RadiusY="4"
-												   Fill="SteelBlue"/>
-
-									</Canvas>
-
-								</Grid>
-
-							</DataTemplate>
-
-						</ItemsControl.ItemTemplate>
-
-					</ItemsControl>
+					</Grid>
 
 				</ScrollViewer>
 
@@ -1134,9 +1021,10 @@ Width="*"/>
 
 					<!-- Production Queue -->
 
-					<GroupBox Header="Production Queue" 
+					<GroupBox Header="Production Control Board" 
 							  Grid.Row="7" 
-							  Grid.Column="1">
+							  Grid.Column="1"
+							  Grid.ColumnSpan="2">
 						<DataGrid ItemsSource="{Binding ProductionQueue}"
 AutoGenerateColumns="False"
 MinHeight="160">

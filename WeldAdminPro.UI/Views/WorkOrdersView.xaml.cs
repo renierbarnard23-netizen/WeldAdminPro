@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.UI.Views
@@ -36,6 +37,20 @@ namespace WeldAdminPro.UI.Views
 		private void LoadWorkOrders()
 		{
 			WorkOrdersGrid.ItemsSource = _repository.GetAll();
+		}
+		private void AddMaterial_Click(object sender, RoutedEventArgs e)
+		{
+			if (WorkOrdersGrid.SelectedItem == null)
+			{
+				MessageBox.Show("Please select a work order first.");
+				return;
+			}
+
+			var workOrder = (WorkOrder)WorkOrdersGrid.SelectedItem;
+
+			var window = new AddWorkOrderMaterialWindow(workOrder.Id);
+
+			window.ShowDialog();
 		}
 	}
 }

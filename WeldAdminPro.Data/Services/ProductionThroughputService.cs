@@ -39,10 +39,9 @@ namespace WeldAdminPro.Data.Services
 
 			return new ProductionThroughputModel
 			{
-				CompletedToday = completed.Count,
-				AverageDurationHours = 0, // Not available yet
-				ActiveWorkOrders = running.Count,
-				CompletionRate = completionRate
+				CompletedToday = completed.Count(o =>
+					o.CompletedOn.HasValue &&
+					o.CompletedOn.Value.Date == DateTime.Today),
 			};
 		}
 	}

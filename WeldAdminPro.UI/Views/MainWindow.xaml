@@ -23,6 +23,7 @@
 			<MenuItem Header="Work Orders" Click="WorkOrders_Click"/>
 
 			<MenuItem Header="Reports" Click="Reports_Click"/>
+			<MenuItem Header="Production Settings" Click="ProductionSettings_Click"/>
 			<MenuItem Header="Exit" Click="Exit_Click"/>
 
 		</Menu>
