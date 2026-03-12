@@ -23,25 +23,38 @@ namespace WeldAdminPro.Data.Services
 				.Where(o => o.Status == WorkOrderStatus.Completed)
 				.ToList();
 
-			var running = orders
-				.Where(o => o.Status == WorkOrderStatus.InProduction)
-				.ToList();
+			// Completed today
+			int completedToday = completed.Count(o =>
+				o.CompletedOn.HasValue &&
+				o.CompletedOn.Value.Date == DateTime.Today);
 
-			var ready = orders
-				.Where(o => o.Status == WorkOrderStatus.Ready)
-				.ToList();
+			// Active work orders
+			int activeOrders = orders.Count(o =>
+				o.Status == WorkOrderStatus.InProduction);
 
-			int totalOrders = orders.Count;
-
-			double completionRate = totalOrders == 0
+			// Completion rate
+			double completionRate = orders.Count == 0
 				? 0
-				: Math.Round((double)completed.Count / totalOrders * 100, 1);
+				: Math.Round((double)completed.Count / orders.Count * 100, 1);
+
+			// Duration calculation
+			var durations = completed
+	.Where(o => o.ActualStartTime != null && o.CompletedOn != null)
+	.Select(o => (o.CompletedOn!.Value - o.ActualStartTime!.Value).TotalHours)
+	.ToList();
+
+			double avgDuration = durations.Any()
+				? Math.Round(durations.Average(), 2)
+				: 0;
+
+			Console.WriteLine($"AVG DURATION: {avgDuration}");
 
 			return new ProductionThroughputModel
 			{
-				CompletedToday = completed.Count(o =>
-					o.CompletedOn.HasValue &&
-					o.CompletedOn.Value.Date == DateTime.Today),
+				CompletedToday = completedToday,
+				AvgDurationHours = avgDuration,
+				ActiveWorkOrders = activeOrders,
+				CompletionRate = completionRate
 			};
 		}
 	}

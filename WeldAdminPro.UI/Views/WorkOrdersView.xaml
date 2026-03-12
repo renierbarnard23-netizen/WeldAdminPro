@@ -34,35 +34,47 @@
 
 		<!-- Work Orders Grid -->
 		<DataGrid x:Name="WorkOrdersGrid"
-                  Grid.Row="1"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  CanUserAddRows="False"
-                  Margin="0"
-                  RowHeight="28"
-                  HeadersVisibility="Column">
+          Grid.Row="1"
+          AutoGenerateColumns="False"
+          IsReadOnly="True"
+          CanUserAddRows="False"
+          Margin="0"
+          RowHeight="28"
+          HeadersVisibility="Column">
 
 			<DataGrid.Columns>
 
-				<DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="200"/>
+				<DataGridTextColumn Header="Project"
+                            Binding="{Binding ProjectName}"
+                            Width="180"/>
 
-				<DataGridTextColumn Header="Work Order" Binding="{Binding WorkOrderNumber}" Width="140"/>
+				<DataGridTextColumn Header="Work Order"
+                            Binding="{Binding WorkOrderNumber}"
+                            Width="140"/>
 
 				<DataGridTextColumn Header="Description"
-                                    Binding="{Binding Description}"
-                                    Width="*"/>
+                            Binding="{Binding Description}"
+                            Width="*"/>
 
 				<DataGridTextColumn Header="Status"
-                                    Binding="{Binding Status}"
-                                    Width="140"/>
+                            Binding="{Binding Status}"
+                            Width="120"/>
 
 				<DataGridTextColumn Header="Created"
-                                    Binding="{Binding CreatedOn, StringFormat=d}"
-                                    Width="160"/>
+                            Binding="{Binding CreatedOn, StringFormat=d}"
+                            Width="120"/>
+
+				<DataGridTextColumn Header="Start"
+                            Binding="{Binding PlannedStartDate, StringFormat=d}"
+                            Width="120"/>
+
+				<DataGridTextColumn Header="Due"
+                            Binding="{Binding DueDate, StringFormat=d}"
+                            Width="120"/>
 
 				<DataGridTextColumn Header="Completed"
-                                    Binding="{Binding CompletedOn, StringFormat=d}"
-                                    Width="160"/>
+                            Binding="{Binding CompletedOn, StringFormat=d}"
+                            Width="120"/>
 
 			</DataGrid.Columns>
 

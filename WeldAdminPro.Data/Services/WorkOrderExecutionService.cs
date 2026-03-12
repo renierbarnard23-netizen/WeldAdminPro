@@ -24,7 +24,8 @@ namespace WeldAdminPro.Data.Services
 			cmd.CommandText =
 			@"UPDATE WorkOrders
               SET Status = @Status,
-                  ActualStartTime = @StartTime
+                  ActualStartTime = @StartTime,
+                  IsPaused = 0
               WHERE Id = @Id";
 
 			cmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
@@ -43,10 +44,11 @@ namespace WeldAdminPro.Data.Services
 
 			cmd.CommandText =
 			@"UPDATE WorkOrders
-	  SET Status = @Status,
-	      ActualEndTime = @EndTime,
-	      CompletedOn = @EndTime
-	  WHERE Id = @Id";
+              SET Status = @Status,
+                  ActualEndTime = @EndTime,
+                  CompletedOn = @EndTime,
+                  IsPaused = 0
+              WHERE Id = @Id";
 
 			cmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
 			cmd.Parameters.AddWithValue("@EndTime", DateTime.UtcNow.ToString("O"));
@@ -54,6 +56,7 @@ namespace WeldAdminPro.Data.Services
 
 			cmd.ExecuteNonQuery();
 		}
+
 		public void PauseWorkOrder(Guid workOrderId)
 		{
 			using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
@@ -63,9 +66,9 @@ namespace WeldAdminPro.Data.Services
 
 			cmd.CommandText =
 			@"UPDATE WorkOrders
-	  SET IsPaused = 1,
-	      Status = @Status
-	  WHERE Id = @Id";
+              SET IsPaused = 1,
+                  Status = @Status
+              WHERE Id = @Id";
 
 			cmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
 			cmd.Parameters.AddWithValue("@Status", (int)WorkOrderStatus.Paused);

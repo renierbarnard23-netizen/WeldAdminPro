@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WeldAdminPro.Core.Analytics.Production;
-using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.Data.Services
@@ -24,10 +23,9 @@ namespace WeldAdminPro.Data.Services
 			var forecasts = new List<ProductionCapacityForecast>();
 
 			var settingsRepo = new ProductionSettingsRepository();
-
 			var settings = settingsRepo.Get();
 
-			double dailyCapacity = settings.DailyCapacity;
+			double dailyCapacity = settings?.DailyCapacity ?? (hoursPerDay * stations);
 
 			var scheduleService = new ProductionScheduleService();
 			var schedule = scheduleService.GetSchedule();
@@ -36,9 +34,14 @@ namespace WeldAdminPro.Data.Services
 			{
 				var date = DateTime.Today.AddDays(i);
 
-				var scheduledHours = schedule
-					.Where(s => s.StartDate.Date == date.Date)
-					.Sum(s => (s.EndDate - s.StartDate).TotalHours);
+				double scheduledHours = 0;
+
+				if (schedule != null && schedule.Any())
+				{
+					scheduledHours = schedule
+						.Where(s => s.StartDate.Date == date.Date)
+						.Sum(s => (s.EndDate - s.StartDate).TotalHours);
+				}
 
 				var load = dailyCapacity == 0
 					? 0

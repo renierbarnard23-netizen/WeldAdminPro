@@ -29,7 +29,10 @@ namespace WeldAdminPro.Data.Services
 				var day = today.AddDays(-i);
 
 				var completed = orders
-					.Where(o => o.Status == WorkOrderStatus.Completed)
+					.Where(o =>
+						o.Status == WorkOrderStatus.Completed &&
+						o.CompletedOn.HasValue &&
+						o.CompletedOn.Value.Date == day)
 					.Count();
 
 				result.Add(new ProductionEfficiencyTrendModel

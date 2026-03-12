@@ -4,7 +4,7 @@ namespace WeldAdminPro.Core.Analytics.Production
 	{
 		public int CompletedToday { get; set; }
 
-		public double AverageDurationHours { get; set; }
+		public double AvgDurationHours { get; set; }
 
 		public int ActiveWorkOrders { get; set; }
 

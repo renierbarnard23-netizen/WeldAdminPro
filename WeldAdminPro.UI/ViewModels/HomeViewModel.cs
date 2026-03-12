@@ -54,8 +54,8 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public List<ProductionBottleneckModel> ProductionBottlenecks { get; set; }
 		public List<ProductionRecommendationModel> ProductionRecommendations { get; set; }
-		public ProductionThroughputModel ProductionThroughput { get; set; }
-		public List<ProductionEfficiencyTrendModel> ProductionEfficiencyTrend { get; set; }
+		
+		
 		public ObservableCollection<SchedulerDebugItem> SchedulerDebug { get; set; }
 	= new();
 		public ObservableCollection<ProductionDelayPrediction> DelayPredictions { get; set; }
@@ -252,6 +252,12 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private ObservableCollection<MaterialReservation> materialReservations = new();
 
+		[ObservableProperty]
+		private ProductionThroughputModel productionThroughput = new();
+
+		[ObservableProperty]
+		private List<ProductionEfficiencyTrendModel> productionEfficiencyTrend = new();
+
 		private void LoadRiskSummary()
 		{
 			var summary = _riskSummaryService.BuildSummary();
@@ -393,6 +399,13 @@ namespace WeldAdminPro.UI.ViewModels
 
 			Execution.Load();
 			ProductionControlTower.Load();
+
+			// 🔹 Refresh production analytics
+			ProductionThroughput = _throughputService.GetThroughput();
+			ProductionEfficiencyTrend = _efficiencyTrendService.GetLast7DaysTrend();
+
+			OnPropertyChanged(nameof(ProductionThroughput));
+			OnPropertyChanged(nameof(ProductionEfficiencyTrend));
 		}
 
 		[RelayCommand]

@@ -25,8 +25,15 @@ namespace WeldAdminPro.Data.Services
 				.OrderBy(w => w.CreatedOn)
 				.ToList();
 
+			// IMPORTANT: protect against empty dataset
+			if (workOrders.Count == 0)
+			{
+				return new List<ProductionScheduleItem>();
+			}
+
 			DateTime currentStart = workOrders
 				.Select(w => w.PlannedStartDate ?? DateTime.Today)
+				.DefaultIfEmpty(DateTime.Today)
 				.Min();
 
 			var result = new List<ProductionScheduleItem>();
@@ -34,7 +41,6 @@ namespace WeldAdminPro.Data.Services
 			foreach (var wo in workOrders)
 			{
 				double hours = wo.EstimatedHours <= 0 ? 8 : wo.EstimatedHours;
-
 				double days = hours / 8.0;
 
 				var schedule = new ProductionScheduleItem

@@ -346,7 +346,7 @@
 
 					<StackPanel Grid.Column="1">
 						<TextBlock Text="Avg Duration (hrs)" FontWeight="Bold"/>
-						<TextBlock Text="{Binding ProductionThroughput.AverageDurationHours}" FontSize="26"/>
+						<TextBlock Text="{Binding ProductionThroughput.AvgDurationHours, StringFormat={}{0:F2}}" FontSize="26"/>
 					</StackPanel>
 
 					<StackPanel Grid.Column="2">

@@ -2,12 +2,12 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="New Work Order"
-        Height="280"
-        Width="400"
+        Height="350"
+        Width="420"
         WindowStartupLocation="CenterScreen"
         KeyDown="Window_KeyDown">
 
-	<Grid Margin="15">
+	<Grid Margin="20">
 
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
@@ -15,53 +15,107 @@
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
 
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="130"/>
+			<ColumnDefinition Width="*"/>
+		</Grid.ColumnDefinitions>
+
 		<!-- Project -->
-		<TextBlock Text="Project"/>
+		<TextBlock Text="Project"
+                   Grid.Row="0"
+                   Grid.Column="0"
+                   VerticalAlignment="Center"
+                   Margin="0,5"/>
+
 		<ComboBox x:Name="ProjectBox"
-                  Grid.Row="1"
-                  Margin="0,5,0,10"
+                  Grid.Row="0"
+                  Grid.Column="1"
+                  Margin="0,5"
+                  Height="26"
                   DisplayMemberPath="ProjectName"/>
 
 		<!-- Description -->
-		<TextBlock Text="Description" Grid.Row="2"/>
-		<TextBox x:Name="DescriptionBox"
-                 Grid.Row="3"
-                 Margin="0,5,0,10"/>
+		<TextBlock Text="Description"
+                   Grid.Row="1"
+                   Grid.Column="0"
+                   VerticalAlignment="Center"
+                   Margin="0,5"/>
 
-		<StackPanel Margin="0,10,0,0">
-			<TextBlock Text="Estimated Hours"/>
-			<TextBox x:Name="EstimatedHoursBox"
-					 Width="120"
-					 Text="8"/>
-		</StackPanel>
+		<TextBox x:Name="DescriptionBox"
+                 Grid.Row="1"
+                 Grid.Column="1"
+                 Margin="0,5"
+                 Height="26"/>
+
+		<!-- Estimated Hours -->
+		<TextBlock Text="Estimated Hours"
+                   Grid.Row="2"
+                   Grid.Column="0"
+                   VerticalAlignment="Center"
+                   Margin="0,5"/>
+
+		<TextBox x:Name="EstimatedHoursBox"
+                 Grid.Row="2"
+                 Grid.Column="1"
+                 Margin="0,5"
+                 Width="120"
+                 Height="26"
+                 HorizontalAlignment="Left"
+                 Text="8"/>
+
+		<!-- Due Date -->
+		<TextBlock Text="Due Date"
+                   Grid.Row="3"
+                   Grid.Column="0"
+                   VerticalAlignment="Center"
+                   Margin="0,5"/>
+
+		<DatePicker x:Name="DueDatePicker"
+                    Grid.Row="3"
+                    Grid.Column="1"
+                    Margin="0,5"
+                    Height="26"
+                    Width="200"
+                    SelectedDate="{Binding DueDate}"/>
 
 		<!-- Status -->
-		<StackPanel Grid.Row="4" Orientation="Vertical">
+		<TextBlock Text="Status"
+                   Grid.Row="4"
+                   Grid.Column="0"
+                   VerticalAlignment="Center"
+                   Margin="0,5"/>
 
-			<TextBlock Text="Status"/>
+		<ComboBox x:Name="StatusBox"
+                  Grid.Row="4"
+                  Grid.Column="1"
+                  Margin="0,5"
+                  Height="26">
 
-			<ComboBox x:Name="StatusBox" Margin="0,5,0,10">
-				<ComboBoxItem Content="Open"/>
-				<ComboBoxItem Content="InProgress"/>
-				<ComboBoxItem Content="Completed"/>
-			</ComboBox>
+			<ComboBoxItem Content="Open"/>
+			<ComboBoxItem Content="InProgress"/>
+			<ComboBoxItem Content="Completed"/>
 
-			<!-- Buttons -->
-			<StackPanel Orientation="Horizontal"
-                        HorizontalAlignment="Right">
+		</ComboBox>
 
-				<Button Content="Cancel"
-                        Width="100"
-                        Margin="0,0,10,0"
-                        Click="Cancel_Click"/>
+		<!-- Buttons -->
+		<StackPanel Grid.Row="6"
+                    Grid.ColumnSpan="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,20,0,0">
 
-				<Button Content="Create"
-                        Width="100"
-                        Click="Create_Click"/>
+			<Button Content="Cancel"
+                    Width="90"
+                    Margin="0,0,10,0"
+                    Click="Cancel_Click"/>
 
-			</StackPanel>
+			<Button Content="Create"
+                    Width="90"
+                    Click="Create_Click"/>
 
 		</StackPanel>
 
