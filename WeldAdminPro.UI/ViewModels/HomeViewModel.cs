@@ -56,6 +56,12 @@ namespace WeldAdminPro.UI.ViewModels
 		public List<ProductionRecommendationModel> ProductionRecommendations { get; set; }
 		public ProductionThroughputModel ProductionThroughput { get; set; }
 		public List<ProductionEfficiencyTrendModel> ProductionEfficiencyTrend { get; set; }
+		public ObservableCollection<SchedulerDebugItem> SchedulerDebug { get; set; }
+	= new();
+		public ObservableCollection<ProductionDelayPrediction> DelayPredictions { get; set; }
+	= new();
+
+		public event Action? ProductionChanged;
 
 
 		public HomeViewModel()
@@ -120,6 +126,32 @@ namespace WeldAdminPro.UI.ViewModels
 			ProductionTimeline =
 				new ObservableCollection<ProductionGanttItem>(
 					ganttService.GetTimeline());
+			var scheduler = new ProductionScheduleService();
+
+			var schedule = scheduler.GetSchedule();
+
+			SchedulerDebug.Clear();
+
+			foreach (var s in schedule)
+			{
+				SchedulerDebug.Add(new SchedulerDebugItem
+				{
+					WorkOrderNumber = s.WorkOrderNumber,
+					StartDate = s.StartDate,
+					EndDate = s.EndDate,
+					Hours = (s.EndDate - s.StartDate).TotalHours
+				});
+			}
+			var delayService = new ProductionDelayPredictionService();
+
+			var delays = delayService.PredictDelays();
+
+			DelayPredictions.Clear();
+
+			foreach (var d in delays)
+			{
+				DelayPredictions.Add(d);
+			}
 
 
 			LoadRiskSummary();
@@ -369,6 +401,8 @@ namespace WeldAdminPro.UI.ViewModels
 			_executionService.StartWorkOrder(id);
 
 			RefreshProductionSystem();
+
+			ProductionChanged?.Invoke();
 		}
 
 		[RelayCommand]
@@ -377,6 +411,8 @@ namespace WeldAdminPro.UI.ViewModels
 			_executionService.PauseWorkOrder(id);
 
 			RefreshProductionSystem();
+
+			ProductionChanged?.Invoke();
 		}
 
 		[RelayCommand]
@@ -385,6 +421,8 @@ namespace WeldAdminPro.UI.ViewModels
 			_executionService.CompleteWorkOrder(id);
 
 			RefreshProductionSystem();
+
+			ProductionChanged?.Invoke();
 		}
 
 

@@ -10,10 +10,12 @@ namespace WeldAdminPro.Data.Services
 	public class ProductionBottleneckDetectionService
 	{
 		private readonly WorkOrderRepository _workOrderRepository;
+		private readonly WorkOrderShortageDetectionService _shortageService;
 
 		public ProductionBottleneckDetectionService()
 		{
 			_workOrderRepository = new WorkOrderRepository();
+			_shortageService = new WorkOrderShortageDetectionService();
 		}
 
 		public List<ProductionBottleneckModel> DetectBottlenecks()
@@ -24,7 +26,26 @@ namespace WeldAdminPro.Data.Services
 
 			var today = DateTime.Today;
 
-			// Deadline risks
+			//------------------------------------------------
+			// 1️⃣ MATERIAL SHORTAGES
+			//------------------------------------------------
+
+			var shortages = _shortageService.DetectShortages();
+
+			foreach (var shortage in shortages)
+			{
+				bottlenecks.Add(new ProductionBottleneckModel
+				{
+					WorkOrderNumber = shortage.WorkOrderNumber,
+					BottleneckType = "Material Shortage",
+					Description = $"Missing material: {shortage.ItemCode}",
+					Severity = "High"
+				});
+			}
+
+			//------------------------------------------------
+			// 2️⃣ DEADLINE RISKS
+			//------------------------------------------------
 
 			var deadlineRisks = orders
 				.Where(o =>
@@ -44,7 +65,9 @@ namespace WeldAdminPro.Data.Services
 				});
 			}
 
-			// Queue congestion
+			//------------------------------------------------
+			// 3️⃣ QUEUE CONGESTION
+			//------------------------------------------------
 
 			var readyOrders = orders
 				.Where(o => o.Status == WorkOrderStatus.Ready)
@@ -58,6 +81,25 @@ namespace WeldAdminPro.Data.Services
 					BottleneckType = "Queue Congestion",
 					Description = $"Too many ready work orders ({readyOrders.Count}) waiting to start",
 					Severity = "Medium"
+				});
+			}
+
+			//------------------------------------------------
+			// 4️⃣ CAPACITY OVERLOAD
+			//------------------------------------------------
+
+			var capacityService = new ProductionCapacityService(_workOrderRepository);
+
+			var forecast = capacityService.GetCapacityForecast();
+
+			foreach (var day in forecast.Where(f => f.LoadPercentage > 100))
+			{
+				bottlenecks.Add(new ProductionBottleneckModel
+				{
+					WorkOrderNumber = "-",
+					BottleneckType = "Capacity Overload",
+					Description = $"Production exceeds capacity on {day.Date:dd MMM}",
+					Severity = "High"
 				});
 			}
 

@@ -47,6 +47,9 @@
 				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
 			</Grid.RowDefinitions>
 
 			<Grid.ColumnDefinitions>
@@ -253,7 +256,7 @@
 				</Grid>
 
 			</GroupBox>
-			<GroupBox Header="Production Bottlenecks"
+			<Expander Header="Production Bottlenecks"
           Grid.Row="2"
           Grid.ColumnSpan="2"
           Margin="6">
@@ -285,9 +288,9 @@
 
 				</DataGrid>
 
-			</GroupBox>
+			</Expander>
 
-			<GroupBox Header="Smart Production Recommendations"
+			<Expander Header="Smart Production Recommendations"
           Grid.Row="3"
           Grid.ColumnSpan="2"
           Margin="6">
@@ -320,7 +323,7 @@
 
 				</DataGrid>
 
-			</GroupBox>
+			</Expander>
 
 			<GroupBox Header="Production Throughput Analytics"
 					  Grid.Row="4"
@@ -360,7 +363,7 @@
 
 			</GroupBox>
 
-			<GroupBox Header="Production Efficiency Trends (Last 7 Days)"
+			<Expander Header="Production Efficiency Trends (Last 7 Days)"
           Grid.Row="5"
           Grid.ColumnSpan="2"
           Margin="6">
@@ -385,7 +388,7 @@
 
 				</DataGrid>
 
-			</GroupBox>
+			</Expander>
 
 			
 
@@ -434,7 +437,7 @@
 
 			<!-- PRODUCTION READINESS -->
 
-			<GroupBox Header="Production Readiness"
+			<Expander Header="Production Readiness"
 					  Grid.Row="9"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
@@ -450,11 +453,11 @@
 
 				</StackPanel>
 
-			</GroupBox>
+			</Expander>
 
 			<!-- PRODUCTION BLOCK -->
 
-			<GroupBox Header="Production Block Monitor"
+			<Expander Header="Production Block Monitor"
 					  Grid.Row="10"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
@@ -481,11 +484,11 @@ Width="140"/>
 
 				</DataGrid>
 
-			</GroupBox>
+			</Expander>
 
 			<!-- PRODUCTION STATUS -->
 
-			<GroupBox Header="Production Status Board"
+			<Expander Header="Production Status Board"
 					  Grid.Row="11"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
@@ -560,11 +563,11 @@ Width="*"/>
 
 				</DataGrid>
 
-			</GroupBox>
+			</Expander>
 
 			<!-- PRODUCTION QUEUE -->
 
-			<GroupBox Header="Production Scheduling Queue"
+			<Expander Header="Production Scheduling Queue"
 					  Grid.Row="12"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
@@ -593,7 +596,7 @@ Width="*"/>
 
 				</DataGrid>
 
-			</GroupBox>
+			</Expander>
 
 			<!-- PRODUCTION TIMELINE -->
 
@@ -629,10 +632,40 @@ Width="*"/>
 
 			</GroupBox>
 
+			<Expander Header="Scheduler Debug Panel"
+          Grid.Row="14"
+          Grid.ColumnSpan="2"
+          Margin="6"
+          IsExpanded="False">
+
+				<DataGrid ItemsSource="{Binding SchedulerDebug}"
+              AutoGenerateColumns="False"
+              Height="200">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Work Order"
+                                Binding="{Binding WorkOrderNumber}" />
+
+						<DataGridTextColumn Header="Start"
+                                Binding="{Binding StartDate}" />
+
+						<DataGridTextColumn Header="End"
+                                Binding="{Binding EndDate}" />
+
+						<DataGridTextColumn Header="Hours"
+                                Binding="{Binding Hours}" />
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</Expander>
+
 			<!-- INVENTORY -->
 
 			<GroupBox Header="Inventory Health"
-					  Grid.Row="14"
+					  Grid.Row="15"
 					  Grid.Column="0"
 					  Margin="6">
 
@@ -650,8 +683,8 @@ Width="*"/>
 
 			</GroupBox>
 
-			<GroupBox Header="Operational Alerts"
-					  Grid.Row="14"
+			<Expander Header="Operational Alerts"
+					  Grid.Row="15"
 					  Grid.Column="1"
 					  Margin="6">
 
@@ -670,12 +703,12 @@ Width="*"/>
 
 				</DataGrid>
 
-			</GroupBox>
+			</Expander>
 
 			<!-- PROCUREMENT -->
 
-			<GroupBox Header="Procurement Alerts"
-					  Grid.Row="15"
+			<Expander Header="Procurement Alerts"
+					  Grid.Row="16"
 					  Grid.Column="0"
 					  Margin="6">
 
@@ -698,10 +731,10 @@ Width="*"/>
 
 				</DataGrid>
 
-			</GroupBox>
+			</Expander>
 
-			<GroupBox Header="Top Consumed Materials"
-					  Grid.Row="15"
+			<Expander Header="Top Consumed Materials"
+					  Grid.Row="16"
 					  Grid.Column="1"
 					  Margin="6">
 
@@ -722,12 +755,12 @@ Width="*"/>
 
 				</DataGrid>
 
-			</GroupBox>
+			</Expander>
 
 			<!-- FINANCIAL -->
 
-			<GroupBox Header="Project Material Cost Intelligence"
-					  Grid.Row="16"
+			<Expander Header="Project Material Cost Intelligence"
+					  Grid.Row="17"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -752,12 +785,12 @@ Width="*"/>
 
 				</DataGrid>
 
-			</GroupBox>
+			</Expander>
 
 			<!-- WORK ORDER MATERIAL PLANNING -->
 
-			<GroupBox Header="Work Order Material Planning"
-					  Grid.Row="17"
+			<Expander Header="Work Order Material Planning"
+					  Grid.Row="18"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -784,14 +817,14 @@ Width="*"/>
 
 				</DataGrid>
 
-			</GroupBox>
+			</Expander>
 
 
 
 			<!-- RESERVATIONS -->
 
-			<GroupBox Header="Material Reservations"
-					  Grid.Row="18"
+			<Expander Header="Material Reservations"
+					  Grid.Row="19"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -818,12 +851,12 @@ Width="*"/>
 
 				</DataGrid>
 
-			</GroupBox>
+			</Expander>
 
 			<!-- PROCUREMENT SUGGESTIONS -->
 
-			<GroupBox Header="Smart Procurement Suggestions"
-					  Grid.Row="19"
+			<Expander Header="Smart Procurement Suggestions"
+					  Grid.Row="20"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -850,12 +883,12 @@ Width="*"/>
 
 				</DataGrid>
 
-			</GroupBox>
+			</Expander>
 
 			<!-- PRODUCTION CAPACITY FORECAST -->
 
-			<GroupBox Header="Production Capacity Forecast (Next 14 Days)"
-					  Grid.Row="20"
+			<Expander Header="Production Capacity Forecast (Next 14 Days)"
+					  Grid.Row="21"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -922,9 +955,10 @@ Width="*"/>
 
 				</DataGrid>
 
-			</GroupBox>
+			</Expander>
 
-			<GroupBox Header="Production Control Center"
+
+			<Expander Header="Production Control Center"
 					  Grid.Row="8"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
@@ -962,9 +996,11 @@ Width="*"/>
 						</DataGrid>
 					</GroupBox>
 
+					
+
 					<!-- Deadline Risks -->
 
-					<GroupBox Header="Deadline Risks" Grid.Row="0" Grid.Column="1">
+					<Expander Header="Deadline Risks" Grid.Row="0" Grid.Column="1">
 						<DataGrid ItemsSource="{Binding Production.DeadlineRisks}"
                       AutoGenerateColumns="False"
                       Height="160">
@@ -981,11 +1017,11 @@ Width="*"/>
 							</DataGrid.Columns>
 
 						</DataGrid>
-					</GroupBox>
+					</Expander>
 
 					<!-- SHORTAGES -->
 
-					<GroupBox Header="Material Shortages" Grid.Row="1" Grid.Column="0">
+					<Expander Header="Material Shortages" Grid.Row="1" Grid.Column="0">
 
 						<DataGrid ItemsSource="{Binding MaterialShortages}"
   AutoGenerateColumns="False"
@@ -1017,11 +1053,11 @@ Width="*"/>
 
 						</DataGrid>
 
-					</GroupBox>
+					</Expander>
 
 					<!-- Production Queue -->
 
-					<GroupBox Header="Production Control Board" 
+					<Expander Header="Production Control Board" 
 							  Grid.Row="7" 
 							  Grid.Column="1"
 							  Grid.ColumnSpan="2">
@@ -1081,11 +1117,43 @@ MinHeight="160">
 							</DataGrid.Columns>
 
 						</DataGrid>
-					</GroupBox>
+					</Expander>
 
 				</Grid>
 
-			</GroupBox>
+			</Expander>
+			<Expander Header="Production Delay Predictions"
+Grid.Row="22"
+Grid.ColumnSpan="2"
+Margin="6"
+IsExpanded="False">
+
+				<DataGrid ItemsSource="{Binding DelayPredictions}"
+    AutoGenerateColumns="False"
+    Height="200">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Work Order"
+                      Binding="{Binding WorkOrderNumber}" />
+
+						<DataGridTextColumn Header="Scheduled End"
+                      Binding="{Binding ScheduledEnd}" />
+
+						<DataGridTextColumn Header="Due Date"
+                      Binding="{Binding DueDate}" />
+
+						<DataGridTextColumn Header="Days Late"
+                      Binding="{Binding DaysLate}" />
+
+						<DataGridTextColumn Header="Risk"
+                      Binding="{Binding RiskLevel}" />
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</Expander>
 
 		</Grid>
 

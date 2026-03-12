@@ -29,17 +29,16 @@ namespace WeldAdminPro.Data.Services
 
 			double dailyCapacity = settings.DailyCapacity;
 
-			var workOrders = _workOrderRepository.GetAll()
-					.Where(w => w.Status == WorkOrderStatus.InProduction)
-					.ToList();
+			var scheduleService = new ProductionScheduleService();
+			var schedule = scheduleService.GetSchedule();
 
 			for (int i = 0; i < days; i++)
 			{
 				var date = DateTime.Today.AddDays(i);
 
-				var scheduledHours = workOrders
-					.Where(w => w.StartDate.Date == date.Date)
-					.Sum(w => w.EstimatedHours);
+				var scheduledHours = schedule
+					.Where(s => s.StartDate.Date == date.Date)
+					.Sum(s => (s.EndDate - s.StartDate).TotalHours);
 
 				var load = dailyCapacity == 0
 					? 0

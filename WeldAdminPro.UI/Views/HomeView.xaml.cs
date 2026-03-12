@@ -3,12 +3,14 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using WeldAdminPro.Core.Analytics.Production;
-using WeldAdminPro.UI.ViewModels;
-using System.Windows.Shapes;
 using System.Windows.Media;
-using WeldAdminPro.Data.Services;
+using System.Windows.Shapes;
+using WeldAdminPro.Core.Analytics.Production;
+using WeldAdminPro.Core.Enums;
 using WeldAdminPro.Core.Models;
+using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Data.Services;
+using WeldAdminPro.UI.ViewModels;
 
 namespace WeldAdminPro.UI.Views
 {
@@ -17,9 +19,19 @@ namespace WeldAdminPro.UI.Views
 		public HomeView()
 		{
 			InitializeComponent();
-			DataContext = new HomeViewModel();
+			var vm = new HomeViewModel();
+
+			DataContext = vm;
+
+			vm.ProductionChanged += () =>
+			{
+				LoadGantt();
+			};
+
 			LoadGantt();
+
 		}
+
 		private ProductionQueueItem? _draggedItem;
 
 		private void Queue_MouseDown(object sender, MouseButtonEventArgs e)
@@ -54,6 +66,7 @@ namespace WeldAdminPro.UI.Views
 			vm.ProductionQueue =
 				new System.Collections.ObjectModel.ObservableCollection<ProductionQueueItem>(list);
 		}
+
 		private void LoadGantt()
 		{
 			var statusService = new ProductionStatusService();
@@ -65,15 +78,29 @@ namespace WeldAdminPro.UI.Views
 			GanttCanvas.Children.Clear();
 			GanttLabels.Children.Clear();
 
+			if (!schedule.Any())
+				return;
+
 			double pixelsPerDay = 80;
+			double headerHeight = 25;
+
+			DateTime firstDate = schedule.Min(x => x.StartDate);
+			DateTime lastDate = schedule.Max(x => x.EndDate);
+
+			int totalDays = (lastDate - firstDate).Days + 2;
+
+			var repo = new WorkOrderRepository();
+			var workOrders = repo.GetAll();
+
+			// Draw grid FIRST
+			DrawTimelineGrid(firstDate, totalDays);
 
 			int row = 0;
 
-			DateTime firstDate = schedule.Min(x => x.StartDate);
-
 			foreach (var item in schedule)
 			{
-				// Label
+				var workOrder = workOrders
+					.FirstOrDefault(w => w.WorkOrderNumber == item.WorkOrderNumber);
 				var label = new TextBlock
 				{
 					Text = item.WorkOrderNumber,
@@ -86,25 +113,110 @@ namespace WeldAdminPro.UI.Views
 				double startOffset =
 					(item.StartDate - firstDate).TotalDays * pixelsPerDay;
 
-				double width =
-					item.DurationDays * pixelsPerDay;
+				double duration =
+					Math.Max(1, (item.EndDate - item.StartDate).TotalDays);
+
+				double width = duration * pixelsPerDay;
+								
+				Brush color = Brushes.SteelBlue;
+
+				if (workOrder != null)
+				{
+					switch (workOrder.Status)
+					{
+						case WorkOrderStatus.Ready:
+							color = Brushes.Green;
+							break;
+
+						case WorkOrderStatus.InProduction:
+							color = Brushes.DodgerBlue;
+							break;
+
+						case WorkOrderStatus.Completed:
+							color = Brushes.Gray;
+							break;
+					}
+				}
 
 				var bar = new Rectangle
 				{
 					Width = width,
 					Height = 20,
-					Fill = new SolidColorBrush(Color.FromRgb(70, 130, 180)),
+					Fill = color,
 					RadiusX = 3,
 					RadiusY = 3
 				};
 
 				Canvas.SetLeft(bar, startOffset);
-				Canvas.SetTop(bar, row * 30);
+				Canvas.SetTop(bar, headerHeight + (row * 30));
 
 				GanttCanvas.Children.Add(bar);
 
 				row++;
 			}
+		}
+
+		private void DrawTimelineGrid(DateTime startDate, int days)
+		{
+			double dayWidth = 80;
+
+			for (int i = 0; i < days; i++)
+			{
+				var x = i * dayWidth;
+
+				var date = startDate.AddDays(i);
+
+				// Weekend shading
+				if (date.DayOfWeek == DayOfWeek.Saturday ||
+					date.DayOfWeek == DayOfWeek.Sunday)
+				{
+					var rect = new Rectangle
+					{
+						Width = dayWidth,
+						Height = GanttCanvas.Height,
+						Fill = new SolidColorBrush(Color.FromArgb(20, 200, 200, 200)),
+					};
+
+					Canvas.SetLeft(rect, x);
+					Canvas.SetTop(rect, 0);
+
+					GanttCanvas.Children.Add(rect);
+				}
+
+				// Vertical grid line
+				var line = new Line
+				{
+					X1 = x,
+					Y1 = 0,
+					X2 = x,
+					Y2 = 600,
+					Stroke = Brushes.LightGray,
+					StrokeThickness = 1
+				};
+
+				GanttCanvas.Children.Add(line);
+
+				// Date label
+				var label = new TextBlock
+				{
+					Text = date.ToString("dd MMM"),
+					FontSize = 12
+				};
+
+				Canvas.SetLeft(label, x + 5);
+				Canvas.SetTop(label, 2);
+
+				GanttCanvas.Children.Add(label);
+			}
+
+		}
+		public void RefreshDashboard()
+		{
+			var vm = DataContext as HomeViewModel;
+
+			vm?.RefreshProductionSystem();
+
+			LoadGantt();
 		}
 	}
 }

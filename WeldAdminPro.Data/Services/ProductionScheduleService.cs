@@ -25,7 +25,9 @@ namespace WeldAdminPro.Data.Services
 				.OrderBy(w => w.CreatedOn)
 				.ToList();
 
-			DateTime currentStart = DateTime.Today;
+			DateTime currentStart = workOrders
+				.Select(w => w.PlannedStartDate ?? DateTime.Today)
+				.Min();
 
 			var result = new List<ProductionScheduleItem>();
 
