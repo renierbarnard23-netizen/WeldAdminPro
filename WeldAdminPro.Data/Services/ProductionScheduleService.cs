@@ -22,14 +22,13 @@ namespace WeldAdminPro.Data.Services
 			var workOrders = repo.GetAll()
 				.Where(w => w.Status != WorkOrderStatus.Completed)
 				.Where(w => !shortages.Contains(w.WorkOrderNumber))
+				.GroupBy(w => w.WorkOrderNumber)
+				.Select(g => g.First())
 				.OrderBy(w => w.CreatedOn)
 				.ToList();
 
-			// IMPORTANT: protect against empty dataset
 			if (workOrders.Count == 0)
-			{
 				return new List<ProductionScheduleItem>();
-			}
 
 			DateTime currentStart = workOrders
 				.Select(w => w.PlannedStartDate ?? DateTime.Today)
@@ -40,8 +39,8 @@ namespace WeldAdminPro.Data.Services
 
 			foreach (var wo in workOrders)
 			{
-				double hours = wo.EstimatedHours <= 0 ? 8 : wo.EstimatedHours;
-				double days = hours / 8.0;
+				double hours = wo.EstimatedHours > 0 ? wo.EstimatedHours : 8;
+				double days = Math.Max(1, hours / 8.0);
 
 				var schedule = new ProductionScheduleItem
 				{

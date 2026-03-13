@@ -17,8 +17,7 @@ namespace WeldAdminPro.Data.Services
 
 		public ProductionControlTowerModel GetControlTower()
 		{
-			var repo = new WorkOrderRepository();
-			var workOrders = repo.GetAll().ToList();
+			var workOrders = _workOrderRepository.GetAll().ToList();
 
 			var model = new ProductionControlTowerModel();
 
@@ -33,9 +32,9 @@ namespace WeldAdminPro.Data.Services
 					w.Status == WorkOrderStatus.Completed &&
 					w.CompletedOn?.Date == DateTime.Today);
 
-			model.BlockedOrders = 0; // will connect to shortage engine later
+			model.BlockedOrders = 0; // connect shortage engine later
 
-			model.DeadlineRisks = 0; // placeholder until risk engine added
+			model.DeadlineRisks = 0; // connect risk engine later
 
 			double totalCapacityPerDay = 32;
 
@@ -45,7 +44,7 @@ namespace WeldAdminPro.Data.Services
 				.Sum(w => w.EstimatedHours);
 
 			model.CapacityLoad =
-				totalCapacityPerDay == 0
+				totalCapacityPerDay <= 0
 				? 0
 				: (scheduledHours / totalCapacityPerDay) * 100;
 

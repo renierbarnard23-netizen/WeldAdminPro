@@ -7,36 +7,12 @@ namespace WeldAdminPro.Data.Repositories
 	{
 		public List<BillOfMaterial> GetAll()
 		{
-			return new List<BillOfMaterial>
-			{
-				new BillOfMaterial
-				{
-					Id = 1,
-					ProductCode = "WO-PRODUCT-001",
-					Description = "Example Fabrication Assembly"
-				}
-			};
+			return new List<BillOfMaterial>();
 		}
 
 		public List<BillOfMaterialItem> GetItems(int bomId)
 		{
-			return new List<BillOfMaterialItem>
-			{
-				new BillOfMaterialItem
-				{
-					BillOfMaterialId = bomId,
-					ItemCode = "7018",
-					Description = "Welding Rod 7018",
-					QuantityRequired = 200
-				},
-				new BillOfMaterialItem
-				{
-					BillOfMaterialId = bomId,
-					ItemCode = "ARGON",
-					Description = "Argon Gas Bottle",
-					QuantityRequired = 2
-				}
-			};
+			return new List<BillOfMaterialItem>();
 		}
 	}
 }
