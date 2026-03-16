@@ -60,7 +60,7 @@
 				<DataGridTextColumn Header="Client Rep" Binding="{Binding ClientRepresentative}" Width="120"/>
 				<DataGridTextColumn Header="Quote #" Binding="{Binding QuoteNumber}" Width="90"/>
 				<DataGridTextColumn Header="Order #" Binding="{Binding OrderNumber}" Width="90"/>
-				<DataGridTextColumn Header="Amount (R)" Binding="{Binding Amount, StringFormat=N2}" Width="110"/>
+				<DataGridTextColumn Header="Amount (R)" Binding="{Binding Budget, StringFormat=R {0:N2}}" Width="110"/>
 				<DataGridTextColumn Header="Material" Binding="{Binding Material}" Width="120"/>
 				<DataGridTextColumn Header="Assigned To" Binding="{Binding AssignedTo}" Width="120"/>
 				<DataGridCheckBoxColumn Header="Invoiced" Binding="{Binding IsInvoiced}" Width="80"/>

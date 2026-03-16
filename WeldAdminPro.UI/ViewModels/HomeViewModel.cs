@@ -37,7 +37,7 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly WorkOrderRepository _workOrderRepository;
 		private readonly WorkOrderExecutionService _executionService;
 		private readonly ProductionBottleneckDetectionService _bottleneckService;
-		private readonly ProductionRecommendationService _recommendationService;
+		
 		private readonly ProductionThroughputService _throughputService;
 		private readonly ProductionEfficiencyTrendService _efficiencyTrendService;
 
@@ -53,15 +53,18 @@ namespace WeldAdminPro.UI.ViewModels
 		public ProductionControlTowerViewModel ProductionControlTower { get; } = new ProductionControlTowerViewModel();
 
 		public List<ProductionBottleneckModel> ProductionBottlenecks { get; set; }
-		public List<ProductionRecommendationModel> ProductionRecommendations { get; set; }
-		
-		
+		public ObservableCollection<ProductionRecommendationModel> ProductionRecommendations { get; set; } = new();
+
+
 		public ObservableCollection<SchedulerDebugItem> SchedulerDebug { get; set; }
 	= new();
 		public ObservableCollection<ProductionDelayPrediction> DelayPredictions { get; set; }
 	= new();
 
 		public event Action? ProductionChanged;
+
+		public ProductionPlannerViewModel Planner { get; }
+	= new ProductionPlannerViewModel();
 
 
 		public HomeViewModel()
@@ -96,14 +99,27 @@ namespace WeldAdminPro.UI.ViewModels
 			ProductionControlTower.Load();
 			_bottleneckService = new ProductionBottleneckDetectionService();
 			ProductionBottlenecks = _bottleneckService.DetectBottlenecks();
-			_recommendationService = new ProductionRecommendationService();
-			ProductionRecommendations = _recommendationService.GetRecommendations();
+			
 			_throughputService = new ProductionThroughputService();
 			ProductionThroughput = _throughputService.GetThroughput();
 			_efficiencyTrendService = new ProductionEfficiencyTrendService();
 			ProductionEfficiencyTrend = _efficiencyTrendService.GetLast7DaysTrend();
 
+			var aiPlanner = new ProductionAIPlannerService();
 
+			var aiRecommendations = aiPlanner.GetRecommendations();
+
+			ProductionRecommendations =
+	new ObservableCollection<ProductionRecommendationModel>(
+		aiRecommendations.Select(r => new ProductionRecommendationModel
+		{
+			WorkOrderNumber = r.WorkOrderNumber,
+			Recommendation = r.Recommendation,
+			Reason = r.Materials == "Ready"
+				? "AI production priority engine"
+				: "Material shortage detected",
+			Score = (int)r.PriorityScore
+		}));
 
 			var workOrderRepo = _workOrderRepository;
 
@@ -139,7 +155,7 @@ namespace WeldAdminPro.UI.ViewModels
 					WorkOrderNumber = s.WorkOrderNumber,
 					StartDate = s.StartDate,
 					EndDate = s.EndDate,
-					Hours = (s.EndDate - s.StartDate).TotalHours
+					Hours = (int)Math.Round((s.EndDate - s.StartDate).TotalHours)
 				});
 			}
 			var delayService = new ProductionDelayPredictionService();
@@ -171,6 +187,9 @@ namespace WeldAdminPro.UI.ViewModels
 			LoadProductionTrafficLights();
 			LoadProductionQueue();
 			LoadReservations();
+			Planner.Load();
+
+
 		}
 
 		// =========================================================
@@ -406,6 +425,24 @@ namespace WeldAdminPro.UI.ViewModels
 
 			OnPropertyChanged(nameof(ProductionThroughput));
 			OnPropertyChanged(nameof(ProductionEfficiencyTrend));
+
+			var aiPlanner = new ProductionAIPlannerService();
+
+			var aiRecommendations = aiPlanner.GetRecommendations();
+
+			ProductionRecommendations =
+	new ObservableCollection<ProductionRecommendationModel>(
+		aiRecommendations.Select(r => new ProductionRecommendationModel
+		{
+			WorkOrderNumber = r.WorkOrderNumber,
+			Recommendation = r.Recommendation,
+			Reason = r.Materials == "Ready"
+			? "AI production priority engine"
+			: "Material shortage detected",
+			Score = (int)Math.Round(r.PriorityScore)
+		}));
+
+			OnPropertyChanged(nameof(ProductionRecommendations));
 		}
 
 		[RelayCommand]

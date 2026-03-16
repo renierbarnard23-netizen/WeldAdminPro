@@ -30,11 +30,11 @@ namespace WeldAdminPro.Data.Services
 				return new ProjectProfitabilityStat
 				{
 					ProjectName = p.ProjectName ?? "",
-					Revenue = 0,   // Revenue not tracked yet
+					Revenue = p.Budget,
 					MaterialCost = materialCost
 				};
 			})
-			.OrderByDescending(p => p.Profit)
+			.OrderByDescending(p => p.Profit) // uses computed property
 			.ToList();
 
 			return stats;

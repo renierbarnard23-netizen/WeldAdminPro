@@ -264,27 +264,7 @@
 				<DataGrid ItemsSource="{Binding ProductionBottlenecks}"
               AutoGenerateColumns="False"
               Height="160"
-              Margin="6">
-
-					<DataGrid.Columns>
-
-						<DataGridTextColumn Header="Work Order"
-                                Binding="{Binding WorkOrderNumber}"
-                                Width="140"/>
-
-						<DataGridTextColumn Header="Type"
-                                Binding="{Binding BottleneckType}"
-                                Width="160"/>
-
-						<DataGridTextColumn Header="Description"
-                                Binding="{Binding Description}"
-                                Width="*"/>
-
-						<DataGridTextColumn Header="Severity"
-                                Binding="{Binding Severity}"
-                                Width="120"/>
-
-					</DataGrid.Columns>
+              Margin="6">				
 
 				</DataGrid>
 
@@ -297,6 +277,7 @@
 
 				<DataGrid ItemsSource="{Binding ProductionRecommendations}"
               AutoGenerateColumns="False"
+			  IsReadOnly="True"
               Height="160"
               RowHeight="32"
               Margin="6">
@@ -779,7 +760,7 @@ Width="*"/>
 
 						<DataGridTextColumn Header="Profit" Binding="{Binding Profit}" Width="120"/>
 
-						<DataGridTextColumn Header="Margin %" Binding="{Binding Margin}" Width="100"/>
+						<DataGridTextColumn Header="Margin %" Binding="{Binding Margin, StringFormat={}{0:N2}}" Width="100"/>
 
 					</DataGrid.Columns>
 
