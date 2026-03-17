@@ -43,5 +43,8 @@ namespace WeldAdminPro.UI.ViewModels
 			CapacityLoad = data.CapacityLoad;
 			DeadlineRisks = data.DeadlineRisks;
 		}
+
+		public bool IsCapacityWarning => CapacityLoad >= 80 && CapacityLoad < 100;
+		public bool IsCapacityCritical => CapacityLoad >= 100;
 	}
 }

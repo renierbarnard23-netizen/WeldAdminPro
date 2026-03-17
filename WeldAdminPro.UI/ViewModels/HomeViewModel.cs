@@ -68,6 +68,8 @@ namespace WeldAdminPro.UI.ViewModels
 		public ProductionAdvisorResult AdvisorResult { get; set; }
 
 
+
+
 		public HomeViewModel()
 		{
 			_riskSummaryService = new InventoryRiskSummaryService();

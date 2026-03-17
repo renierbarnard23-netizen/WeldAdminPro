@@ -13,5 +13,7 @@ namespace WeldAdminPro.Core.Analytics.Production
 		public double LoadPercentage { get; set; }
 
 		public bool IsOverloaded => LoadPercentage > 100;
+		public bool IsNearCapacity => LoadPercentage >= 90 && LoadPercentage < 100;
+		public bool IsOverCapacity => LoadPercentage >= 100;
 	}
 }
