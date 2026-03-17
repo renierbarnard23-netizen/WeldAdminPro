@@ -65,6 +65,7 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public ProductionPlannerViewModel Planner { get; }
 	= new ProductionPlannerViewModel();
+		public ProductionAdvisorResult AdvisorResult { get; set; }
 
 
 		public HomeViewModel()
@@ -115,13 +116,13 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			WorkOrderNumber = r.WorkOrderNumber,
 			Recommendation = r.Recommendation,
-			Reason = r.Materials == "Ready"
-				? "AI production priority engine"
-				: "Material shortage detected",
+			Explanation = r.Explanation,
 			Score = (int)r.PriorityScore
 		}));
 
 			var workOrderRepo = _workOrderRepository;
+			var advisorService = new ProductionAdvisorService();
+			AdvisorResult = advisorService.GetNextBestAction();
 
 			var capacityService = new ProductionCapacityService(workOrderRepo);
 
@@ -427,6 +428,10 @@ namespace WeldAdminPro.UI.ViewModels
 			OnPropertyChanged(nameof(ProductionEfficiencyTrend));
 
 			var aiPlanner = new ProductionAIPlannerService();
+			var advisorService = new ProductionAdvisorService();
+			AdvisorResult = advisorService.GetNextBestAction();
+
+			OnPropertyChanged(nameof(AdvisorResult));
 
 			var aiRecommendations = aiPlanner.GetRecommendations();
 
@@ -436,9 +441,7 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			WorkOrderNumber = r.WorkOrderNumber,
 			Recommendation = r.Recommendation,
-			Reason = r.Materials == "Ready"
-			? "AI production priority engine"
-			: "Material shortage detected",
+			Explanation = r.Explanation,
 			Score = (int)Math.Round(r.PriorityScore)
 		}));
 

@@ -262,16 +262,72 @@
           Margin="6">
 
 				<DataGrid ItemsSource="{Binding ProductionBottlenecks}"
-              AutoGenerateColumns="False"
-              Height="160"
-              Margin="6">				
+          AutoGenerateColumns="False"
+          Height="160"
+          Margin="6">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Work Order"
+                            Binding="{Binding WorkOrderNumber}"
+                            Width="140"/>
+
+						<DataGridTextColumn Header="Type"
+                            Binding="{Binding BottleneckType}"
+                            Width="180"/>
+
+						<DataGridTextColumn Header="Description"
+                            Binding="{Binding Description}"
+                            Width="*"/>
+
+						<DataGridTextColumn Header="Severity"
+                            Binding="{Binding Severity}"
+                            Width="120"/>
+
+						<DataGridTextColumn Header="Action"
+							Binding="{Binding SuggestedAction}"
+							Width="220"/>
+
+					</DataGrid.Columns>
 
 				</DataGrid>
 
 			</Expander>
 
-			<Expander Header="Smart Production Recommendations"
+			<GroupBox Header="AI Production Advisor"
           Grid.Row="3"
+          Grid.ColumnSpan="2"
+          Margin="8,6"
+          Background="#F5F7FA">
+
+				<StackPanel Margin="12">
+
+					<TextBlock Text="Recommended Next Action"
+                   FontSize="12"
+                   Foreground="Gray"/>
+
+					<TextBlock Text="{Binding AdvisorResult.WorkOrderNumber}"
+                   FontSize="26"
+                   FontWeight="Bold"
+                   Margin="0,4,0,0"/>
+
+					<TextBlock Text="{Binding AdvisorResult.Recommendation}"
+                   FontSize="16"
+                   Foreground="#2E7D32"
+                   FontWeight="SemiBold"
+                   Margin="0,4,0,0"/>
+
+					<TextBlock Text="{Binding AdvisorResult.Reason}"
+                   TextWrapping="Wrap"
+                   Margin="0,8,0,0"
+                   Foreground="#444"/>
+
+				</StackPanel>
+
+			</GroupBox>
+
+			<Expander Header="Smart Production Recommendations"
+          Grid.Row="4"
           Grid.ColumnSpan="2"
           Margin="6">
 
@@ -284,21 +340,13 @@
 
 					<DataGrid.Columns>
 
-						<DataGridTextColumn Header="Work Order"
-                                Binding="{Binding WorkOrderNumber}"
-                                Width="140"/>
+						<DataGridTextColumn Header="Work Order" Binding="{Binding WorkOrderNumber}" Width="140"/>
 
-						<DataGridTextColumn Header="Recommendation"
-                                Binding="{Binding Recommendation}"
-                                Width="220"/>
+						<DataGridTextColumn Header="Recommendation" Binding="{Binding Recommendation}" Width="220"/>
 
-						<DataGridTextColumn Header="Reason"
-                                Binding="{Binding Reason}"
-                                Width="*"/>
+						<DataGridTextColumn Header="Explanation" Binding="{Binding Explanation}" Width="*" />
 
-						<DataGridTextColumn Header="Score"
-                                Binding="{Binding Score}"
-                                Width="80"/>
+						<DataGridTextColumn Header="Score" Binding="{Binding Score, StringFormat={}{0}}" Width="80"/>
 
 					</DataGrid.Columns>
 
@@ -307,7 +355,7 @@
 			</Expander>
 
 			<GroupBox Header="Production Throughput Analytics"
-					  Grid.Row="4"
+					  Grid.Row="5"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -345,7 +393,7 @@
 			</GroupBox>
 
 			<Expander Header="Production Efficiency Trends (Last 7 Days)"
-          Grid.Row="5"
+          Grid.Row="6"
           Grid.ColumnSpan="2"
           Margin="6">
 

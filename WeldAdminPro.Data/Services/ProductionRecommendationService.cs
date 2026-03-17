@@ -47,7 +47,7 @@ namespace WeldAdminPro.Data.Services
 				{
 					WorkOrderNumber = order.WorkOrderNumber,
 					Recommendation = "Consider starting this job next",
-					Reason = "Deadline and priority score calculated",
+					Explanation = "AI production priority engine",
 					Score = score
 				});
 			}

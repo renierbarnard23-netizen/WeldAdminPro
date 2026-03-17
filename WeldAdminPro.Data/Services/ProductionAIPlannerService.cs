@@ -37,7 +37,7 @@ namespace WeldAdminPro.Data.Services
 			{
 				bool materialsReady = !shortages.Contains(wo.WorkOrderNumber);
 
-				double score = CalculatePriorityScore(wo, materialsReady);
+				var (score, explanation) = CalculatePriorityScore(wo, materialsReady);
 
 				string recommendation;
 
@@ -67,7 +67,8 @@ namespace WeldAdminPro.Data.Services
 					Due = dueText,
 					Materials = materialsReady ? "Ready" : "Shortage",
 					PriorityScore = Math.Round(score),
-					Recommendation = recommendation
+					Recommendation = recommendation,
+					Explanation = explanation
 				});
 			}
 
@@ -78,31 +79,66 @@ namespace WeldAdminPro.Data.Services
 				.ToList();
 		}
 
-		private double CalculatePriorityScore(WorkOrder wo, bool materialsReady)
+		private (double Score, string Explanation) CalculatePriorityScore(WorkOrder wo, bool materialsReady)
 		{
 			double score = 0;
+			List<string> reasons = new();
 
 			var daysUntilDue = wo.DueDate.HasValue
 				? (wo.DueDate.Value - DateTime.Today).TotalDays
 				: 30;
 
-			if (daysUntilDue <= 1) score += 60;
-			else if (daysUntilDue <= 3) score += 45;
-			else if (daysUntilDue <= 7) score += 30;
-			else if (daysUntilDue <= 14) score += 15;
-			else score += 5;
+			if (daysUntilDue <= 1)
+			{
+				score += 60;
+				reasons.Add("Due Tomorrow +60");
+			}
+			else if (daysUntilDue <= 3)
+			{
+				score += 45;
+				reasons.Add("Due Soon +45");
+			}
+			else if (daysUntilDue <= 7)
+			{
+				score += 30;
+				reasons.Add("Due This Week +30");
+			}
+			else if (daysUntilDue <= 14)
+			{
+				score += 15;
+				reasons.Add("Due Soonish +15");
+			}
+			else
+			{
+				score += 5;
+				reasons.Add("Low Urgency +5");
+			}
 
 			if (materialsReady)
+			{
 				score += 15;
+				reasons.Add("Materials Ready +15");
+			}
+			else
+			{
+				reasons.Add("Material Shortage");
+			}
 
 			if (wo.EstimatedHours <= 4)
+			{
 				score += 20;
+				reasons.Add("Short Job +20");
+			}
 			else if (wo.EstimatedHours <= 8)
+			{
 				score += 15;
+				reasons.Add("Medium Job +15");
+			}
 
 			score += 5;
+			reasons.Add("Base Priority +5");
 
-			return score;
+			return (score, string.Join(", ", reasons));
 		}
 
 		public List<ProductionScheduleItem> GenerateOptimalSchedule()

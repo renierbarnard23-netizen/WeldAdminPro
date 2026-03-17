@@ -39,7 +39,8 @@ namespace WeldAdminPro.Data.Services
 					WorkOrderNumber = shortage.WorkOrderNumber,
 					BottleneckType = "Material Shortage",
 					Description = $"Missing material: {shortage.ItemCode}",
-					Severity = "High"
+					Severity = "High",
+					SuggestedAction = $"Order or reserve material: {shortage.ItemCode}"
 				});
 			}
 
@@ -61,7 +62,8 @@ namespace WeldAdminPro.Data.Services
 					WorkOrderNumber = order.WorkOrderNumber,
 					BottleneckType = "Deadline Risk",
 					Description = "Work order due within 48 hours",
-					Severity = "High"
+					Severity = "High",
+					SuggestedAction = "Prioritize immediately to avoid delay"
 				});
 			}
 
@@ -80,7 +82,8 @@ namespace WeldAdminPro.Data.Services
 					WorkOrderNumber = "-",
 					BottleneckType = "Queue Congestion",
 					Description = $"Too many ready work orders ({readyOrders.Count}) waiting to start",
-					Severity = "Medium"
+					Severity = "Medium",
+					SuggestedAction = "Start highest priority work order"
 				});
 			}
 
@@ -99,7 +102,8 @@ namespace WeldAdminPro.Data.Services
 					WorkOrderNumber = "-",
 					BottleneckType = "Capacity Overload",
 					Description = $"Production exceeds capacity on {day.Date:dd MMM}",
-					Severity = "High"
+					Severity = "High",
+					SuggestedAction = "Reschedule or split workload"
 				});
 			}
 
