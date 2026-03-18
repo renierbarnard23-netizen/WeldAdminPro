@@ -54,22 +54,15 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public List<ProductionBottleneckModel> ProductionBottlenecks { get; set; }
 		public ObservableCollection<ProductionRecommendationModel> ProductionRecommendations { get; set; } = new();
-
-
-		public ObservableCollection<SchedulerDebugItem> SchedulerDebug { get; set; }
-	= new();
-		public ObservableCollection<ProductionDelayPrediction> DelayPredictions { get; set; }
-	= new();
+		public ObservableCollection<SchedulerDebugItem> SchedulerDebug { get; set; } = new();
+		public ObservableCollection<ProductionDelayPrediction> DelayPredictions { get; set; } = new();
+		public ProductionQueueItem? TopPriorityWorkOrder { get; set; }
 
 		public event Action? ProductionChanged;
-
-		public ProductionPlannerViewModel Planner { get; }
-	= new ProductionPlannerViewModel();
+		public ProductionPlannerViewModel Planner { get; } = new ProductionPlannerViewModel();
 		public ProductionAdvisorResult AdvisorResult { get; set; }
-
-
-
-
+		public ObservableCollection<SystemAlert> SystemAlerts { get; set; } = new();
+		
 		public HomeViewModel()
 		{
 			_riskSummaryService = new InventoryRiskSummaryService();
@@ -94,7 +87,7 @@ namespace WeldAdminPro.UI.ViewModels
 			_executionService = new WorkOrderExecutionService(_workOrderRepository);
 			ProductionControlTower = new ProductionControlTowerViewModel();
 			ProductionControlTower.Load();
-
+			TopPriorityWorkOrder = Production.ProductionQueue.FirstOrDefault();
 			Execution = new ProductionExecutionViewModel();
 			Execution.ControlTower = ProductionControlTower;
 			Execution.Load();
@@ -108,13 +101,36 @@ namespace WeldAdminPro.UI.ViewModels
 			_efficiencyTrendService = new ProductionEfficiencyTrendService();
 			ProductionEfficiencyTrend = _efficiencyTrendService.GetLast7DaysTrend();
 
+			var alertService = new AlertEngineService();
+
+			var snapshot = new ProductionControlSnapshot
+			{
+				CapacityLoad = ProductionControlTower.CapacityLoad
+			};
+
+			var alerts = alertService.GenerateAlerts(
+				ProductionBottlenecks,
+				snapshot,
+				CapacityForecast);
+
+			SystemAlerts.Clear();
+
+			foreach (var alert in alerts)
+			{
+				SystemAlerts.Add(alert);
+			}
+
+			SystemAlerts.Clear();
+
+			foreach (var alert in alerts)
+			{
+				SystemAlerts.Add(alert);
+			}
 			var aiPlanner = new ProductionAIPlannerService();
 
 			var aiRecommendations = aiPlanner.GetRecommendations();
 
-			ProductionRecommendations =
-	new ObservableCollection<ProductionRecommendationModel>(
-		aiRecommendations.Select(r => new ProductionRecommendationModel
+			ProductionRecommendations = new ObservableCollection<ProductionRecommendationModel>(aiRecommendations.Select(r => new ProductionRecommendationModel
 		{
 			WorkOrderNumber = r.WorkOrderNumber,
 			Recommendation = r.Recommendation,
@@ -191,6 +207,8 @@ namespace WeldAdminPro.UI.ViewModels
 			LoadProductionQueue();
 			LoadReservations();
 			Planner.Load();
+
+		
 
 
 		}
@@ -279,6 +297,7 @@ namespace WeldAdminPro.UI.ViewModels
 
 		[ObservableProperty]
 		private List<ProductionEfficiencyTrendModel> productionEfficiencyTrend = new();
+
 
 		private void LoadRiskSummary()
 		{
@@ -401,8 +420,25 @@ namespace WeldAdminPro.UI.ViewModels
 		{
 			var queue = _schedulingService.BuildQueue();
 
-			ProductionQueue =
-				new ObservableCollection<ProductionQueueItem>(queue);
+			var autoPriority = new AutoPriorityService();
+
+			var reordered = autoPriority.ReorderQueue(
+				queue.ToList(), // ✅ USE queue, not old Production.ProductionQueue
+				ProductionBottlenecks.ToList()
+			);
+
+			foreach (var wo in reordered)
+				wo.IsTopPriority = false;
+
+			var top = reordered.FirstOrDefault();
+
+			if (top != null)
+			{
+				top.IsTopPriority = true;
+				TopPriorityWorkOrder = top;
+			}
+
+			Production.ProductionQueue = new ObservableCollection<ProductionQueueItem>(reordered);
 		}
 		private void LoadReservations()
 		{
@@ -479,7 +515,19 @@ namespace WeldAdminPro.UI.ViewModels
 
 			ProductionChanged?.Invoke();
 		}
+		[RelayCommand]
+		private void StartRecommended()
+		{
+			if (TopPriorityWorkOrder == null)
+				return;
 
+			if (TopPriorityWorkOrder.Status == "Blocked")
+				return;
+
+			_executionService.StartWorkOrder(TopPriorityWorkOrder.Id);
+
+			RefreshProductionSystem();
+		}
 
 	}
 	}

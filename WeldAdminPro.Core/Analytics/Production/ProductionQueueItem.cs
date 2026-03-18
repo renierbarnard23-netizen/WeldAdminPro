@@ -15,5 +15,6 @@ namespace WeldAdminPro.Core.Analytics.Production
 		public string StartDate { get; set; } = "";
 
 		public string DueDate { get; set; } = "";
+		public bool IsTopPriority { get; set; }
 	}
 }

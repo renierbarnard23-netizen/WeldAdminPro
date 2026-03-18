@@ -57,10 +57,50 @@
 				<ColumnDefinition Width="*"/>
 			</Grid.ColumnDefinitions>
 
+			<ItemsControl ItemsSource="{Binding SystemAlerts}"
+              Grid.Row="0"
+              Grid.ColumnSpan="2"
+              Margin="6">
+
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
+
+						<Border CornerRadius="6" Padding="10" Margin="4">
+
+							<Border.Style>
+								<Style TargetType="Border">
+
+									<Setter Property="Background" Value="#E3F2FD"/>
+
+									<Style.Triggers>
+
+										<DataTrigger Binding="{Binding Level}" Value="Critical">
+											<Setter Property="Background" Value="#FFCDD2"/>
+										</DataTrigger>
+
+										<DataTrigger Binding="{Binding Level}" Value="Warning">
+											<Setter Property="Background" Value="#FFE0B2"/>
+										</DataTrigger>
+
+									</Style.Triggers>
+
+								</Style>
+							</Border.Style>
+
+							<TextBlock Text="{Binding Message}"
+                           FontWeight="Bold"/>
+
+						</Border>
+
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+
+			</ItemsControl>
+
 			<!-- KPI CARDS -->
 
 			<ItemsControl ItemsSource="{Binding ExecutiveKpis}"
-						  Grid.Row="0"
+						  Grid.Row="1"
 						  Grid.ColumnSpan="2"
 						  Margin="6">
 
@@ -107,7 +147,7 @@
 			<!-- PRODUCTION CONTROL TOWER -->
 
 			<GroupBox Header="Production Control Tower"
-					  Grid.Row="1"
+					  Grid.Row="2"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -278,7 +318,7 @@
 
 			</GroupBox>
 			
-			<Grid Grid.Row="2" Grid.ColumnSpan="2" Margin="8,6">
+			<Grid Grid.Row="3" Grid.ColumnSpan="2" Margin="8,6">
 
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="1.2*"/>
@@ -402,7 +442,7 @@
 			</Grid>
 
 			<Expander Header="Smart Production Recommendations"
-          Grid.Row="3"
+          Grid.Row="4"
           Grid.ColumnSpan="2"
           Margin="6">
 
@@ -430,7 +470,7 @@
 			</Expander>
 
 			<GroupBox Header="Production Throughput Analytics"
-					  Grid.Row="4"
+					  Grid.Row="5"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -468,7 +508,7 @@
 			</GroupBox>
 
 			<Expander Header="Production Efficiency Trends (Last 7 Days)"
-          Grid.Row="5"
+          Grid.Row="6"
           Grid.ColumnSpan="2"
           Margin="6">
 
@@ -499,7 +539,7 @@
 			<!-- TRAFFIC LIGHTS -->
 
 			<ItemsControl ItemsSource="{Binding ProductionTrafficLights}"
-						  Grid.Row="6"
+						  Grid.Row="7"
 						  Grid.ColumnSpan="2"
 						  Margin="6">
 
@@ -542,7 +582,7 @@
 			<!-- PRODUCTION READINESS -->
 
 			<Expander Header="Production Readiness"
-					  Grid.Row="8"
+					  Grid.Row="9"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -562,7 +602,7 @@
 			<!-- PRODUCTION BLOCK -->
 
 			<Expander Header="Production Block Monitor"
-					  Grid.Row="9"
+					  Grid.Row="10"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -593,7 +633,7 @@ Width="140"/>
 			<!-- PRODUCTION STATUS -->
 
 			<Expander Header="Production Status Board"
-					  Grid.Row="10"
+					  Grid.Row="11"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -672,7 +712,7 @@ Width="*"/>
 			<!-- PRODUCTION QUEUE -->
 
 			<Expander Header="Production Scheduling Queue"
-					  Grid.Row="11"
+					  Grid.Row="12"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -686,7 +726,8 @@ Width="*"/>
 
 					<DataGrid.Columns>
 
-						<DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="100"/>
+						<DataGridTextColumn Header="Rank" Binding="{Binding Priority}" Width="80"/>
+						<DataGridTextColumn Header="Score" Binding="{Binding Priority}" Width="80"/>
 
 						<DataGridTextColumn Header="Work Order" Binding="{Binding WorkOrderNumber}" Width="160"/>
 
@@ -705,7 +746,7 @@ Width="*"/>
 			<!-- PRODUCTION TIMELINE -->
 
 			<GroupBox Header="Production Gantt Schedule" 
-					  Grid.Row="12"
+					  Grid.Row="13"
 					  Grid.ColumnSpan="2"
 					  Margin="0,10,0,0">
 
@@ -737,7 +778,7 @@ Width="*"/>
 			</GroupBox>
 
 			<Expander Header="Scheduler Debug Panel"
-          Grid.Row="13"
+          Grid.Row="14"
           Grid.ColumnSpan="2"
           Margin="6"
           IsExpanded="False">
@@ -769,7 +810,7 @@ Width="*"/>
 			<!-- INVENTORY -->
 
 			<GroupBox Header="Inventory Health"
-					  Grid.Row="14"
+					  Grid.Row="15"
 					  Grid.Column="0"
 					  Margin="6">
 
@@ -788,7 +829,7 @@ Width="*"/>
 			</GroupBox>
 
 			<Expander Header="Operational Alerts"
-					  Grid.Row="14"
+					  Grid.Row="15"
 					  Grid.Column="1"
 					  Margin="6">
 
@@ -812,7 +853,7 @@ Width="*"/>
 			<!-- PROCUREMENT -->
 
 			<Expander Header="Procurement Alerts"
-					  Grid.Row="15"
+					  Grid.Row="16"
 					  Grid.Column="0"
 					  Margin="6">
 
@@ -838,7 +879,7 @@ Width="*"/>
 			</Expander>
 
 			<Expander Header="Top Consumed Materials"
-					  Grid.Row="15"
+					  Grid.Row="16"
 					  Grid.Column="1"
 					  Margin="6">
 
@@ -864,7 +905,7 @@ Width="*"/>
 			<!-- FINANCIAL -->
 
 			<Expander Header="Project Material Cost Intelligence"
-					  Grid.Row="16"
+					  Grid.Row="17"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -894,7 +935,7 @@ Width="*"/>
 			<!-- WORK ORDER MATERIAL PLANNING -->
 
 			<Expander Header="Work Order Material Planning"
-					  Grid.Row="17"
+					  Grid.Row="18"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -928,7 +969,7 @@ Width="*"/>
 			<!-- RESERVATIONS -->
 
 			<Expander Header="Material Reservations"
-					  Grid.Row="18"
+					  Grid.Row="19"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -960,7 +1001,7 @@ Width="*"/>
 			<!-- PROCUREMENT SUGGESTIONS -->
 
 			<Expander Header="Smart Procurement Suggestions"
-					  Grid.Row="19"
+					  Grid.Row="20"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -992,7 +1033,7 @@ Width="*"/>
 			<!-- PRODUCTION CAPACITY FORECAST -->
 
 			<Expander Header="Production Capacity Forecast (Next 14 Days)"
-					  Grid.Row="20"
+					  Grid.Row="21"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -1063,7 +1104,7 @@ Width="*"/>
 
 
 			<Expander Header="Production Control Center"
-					  Grid.Row="7"
+					  Grid.Row="8"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -1162,72 +1203,104 @@ Width="*"/>
 					<!-- Production Queue -->
 
 					<Expander Header="Production Control Board" 
-							  Grid.Row="7" 
-							  Grid.Column="1"
-							  Grid.ColumnSpan="2">
-						<DataGrid ItemsSource="{Binding ProductionQueue}"
-AutoGenerateColumns="False"
-MinHeight="160">
+          Grid.Row="8" 
+          Grid.Column="1">
 
-							<DataGrid.Columns>
+						<StackPanel>
 
-								<DataGridTextColumn Header="Priority"
-                            Binding="{Binding Priority}"
-                            Width="80"/>
+							<!-- 🔥 ADD THIS BUTTON HERE -->
+							<Button Content="▶ Start Recommended Job"
+									Margin="6"
+									Padding="12"
+									Background="#2E7D32"
+									Foreground="White"
+									FontWeight="Bold"
+									Cursor="Hand"
+									Command="{Binding StartRecommendedCommand}"/>
 
-								<DataGridTextColumn Header="Work Order"
-                            Binding="{Binding WorkOrderNumber}"
-                            Width="120"/>
+							<!-- EXISTING GRID (KEEP AS IS, JUST MOVE IT DOWN) -->
+							<DataGrid ItemsSource="{Binding Production.ProductionQueue}"
+                  AutoGenerateColumns="False"
+                  MinHeight="160">
 
-								<DataGridTextColumn Header="Status"
-                            Binding="{Binding Status}"
-                            Width="100"/>
+								<DataGrid.Columns>
 
-								<DataGridTemplateColumn Header="Actions" Width="220">
+									<DataGridTextColumn Header="Priority"
+                                    Binding="{Binding Priority}"
+                                    Width="80"/>
 
-									<DataGridTemplateColumn.CellTemplate>
-										<DataTemplate>
+									<DataGridTextColumn Header="Work Order"
+                                    Binding="{Binding WorkOrderNumber}"
+                                    Width="120"/>
 
-											<StackPanel Orientation="Horizontal">
+									<DataGridTextColumn Header="Status"
+                                    Binding="{Binding Status}"
+                                    Width="100"/>
 
-												<Button Content="Start"
-                        Margin="2"
-                        Padding="6,2"
-                        Command="{Binding DataContext.StartWorkOrderCommand,
-                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                        CommandParameter="{Binding Id}"/>
+									<DataGridTemplateColumn Header="Actions" Width="220">
 
-												<Button Content="Pause"
-                        Margin="2"
-                        Padding="6,2"
-                        Command="{Binding DataContext.PauseWorkOrderCommand,
-                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                        CommandParameter="{Binding Id}"/>
+										<DataGridTemplateColumn.CellTemplate>
+											<DataTemplate>
 
-												<Button Content="Complete"
-                        Margin="2"
-                        Padding="6,2"
-                        Command="{Binding DataContext.CompleteWorkOrderCommand,
-                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                        CommandParameter="{Binding Id}"/>
+												<StackPanel Orientation="Horizontal">
 
-											</StackPanel>
+													<Button Content="Start"
+                                        Margin="2"
+                                        Padding="6,2"
+                                        Command="{Binding DataContext.StartWorkOrderCommand,
+                                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding Id}"/>
 
-										</DataTemplate>
-									</DataGridTemplateColumn.CellTemplate>
+													<Button Content="Pause"
+                                        Margin="2"
+                                        Padding="6,2"
+                                        Command="{Binding DataContext.PauseWorkOrderCommand,
+                                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding Id}"/>
 
-								</DataGridTemplateColumn>
+													<Button Content="Complete"
+                                        Margin="2"
+                                        Padding="6,2"
+                                        Command="{Binding DataContext.CompleteWorkOrderCommand,
+                                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding Id}"/>
 
-							</DataGrid.Columns>
+												</StackPanel>
 
-						</DataGrid>
+											</DataTemplate>
+										</DataGridTemplateColumn.CellTemplate>
+
+									</DataGridTemplateColumn>
+
+								</DataGrid.Columns>
+
+								<!-- 🔥 ADD THIS (ROW HIGHLIGHT) -->
+								<DataGrid.RowStyle>
+									<Style TargetType="DataGridRow">
+
+										<Style.Triggers>
+
+											<!-- ✅ VALID -->
+											<DataTrigger Binding="{Binding IsTopPriority}" Value="True">
+												<Setter Property="Background" Value="#C8E6C9"/>
+											</DataTrigger>
+
+										</Style.Triggers>
+
+									</Style>
+								</DataGrid.RowStyle>
+
+							</DataGrid>
+
+						</StackPanel>
+
 					</Expander>
 
 				</Grid>
 
 			</Expander>
 			<Expander Header="Production Delay Predictions"
-						Grid.Row="21"
+						Grid.Row="22"
 						Grid.ColumnSpan="2"
 						Margin="6"
 						IsExpanded="False">
