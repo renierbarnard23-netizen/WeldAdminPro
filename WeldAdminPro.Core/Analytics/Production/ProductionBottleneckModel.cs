@@ -7,5 +7,6 @@ namespace WeldAdminPro.Core.Analytics.Production
 		public string Description { get; set; } = "";
 		public string Severity { get; set; } = "";
 		public string SuggestedAction { get; set; } = "";
+		public string Resource { get; set; } = "";
 	}
 }

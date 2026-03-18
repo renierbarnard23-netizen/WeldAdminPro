@@ -12,6 +12,7 @@ using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
 using WeldAdminPro.UI.ViewModels;
 using WeldAdminPro.UI.ViewModels.Dashboard;
+using WeldAdminPro.Core.Services.Planning;
 
 namespace WeldAdminPro.UI.ViewModels
 {
@@ -41,6 +42,9 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly ProductionThroughputService _throughputService;
 		private readonly ProductionEfficiencyTrendService _efficiencyTrendService;
 
+		private readonly ProductionReplanningService _replanningService = new();
+		private readonly ProductionReplanTriggerService _replanTrigger = new();
+
 		public ObservableCollection<WorkOrderMaterialShortage> MaterialShortages { get; set; } = new();
 		public ObservableCollection<ProductionGanttItem> ProductionTimeline { get; set; } = new();
 		public ObservableCollection<ProductionCapacityForecast> CapacityForecast { get; set; } = new();
@@ -60,9 +64,13 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public event Action? ProductionChanged;
 		public ProductionPlannerViewModel Planner { get; } = new ProductionPlannerViewModel();
-		public ProductionAdvisorResult AdvisorResult { get; set; }
+		public ProductionAdvisorResult? AdvisorResult { get; set; }
 		public ObservableCollection<SystemAlert> SystemAlerts { get; set; } = new();
-		
+		public ObservableCollection<ProductionCompletionPrediction> CompletionPredictions { get; set; } = new();
+		public ObservableCollection<ProductionCompletionPrediction> ScenarioPredictions { get; set; } = new();
+		public int ScenarioLateJobs { get; set; }
+		public int ScenarioTotalDelay { get; set; }
+		public string OptimizedStrategy { get; set; } = "";
 		public HomeViewModel()
 		{
 			_riskSummaryService = new InventoryRiskSummaryService();
@@ -77,29 +85,108 @@ namespace WeldAdminPro.UI.ViewModels
 			_procurementService = new ProcurementSuggestionService();
 			_productionBlockService = new ProductionBlockService();
 			_productionReadinessService = new ProductionReadinessService(
-					new WorkOrderRepository(),
-					new WorkOrderShortageDetectionService());
+				new WorkOrderRepository(),
+				new WorkOrderShortageDetectionService());
+
 			_workOrderStatusService = new WorkOrderStatusService();
 			_trafficLightService = new ProductionTrafficLightService();
 			_schedulingService = new ProductionSchedulingService();
 			_reservationService = new MaterialReservationService();
 			_workOrderRepository = new WorkOrderRepository();
 			_executionService = new WorkOrderExecutionService(_workOrderRepository);
+
 			ProductionControlTower = new ProductionControlTowerViewModel();
 			ProductionControlTower.Load();
-			TopPriorityWorkOrder = Production.ProductionQueue.FirstOrDefault();
+
 			Execution = new ProductionExecutionViewModel();
 			Execution.ControlTower = ProductionControlTower;
 			Execution.Load();
 
-			ProductionControlTower.Load();
 			_bottleneckService = new ProductionBottleneckDetectionService();
 			ProductionBottlenecks = _bottleneckService.DetectBottlenecks();
-			
+
 			_throughputService = new ProductionThroughputService();
 			ProductionThroughput = _throughputService.GetThroughput();
+
 			_efficiencyTrendService = new ProductionEfficiencyTrendService();
 			ProductionEfficiencyTrend = _efficiencyTrendService.GetLast7DaysTrend();
+
+			// 🔥 LOAD CORE DATA FIRST (CRITICAL ORDER)
+			LoadProductionQueue();
+
+			// ===============================
+			// 🔥 AI + OPTIMIZATION ENGINE
+			// ===============================
+
+			var comparer = new ScenarioComparer();
+			var simulator = new ProductionSimulator();
+			var optimizer = new ProductionOptimizer();
+
+			var queueList = Production.ProductionQueue.ToList();
+
+			// Scenario comparison
+			var current = comparer.Compare("Current", queueList, 8);
+			var reversed = comparer.Compare("Reversed", queueList.AsEnumerable().Reverse().ToList(), 8);
+
+			System.Diagnostics.Debug.WriteLine($"Current Delay: {current.TotalDelayDays}");
+			System.Diagnostics.Debug.WriteLine($"Reversed Delay: {reversed.TotalDelayDays}");
+
+			// 🔥 OPTIMIZATION
+			var autoOptimizer = new ProductionOptimizerService();
+
+			var best = autoOptimizer.FindBestSequence(
+				Production.ProductionQueue.ToList()
+			);
+
+			// Apply BEST sequence to UI
+			Production.ProductionQueue = new ObservableCollection<ProductionQueueItem>(
+				best.Predictions.Select(p =>
+					Production.ProductionQueue.First(q => q.WorkOrderNumber == p.WorkOrderNumber)
+				)
+			);
+
+			// Update scenario display
+			ScenarioPredictions = new ObservableCollection<ProductionCompletionPrediction>(best.Predictions);
+			ScenarioLateJobs = best.LateJobs;
+			ScenarioTotalDelay = best.TotalDelayDays;
+
+			OnPropertyChanged(nameof(ScenarioPredictions));
+			OnPropertyChanged(nameof(ScenarioLateJobs));
+			OnPropertyChanged(nameof(ScenarioTotalDelay));
+
+			var result = optimizer.Optimize(queueList, 8);
+			var topJob = result.BestSequence.FirstOrDefault();
+
+			if (topJob != null)
+			{
+				AdvisorResult = new ProductionAdvisorResult
+				{
+					Recommendation = $"Start {topJob.WorkOrderNumber}",
+					Explanation = result.Explanation
+				};
+			}
+
+			System.Diagnostics.Debug.WriteLine("=== OPTIMIZED PLAN ===");
+
+			foreach (var job in result.BestSequence)
+			{
+				System.Diagnostics.Debug.WriteLine(job.WorkOrderNumber);
+			}
+
+			System.Diagnostics.Debug.WriteLine($"Total Delay: {result.TotalDelayDays}");
+			System.Diagnostics.Debug.WriteLine($"Late Jobs: {result.LateJobs}");
+
+			// 🔥 SIMULATION (for debugging)
+			var simResults = simulator.Simulate(queueList, 8);
+
+			foreach (var r in simResults)
+			{
+				System.Diagnostics.Debug.WriteLine($"{r.WorkOrderNumber} | {r.StartDate:d} → {r.EndDate:d} | Late: {r.IsLate}");
+			}
+
+			// ===============================
+			// 🔥 EXISTING SYSTEM (UNCHANGED)
+			// ===============================
 
 			var alertService = new AlertEngineService();
 
@@ -114,55 +201,39 @@ namespace WeldAdminPro.UI.ViewModels
 				CapacityForecast);
 
 			SystemAlerts.Clear();
-
 			foreach (var alert in alerts)
-			{
 				SystemAlerts.Add(alert);
-			}
 
-			SystemAlerts.Clear();
-
-			foreach (var alert in alerts)
-			{
-				SystemAlerts.Add(alert);
-			}
 			var aiPlanner = new ProductionAIPlannerService();
-
 			var aiRecommendations = aiPlanner.GetRecommendations();
 
-			ProductionRecommendations = new ObservableCollection<ProductionRecommendationModel>(aiRecommendations.Select(r => new ProductionRecommendationModel
-		{
-			WorkOrderNumber = r.WorkOrderNumber,
-			Recommendation = r.Recommendation,
-			Explanation = r.Explanation,
-			Score = (int)r.PriorityScore
-		}));
+			ProductionRecommendations = new ObservableCollection<ProductionRecommendationModel>(
+				aiRecommendations.Select(r => new ProductionRecommendationModel
+				{
+					WorkOrderNumber = r.WorkOrderNumber,
+					Recommendation = r.Recommendation,
+					Explanation = r.Explanation,
+					Score = (int)r.PriorityScore
+				}));
 
-			var workOrderRepo = _workOrderRepository;
-			var advisorService = new ProductionAdvisorService();
-			AdvisorResult = advisorService.GetNextBestAction();
-
-			var capacityService = new ProductionCapacityService(workOrderRepo);
+			var capacityService = new ProductionCapacityService(_workOrderRepository);
 
 			var riskService = new DeadlineRiskDetectionService(
-				workOrderRepo,
+				_workOrderRepository,
 				capacityService);
 
-			DeadlineRisks =
-				new ObservableCollection<DeadlineRisk>(
-					riskService.DetectRisks());
+			DeadlineRisks = new ObservableCollection<DeadlineRisk>(
+				riskService.DetectRisks());
 
-			CapacityForecast =
-				new ObservableCollection<ProductionCapacityForecast>(
-					capacityService.GetCapacityForecast());
+			CapacityForecast = new ObservableCollection<ProductionCapacityForecast>(
+				capacityService.GetCapacityForecast());
 
-			var ganttService = new ProductionGanttService(workOrderRepo);
+			var ganttService = new ProductionGanttService(_workOrderRepository);
 
-			ProductionTimeline =
-				new ObservableCollection<ProductionGanttItem>(
-					ganttService.GetTimeline());
+			ProductionTimeline = new ObservableCollection<ProductionGanttItem>(
+				ganttService.GetTimeline());
+
 			var scheduler = new ProductionScheduleService();
-
 			var schedule = scheduler.GetSchedule();
 
 			SchedulerDebug.Clear();
@@ -177,17 +248,17 @@ namespace WeldAdminPro.UI.ViewModels
 					Hours = (int)Math.Round((s.EndDate - s.StartDate).TotalHours)
 				});
 			}
-			var delayService = new ProductionDelayPredictionService();
 
+			var delayService = new ProductionDelayPredictionService();
 			var delays = delayService.PredictDelays();
 
 			DelayPredictions.Clear();
-
 			foreach (var d in delays)
-			{
 				DelayPredictions.Add(d);
-			}
 
+			// ===============================
+			// 🔥 FINAL LOADS
+			// ===============================
 
 			LoadRiskSummary();
 			LoadProcurementAlerts();
@@ -198,19 +269,19 @@ namespace WeldAdminPro.UI.ViewModels
 			LoadWorkOrderPlan();
 			LoadMaterialShortages();
 			LoadProductionReadiness();
+
 			InProduction = Execution.RunningWorkOrders.Count;
 			Completed = Execution.CompletedToday.Count;
+
 			LoadProcurementSuggestions();
 			LoadProductionBlocks();
 			LoadWorkOrderStatuses();
 			LoadProductionTrafficLights();
-			LoadProductionQueue();
 			LoadReservations();
+
 			Planner.Load();
 
-		
-
-
+			RefreshProductionSystem();
 		}
 
 		// =========================================================
@@ -294,11 +365,17 @@ namespace WeldAdminPro.UI.ViewModels
 
 		[ObservableProperty]
 		private ProductionThroughputModel productionThroughput = new();
-
+				
 		[ObservableProperty]
 		private List<ProductionEfficiencyTrendModel> productionEfficiencyTrend = new();
 
+		private void LoadProductionTrafficLights()
+		{
+			var lights = _trafficLightService.BuildKpis();
 
+			ProductionTrafficLights =
+				new ObservableCollection<ProductionTrafficLightKpi>(lights);
+		}
 		private void LoadRiskSummary()
 		{
 			var summary = _riskSummaryService.BuildSummary();
@@ -409,13 +486,6 @@ namespace WeldAdminPro.UI.ViewModels
 			WorkOrderStatuses =
 				new ObservableCollection<WorkOrderExecutionStatusModel>(statuses);
 		}
-		private void LoadProductionTrafficLights()
-		{
-			var lights = _trafficLightService.BuildKpis();
-
-			ProductionTrafficLights =
-				new ObservableCollection<ProductionTrafficLightKpi>(lights);
-		}
 		private void LoadProductionQueue()
 		{
 			var queue = _schedulingService.BuildQueue();
@@ -423,14 +493,32 @@ namespace WeldAdminPro.UI.ViewModels
 			var autoPriority = new AutoPriorityService();
 
 			var reordered = autoPriority.ReorderQueue(
-				queue.ToList(), // ✅ USE queue, not old Production.ProductionQueue
+				queue.ToList(),
 				ProductionBottlenecks.ToList()
 			);
 
+			var simulation = new ProductionSimulationService();
+
+			var predictions = simulation.SimulateSchedule(
+				Production.ProductionQueue.ToList()
+			);
+
+			RunScenarioSimulation(Production.ProductionQueue.ToList());
+			CompletionPredictions = new ObservableCollection<ProductionCompletionPrediction>(predictions);
+
+			// 🔥 APPLY AI SCORING
+			var scoring = new ProductionPriorityScoringService();
+			reordered = scoring.Score(reordered, ProductionBottlenecks.ToList());
+
+			// Reset flags
 			foreach (var wo in reordered)
 				wo.IsTopPriority = false;
 
-			var top = reordered.FirstOrDefault();
+			// 🔥 APPLY REPLANNING (THIS IS THE NEW ENGINE)
+			var replanned = _replanningService.Replan(reordered);
+
+			// 🔥 SET TOP PRIORITY
+			var top = replanned.FirstOrDefault();
 
 			if (top != null)
 			{
@@ -438,7 +526,8 @@ namespace WeldAdminPro.UI.ViewModels
 				TopPriorityWorkOrder = top;
 			}
 
-			Production.ProductionQueue = new ObservableCollection<ProductionQueueItem>(reordered);
+			// 🔥 APPLY TO UI
+			Production.ProductionQueue = new ObservableCollection<ProductionQueueItem>(replanned);
 		}
 		private void LoadReservations()
 		{
@@ -466,24 +555,64 @@ namespace WeldAdminPro.UI.ViewModels
 			OnPropertyChanged(nameof(ProductionEfficiencyTrend));
 
 			var aiPlanner = new ProductionAIPlannerService();
-			var advisorService = new ProductionAdvisorService();
-			AdvisorResult = advisorService.GetNextBestAction();
+			var optimizer = new ProductionOptimizer();
 
-			OnPropertyChanged(nameof(AdvisorResult));
+			var optimized = optimizer.Optimize(
+				Production.ProductionQueue.ToList(),
+				8
+			);
 
-			var aiRecommendations = aiPlanner.GetRecommendations();
+			var topJob = optimized.BestSequence.FirstOrDefault();
 
-			ProductionRecommendations =
-	new ObservableCollection<ProductionRecommendationModel>(
-		aiRecommendations.Select(r => new ProductionRecommendationModel
+			if (topJob != null)
+			{
+				AdvisorResult = new ProductionAdvisorResult
+				{
+					Recommendation = $"Start {topJob.WorkOrderNumber}",
+					Explanation = optimized.Explanation
+				};
+			}
+			// 🔥 SMART AUTO-REPLANNING ENGINE
+
+			var currentQueue = Production.ProductionQueue.ToList();
+
+			bool shouldReplan = _replanTrigger.ShouldReplan(
+				currentQueue,
+				DelayPredictions.ToList(),
+				ProductionBottlenecks.ToList()
+			);
+
+			if (shouldReplan)
+			{
+				var replanned = _replanningService.Replan(currentQueue);
+
+				Production.ProductionQueue =
+					new ObservableCollection<ProductionQueueItem>(replanned);
+
+				OptimizedStrategy = "Auto-Replanned (AI detected risk)";
+			}
+			else
+			{
+				OptimizedStrategy = "Stable Plan (No risks detected)";
+			}
+
+			OnPropertyChanged(nameof(Production.ProductionQueue));
+			OnPropertyChanged(nameof(OptimizedStrategy));
+		}
+
+		public void RunScenarioSimulation(List<ProductionQueueItem> customQueue)
 		{
-			WorkOrderNumber = r.WorkOrderNumber,
-			Recommendation = r.Recommendation,
-			Explanation = r.Explanation,
-			Score = (int)Math.Round(r.PriorityScore)
-		}));
+			var scenarioService = new ProductionScenarioService();
 
-			OnPropertyChanged(nameof(ProductionRecommendations));
+			var result = scenarioService.SimulateScenario(customQueue);
+
+			ScenarioPredictions = new ObservableCollection<ProductionCompletionPrediction>(result.Predictions);
+			ScenarioLateJobs = result.LateJobs;
+			ScenarioTotalDelay = result.TotalDelayDays;
+
+			OnPropertyChanged(nameof(ScenarioPredictions));
+			OnPropertyChanged(nameof(ScenarioLateJobs));
+			OnPropertyChanged(nameof(ScenarioTotalDelay));
 		}
 
 		[RelayCommand]
@@ -522,7 +651,12 @@ namespace WeldAdminPro.UI.ViewModels
 				return;
 
 			if (TopPriorityWorkOrder.Status == "Blocked")
+			{
+				System.Diagnostics.Debug.WriteLine("⚠ Cannot start blocked work order");
 				return;
+			}
+
+			System.Diagnostics.Debug.WriteLine($"🚀 Starting AI job: {TopPriorityWorkOrder.WorkOrderNumber}");
 
 			_executionService.StartWorkOrder(TopPriorityWorkOrder.Id);
 

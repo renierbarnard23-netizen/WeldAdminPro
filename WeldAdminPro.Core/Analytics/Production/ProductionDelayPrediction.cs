@@ -13,5 +13,6 @@ namespace WeldAdminPro.Core.Analytics.Production
 		public double DaysLate { get; set; }
 
 		public string RiskLevel { get; set; } = "";
+		public int DelayDays { get; set; }
 	}
 }

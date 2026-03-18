@@ -52,5 +52,19 @@ namespace WeldAdminPro.UI.Views
 
 			window.ShowDialog();
 		}
+		private void EditWorkOrder_Click(object sender, RoutedEventArgs e)
+		{
+			if (WorkOrdersGrid.SelectedItem == null)
+				return;
+
+			var workOrder = (WorkOrder)WorkOrdersGrid.SelectedItem;
+
+			var window = new EditWorkOrderWindow(workOrder);
+
+			if (window.ShowDialog() == true)
+			{
+				LoadWorkOrders(); // 🔥 refresh grid
+			}
+		}
 	}
 }

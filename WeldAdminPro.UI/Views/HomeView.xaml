@@ -50,6 +50,8 @@
 				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
 			</Grid.RowDefinitions>
 
 			<Grid.ColumnDefinitions>
@@ -582,7 +584,7 @@
 			<!-- PRODUCTION READINESS -->
 
 			<Expander Header="Production Readiness"
-					  Grid.Row="9"
+					  Grid.Row="8"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -767,9 +769,10 @@ Width="*"/>
 
 						<!-- Timeline Canvas -->
 						<Canvas x:Name="GanttCanvas"
-                    Grid.Column="1"
-                    Height="400"
-                    Background="#F8F8F8"/>
+								Grid.Column="1"
+								MinHeight="300" 
+								Height="Auto"
+								Background="#F8F8F8"/>
 
 					</Grid>
 
@@ -777,8 +780,53 @@ Width="*"/>
 
 			</GroupBox>
 
-			<Expander Header="Scheduler Debug Panel"
+			<Expander Header="Production Completion Predictions"
           Grid.Row="14"
+          Grid.ColumnSpan="2"
+          Margin="6">
+
+				<DataGrid ItemsSource="{Binding CompletionPredictions}"
+              AutoGenerateColumns="False"
+              Height="220">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Work Order"
+                                Binding="{Binding WorkOrderNumber}"
+                                Width="120"/>
+
+						<DataGridTextColumn Header="Start"
+                                Binding="{Binding PredictedStart}"
+                                Width="140"/>
+
+						<DataGridTextColumn Header="End"
+                                Binding="{Binding PredictedEnd}"
+                                Width="140"/>
+
+						<DataGridTextColumn Header="Days Late"
+                                Binding="{Binding DaysLate}"
+                                Width="100"/>
+
+					</DataGrid.Columns>
+
+					<DataGrid.RowStyle>
+						<Style TargetType="DataGridRow">
+							<Style.Triggers>
+
+								<DataTrigger Binding="{Binding IsLate}" Value="True">
+									<Setter Property="Background" Value="#FFCDD2"/>
+								</DataTrigger>
+
+							</Style.Triggers>
+						</Style>
+					</DataGrid.RowStyle>
+
+				</DataGrid>
+
+			</Expander>
+
+			<Expander Header="Scheduler Debug Panel"
+          Grid.Row="15"
           Grid.ColumnSpan="2"
           Margin="6"
           IsExpanded="False">
@@ -810,7 +858,7 @@ Width="*"/>
 			<!-- INVENTORY -->
 
 			<GroupBox Header="Inventory Health"
-					  Grid.Row="15"
+					  Grid.Row="16"
 					  Grid.Column="0"
 					  Margin="6">
 
@@ -829,7 +877,7 @@ Width="*"/>
 			</GroupBox>
 
 			<Expander Header="Operational Alerts"
-					  Grid.Row="15"
+					  Grid.Row="16"
 					  Grid.Column="1"
 					  Margin="6">
 
@@ -853,7 +901,7 @@ Width="*"/>
 			<!-- PROCUREMENT -->
 
 			<Expander Header="Procurement Alerts"
-					  Grid.Row="16"
+					  Grid.Row="17"
 					  Grid.Column="0"
 					  Margin="6">
 
@@ -879,7 +927,7 @@ Width="*"/>
 			</Expander>
 
 			<Expander Header="Top Consumed Materials"
-					  Grid.Row="16"
+					  Grid.Row="17"
 					  Grid.Column="1"
 					  Margin="6">
 
@@ -905,7 +953,7 @@ Width="*"/>
 			<!-- FINANCIAL -->
 
 			<Expander Header="Project Material Cost Intelligence"
-					  Grid.Row="17"
+					  Grid.Row="20"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -935,7 +983,7 @@ Width="*"/>
 			<!-- WORK ORDER MATERIAL PLANNING -->
 
 			<Expander Header="Work Order Material Planning"
-					  Grid.Row="18"
+					  Grid.Row="21"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -969,7 +1017,7 @@ Width="*"/>
 			<!-- RESERVATIONS -->
 
 			<Expander Header="Material Reservations"
-					  Grid.Row="19"
+					  Grid.Row="22"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -1001,7 +1049,7 @@ Width="*"/>
 			<!-- PROCUREMENT SUGGESTIONS -->
 
 			<Expander Header="Smart Procurement Suggestions"
-					  Grid.Row="20"
+					  Grid.Row="23"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -1033,7 +1081,7 @@ Width="*"/>
 			<!-- PRODUCTION CAPACITY FORECAST -->
 
 			<Expander Header="Production Capacity Forecast (Next 14 Days)"
-					  Grid.Row="21"
+					  Grid.Row="24"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -1104,7 +1152,7 @@ Width="*"/>
 
 
 			<Expander Header="Production Control Center"
-					  Grid.Row="8"
+					  Grid.Row="9"
 					  Grid.ColumnSpan="2"
 					  Margin="6">
 
@@ -1203,8 +1251,8 @@ Width="*"/>
 					<!-- Production Queue -->
 
 					<Expander Header="Production Control Board" 
-          Grid.Row="8" 
-          Grid.Column="1">
+								Grid.Row="1" 
+								Grid.Column="1">
 
 						<StackPanel>
 
@@ -1300,7 +1348,7 @@ Width="*"/>
 
 			</Expander>
 			<Expander Header="Production Delay Predictions"
-						Grid.Row="22"
+						Grid.Row="26"
 						Grid.ColumnSpan="2"
 						Margin="6"
 						IsExpanded="False">
@@ -1331,8 +1379,70 @@ Width="*"/>
 				</DataGrid>
 
 			</Expander>
+			<TextBlock Text="{Binding OptimizedStrategy}"
+           FontWeight="Bold"
+           Foreground="DarkGreen"
+           Margin="6"/>
+			<Expander Header="Scenario Simulation"
+          Grid.Row="25"
+          Grid.ColumnSpan="2"
+          Margin="6"
+          IsExpanded="True">
+
+				<StackPanel>
+
+					<!-- SUMMARY -->
+					<StackPanel Orientation="Horizontal" Margin="6">
+
+						<TextBlock Text="Late Jobs: "
+                       FontWeight="Bold"/>
+
+						<TextBlock Text="{Binding ScenarioLateJobs}"
+                       Margin="4,0"/>
+
+						<TextBlock Text="Total Delay (Days): "
+                       FontWeight="Bold"
+                       Margin="20,0,0,0"/>
+
+						<TextBlock Text="{Binding ScenarioTotalDelay}"
+                       Margin="4,0"/>
+
+					</StackPanel>
+
+					<!-- GRID -->
+					<DataGrid ItemsSource="{Binding ScenarioPredictions}"
+                  AutoGenerateColumns="False"
+                  Height="220"
+                  Margin="6">
+
+						<DataGrid.Columns>
+
+							<DataGridTextColumn Header="Work Order"
+                                    Binding="{Binding WorkOrderNumber}"
+                                    Width="120"/>
+
+							<DataGridTextColumn Header="Start"
+                                    Binding="{Binding PredictedStart}"
+                                    Width="140"/>
+
+							<DataGridTextColumn Header="End"
+                                    Binding="{Binding PredictedEnd}"
+                                    Width="140"/>
+
+							<DataGridTextColumn Header="Days Late"
+                                    Binding="{Binding DaysLate}"
+                                    Width="100"/>
+
+						</DataGrid.Columns>
+
+					</DataGrid>
+
+				</StackPanel>
+
+			</Expander>
 
 		</Grid>
+
 
 	</ScrollViewer>
 </UserControl>

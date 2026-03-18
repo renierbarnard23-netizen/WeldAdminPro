@@ -116,6 +116,7 @@ SET
     Description = @Description,
     StartDate = @StartDate,
     EstimatedHours = @EstimatedHours,
+    DueDate = @DueDate,
     Status = @Status,
     ActualStartTime = @ActualStartTime,
     ActualEndTime = @ActualEndTime,
@@ -143,6 +144,8 @@ WHERE Id = @Id";
 			cmd.Parameters.AddWithValue("@ActualHours", workOrder.ActualHours);
 
 			cmd.Parameters.AddWithValue("@IsPaused", workOrder.IsPaused ? 1 : 0);
+
+			cmd.Parameters.AddWithValue("@DueDate", workOrder.DueDate.HasValue? workOrder.DueDate.Value.ToString("O"): DBNull.Value);
 
 			cmd.ExecuteNonQuery();
 		}
@@ -312,26 +315,28 @@ WHERE Key='NextWorkOrderNumber'";
 			{
 				workOrder.WorkOrderNumber = GetNextWorkOrderNumber();
 			}
-			
+
 			cmd.CommandText = @"
-INSERT INTO WorkOrders (
-    Id,
-    ProjectId,
-    WorkOrderNumber,
-    Description,
-    Status,
-    CreatedOn,
-    CompletedOn
-)
-VALUES (
-    @Id,
-    @ProjectId,
-    @WorkOrderNumber,
-    @Description,
-    @Status,
-    @CreatedOn,
-    @CompletedOn
-);";
+				INSERT INTO WorkOrders (
+				Id,
+				ProjectId,
+				WorkOrderNumber,
+				Description,
+				Status,
+				CreatedOn,
+				DueDate,
+				CompletedOn
+			)
+				VALUES (
+				@Id,
+				@ProjectId,
+				@WorkOrderNumber,
+				@Description,
+				@Status,
+				@CreatedOn,
+				@DueDate,
+				@CompletedOn
+			);";
 
 			cmd.Parameters.AddWithValue("@Id", workOrder.Id.ToString());
 			cmd.Parameters.AddWithValue("@ProjectId", workOrder.ProjectId.ToString());
@@ -339,6 +344,10 @@ VALUES (
 			cmd.Parameters.AddWithValue("@Description", workOrder.Description);
 			cmd.Parameters.AddWithValue("@Status", (int)workOrder.Status);
 			cmd.Parameters.AddWithValue("@CreatedOn", workOrder.CreatedOn.ToString("O"));
+			cmd.Parameters.AddWithValue("@DueDate",
+				workOrder.DueDate.HasValue
+					? workOrder.DueDate.Value.ToString("O")
+					: DBNull.Value);
 			cmd.Parameters.AddWithValue("@CompletedOn",
 				workOrder.CompletedOn.HasValue
 					? workOrder.CompletedOn.Value.ToString("O")

@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using WeldAdminPro.Core.Analytics.Production;
+using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.Data.Services
@@ -19,8 +21,10 @@ namespace WeldAdminPro.Data.Services
 		public List<ProductionQueueItem> BuildQueue()
 		{
 			var workOrders = _repository
-	.GetAll()
-	.Where(w => w.Status != Core.Models.WorkOrderStatus.Completed);
+				.GetAll()
+				.Where(w => w.Status != WorkOrderStatus.Completed)
+				.ToList();
+
 			var statuses = _statusService.GetStatuses();
 
 			var queue = workOrders
@@ -29,6 +33,7 @@ namespace WeldAdminPro.Data.Services
 					var status = statuses
 						.FirstOrDefault(s => s.WorkOrderNumber == wo.WorkOrderNumber);
 
+
 					return new ProductionQueueItem
 					{
 						Id = wo.Id,
@@ -36,7 +41,14 @@ namespace WeldAdminPro.Data.Services
 						Priority = wo.Priority,
 						Status = status?.Status.ToString() ?? "Unknown",
 						StartDate = wo.PlannedStartDate?.ToShortDateString() ?? "",
-						DueDate = wo.DueDate?.ToShortDateString() ?? ""
+						DueDate = wo.DueDate?.ToShortDateString() ?? "",
+
+						// 🔥 ADD THESE (CRITICAL FIX)
+						Deadline = wo.DueDate ?? DateTime.Today.AddDays(7),
+
+						EstimatedHours = wo.EstimatedHours > 0
+		? wo.EstimatedHours
+		: 8 // fallback
 					};
 				})
 				.OrderBy(q => q.Priority)

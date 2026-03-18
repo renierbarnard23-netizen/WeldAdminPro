@@ -30,6 +30,11 @@
 					Margin="5"
 					Click="IssueMaterial_Click"/>
 
+			<Button Content="Edit Work Order"
+			Width="92"
+			Margin="5"
+        Click="EditWorkOrder_Click"/>
+
 		</StackPanel>
 
 		<!-- Work Orders Grid -->
