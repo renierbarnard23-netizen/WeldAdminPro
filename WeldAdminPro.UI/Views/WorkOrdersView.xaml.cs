@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using WeldAdminPro.Core.Models;
@@ -36,7 +37,12 @@ namespace WeldAdminPro.UI.Views
 		}
 		private void LoadWorkOrders()
 		{
-			WorkOrdersGrid.ItemsSource = _repository.GetAll();
+			var workOrders = _repository
+				.GetAll()
+				.Where(w => w.Status != WorkOrderStatus.Completed)
+				.ToList();
+
+			WorkOrdersGrid.ItemsSource = workOrders;
 		}
 		private void AddMaterial_Click(object sender, RoutedEventArgs e)
 		{

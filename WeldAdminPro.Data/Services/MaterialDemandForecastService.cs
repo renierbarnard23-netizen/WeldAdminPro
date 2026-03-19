@@ -37,7 +37,7 @@ namespace WeldAdminPro.Data.Services
 				double avgDaily = usage / (double)daysHistory;
 
 				int daysRemaining = avgDaily > 0
-					? (int)(item.Quantity / avgDaily)
+					? (int)Math.Ceiling(item.Quantity / avgDaily)
 					: int.MaxValue;
 
 				string status = "OK";
@@ -60,9 +60,9 @@ namespace WeldAdminPro.Data.Services
 					priority = 50;
 				else
 					priority = 10;
-				int targetStock = (int)(avgDaily * 60);
+				int targetStock = (int)Math.Ceiling(avgDaily * 60);
 
-				int suggestedOrder = targetStock - item.Quantity;
+				int suggestedOrder = targetStock - (int)Math.Floor(item.Quantity);
 
 				if (suggestedOrder < 0)
 					suggestedOrder = 0;
@@ -71,7 +71,7 @@ namespace WeldAdminPro.Data.Services
 				{
 					ItemCode = item.ItemCode,
 					Description = item.Description,
-					CurrentStock = item.Quantity,
+					CurrentStock = (int)Math.Floor(item.Quantity),
 					AverageDailyConsumption = avgDaily,
 					DaysRemaining = daysRemaining,
 					Status = status,

@@ -46,7 +46,7 @@ namespace WeldAdminPro.UI.ViewModels
 
 		private readonly ProductionReplanningService _replanningService = new();
 		private readonly ProductionReplanTriggerService _replanTrigger = new();
-		private Timer _autoExecutionTimer;
+		
 		public ObservableCollection<WorkOrderMaterialShortage> MaterialShortages { get; set; } = new();
 		public ObservableCollection<ProductionGanttItem> ProductionTimeline { get; set; } = new();
 		public ObservableCollection<ProductionCapacityForecast> CapacityForecast { get; set; } = new();
@@ -95,7 +95,12 @@ namespace WeldAdminPro.UI.ViewModels
 			_schedulingService = new ProductionSchedulingService();
 			_reservationService = new MaterialReservationService();
 			_workOrderRepository = new WorkOrderRepository();
-			_executionService = new WorkOrderExecutionService(_workOrderRepository);
+			_executionService = new WorkOrderExecutionService(new WorkOrderRepository(),new MaterialValidator(
+								new StockRepository(),
+								new WorkOrderMaterialRepository()
+			)
+		);
+
 
 			ProductionControlTower = new ProductionControlTowerViewModel();
 			ProductionControlTower.Load();

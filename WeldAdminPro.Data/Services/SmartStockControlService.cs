@@ -35,7 +35,7 @@ namespace WeldAdminPro.Core.Services
 			int daysRemaining = 0;
 
 			if (avgDailyUsage > 0)
-				daysRemaining = (int)(item.Quantity / avgDailyUsage);
+				daysRemaining = (int)Math.Ceiling((decimal)item.Quantity / avgDailyUsage);
 
 			int reorderPoint = (int)Math.Ceiling(avgDailyUsage * 14); // 2-week buffer
 			int reorderQty = (int)Math.Ceiling(avgDailyUsage * 30);   // 1 month stock

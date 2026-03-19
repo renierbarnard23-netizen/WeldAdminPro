@@ -56,7 +56,7 @@ namespace WeldAdminPro.Data.Services
 					var stock = _stockRepo.GetAll()
 						.FirstOrDefault(s => s.ItemCode == mat.ItemCode);
 
-					int available = stock?.Quantity ?? 0;
+					int available = (int)Math.Floor(stock?.Quantity ?? 0);
 
 					if (available < mat.RequiredQuantity)
 					{

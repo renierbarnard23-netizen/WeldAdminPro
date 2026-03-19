@@ -31,7 +31,7 @@ public partial class EditStockItemViewModel : ObservableObject
 
 		itemCode = item.ItemCode;
 		description = item.Description;
-		quantity = item.Quantity;
+		Quantity = (int)Math.Floor(item.Quantity);
 		unit = item.Unit;
 		minLevel = item.MinLevel;
 		maxLevel = item.MaxLevel;

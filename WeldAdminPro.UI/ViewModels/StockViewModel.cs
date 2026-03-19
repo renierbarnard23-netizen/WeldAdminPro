@@ -69,7 +69,7 @@ namespace WeldAdminPro.UI.ViewModels
 					 .Sum(i => i.TotalStockValue);
 
 		public int TotalUnitsInStock =>
-			_allItems.Sum(i => i.Quantity);
+	(int)Math.Floor(_allItems.Sum(i => i.Quantity));
 
 		public IEnumerable<StockItem> TopValuableItems =>
 			_allItems.OrderByDescending(i => i.TotalStockValue)
@@ -194,7 +194,7 @@ namespace WeldAdminPro.UI.ViewModels
 				{
 					Category = g.Key,
 					TotalValue = g.Sum(x => x.TotalStockValue),
-					TotalUnits = g.Sum(x => x.Quantity)
+					TotalUnits = (int)Math.Floor(g.Sum(x => x.Quantity))
 				})
 				.OrderByDescending(g => g.TotalValue);
 

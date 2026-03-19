@@ -24,11 +24,11 @@ namespace WeldAdminPro.Data.Services
 			var projects = _projectRepository.GetAll();
 			var transactions = _transactionRepository.GetAllTransactions();
 
-			var inventoryValue = items.Sum(i => i.Quantity * i.AverageUnitCost);
+			var inventoryValue = items.Sum(i => (decimal)i.Quantity * i.AverageUnitCost);
 
 			var materialSpend = transactions
 				.Where(t => t.Type == "OUT")
-				.Sum(t => t.Quantity * t.UnitCost);
+				.Sum(t => (decimal)t.Quantity * t.UnitCost);
 
 			return new List<ExecutiveKpi>
 			{

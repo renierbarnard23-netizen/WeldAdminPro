@@ -157,7 +157,7 @@ namespace WeldAdminPro.Core.Services
 					int totalIn = g.Sum(x => x.QtyIn);
 					int totalOut = g.Sum(x => x.QtyOut);
 
-					decimal closingQty = item?.Quantity ?? 0m;
+					decimal closingQty = (decimal)(item?.Quantity ?? 0);
 					decimal avgInventory = closingQty > 0 ? closingQty : 1m;
 
 					decimal turnover = totalOut / avgInventory;
@@ -190,7 +190,7 @@ namespace WeldAdminPro.Core.Services
 						MovementValue = g.Sum(x => x.TransactionValue),
 						CurrentBalance = closingQty,
 						CurrentStockValue = item != null
-							? item.Quantity * item.AverageUnitCost
+							? (decimal)item.Quantity * item.AverageUnitCost
 							: 0m,
 						AverageInventory = Math.Round(avgInventory, 2),
 						TurnoverRate = Math.Round(turnover, 2),

@@ -47,6 +47,34 @@ WHERE WorkOrderId = $woId;";
 			return list;
 		}
 
+		public List<WorkOrderMaterial> GetByWorkOrder(Guid workOrderId)
+		{
+			var result = new List<WorkOrderMaterial>();
+
+			using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = @"
+        SELECT ItemCode, RequiredQuantity
+        FROM WorkOrderMaterials
+        WHERE WorkOrderId = @Id";
+
+			cmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
+
+			using var reader = cmd.ExecuteReader();
+
+			while (reader.Read())
+			{
+				result.Add(new WorkOrderMaterial
+				{
+					ItemCode = reader.GetString(0),
+					RequiredQuantity = reader.GetDouble(1)
+				});
+			}
+
+			return result;
+		}
 		private void EnsureTable()
 		{
 			using var connection = new SqliteConnection(_connectionString);

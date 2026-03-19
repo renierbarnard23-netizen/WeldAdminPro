@@ -18,6 +18,33 @@ namespace WeldAdminPro.Data.Repositories
 			_transactionRepo = new StockTransactionRepository();
 		}
 
+		public StockItem? GetByItemCode(string itemCode)
+		{
+			using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = @"
+        SELECT ItemCode, Quantity
+        FROM Stock
+        WHERE ItemCode = @ItemCode";
+
+			cmd.Parameters.AddWithValue("@ItemCode", itemCode);
+
+			using var reader = cmd.ExecuteReader();
+
+			if (reader.Read())
+			{
+				return new StockItem
+				{
+					ItemCode = reader.GetString(0),
+					Quantity = reader.GetDouble(1)
+				};
+			}
+
+			return null;
+		}
+
 		// =========================================================
 		// STOCK ITEM LOOKUP
 		// =========================================================

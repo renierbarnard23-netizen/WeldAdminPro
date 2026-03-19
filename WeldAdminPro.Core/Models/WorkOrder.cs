@@ -22,13 +22,10 @@ namespace WeldAdminPro.Core.Models
 		public DateTime? PlannedStartDate { get; set; }
 		public DateTime? DueDate { get; set; }
 		public int Priority { get; set; }
-
+		public List<Guid> DependencyIds { get; set; } = new();
 		public DateTime? ActualStartTime { get; set; }
-
 		public DateTime? ActualEndTime { get; set; }
-
 		public double ActualHours { get; set; }
-
 		public bool IsPaused { get; set; }
 	}
 

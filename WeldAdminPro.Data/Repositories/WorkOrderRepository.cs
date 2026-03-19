@@ -17,6 +17,29 @@ namespace WeldAdminPro.Data.Repositories
 			EnsureColumns();
 		}
 
+		public WorkOrder? GetById(Guid id)
+		{
+			using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = "SELECT Id, Status FROM WorkOrders WHERE Id = @Id";
+			cmd.Parameters.AddWithValue("@Id", id.ToString());
+
+			using var reader = cmd.ExecuteReader();
+
+			if (reader.Read())
+			{
+				return new WorkOrder
+				{
+					Id = Guid.Parse(reader.GetString(0)),
+					Status = (WorkOrderStatus)reader.GetInt32(1)
+				};
+			}
+
+			return null;
+		}
+
 		private void EnsureTable()
 		{
 			using var connection = new SqliteConnection(_connectionString);

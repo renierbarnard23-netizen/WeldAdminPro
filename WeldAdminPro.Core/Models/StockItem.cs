@@ -27,8 +27,8 @@ namespace WeldAdminPro.Core.Models
 		// =========================
 		// QUANTITY (Reactive)
 		// =========================
-		private int _quantity;
-		public int Quantity
+		private double _quantity;
+		public double Quantity
 		{
 			get => _quantity;
 			set
@@ -101,7 +101,7 @@ namespace WeldAdminPro.Core.Models
 		// =========================
 		// FINANCIAL
 		// =========================
-		public decimal TotalStockValue => Quantity * AverageUnitCost;
+		public decimal TotalStockValue => (decimal)Quantity * AverageUnitCost;
 
 		// If item is below MinLevel, this is financial exposure
 		public decimal StockValueRisk =>
@@ -117,11 +117,11 @@ namespace WeldAdminPro.Core.Models
 
 		public bool IsReorderRequired =>
 			MinLevel.HasValue &&
-			Quantity <= MinLevel.Value;
+			(decimal)Quantity <= MinLevel.Value;
 
 		public bool IsBelowTarget =>
 			MaxLevel.HasValue &&
-			Quantity < MaxLevel.Value &&
+			(decimal)Quantity < MaxLevel.Value &&
 			!IsReorderRequired;
 
 		public SmartStockStatus SmartStatus
@@ -152,7 +152,7 @@ namespace WeldAdminPro.Core.Models
 				if (!MaxLevel.HasValue)
 					return 0;
 
-				var suggested = (int)Math.Ceiling(MaxLevel.Value - Quantity);
+				var suggested = (int)Math.Ceiling(MaxLevel.Value - (decimal)Quantity);
 
 				return suggested > 0 ? suggested : 0;
 			}
@@ -173,7 +173,7 @@ namespace WeldAdminPro.Core.Models
 				demandDuringLeadTime + safetyStock;
 
 			var suggested =
-				(int)Math.Ceiling(requiredStock - Quantity);
+				(int)Math.Ceiling(requiredStock - (decimal)Quantity);
 
 			return suggested > 0 ? suggested : 0;
 		}

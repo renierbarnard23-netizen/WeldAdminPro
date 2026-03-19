@@ -32,7 +32,7 @@ namespace WeldAdminPro.Data.Services
 					var stockItem = stock
 						.FirstOrDefault(s => s.ItemCode == item.ItemCode);
 
-					int available = stockItem?.Quantity ?? 0;
+					int available = (int)Math.Floor(stockItem?.Quantity ?? 0);
 
 					plans.Add(new WorkOrderMaterialPlan
 					{

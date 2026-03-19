@@ -28,9 +28,13 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 		public ProductionExecutionViewModel()
 		{
 			_repository = new WorkOrderRepository();
-			_executionService = new WorkOrderExecutionService(_repository);
-
-			Load();
+			_executionService = new WorkOrderExecutionService(
+	_repository,
+	new MaterialValidator(
+		new StockRepository(),
+		new WorkOrderMaterialRepository()
+	)
+);
 		}
 		public void Refresh()
 		{

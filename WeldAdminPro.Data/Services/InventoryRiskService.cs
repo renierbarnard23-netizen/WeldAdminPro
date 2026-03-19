@@ -91,13 +91,13 @@ namespace WeldAdminPro.Data.Services
 		{
 			var items = _stockRepository.GetAll();
 
-			var totalValue = items.Sum(i => i.Quantity * i.AverageUnitCost);
+			var totalValue = items.Sum(i => (decimal)i.Quantity * i.AverageUnitCost);
 
 			if (totalValue == 0)
 				return new List<Guid>();
 
 			return items
-				.Where(i => (i.Quantity * i.AverageUnitCost) / totalValue > 0.2m)
+				.Where(i => ((decimal)i.Quantity * i.AverageUnitCost) / totalValue > 0.2m)
 				.Select(i => i.Id)
 				.ToList();
 		}
