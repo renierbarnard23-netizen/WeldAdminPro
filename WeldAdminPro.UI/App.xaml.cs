@@ -73,10 +73,7 @@ namespace WeldAdminPro.UI
 				.Options;
 
 			DbContext = new ApplicationDbContext(optionsBuilder);
-
-			// 🔥 ADD THIS RIGHT HERE
-			DbContext.Database.EnsureCreated();
-
+					
 			// 5️⃣ Global exception handler
 			DispatcherUnhandledException += (sender, args) =>
 			{

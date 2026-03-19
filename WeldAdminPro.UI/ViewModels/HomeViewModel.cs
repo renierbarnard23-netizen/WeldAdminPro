@@ -13,6 +13,7 @@ using WeldAdminPro.Data.Services;
 using WeldAdminPro.UI.ViewModels;
 using WeldAdminPro.UI.ViewModels.Dashboard;
 using WeldAdminPro.Core.Services.Planning;
+using System.Timers;
 
 namespace WeldAdminPro.UI.ViewModels
 {
@@ -37,6 +38,7 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly MaterialReservationService _reservationService;
 		private readonly WorkOrderRepository _workOrderRepository;
 		private readonly WorkOrderExecutionService _executionService;
+
 		private readonly ProductionBottleneckDetectionService _bottleneckService;
 		
 		private readonly ProductionThroughputService _throughputService;
@@ -44,7 +46,7 @@ namespace WeldAdminPro.UI.ViewModels
 
 		private readonly ProductionReplanningService _replanningService = new();
 		private readonly ProductionReplanTriggerService _replanTrigger = new();
-
+		private Timer _autoExecutionTimer;
 		public ObservableCollection<WorkOrderMaterialShortage> MaterialShortages { get; set; } = new();
 		public ObservableCollection<ProductionGanttItem> ProductionTimeline { get; set; } = new();
 		public ObservableCollection<ProductionCapacityForecast> CapacityForecast { get; set; } = new();
@@ -282,6 +284,8 @@ namespace WeldAdminPro.UI.ViewModels
 			Planner.Load();
 
 			RefreshProductionSystem();
+
+			/// 🚫 AUTO REFRESH DISABLED (Phase 7 paused)
 		}
 
 		// =========================================================
@@ -542,6 +546,31 @@ namespace WeldAdminPro.UI.ViewModels
 			LoadProductionBlocks();
 			LoadProductionReadiness();
 			LoadProductionQueue();
+
+			// 🚫 AUTO EXECUTION DISABLED (Phase 7 paused)
+			// Manual control only
+
+			// 🔥 AUTO STOP / ESCALATION (PHASE 7 STEP 2)
+
+			// Get currently running jobs (REAL state)
+			var runningJobs = Execution.RunningWorkOrders.ToList();
+
+			foreach (var running in runningJobs)
+			{
+				// 🔴 Check if job is now blocked
+				bool isBlocked = ProductionBlocks.Any(b => b.WorkOrderNumber == running.WorkOrderNumber);
+
+				if (isBlocked)
+				{
+					System.Diagnostics.Debug.WriteLine($"[AUTO] STOPPING BLOCKED JOB: {running.WorkOrderNumber}");
+
+					_executionService.PauseWorkOrder(running.Id);
+
+					// 🔔 Optional: Raise alert
+					System.Diagnostics.Debug.WriteLine($"[ALERT] Work order {running.WorkOrderNumber} blocked during execution");
+				}
+			}
+			
 			LoadProductionTrafficLights();
 
 			Execution.Load();
@@ -598,6 +627,7 @@ namespace WeldAdminPro.UI.ViewModels
 
 			OnPropertyChanged(nameof(Production.ProductionQueue));
 			OnPropertyChanged(nameof(OptimizedStrategy));
+			
 		}
 
 		public void RunScenarioSimulation(List<ProductionQueueItem> customQueue)
@@ -618,6 +648,36 @@ namespace WeldAdminPro.UI.ViewModels
 		[RelayCommand]
 		private void StartWorkOrder(Guid id)
 		{
+			var workOrder = Production.ProductionQueue
+				.FirstOrDefault(w => w.Id == id);
+
+			if (workOrder == null)
+				return;
+
+			// 🔒 RULE 1: Blocked check
+			if (ProductionBlocks.Any(b => b.WorkOrderNumber == workOrder.WorkOrderNumber))
+			{
+				System.Diagnostics.Debug.WriteLine($"❌ BLOCKED: {workOrder.WorkOrderNumber}");
+				return;
+			}
+
+			// 🔒 RULE 2: Already running
+			if (Execution.RunningWorkOrders.Any(w => w.Id == id))
+			{
+				System.Diagnostics.Debug.WriteLine($"⚠ Already running: {workOrder.WorkOrderNumber}");
+				return;
+			}
+
+			// 🔒 RULE 3: Status check
+			if (workOrder.Status != "Ready")
+			{
+				System.Diagnostics.Debug.WriteLine($"⚠ Not ready: {workOrder.WorkOrderNumber}");
+				return;
+			}
+
+			// ✅ SAFE START
+			System.Diagnostics.Debug.WriteLine($"▶ MANUAL START: {workOrder.WorkOrderNumber}");
+
 			_executionService.StartWorkOrder(id);
 
 			RefreshProductionSystem();
@@ -656,9 +716,8 @@ namespace WeldAdminPro.UI.ViewModels
 				return;
 			}
 
-			System.Diagnostics.Debug.WriteLine($"🚀 Starting AI job: {TopPriorityWorkOrder.WorkOrderNumber}");
-
-			_executionService.StartWorkOrder(TopPriorityWorkOrder.Id);
+			// 🚫 Disabled for stability
+			System.Diagnostics.Debug.WriteLine("AI Start Disabled");
 
 			RefreshProductionSystem();
 		}
