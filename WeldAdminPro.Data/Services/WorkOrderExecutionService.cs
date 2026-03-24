@@ -19,93 +19,111 @@ namespace WeldAdminPro.Data.Services
 
 		public void StartWorkOrder(Guid workOrderId)
 		{
-			using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
-			connection.Open();
-
-			// 🔹 LOAD ALL WORK ORDERS
-			var allWorkOrders = new List<WorkOrder>();
-
-			using (var loadCmd = connection.CreateCommand())
+			try
 			{
-				loadCmd.CommandText = "SELECT Id, Status FROM WorkOrders";
+				using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
+				connection.Open();
 
-				using var reader = loadCmd.ExecuteReader();
+				Console.WriteLine($"🔍 Starting WO: {workOrderId}");
 
-				while (reader.Read())
+				// 🔹 LOAD ALL WORK ORDERS
+				var allWorkOrders = new List<WorkOrder>();
+
+				using (var loadCmd = connection.CreateCommand())
 				{
-					allWorkOrders.Add(new WorkOrder
+					loadCmd.CommandText = "SELECT Id, Status FROM WorkOrders";
+
+					using var reader = loadCmd.ExecuteReader();
+
+					while (reader.Read())
 					{
-						Id = Guid.Parse(reader.GetString(0)),
-						Status = (WorkOrderStatus)reader.GetInt32(1)
-					});
+						allWorkOrders.Add(new WorkOrder
+						{
+							Id = Guid.Parse(reader.GetString(0)),
+							Status = (WorkOrderStatus)reader.GetInt32(1)
+						});
+					}
 				}
-			}
 
+				// 🔹 LOAD FULL WORK ORDER
+				var workOrder = _repository.GetById(workOrderId);
 
+				if (workOrder == null)
+					throw new Exception("Work order not found");
 
-			// 🔹 LOAD FULL WORK ORDER (SOURCE OF TRUTH)
-			var workOrder = _repository.GetById(workOrderId);
-
-			if (workOrder == null)
-				throw new Exception("Work order not found");
-
-			// 🔥 MATERIAL VALIDATION
-			if (!_materialValidator.CanStart(workOrder, out var materialReason))
-			{
-				Console.WriteLine($"❌ MATERIAL BLOCK: {materialReason}");
-				return;
-			}
-
-
-			// 🔹 TEMP DEPENDENCY SUPPORT
-			using (var depCmd = connection.CreateCommand())
-			{
-				depCmd.CommandText = @"
-        SELECT DependsOnWorkOrderId 
-        FROM WorkOrderDependencies
-        WHERE WorkOrderId = @Id";
-
-				depCmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
-
-				using var depReader = depCmd.ExecuteReader();
-
-				workOrder.DependencyIds = new List<Guid>();
-
-				while (depReader.Read())
+				// 🔥 MATERIAL VALIDATION
+				if (!_materialValidator.CanStart(workOrder, out var materialReason))
 				{
-					workOrder.DependencyIds.Add(
-						Guid.Parse(depReader.GetString(0))
-					);
+					Console.WriteLine($"❌ MATERIAL BLOCK: {materialReason}");
+					return;
+				}
+
+				// 🔹 DEPENDENCIES (SAFE VERSION)
+				try
+				{
+					using var depCmd = connection.CreateCommand();
+
+					depCmd.CommandText = @"
+                SELECT DependsOnWorkOrderId 
+                FROM WorkOrderDependencies
+                WHERE WorkOrderId = @Id";
+
+					depCmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
+
+					using var depReader = depCmd.ExecuteReader();
+
+					workOrder.DependencyIds = new List<Guid>();
+
+					while (depReader.Read())
+					{
+						workOrder.DependencyIds.Add(
+							Guid.Parse(depReader.GetString(0))
+						);
+					}
+				}
+				catch
+				{
+					Console.WriteLine("⚠ Dependency table missing — skipping");
+					workOrder.DependencyIds = new List<Guid>();
+				}
+
+				// 🔥 VALIDATE
+				var canExecute = DependencyValidator.CanExecute(
+					workOrder,
+					allWorkOrders,
+					out var reason);
+
+				if (!canExecute)
+					throw new InvalidOperationException($"Cannot start: {reason}");
+
+				// 🔹 UPDATE
+				using var cmd = connection.CreateCommand();
+
+				cmd.CommandText =
+				@"UPDATE WorkOrders
+          SET Status = @Status,
+              ActualStartTime = @StartTime,
+              IsPaused = 0
+          WHERE Id = @Id";
+
+				cmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
+				cmd.Parameters.AddWithValue("@StartTime", DateTime.UtcNow.ToString("O"));
+				cmd.Parameters.AddWithValue("@Status", (int)WorkOrderStatus.InProduction);
+
+				var rows = cmd.ExecuteNonQuery();
+
+				Console.WriteLine($"✅ Rows updated: {rows}");
+
+				if (rows == 0)
+				{
+					Console.WriteLine("❌ WARNING: No rows updated!");
 				}
 			}
-
-			// 🔥 DEPENDENCY VALIDATION
-			var canExecute = DependencyValidator.CanExecute(
-				workOrder,
-				allWorkOrders,
-				out var reason);
-
-			if (!canExecute)
+			catch (Exception ex)
 			{
-				throw new InvalidOperationException(
-					$"Cannot start work order: {reason}");
+				Console.WriteLine($"❌ START ERROR: {ex}");
+				throw;
 			}
-
-			// 🔹 EXECUTE UPDATE
-			using var cmd = connection.CreateCommand();
-
-			cmd.CommandText =
-			@"UPDATE WorkOrders
-      SET Status = @Status,
-          ActualStartTime = @StartTime,
-          IsPaused = 0
-      WHERE Id = @Id";
-
-			cmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
-			cmd.Parameters.AddWithValue("@StartTime", DateTime.UtcNow.ToString("O"));
-			cmd.Parameters.AddWithValue("@Status", (int)WorkOrderStatus.InProduction);
-
-			cmd.ExecuteNonQuery();
 		}
 
 		public void CompleteWorkOrder(Guid workOrderId)

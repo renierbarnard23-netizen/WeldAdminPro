@@ -95,6 +95,18 @@ namespace WeldAdminPro.UI.ViewModels
 			_schedulingService = new ProductionSchedulingService();
 			_reservationService = new MaterialReservationService();
 			_workOrderRepository = new WorkOrderRepository();
+
+			// ✅ FORCE TABLE CREATION
+			var materialRepo = new WorkOrderMaterialRepository();
+
+			_executionService = new WorkOrderExecutionService(
+				new WorkOrderRepository(),
+				new MaterialValidator(
+					new StockRepository(),
+					new WorkOrderMaterialRepository()
+				)
+			);
+
 			_executionService = new WorkOrderExecutionService(new WorkOrderRepository(),new MaterialValidator(
 								new StockRepository(),
 								new WorkOrderMaterialRepository()
@@ -497,6 +509,8 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 		private void LoadProductionQueue()
 		{
+			var realWorkOrders = _workOrderRepository.GetAll().ToList();
+
 			var queue = _schedulingService.BuildQueue();
 
 			var autoPriority = new AutoPriorityService();
@@ -506,13 +520,22 @@ namespace WeldAdminPro.UI.ViewModels
 				ProductionBottlenecks.ToList()
 			);
 
+			foreach (var q in reordered)
+			{
+				var real = realWorkOrders.FirstOrDefault(r => r.WorkOrderNumber == q.WorkOrderNumber);
+
+				if (real != null)
+				{
+					q.Status = real.Status.ToString(); // ✅ correct
+				}
+			}
+
 			var simulation = new ProductionSimulationService();
 
 			var predictions = simulation.SimulateSchedule(
-				Production.ProductionQueue.ToList()
+				reordered.ToList()
 			);
 
-			RunScenarioSimulation(Production.ProductionQueue.ToList());
 			CompletionPredictions = new ObservableCollection<ProductionCompletionPrediction>(predictions);
 
 			// 🔥 APPLY AI SCORING
@@ -537,6 +560,9 @@ namespace WeldAdminPro.UI.ViewModels
 
 			// 🔥 APPLY TO UI
 			Production.ProductionQueue = new ObservableCollection<ProductionQueueItem>(replanned);
+
+			OnPropertyChanged(nameof(Production));
+			OnPropertyChanged(nameof(Production.ProductionQueue));
 		}
 		private void LoadReservations()
 		{
@@ -619,6 +645,7 @@ namespace WeldAdminPro.UI.ViewModels
 			if (shouldReplan)
 			{
 				var replanned = _replanningService.Replan(currentQueue);
+				RunScenarioSimulation(replanned.ToList());
 
 				Production.ProductionQueue =
 					new ObservableCollection<ProductionQueueItem>(replanned);
@@ -632,7 +659,8 @@ namespace WeldAdminPro.UI.ViewModels
 
 			OnPropertyChanged(nameof(Production.ProductionQueue));
 			OnPropertyChanged(nameof(OptimizedStrategy));
-			
+
+
 		}
 
 		public void RunScenarioSimulation(List<ProductionQueueItem> customQueue)
@@ -674,7 +702,7 @@ namespace WeldAdminPro.UI.ViewModels
 			}
 
 			// 🔒 RULE 3: Status check
-			if (workOrder.Status != "Ready")
+			if (workOrder.Status != "Ready" && workOrder.Status != "Paused")
 			{
 				System.Diagnostics.Debug.WriteLine($"⚠ Not ready: {workOrder.WorkOrderNumber}");
 				return;

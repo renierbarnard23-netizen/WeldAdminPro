@@ -39,7 +39,7 @@ namespace WeldAdminPro.Data.Repositories
 
 			return null;
 		}
-
+		
 		private void EnsureTable()
 		{
 			using var connection = new SqliteConnection(_connectionString);

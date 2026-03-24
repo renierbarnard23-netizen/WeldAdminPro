@@ -26,7 +26,7 @@ namespace WeldAdminPro.Data.Repositories
 			using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
         SELECT ItemCode, Quantity
-        FROM Stock
+        FROM StockItems
         WHERE ItemCode = @ItemCode";
 
 			cmd.Parameters.AddWithValue("@ItemCode", itemCode);
