@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
+using System.Diagnostics;
 
 namespace WeldAdminPro.UI.ViewModels.Dashboard
 {
@@ -27,15 +28,18 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 
 		public ProductionExecutionViewModel()
 		{
-			_repository = new WorkOrderRepository();
-			_executionService = new WorkOrderExecutionService(
-	_repository,
-	new MaterialValidator(
-		new StockRepository(),
-		new WorkOrderMaterialRepository()
-	)
-);
+			Console.WriteLine("🔥 ViewModel Constructor");
+
+			var repo = new WorkOrderRepository();
+			var materialRepo = new WorkOrderMaterialRepository();
+			var stockRepo = new StockRepository();
+
+			var validator = new MaterialValidator(stockRepo, materialRepo);
+
+			_executionService = new WorkOrderExecutionService(repo, materialRepo, validator);
+			_repository = repo;
 		}
+
 		public void Refresh()
 		{
 			Load();
@@ -47,7 +51,43 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 
 			foreach (var w in all)
 			{
-				Console.WriteLine($"{w.WorkOrderNumber} - Status: {w.Status}");
+				var materials = new WorkOrderMaterialRepository()
+					.GetByWorkOrderId(w.Id);
+
+				// 🔥 AUTO TYPE (UI SAFETY)
+				if (!materials.Any())
+					w.Type = WorkOrderType.Procurement;
+				else
+					w.Type = WorkOrderType.Production;
+
+				// 🔴 BLOCK REASON LOGIC
+				if (w.Type == WorkOrderType.Production)
+				{
+					if (!materials.Any())
+					{
+						w.BlockReason = "No materials linked";
+					}
+					else
+					{
+						var validator = new MaterialValidator(
+							new StockRepository(),
+							new WorkOrderMaterialRepository());
+
+						if (!validator.CanStart(w, out var reason))
+							w.BlockReason = reason;
+						else
+							w.BlockReason = null;
+					}
+				}
+				else
+				{
+					w.BlockReason = null;
+				}
+			}
+
+			foreach (var w in all)
+			{
+				Debug.WriteLine($"{w.WorkOrderNumber} - Status: {w.Status}");
 			}
 
 			ReadyWorkOrders = new ObservableCollection<WorkOrder>(
@@ -71,12 +111,60 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 		[RelayCommand]
 		private void Start(Guid id)
 		{
-			_executionService.StartWorkOrder(id);
+			Debug.WriteLine("🚀 RELAY START TRIGGERED");
 
-			Load(); // reload lists from DB
+			Debug.WriteLine($"🔥 SERVICE TYPE: {_executionService.GetType().FullName}");
+
+			try
+			{
+				_executionService.StartWorkOrder(id);
+
+				Debug.WriteLine("✅ Execution service completed");
+
+				Load();
+				ControlTower?.Load();
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine("❌ ERROR IN START:");
+				Debug.WriteLine(ex.ToString());
+			}
+		}
+
+		public void StartWorkOrder(Guid id)
+		{
+			System.Diagnostics.Debug.WriteLine("🚀 StartWorkOrder METHOD CALLED");
+
+			try
+			{
+				_executionService.StartWorkOrder(id);
+
+				System.Diagnostics.Debug.WriteLine("✅ Execution completed");
+
+				Load();
+				ControlTower?.Load();
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine("❌ ERROR:");
+				System.Diagnostics.Debug.WriteLine(ex.ToString());
+			}
+		}
+
+		public void PauseWorkOrder(Guid id)
+		{
+			_executionService.PauseWorkOrder(id);
+
+			Load();
 			ControlTower?.Load();
+		}
 
-			Console.WriteLine($"Started work order {id}");
+		public void CompleteWorkOrder(Guid id)
+		{
+			_executionService.CompleteWorkOrder(id);
+
+			Load();
+			ControlTower?.Load();
 		}
 	}
 }

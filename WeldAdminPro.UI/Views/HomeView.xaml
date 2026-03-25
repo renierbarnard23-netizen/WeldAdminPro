@@ -735,9 +735,47 @@ Width="*"/>
 
 						<DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="140"/>
 
+						<!-- ✅ ADD THESE TWO -->
+						<DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="120"/>
+						<DataGridTextColumn Header="Block Reason" Binding="{Binding BlockReason}" Width="200"/>
+
 						<DataGridTextColumn Header="Start" Binding="{Binding StartDate}" Width="140"/>
 
 						<DataGridTextColumn Header="Due" Binding="{Binding DueDate}" Width="140"/>
+
+						<DataGridTemplateColumn Header="Actions" Width="220">
+							<DataGridTemplateColumn.CellTemplate>
+								<DataTemplate>
+
+									<StackPanel Orientation="Horizontal">
+
+										<Button Content="Start"
+                        Margin="2"
+                        Padding="6,2"
+                        Command="{Binding DataContext.StartWorkOrderCommand,
+                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                        CommandParameter="{Binding Id}"
+                        IsEnabled="{Binding BlockReason, Converter={StaticResource NullToBoolConverter}}"/>
+
+										<Button Content="Pause"
+                        Margin="2"
+                        Padding="6,2"
+                        Command="{Binding DataContext.PauseWorkOrderCommand,
+                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                        CommandParameter="{Binding Id}"/>
+
+										<Button Content="Complete"
+                        Margin="2"
+                        Padding="6,2"
+                        Command="{Binding DataContext.CompleteWorkOrderCommand,
+                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                        CommandParameter="{Binding Id}"/>
+
+									</StackPanel>
+
+								</DataTemplate>
+							</DataGridTemplateColumn.CellTemplate>
+						</DataGridTemplateColumn>
 
 					</DataGrid.Columns>
 

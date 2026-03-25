@@ -37,7 +37,6 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly ProductionSchedulingService _schedulingService;
 		private readonly MaterialReservationService _reservationService;
 		private readonly WorkOrderRepository _workOrderRepository;
-		private readonly WorkOrderExecutionService _executionService;
 
 		private readonly ProductionBottleneckDetectionService _bottleneckService;
 		
@@ -96,28 +95,42 @@ namespace WeldAdminPro.UI.ViewModels
 			_reservationService = new MaterialReservationService();
 			_workOrderRepository = new WorkOrderRepository();
 
-			// ✅ FORCE TABLE CREATION
-			var materialRepo = new WorkOrderMaterialRepository();
+			// ✅ FORCE TABLE CREATION			
+			//var materialRepo = new WorkOrderMaterialRepository();
+			//var stockRepo = new StockRepository();
 
-			_executionService = new WorkOrderExecutionService(
-				new WorkOrderRepository(),
-				new MaterialValidator(
-					new StockRepository(),
-					new WorkOrderMaterialRepository()
-				)
-			);
+			//var materialValidator = new MaterialValidator(
+				//stockRepo,
+				//materialRepo
+			//);
 
-			_executionService = new WorkOrderExecutionService(new WorkOrderRepository(),new MaterialValidator(
-								new StockRepository(),
-								new WorkOrderMaterialRepository()
-			)
-		);
+			//_executionService = new WorkOrderExecutionService(
+				//_workOrderRepository,
+				//materialRepo,
+				//materialValidator
+			//);
 
 
 			ProductionControlTower = new ProductionControlTowerViewModel();
 			ProductionControlTower.Load();
 
+			var workOrderRepo = new WorkOrderRepository();
+			var materialRepo = new WorkOrderMaterialRepository();
+			var stockRepo = new StockRepository();
+
+			var materialValidator = new MaterialValidator(
+				stockRepo,
+				materialRepo
+			);
+
+			var executionService = new WorkOrderExecutionService(
+				workOrderRepo,
+				materialRepo,
+				materialValidator
+			);
+
 			Execution = new ProductionExecutionViewModel();
+
 			Execution.ControlTower = ProductionControlTower;
 			Execution.Load();
 
@@ -595,7 +608,7 @@ namespace WeldAdminPro.UI.ViewModels
 				{
 					System.Diagnostics.Debug.WriteLine($"[AUTO] STOPPING BLOCKED JOB: {running.WorkOrderNumber}");
 
-					_executionService.PauseWorkOrder(running.Id);
+					Execution.PauseWorkOrder(running.Id);
 
 					// 🔔 Optional: Raise alert
 					System.Diagnostics.Debug.WriteLine($"[ALERT] Work order {running.WorkOrderNumber} blocked during execution");
@@ -687,56 +700,52 @@ namespace WeldAdminPro.UI.ViewModels
 			if (workOrder == null)
 				return;
 
-			// 🔒 RULE 1: Blocked check
 			if (ProductionBlocks.Any(b => b.WorkOrderNumber == workOrder.WorkOrderNumber))
 			{
 				System.Diagnostics.Debug.WriteLine($"❌ BLOCKED: {workOrder.WorkOrderNumber}");
 				return;
 			}
 
-			// 🔒 RULE 2: Already running
 			if (Execution.RunningWorkOrders.Any(w => w.Id == id))
 			{
 				System.Diagnostics.Debug.WriteLine($"⚠ Already running: {workOrder.WorkOrderNumber}");
 				return;
 			}
 
-			// 🔒 RULE 3: Status check
-			if (workOrder.Status != "Ready" && workOrder.Status != "Paused")
+			if (workOrder.Status != "Ready" &&
+				workOrder.Status != "Paused" &&
+				workOrder.Status != "0")
 			{
 				System.Diagnostics.Debug.WriteLine($"⚠ Not ready: {workOrder.WorkOrderNumber}");
 				return;
 			}
 
-			// ✅ SAFE START
 			System.Diagnostics.Debug.WriteLine($"▶ MANUAL START: {workOrder.WorkOrderNumber}");
 
-			_executionService.StartWorkOrder(id);
+			Execution.StartWorkOrder(id);
 
 			RefreshProductionSystem();
-
 			ProductionChanged?.Invoke();
 		}
 
 		[RelayCommand]
 		private void PauseWorkOrder(Guid id)
 		{
-			_executionService.PauseWorkOrder(id);
+			Execution.PauseWorkOrder(id);
 
 			RefreshProductionSystem();
-
 			ProductionChanged?.Invoke();
 		}
 
 		[RelayCommand]
 		private void CompleteWorkOrder(Guid id)
 		{
-			_executionService.CompleteWorkOrder(id);
+			Execution.CompleteWorkOrder(id);
 
 			RefreshProductionSystem();
-
 			ProductionChanged?.Invoke();
 		}
+
 		[RelayCommand]
 		private void StartRecommended()
 		{

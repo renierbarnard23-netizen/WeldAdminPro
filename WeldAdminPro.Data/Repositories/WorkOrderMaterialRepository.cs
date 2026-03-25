@@ -19,17 +19,17 @@ namespace WeldAdminPro.Data.Repositories
 		{
 			var list = new List<WorkOrderMaterial>();
 
-			using var connection = new SqliteConnection(_connectionString);
+			using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
 			connection.Open();
 
 			using var cmd = connection.CreateCommand();
-
 			cmd.CommandText = @"
-SELECT Id, WorkOrderId, ItemCode, RequiredQuantity
-FROM WorkOrderMaterials
-WHERE WorkOrderId = $woId;";
+        SELECT Id, WorkOrderId, ItemCode, RequiredQuantity
+        FROM WorkOrderMaterials
+        WHERE WorkOrderId = @WorkOrderId";
 
-			cmd.Parameters.AddWithValue("$woId", workOrderId.ToString());
+			// 🔥 CRITICAL FIX
+			cmd.Parameters.AddWithValue("@WorkOrderId", workOrderId.ToString());
 
 			using var reader = cmd.ExecuteReader();
 

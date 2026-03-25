@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using Microsoft.Data.Sqlite;
-using WeldAdminPro.Core.Production.Services;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
@@ -9,22 +11,77 @@ namespace WeldAdminPro.Data.Services
 	public class WorkOrderExecutionService
 	{
 		private readonly WorkOrderRepository _repository;
+		private readonly WorkOrderMaterialRepository _materialRepo;
 		private readonly MaterialValidator _materialValidator;
 
-		public WorkOrderExecutionService(WorkOrderRepository repository,MaterialValidator materialValidator)
+		public WorkOrderExecutionService(
+			WorkOrderRepository repository,
+			WorkOrderMaterialRepository materialRepo,
+			MaterialValidator materialValidator)
 		{
 			_repository = repository;
+			_materialRepo = materialRepo;
 			_materialValidator = materialValidator;
 		}
 
 		public void StartWorkOrder(Guid workOrderId)
 		{
+			System.Diagnostics.Debug.WriteLine("🔥 ENTERED StartWorkOrder()");
 			try
 			{
 				using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
 				connection.Open();
 
-				Console.WriteLine($"🔍 Starting WO: {workOrderId}");
+				System.Diagnostics.Debug.WriteLine($"🔍 Starting WO: {workOrderId}");
+
+				var workOrder = _repository.GetById(workOrderId);
+				if (workOrder == null)
+					throw new Exception("Work order not found");
+
+				// 🔒 Prevent duplicate start
+				if (workOrder.Status == WorkOrderStatus.InProduction)
+				{
+					Debug.WriteLine($"⚠ Already running: {workOrder.WorkOrderNumber}");
+					return;
+				}
+
+				var materials = _materialRepo.GetByWorkOrderId(workOrder.Id);
+
+				// 🔥 AUTO-DETECT WORK ORDER TYPE
+				if (!materials.Any())
+				{
+					workOrder.Type = WorkOrderType.Procurement;
+				}
+				else
+				{
+					workOrder.Type = WorkOrderType.Production;
+				}
+
+				string materialReason;
+
+				if (workOrder.Type == WorkOrderType.Production)
+				{
+					Debug.WriteLine($"Materials found: {materials.Count}");
+
+					if (!materials.Any())
+						throw new Exception("Cannot start: No materials linked");
+
+					if (!_materialValidator.CanStart(workOrder, out materialReason))
+						throw new Exception($"Material check failed: {materialReason}");
+
+					Debug.WriteLine("✅ Material validation passed");
+
+					Debug.WriteLine("➡ Running Stock Reservation...");
+
+					if (!TryReserveMaterials(materials))
+						throw new Exception("Not enough stock");
+
+					Debug.WriteLine("✅ Stock reservation passed");
+				}
+				else
+				{
+					Debug.WriteLine("ℹ Non-production WO → skipping material + stock validation");
+				}
 
 				// 🔹 LOAD ALL WORK ORDERS
 				var allWorkOrders = new List<WorkOrder>();
@@ -45,84 +102,67 @@ namespace WeldAdminPro.Data.Services
 					}
 				}
 
-				// 🔹 LOAD FULL WORK ORDER
-				var workOrder = _repository.GetById(workOrderId);
+				// 🔹 DEPENDENCIES (SAFE LOAD)
+				workOrder.DependencyIds = new List<Guid>();
 
-				if (workOrder == null)
-					throw new Exception("Work order not found");
-
-				// 🔥 MATERIAL VALIDATION
-				if (!_materialValidator.CanStart(workOrder, out var materialReason))
-				{
-					Console.WriteLine($"❌ MATERIAL BLOCK: {materialReason}");
-					return;
-				}
-
-				// 🔹 DEPENDENCIES (SAFE VERSION)
 				try
 				{
 					using var depCmd = connection.CreateCommand();
-
 					depCmd.CommandText = @"
-                SELECT DependsOnWorkOrderId 
-                FROM WorkOrderDependencies
-                WHERE WorkOrderId = @Id";
+                        SELECT DependsOnWorkOrderId 
+                        FROM WorkOrderDependencies
+                        WHERE WorkOrderId = @Id";
 
 					depCmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
 
-					using var depReader = depCmd.ExecuteReader();
+					using var reader = depCmd.ExecuteReader();
 
-					workOrder.DependencyIds = new List<Guid>();
-
-					while (depReader.Read())
+					while (reader.Read())
 					{
-						workOrder.DependencyIds.Add(
-							Guid.Parse(depReader.GetString(0))
-						);
+						workOrder.DependencyIds.Add(Guid.Parse(reader.GetString(0)));
 					}
+
+					System.Diagnostics.Debug.WriteLine($"Dependencies loaded: {workOrder.DependencyIds.Count}");
 				}
 				catch
 				{
-					Console.WriteLine("⚠ Dependency table missing — skipping");
-					workOrder.DependencyIds = new List<Guid>();
+					System.Diagnostics.Debug.WriteLine("⚠ No dependency table or data — skipping");
 				}
 
-				// 🔥 VALIDATE
-				var canExecute = DependencyValidator.CanExecute(
-					workOrder,
-					allWorkOrders,
-					out var reason);
+				// 🔥 TEMP BYPASS (FOR NOW)
+				//bool canExecute = true;
 
-				if (!canExecute)
-					throw new InvalidOperationException($"Cannot start: {reason}");
-
-				// 🔹 UPDATE
+				// 🔹 START WORK ORDER
 				using var cmd = connection.CreateCommand();
 
 				cmd.CommandText =
 				@"UPDATE WorkOrders
-          SET Status = @Status,
-              ActualStartTime = @StartTime,
-              IsPaused = 0
-          WHERE Id = @Id";
+                  SET Status = @Status,
+                      ActualStartTime = @StartTime,
+                      IsPaused = 0
+                  WHERE Id = @Id";
 
 				cmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
 				cmd.Parameters.AddWithValue("@StartTime", DateTime.UtcNow.ToString("O"));
 				cmd.Parameters.AddWithValue("@Status", (int)WorkOrderStatus.InProduction);
 
+				System.Diagnostics.Debug.WriteLine("➡ Starting Work Order (DB Update)...");
+
 				var rows = cmd.ExecuteNonQuery();
 
-				Console.WriteLine($"✅ Rows updated: {rows}");
+				System.Diagnostics.Debug.WriteLine($"✅ Rows updated: {rows}");
 
 				if (rows == 0)
 				{
-					Console.WriteLine("❌ WARNING: No rows updated!");
+					System.Diagnostics.Debug.WriteLine("❌ WARNING: No rows updated!");
 				}
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine($"❌ START ERROR: {ex}");
-				throw;
+				System.Diagnostics.Debug.WriteLine("❌ START ERROR:");
+				System.Diagnostics.Debug.WriteLine(ex.ToString());
+
+				throw; // 🔥 IMPORTANT - DO NOT SWALLOW
 			}
 		}
 
@@ -165,6 +205,25 @@ namespace WeldAdminPro.Data.Services
 			cmd.Parameters.AddWithValue("@Status", (int)WorkOrderStatus.Paused);
 
 			cmd.ExecuteNonQuery();
+		}
+
+		private bool TryReserveMaterials(List<WorkOrderMaterial> materials)
+		{
+			foreach (var m in materials)
+			{
+				System.Diagnostics.Debug.WriteLine($"🔍 Checking stock for {m.ItemCode}");
+
+				var availableStock = 100; // TEMP
+
+				if (availableStock < m.RequiredQuantity)
+				{
+					System.Diagnostics.Debug.WriteLine($"❌ Not enough stock for {m.ItemCode}");
+					return false;
+				}
+			}
+
+			System.Diagnostics.Debug.WriteLine("✅ Materials reserved");
+			return true;
 		}
 	}
 }

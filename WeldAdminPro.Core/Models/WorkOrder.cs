@@ -27,6 +27,8 @@ namespace WeldAdminPro.Core.Models
 		public DateTime? ActualEndTime { get; set; }
 		public double ActualHours { get; set; }
 		public bool IsPaused { get; set; }
+		public WorkOrderType Type { get; set; }
+		public string? BlockReason { get; set; }
 	}
 
 	public enum WorkOrderStatus
@@ -35,5 +37,12 @@ namespace WeldAdminPro.Core.Models
 		InProduction = 2,
 		Paused = 3,
 		Completed = 4
+	}
+
+	public enum WorkOrderType
+	{
+		Production,   // consumes materials
+		Procurement,  // creates or orders materials
+		Internal      // optional (machining, cutting, etc.)
 	}
 }
