@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Linq;
 using Microsoft.Data.Sqlite;
+using WeldAdminPro.Core.Execution;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
@@ -13,15 +15,21 @@ namespace WeldAdminPro.Data.Services
 		private readonly WorkOrderRepository _repository;
 		private readonly WorkOrderMaterialRepository _materialRepo;
 		private readonly MaterialValidator _materialValidator;
+		private readonly BlockReasonEngine _blockEngine;
+		private readonly StockRepository _stockRepo;
 
 		public WorkOrderExecutionService(
-			WorkOrderRepository repository,
-			WorkOrderMaterialRepository materialRepo,
-			MaterialValidator materialValidator)
+			   WorkOrderRepository repo,
+			   WorkOrderMaterialRepository materialRepo,
+			   MaterialValidator validator,
+			   StockRepository stockRepo) // 👈 ADD
 		{
-			_repository = repository;
+			_repository = repo;
 			_materialRepo = materialRepo;
-			_materialValidator = materialValidator;
+			_materialValidator = validator;
+			_stockRepo = stockRepo; // 👈 ADD
+
+			_blockEngine = new BlockReasonEngine();
 		}
 
 		public void StartWorkOrder(Guid workOrderId)
@@ -46,6 +54,29 @@ namespace WeldAdminPro.Data.Services
 				}
 
 				var materials = _materialRepo.GetByWorkOrderId(workOrder.Id);
+				// 🔥 MAP MATERIALS FOR ENGINE
+				var stockItems = _stockRepo.GetAll();
+
+				workOrder.MaterialRequirements = materials.Select(m =>
+				{
+					var stock = stockItems
+						.FirstOrDefault(s => s.ItemCode == m.ItemCode);
+
+					return new MaterialRequirement
+					{
+						MaterialCode = m.ItemCode,
+						RequiredQuantity = m.RequiredQuantity,
+						AvailableQuantity = stock?.Quantity ?? 0
+					};
+				}).ToList();
+
+				// 🔥 BLOCK ENGINE VALIDATION
+				var blockResult = _blockEngine.Evaluate(workOrder);
+
+				if (blockResult.Reason != BlockReason.None)
+				{
+					throw new Exception($"Blocked: {blockResult.Message}");
+				}
 
 				// 🔥 AUTO-DETECT WORK ORDER TYPE
 				if (!materials.Any())
@@ -209,20 +240,25 @@ namespace WeldAdminPro.Data.Services
 
 		private bool TryReserveMaterials(List<WorkOrderMaterial> materials)
 		{
+			var stockItems = _stockRepo.GetAll();
+
 			foreach (var m in materials)
 			{
-				System.Diagnostics.Debug.WriteLine($"🔍 Checking stock for {m.ItemCode}");
+				var stock = stockItems
+					.FirstOrDefault(s => s.ItemCode == m.ItemCode);
 
-				var availableStock = 100; // TEMP
+				var available = stock?.Quantity ?? 0;
 
-				if (availableStock < m.RequiredQuantity)
+				Debug.WriteLine($"🔍 {m.ItemCode} → Required: {m.RequiredQuantity}, Available: {available}");
+
+				if (available < m.RequiredQuantity)
 				{
-					System.Diagnostics.Debug.WriteLine($"❌ Not enough stock for {m.ItemCode}");
+					Debug.WriteLine($"❌ Not enough stock for {m.ItemCode}");
 					return false;
 				}
 			}
 
-			System.Diagnostics.Debug.WriteLine("✅ Materials reserved");
+			Debug.WriteLine("✅ Materials available");
 			return true;
 		}
 	}

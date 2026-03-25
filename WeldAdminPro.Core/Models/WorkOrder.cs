@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using WeldAdminPro.Core.Execution;
 
 namespace WeldAdminPro.Core.Models
 {
@@ -21,14 +23,27 @@ namespace WeldAdminPro.Core.Models
 		public DateTime? CompletedOn { get; set; }
 		public DateTime? PlannedStartDate { get; set; }
 		public DateTime? DueDate { get; set; }
+
 		public int Priority { get; set; }
+
 		public List<Guid> DependencyIds { get; set; } = new();
+
 		public DateTime? ActualStartTime { get; set; }
 		public DateTime? ActualEndTime { get; set; }
 		public double ActualHours { get; set; }
+
 		public bool IsPaused { get; set; }
+
 		public WorkOrderType Type { get; set; }
-		public string? BlockReason { get; set; }
+
+		// ✅ NEW ENGINE FIELDS (CORRECT)
+		public List<MaterialRequirement> MaterialRequirements { get; set; } = new();
+		public List<WorkOrder> Dependencies { get; set; } = new();
+
+		public DateTime? ScheduledStart { get; set; }
+
+		public BlockReason BlockReason { get; set; } = BlockReason.None;
+		public string BlockMessage { get; set; } = "";
 	}
 
 	public enum WorkOrderStatus
@@ -41,8 +56,8 @@ namespace WeldAdminPro.Core.Models
 
 	public enum WorkOrderType
 	{
-		Production,   // consumes materials
-		Procurement,  // creates or orders materials
-		Internal      // optional (machining, cutting, etc.)
+		Production,
+		Procurement,
+		Internal
 	}
 }

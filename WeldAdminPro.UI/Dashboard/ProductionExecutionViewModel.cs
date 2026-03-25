@@ -7,6 +7,7 @@ using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
 using System.Diagnostics;
+using WeldAdminPro.Core.Execution;
 
 namespace WeldAdminPro.UI.ViewModels.Dashboard
 {
@@ -26,19 +27,23 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 
 		public ProductionControlTowerViewModel? ControlTower { get; set; }
 
-		public ProductionExecutionViewModel()
+		public ProductionExecutionViewModel(WorkOrderExecutionService executionService)
 		{
-			Console.WriteLine("🔥 ViewModel Constructor");
-
-			var repo = new WorkOrderRepository();
-			var materialRepo = new WorkOrderMaterialRepository();
-			var stockRepo = new StockRepository();
-
-			var validator = new MaterialValidator(stockRepo, materialRepo);
-
-			_executionService = new WorkOrderExecutionService(repo, materialRepo, validator);
-			_repository = repo;
+			_executionService = executionService;
+			_repository = new WorkOrderRepository();
 		}
+		//{
+			//Console.WriteLine("🔥 ViewModel Constructor");
+
+			//var repo = new WorkOrderRepository();
+			//var materialRepo = new WorkOrderMaterialRepository();
+			//var stockRepo = new StockRepository();
+
+			//var validator = new MaterialValidator(stockRepo, materialRepo);
+
+			//_executionService = new WorkOrderExecutionService(repo, materialRepo, validator);
+			//_repository = repo;
+		//}
 
 		public void Refresh()
 		{
@@ -49,54 +54,61 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 		{
 			var all = _repository.GetAll().ToList();
 
-			foreach (var w in all)
+			var engine = new BlockReasonEngine();
+			var materialRepo = new WorkOrderMaterialRepository();
+			var stockRepo = new StockRepository();
+
+			foreach (var wo in all)
 			{
-				var materials = new WorkOrderMaterialRepository()
-					.GetByWorkOrderId(w.Id);
+				var materials = materialRepo.GetByWorkOrderId(wo.Id);
 
-				// 🔥 AUTO TYPE (UI SAFETY)
-				if (!materials.Any())
-					w.Type = WorkOrderType.Procurement;
-				else
-					w.Type = WorkOrderType.Production;
+				// 🔹 AUTO TYPE
+				wo.Type = materials.Any()
+					? WorkOrderType.Production
+					: WorkOrderType.Procurement;
 
-				// 🔴 BLOCK REASON LOGIC
-				if (w.Type == WorkOrderType.Production)
+				// 🔹 MAP MATERIALS → ENGINE FORMAT
+				wo.MaterialRequirements = materials.Select(m =>
 				{
-					if (!materials.Any())
-					{
-						w.BlockReason = "No materials linked";
-					}
-					else
-					{
-						var validator = new MaterialValidator(
-							new StockRepository(),
-							new WorkOrderMaterialRepository());
+					var stock = stockRepo.GetAll()
+						.FirstOrDefault(s => s.ItemCode == m.ItemCode);
 
-						if (!validator.CanStart(w, out var reason))
-							w.BlockReason = reason;
-						else
-							w.BlockReason = null;
-					}
-				}
-				else
-				{
-					w.BlockReason = null;
-				}
-			}
+					return new MaterialRequirement
+					{
+						MaterialCode = m.ItemCode,
+						RequiredQuantity = m.RequiredQuantity,
+						AvailableQuantity = stock?.Quantity ?? 0
+					};				
 
-			foreach (var w in all)
-			{
-				Debug.WriteLine($"{w.WorkOrderNumber} - Status: {w.Status}");
+				// fallback (safety)
+				if (stock == null)
+					{
+						stock = stockRepo.GetAll()
+							.FirstOrDefault(s => s.ItemCode == m.ItemCode);
+					}
+
+					return new MaterialRequirement
+					{
+						MaterialCode = m.ItemCode, // use your actual code
+						RequiredQuantity = m.RequiredQuantity,
+						AvailableQuantity = stock?.Quantity ?? 0
+					};
+				}).ToList();
+
+				// 🔹 ENGINE DECISION
+				var result = engine.Evaluate(wo);
+
+				wo.BlockReason = result.Reason;
+				wo.BlockMessage = result.Message;
+
+				Debug.WriteLine($"{wo.WorkOrderNumber} → {wo.BlockReason}");
 			}
 
 			ReadyWorkOrders = new ObservableCollection<WorkOrder>(
-	all.Where(w =>
-		w.Status == WorkOrderStatus.Ready));
+				all.Where(w => w.Status == WorkOrderStatus.Ready));
 
 			RunningWorkOrders = new ObservableCollection<WorkOrder>(
-				all.Where(w =>
-					w.Status == WorkOrderStatus.InProduction));
+				all.Where(w => w.Status == WorkOrderStatus.InProduction));
 
 			CompletedToday = new ObservableCollection<WorkOrder>(
 				all.Where(w =>
@@ -113,13 +125,9 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 		{
 			Debug.WriteLine("🚀 RELAY START TRIGGERED");
 
-			Debug.WriteLine($"🔥 SERVICE TYPE: {_executionService.GetType().FullName}");
-
 			try
 			{
 				_executionService.StartWorkOrder(id);
-
-				Debug.WriteLine("✅ Execution service completed");
 
 				Load();
 				ControlTower?.Load();
@@ -133,21 +141,17 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 
 		public void StartWorkOrder(Guid id)
 		{
-			System.Diagnostics.Debug.WriteLine("🚀 StartWorkOrder METHOD CALLED");
-
 			try
 			{
 				_executionService.StartWorkOrder(id);
-
-				System.Diagnostics.Debug.WriteLine("✅ Execution completed");
 
 				Load();
 				ControlTower?.Load();
 			}
 			catch (Exception ex)
 			{
-				System.Diagnostics.Debug.WriteLine("❌ ERROR:");
-				System.Diagnostics.Debug.WriteLine(ex.ToString());
+				Debug.WriteLine("❌ ERROR:");
+				Debug.WriteLine(ex.ToString());
 			}
 		}
 

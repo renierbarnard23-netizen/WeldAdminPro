@@ -1,4 +1,6 @@
 using System;
+using WeldAdminPro.Core.Execution;
+using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Core.Analytics.Production
 {
@@ -21,5 +23,12 @@ namespace WeldAdminPro.Core.Analytics.Production
 		public double PriorityScore { get; set; }
 		public bool IsLate { get; set; }
 		public string RequiredResource { get; set; } = "";
+
+		public BlockReason BlockReason { get; set; }
+
+		public string BlockMessage { get; set; } = "";
+		public WorkOrderType Type { get; set; }
+
+		public bool CanStart => BlockReason == BlockReason.None;
 	}
 }

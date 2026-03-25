@@ -1,19 +1,21 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Timers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Analytics.Executive;
 using WeldAdminPro.Core.Analytics.Procurement;
 using WeldAdminPro.Core.Analytics.Production;
+using WeldAdminPro.Core.Execution;
 using WeldAdminPro.Core.Models;
+using WeldAdminPro.Core.Services.Planning;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
 using WeldAdminPro.UI.ViewModels;
 using WeldAdminPro.UI.ViewModels.Dashboard;
-using WeldAdminPro.Core.Services.Planning;
-using System.Timers;
 
 namespace WeldAdminPro.UI.ViewModels
 {
@@ -53,7 +55,7 @@ namespace WeldAdminPro.UI.ViewModels
 		public ObservableCollection<DeadlineRisk> DeadlineRisks { get; set; } = new();
 		public ProductionControlViewModel Production { get; } = new ProductionControlViewModel();
 
-		public ProductionExecutionViewModel Execution { get; }
+		public ProductionExecutionViewModel Execution { get; set; }
 
 		public ProductionControlTowerViewModel ProductionControlTower { get; } = new ProductionControlTowerViewModel();
 
@@ -85,6 +87,7 @@ namespace WeldAdminPro.UI.ViewModels
 			_shortageService = new WorkOrderShortageDetectionService();
 			_procurementService = new ProcurementSuggestionService();
 			_productionBlockService = new ProductionBlockService();
+
 			_productionReadinessService = new ProductionReadinessService(
 				new WorkOrderRepository(),
 				new WorkOrderShortageDetectionService());
@@ -95,24 +98,9 @@ namespace WeldAdminPro.UI.ViewModels
 			_reservationService = new MaterialReservationService();
 			_workOrderRepository = new WorkOrderRepository();
 
-			// ✅ FORCE TABLE CREATION			
-			//var materialRepo = new WorkOrderMaterialRepository();
-			//var stockRepo = new StockRepository();
-
-			//var materialValidator = new MaterialValidator(
-				//stockRepo,
-				//materialRepo
-			//);
-
-			//_executionService = new WorkOrderExecutionService(
-				//_workOrderRepository,
-				//materialRepo,
-				//materialValidator
-			//);
-
-
-			ProductionControlTower = new ProductionControlTowerViewModel();
-			ProductionControlTower.Load();
+			// =========================
+			// 🔥 FIXED EXECUTION SETUP
+			// =========================
 
 			var workOrderRepo = new WorkOrderRepository();
 			var materialRepo = new WorkOrderMaterialRepository();
@@ -126,13 +114,22 @@ namespace WeldAdminPro.UI.ViewModels
 			var executionService = new WorkOrderExecutionService(
 				workOrderRepo,
 				materialRepo,
-				materialValidator
+				materialValidator,
+				stockRepo // ✅ FIXED
 			);
 
-			Execution = new ProductionExecutionViewModel();
+			// ✅ PASS INTO VIEWMODEL
+			Execution = new ProductionExecutionViewModel(executionService);
+
+			ProductionControlTower = new ProductionControlTowerViewModel();
+			ProductionControlTower.Load();
 
 			Execution.ControlTower = ProductionControlTower;
 			Execution.Load();
+
+			// =========================
+			// REMAINDER UNCHANGED
+			// =========================
 
 			_bottleneckService = new ProductionBottleneckDetectionService();
 			ProductionBottlenecks = _bottleneckService.DetectBottlenecks();
@@ -143,14 +140,14 @@ namespace WeldAdminPro.UI.ViewModels
 			_efficiencyTrendService = new ProductionEfficiencyTrendService();
 			ProductionEfficiencyTrend = _efficiencyTrendService.GetLast7DaysTrend();
 
-			// 🔥 LOAD CORE DATA FIRST (CRITICAL ORDER)
 			LoadProductionQueue();
+		
 
-			// ===============================
-			// 🔥 AI + OPTIMIZATION ENGINE
-			// ===============================
+		// ===============================
+		// 🔥 AI + OPTIMIZATION ENGINE
+		// ===============================
 
-			var comparer = new ScenarioComparer();
+		var comparer = new ScenarioComparer();
 			var simulator = new ProductionSimulator();
 			var optimizer = new ProductionOptimizer();
 
@@ -287,6 +284,20 @@ namespace WeldAdminPro.UI.ViewModels
 			DelayPredictions.Clear();
 			foreach (var d in delays)
 				DelayPredictions.Add(d);
+
+			// 🔥 BLOCK REASON ENGINE
+
+			var engine = new BlockReasonEngine();
+
+			var realWorkOrders = _workOrderRepository.GetAll().ToList();
+
+			foreach (var order in realWorkOrders)
+			{
+				var blockResult = engine.Evaluate(order);
+
+				order.BlockReason = blockResult.Reason;
+				order.BlockMessage = blockResult.Message;
+			}
 
 			// ===============================
 			// 🔥 FINAL LOADS
@@ -525,6 +536,42 @@ namespace WeldAdminPro.UI.ViewModels
 			var realWorkOrders = _workOrderRepository.GetAll().ToList();
 
 			var queue = _schedulingService.BuildQueue();
+
+			var engine = new BlockReasonEngine();
+			var materialRepo = new WorkOrderMaterialRepository();
+			var stockRepo = new StockRepository();
+			var allStock = stockRepo.GetAll().ToList();
+
+			foreach (var item in queue)
+			{
+				var wo = _workOrderRepository.GetAll()
+					.FirstOrDefault(w => w.WorkOrderNumber == item.WorkOrderNumber);
+
+				if (wo == null)
+					continue;
+
+				var materials = materialRepo.GetByWorkOrderId(wo.Id);
+
+				wo.MaterialRequirements = materials.Select(m =>
+				{
+					var stock = allStock.FirstOrDefault(s => s.Id == m.ItemId);
+
+					if (stock == null)
+						stock = allStock.FirstOrDefault(s => s.ItemCode == m.ItemCode);
+
+					return new MaterialRequirement
+					{
+						MaterialCode = m.ItemCode,
+						RequiredQuantity = m.RequiredQuantity,
+						AvailableQuantity = stock?.Quantity ?? 0
+					};
+				}).ToList();
+
+				var result = engine.Evaluate(wo);
+
+				item.BlockReason = result.Reason;
+				item.BlockMessage = result.Message;
+			}
 
 			var autoPriority = new AutoPriorityService();
 
