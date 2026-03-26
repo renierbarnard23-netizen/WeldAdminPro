@@ -307,5 +307,36 @@ WHERE Id = $id;";
 				}
 			}
 		}
+		public bool TryDeductStock(SqliteConnection connection, SqliteTransaction transaction, string itemCode, double quantity)
+		{
+			// Get current stock
+			using var getCmd = connection.CreateCommand();
+			getCmd.Transaction = transaction;
+			getCmd.CommandText = "SELECT Quantity FROM StockItems WHERE ItemCode = $code";
+			getCmd.Parameters.AddWithValue("$code", itemCode);
+
+			var result = getCmd.ExecuteScalar();
+
+			if (result == null)
+				return false;
+
+			double currentQty = Convert.ToDouble(result);
+
+			// Prevent negative stock
+			if (currentQty < quantity)
+				return false;
+
+			// Deduct stock
+			using var updateCmd = connection.CreateCommand();
+			updateCmd.Transaction = transaction;
+			updateCmd.CommandText = "UPDATE StockItems SET Quantity = Quantity - $qty WHERE ItemCode = $code";
+			updateCmd.Parameters.AddWithValue("$qty", quantity);
+			updateCmd.Parameters.AddWithValue("$code", itemCode);
+
+			updateCmd.ExecuteNonQuery();
+
+			return true;
+		}
 	}
+		
 }

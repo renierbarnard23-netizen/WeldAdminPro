@@ -51,7 +51,8 @@ namespace WeldAdminPro.Core.Models
 		Ready = 1,
 		InProduction = 2,
 		Paused = 3,
-		Completed = 4
+		Completed = 4,
+		Cancelled = 5
 	}
 
 	public enum WorkOrderType

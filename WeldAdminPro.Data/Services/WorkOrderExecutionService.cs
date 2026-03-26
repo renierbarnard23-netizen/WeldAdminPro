@@ -104,7 +104,7 @@ namespace WeldAdminPro.Data.Services
 
 					Debug.WriteLine("➡ Running Stock Reservation...");
 
-					if (!TryReserveMaterials(materials))
+					if (!TryReserveMaterials(materials, workOrder))
 						throw new Exception("Not enough stock");
 
 					Debug.WriteLine("✅ Stock reservation passed");
@@ -138,26 +138,39 @@ namespace WeldAdminPro.Data.Services
 
 				try
 				{
-					using var depCmd = connection.CreateCommand();
-					depCmd.CommandText = @"
-                        SELECT DependsOnWorkOrderId 
-                        FROM WorkOrderDependencies
-                        WHERE WorkOrderId = @Id";
+					using var checkCmd = connection.CreateCommand();
+					checkCmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='WorkOrderDependencies';";
 
-					depCmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
+					var exists = checkCmd.ExecuteScalar();
 
-					using var reader = depCmd.ExecuteReader();
-
-					while (reader.Read())
+					if (exists == null)
 					{
-						workOrder.DependencyIds.Add(Guid.Parse(reader.GetString(0)));
+						Debug.WriteLine("⚠ Dependency table does not exist — skipping");
 					}
+					else
+					{
+						using var depCmd = connection.CreateCommand();
+						depCmd.CommandText = @"
+            SELECT DependsOnWorkOrderId 
+            FROM WorkOrderDependencies
+            WHERE WorkOrderId = @Id";
 
-					System.Diagnostics.Debug.WriteLine($"Dependencies loaded: {workOrder.DependencyIds.Count}");
+						depCmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
+
+						using var reader = depCmd.ExecuteReader();
+
+						while (reader.Read())
+						{
+							workOrder.DependencyIds.Add(Guid.Parse(reader.GetString(0)));
+						}
+
+						Debug.WriteLine($"Dependencies loaded: {workOrder.DependencyIds.Count}");
+					}
 				}
-				catch
+				catch (Exception ex)
 				{
-					System.Diagnostics.Debug.WriteLine("⚠ No dependency table or data — skipping");
+					Debug.WriteLine("⚠ Dependency load failed:");
+					Debug.WriteLine(ex.Message);
 				}
 
 				// 🔥 TEMP BYPASS (FOR NOW)
@@ -238,28 +251,135 @@ namespace WeldAdminPro.Data.Services
 			cmd.ExecuteNonQuery();
 		}
 
-		private bool TryReserveMaterials(List<WorkOrderMaterial> materials)
+		private bool TryReserveMaterials(List<WorkOrderMaterial> materials, WorkOrder workOrder)
 		{
-			var stockItems = _stockRepo.GetAll();
-
-			foreach (var m in materials)
+			try
 			{
-				var stock = stockItems
-					.FirstOrDefault(s => s.ItemCode == m.ItemCode);
-
-				var available = stock?.Quantity ?? 0;
-
-				Debug.WriteLine($"🔍 {m.ItemCode} → Required: {m.RequiredQuantity}, Available: {available}");
-
-				if (available < m.RequiredQuantity)
+				// 🔥 STEP 1 — PRE-VALIDATE ALL MATERIALS
+				foreach (var m in materials)
 				{
-					Debug.WriteLine($"❌ Not enough stock for {m.ItemCode}");
-					return false;
-				}
-			}
+					var stockItem = _stockRepo.GetByItemCode(m.ItemCode);
 
-			Debug.WriteLine("✅ Materials available");
-			return true;
+					if (stockItem == null)
+					{
+						Debug.WriteLine($"❌ Missing stock item: {m.ItemCode}");
+						return false;
+					}
+
+					if (stockItem.Quantity < m.RequiredQuantity)
+					{
+						Debug.WriteLine($"❌ Insufficient stock: {m.ItemCode}");
+						return false;
+					}
+				}
+
+				// 🔥 STEP 2 — EXECUTE LEDGER TRANSACTIONS
+				foreach (var m in materials)
+				{
+					var stockItem = _stockRepo.GetByItemCode(m.ItemCode)!;
+
+					var tx = new StockTransaction
+					{
+						Id = Guid.NewGuid(),
+						StockItemId = stockItem.Id,
+						ItemCode = stockItem.ItemCode,
+						ItemDescription = stockItem.Description,
+						Quantity = (int)m.RequiredQuantity,
+						Type = "OUT",
+						TransactionDate = DateTime.UtcNow,
+						UnitCost = stockItem.AverageUnitCost,
+						ProjectId = workOrder.ProjectId,
+						ProjectName = workOrder.ProjectName,
+						Reference = $"WO-{workOrder.WorkOrderNumber}"
+					};
+
+					Debug.WriteLine($"➡ Ledger OUT: {tx.ItemCode} | Qty: {tx.Quantity}");
+					Debug.WriteLine($"StockItemId: {stockItem.Id}");
+					Debug.WriteLine($"ItemCode: {stockItem.ItemCode}");
+
+					_stockRepo.AddTransaction(tx);
+				}
+
+				Debug.WriteLine("✅ Ledger-based deduction complete");
+
+				return true;
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine("❌ Ledger deduction failed:");
+				Debug.WriteLine(ex.ToString());
+
+				return false;
+			}
+		}
+
+			public void CancelWorkOrder(Guid workOrderId)
+		{
+			try
+			{
+				using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
+				connection.Open();
+
+				var workOrder = _repository.GetById(workOrderId);
+				if (workOrder == null)
+					throw new Exception("Work order not found");
+
+				Debug.WriteLine($"⛔ Cancelling WO: {workOrder.WorkOrderNumber}");
+
+				// 🔥 STEP 1 — GET ALL ISSUED MATERIALS FROM LEDGER
+				var txRepo = new StockTransactionRepository();
+				var issuedMaterials = txRepo.GetIssuedMaterials(workOrder.ProjectId);
+
+				Debug.WriteLine($"Found {issuedMaterials.Count} issued transactions");
+
+				// 🔥 STEP 2 — REVERSE THEM (RETURN TO STOCK)
+				foreach (var tx in issuedMaterials)
+				{
+					var returnTx = new StockTransaction
+					{
+						Id = Guid.NewGuid(),
+						StockItemId = tx.StockItemId,
+						ItemCode = tx.ItemCode,
+						ItemDescription = tx.ItemDescription,
+						Quantity = tx.Quantity,
+						Type = "RET", // 🔥 RETURN
+						TransactionDate = DateTime.UtcNow,
+						UnitCost = tx.UnitCost,
+						ProjectId = workOrder.ProjectId,
+						ProjectName = workOrder.ProjectName,
+						Reference = $"WO-{workOrder.WorkOrderNumber}-REVERSAL"
+					};
+
+					Debug.WriteLine($"↩ Returning: {returnTx.ItemCode} | Qty: {returnTx.Quantity}");
+
+					_stockRepo.AddTransaction(returnTx);
+				}
+
+				Debug.WriteLine("✅ Stock successfully returned");
+
+				// 🔥 STEP 3 — UPDATE WORK ORDER STATUS
+				using var cmd = connection.CreateCommand();
+
+				cmd.CommandText =
+				@"UPDATE WorkOrders
+		  SET Status = @Status,
+		      IsPaused = 0
+		  WHERE Id = @Id";
+
+				cmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
+				cmd.Parameters.AddWithValue("@Status", (int)WorkOrderStatus.Cancelled);
+
+				cmd.ExecuteNonQuery();
+
+				Debug.WriteLine("✅ Work order cancelled");
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine("❌ CANCEL ERROR:");
+				Debug.WriteLine(ex.ToString());
+				throw;
+			}
 		}
 	}
-}
+	}
+	

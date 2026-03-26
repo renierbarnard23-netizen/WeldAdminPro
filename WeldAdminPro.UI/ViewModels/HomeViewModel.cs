@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Timers;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WeldAdminPro.Core.Analytics.Executive;
@@ -74,6 +75,7 @@ namespace WeldAdminPro.UI.ViewModels
 		public int ScenarioLateJobs { get; set; }
 		public int ScenarioTotalDelay { get; set; }
 		public string OptimizedStrategy { get; set; } = "";
+		public ICommand CancelWorkOrderCommand => Execution.CancelWorkOrderCommand;
 		public HomeViewModel()
 		{
 			_riskSummaryService = new InventoryRiskSummaryService();

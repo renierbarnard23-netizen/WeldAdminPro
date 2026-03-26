@@ -1,6 +1,7 @@
-using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using Microsoft.Data.Sqlite;
 using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Data.Repositories
@@ -20,6 +21,7 @@ namespace WeldAdminPro.Data.Repositories
 
 		public void AddTransaction(StockTransaction tx)
 		{
+			Debug.WriteLine($"Looking for StockItemId: {tx.StockItemId}");
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
@@ -35,17 +37,24 @@ namespace WeldAdminPro.Data.Repositories
 					cmd.Transaction = dbTx;
 
 					cmd.CommandText =
-						"SELECT Quantity, AverageUnitCost FROM StockItems WHERE Id=$id;";
+						"SELECT Id, Quantity, AverageUnitCost FROM StockItems WHERE ItemCode=$code;";
+
+					cmd.Parameters.Clear();
+					cmd.Parameters.AddWithValue("$code", tx.ItemCode);
 
 					cmd.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
 
 					using var reader = cmd.ExecuteReader();
 
 					if (!reader.Read())
-						throw new Exception("Stock item not found.");
+						throw new Exception($"Stock item not found for ItemCode: {tx.ItemCode}");
 
-					currentQty = reader.GetInt32(0);
-					currentAvgCost = reader.GetDecimal(1);
+					var actualId = Guid.Parse(reader.GetString(0));
+					currentQty = reader.GetInt32(1);
+					currentAvgCost = reader.GetDecimal(2);
+
+					// 🔥 FORCE CORRECT ID
+					tx.StockItemId = actualId;
 				}
 
 				if (tx.Type != "IN" && tx.Type != "OUT" && tx.Type != "RET")
