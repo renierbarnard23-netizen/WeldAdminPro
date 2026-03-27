@@ -1,4 +1,7 @@
 using System;
+using System.CodeDom.Compiler;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -31,6 +34,7 @@ namespace WeldAdminPro.UI.Views
 			LoadGantt();
 
 		}
+
 
 		private ProductionQueueItem? _draggedItem;
 

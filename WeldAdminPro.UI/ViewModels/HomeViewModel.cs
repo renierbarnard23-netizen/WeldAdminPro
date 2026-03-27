@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.Linq;
 using System.Timers;
 using System.Windows.Input;
@@ -20,7 +21,7 @@ using WeldAdminPro.UI.ViewModels.Dashboard;
 
 namespace WeldAdminPro.UI.ViewModels
 {
-	
+
 	public partial class HomeViewModel : ObservableObject
 	{
 		private readonly InventoryRiskSummaryService _riskSummaryService;
@@ -42,21 +43,21 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly WorkOrderRepository _workOrderRepository;
 
 		private readonly ProductionBottleneckDetectionService _bottleneckService;
-		
+
 		private readonly ProductionThroughputService _throughputService;
 		private readonly ProductionEfficiencyTrendService _efficiencyTrendService;
 
 		private readonly ProductionReplanningService _replanningService = new();
 		private readonly ProductionReplanTriggerService _replanTrigger = new();
-		
+
 		public ObservableCollection<WorkOrderMaterialShortage> MaterialShortages { get; set; } = new();
 		public ObservableCollection<ProductionGanttItem> ProductionTimeline { get; set; } = new();
 		public ObservableCollection<ProductionCapacityForecast> CapacityForecast { get; set; } = new();
-
+		
 		public ObservableCollection<DeadlineRisk> DeadlineRisks { get; set; } = new();
 		public ProductionControlViewModel Production { get; } = new ProductionControlViewModel();
 
-		public ProductionExecutionViewModel Execution { get; set; }
+		public ProductionExecutionViewModel Execution { get; }
 
 		public ProductionControlTowerViewModel ProductionControlTower { get; } = new ProductionControlTowerViewModel();
 
@@ -72,6 +73,8 @@ namespace WeldAdminPro.UI.ViewModels
 		public ObservableCollection<SystemAlert> SystemAlerts { get; set; } = new();
 		public ObservableCollection<ProductionCompletionPrediction> CompletionPredictions { get; set; } = new();
 		public ObservableCollection<ProductionCompletionPrediction> ScenarioPredictions { get; set; } = new();
+		public ObservableCollection<WorkOrderMaterialTrace> SelectedWorkOrderMaterials
+	=> Execution.SelectedWorkOrderMaterials;
 		public int ScenarioLateJobs { get; set; }
 		public int ScenarioTotalDelay { get; set; }
 		public string OptimizedStrategy { get; set; } = "";
@@ -143,13 +146,13 @@ namespace WeldAdminPro.UI.ViewModels
 			ProductionEfficiencyTrend = _efficiencyTrendService.GetLast7DaysTrend();
 
 			LoadProductionQueue();
-		
 
-		// ===============================
-		// 🔥 AI + OPTIMIZATION ENGINE
-		// ===============================
 
-		var comparer = new ScenarioComparer();
+			// ===============================
+			// 🔥 AI + OPTIMIZATION ENGINE
+			// ===============================
+
+			var comparer = new ScenarioComparer();
 			var simulator = new ProductionSimulator();
 			var optimizer = new ProductionOptimizer();
 
@@ -412,7 +415,7 @@ namespace WeldAdminPro.UI.ViewModels
 
 		[ObservableProperty]
 		private ProductionThroughputModel productionThroughput = new();
-				
+
 		[ObservableProperty]
 		private List<ProductionEfficiencyTrendModel> productionEfficiencyTrend = new();
 
@@ -490,7 +493,6 @@ namespace WeldAdminPro.UI.ViewModels
 			WorkOrderMaterialPlans =
 				new ObservableCollection<WorkOrderMaterialPlan>(plan);
 		}
-
 		private void LoadMaterialShortages()
 		{
 			var shortages = _shortageService.DetectShortages();
@@ -663,7 +665,7 @@ namespace WeldAdminPro.UI.ViewModels
 					System.Diagnostics.Debug.WriteLine($"[ALERT] Work order {running.WorkOrderNumber} blocked during execution");
 				}
 			}
-			
+
 			LoadProductionTrafficLights();
 
 			Execution.Load();
@@ -813,5 +815,46 @@ namespace WeldAdminPro.UI.ViewModels
 			RefreshProductionSystem();
 		}
 
-	}
-	}
+		private ProductionQueueItem? _selectedWorkOrder;
+
+		public ProductionQueueItem? SelectedWorkOrder
+		{
+			get => _selectedWorkOrder;
+			set
+			{
+				_selectedWorkOrder = value;
+				OnPropertyChanged(nameof(SelectedWorkOrder));
+
+				if (value == null)
+					return;
+
+				Debug.WriteLine($"🔥 SELECTED WO: {value.WorkOrderNumber}");
+
+				var wo = _workOrderRepository
+					.GetAll()
+					.FirstOrDefault(w => w.WorkOrderNumber == value.WorkOrderNumber);
+
+				if (wo == null)
+				{
+					Debug.WriteLine("❌ WORK ORDER NOT FOUND");
+					return;
+				}
+
+				// 🔥 THIS IS THE KEY FIX
+				Execution.LoadMaterialTrace(wo);
+
+				// 🔥 FORCE UI REFRESH
+				OnPropertyChanged(nameof(SelectedWorkOrderMaterials));
+			}
+		}
+	
+	
+private WorkOrder? GetWorkOrderByNumber(string number)
+{
+	return _workOrderRepository
+		.GetAll()
+		.FirstOrDefault(w => w.WorkOrderNumber == number);
+}
+
+
+	} }

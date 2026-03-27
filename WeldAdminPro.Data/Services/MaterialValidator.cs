@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
@@ -24,6 +25,13 @@ namespace WeldAdminPro.Data.Services
 			try
 			{
 				var materials = _materialRepo.GetByWorkOrder(workOrder.Id);
+
+				Debug.WriteLine($"🔥 MATERIAL COUNT: {materials?.Count()}");
+
+				foreach (var m in materials)
+				{
+					Debug.WriteLine($"➡ {m.ItemCode} | Qty: {m.RequiredQuantity}");
+				}
 
 				// 🔹 No materials → allow (for now, system stabilization)
 				if (materials == null || !materials.Any())

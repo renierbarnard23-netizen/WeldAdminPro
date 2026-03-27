@@ -17,6 +17,10 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 		private readonly WorkOrderRepository _repository;
 		private readonly WorkOrderExecutionService _executionService;
 
+		// ✅ FIX: ADD THESE
+		private readonly WorkOrderMaterialRepository _materialRepo;
+		private readonly StockRepository _stockRepo;
+
 		public ICommand CancelWorkOrderCommand { get; }
 
 		[ObservableProperty]
@@ -28,6 +32,9 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 		[ObservableProperty]
 		private ObservableCollection<WorkOrder> completedToday = new();
 
+		[ObservableProperty]
+		private ObservableCollection<WorkOrderMaterialTrace> selectedWorkOrderMaterials = new();
+
 		public ProductionControlTowerViewModel? ControlTower { get; set; }
 
 		public ProductionExecutionViewModel(WorkOrderExecutionService executionService)
@@ -35,9 +42,54 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 			_executionService = executionService;
 			_repository = new WorkOrderRepository();
 
-			// ✅ FIXED — command must be inside constructor
+			// ✅ FIX: INIT REPOS
+			_materialRepo = new WorkOrderMaterialRepository();
+			_stockRepo = new StockRepository();
+
 			CancelWorkOrderCommand = new RelayCommand<Guid>(CancelWorkOrder);
 		}
+
+		// =========================================================
+		// 🔥 MATERIAL TRACE (FIXED)
+		// =========================================================
+
+		public void LoadMaterialTrace(WorkOrder workOrder)
+		{
+			var materials = _materialRepo.GetByWorkOrder(workOrder.Id);
+
+			Debug.WriteLine($"🔥 TRACE LOAD: {materials.Count}");
+
+			SelectedWorkOrderMaterials.Clear();
+
+			foreach (var m in materials)
+			{
+				if (string.IsNullOrWhiteSpace(m.ItemCode))
+				{
+					Debug.WriteLine("⚠ Skipping empty ItemCode");
+					continue;
+				}
+
+				var stock = _stockRepo.GetAll()
+					.FirstOrDefault(s => s.ItemCode == m.ItemCode);
+
+				SelectedWorkOrderMaterials.Add(new WorkOrderMaterialTrace
+				{
+					ItemCode = m.ItemCode,
+					Description = stock?.Description ?? m.ItemCode,
+					Quantity = (int)m.RequiredQuantity,
+					UnitCost = stock?.AverageUnitCost ?? 0
+					// ❌ REMOVE TotalCost assignment (calculated property)
+				});
+			}
+
+			OnPropertyChanged(nameof(SelectedWorkOrderMaterials));
+			OnPropertyChanged(nameof(TotalMaterialCost));
+		}
+
+		public decimal TotalMaterialCost =>
+			SelectedWorkOrderMaterials.Sum(x => x.TotalCost);
+
+		// =========================================================
 
 		public void Refresh()
 		{
@@ -56,12 +108,10 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 			{
 				var materials = materialRepo.GetByWorkOrderId(wo.Id);
 
-				// 🔹 AUTO TYPE
 				wo.Type = materials.Any()
 					? WorkOrderType.Production
 					: WorkOrderType.Procurement;
 
-				// ✅ FIXED — CLEAN mapping (no duplicate returns)
 				wo.MaterialRequirements = materials.Select(m =>
 				{
 					var stock = stockRepo.GetAll()
@@ -75,13 +125,10 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 					};
 				}).ToList();
 
-				// 🔹 ENGINE DECISION
 				var result = engine.Evaluate(wo);
 
 				wo.BlockReason = result.Reason;
 				wo.BlockMessage = result.Message;
-
-				Debug.WriteLine($"{wo.WorkOrderNumber} → {wo.BlockReason}");
 			}
 
 			ReadyWorkOrders = new ObservableCollection<WorkOrder>(
@@ -95,6 +142,10 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 					w.Status == WorkOrderStatus.Completed &&
 					w.CompletedOn?.Date == DateTime.Today));
 		}
+
+		// =========================================================
+		// COMMANDS
+		// =========================================================
 
 		[RelayCommand]
 		private void Start(Guid id)
@@ -113,10 +164,7 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 			}
 		}
 
-		public void StartWorkOrder(Guid id)
-		{
-			Start(id); // wrapper for HomeViewModel
-		}
+		public void StartWorkOrder(Guid id) => Start(id);
 
 		private void CancelWorkOrder(Guid id)
 		{

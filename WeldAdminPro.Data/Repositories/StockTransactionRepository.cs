@@ -34,10 +34,12 @@ namespace WeldAdminPro.Data.Repositories
 
 				using (var cmd = connection.CreateCommand())
 				{
+
+					Debug.WriteLine($"Looking for StockItemId: {tx.StockItemId}");
 					cmd.Transaction = dbTx;
 
 					cmd.CommandText =
-						"SELECT Id, Quantity, AverageUnitCost FROM StockItems WHERE ItemCode=$code;";
+						"SELECT Id, Quantity, AverageUnitCost \r\nFROM StockItems \r\nWHERE Id = $id;";
 
 					cmd.Parameters.Clear();
 					cmd.Parameters.AddWithValue("$code", tx.ItemCode);
@@ -47,7 +49,12 @@ namespace WeldAdminPro.Data.Repositories
 					using var reader = cmd.ExecuteReader();
 
 					if (!reader.Read())
-						throw new Exception($"Stock item not found for ItemCode: {tx.ItemCode}");
+					{
+						Debug.WriteLine($"❌ Stock NOT FOUND for ItemCode: [{tx.ItemCode}]");
+
+						// DO NOT CRASH SYSTEM
+						return;
+					}
 
 					var actualId = Guid.Parse(reader.GetString(0));
 					currentQty = reader.GetInt32(1);

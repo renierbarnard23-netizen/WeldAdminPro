@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using WeldAdminPro.Core.Analytics.Production;
 using WeldAdminPro.Core.Models;
@@ -50,6 +51,8 @@ namespace WeldAdminPro.Data.Services
 			foreach (var wo in workOrders)
 			{
 				var materials = _materialRepo.GetByWorkOrderId(wo.Id);
+
+				Debug.WriteLine($"🔥 MATERIAL COUNT: {materials?.Count()}");
 
 				foreach (var mat in materials)
 				{

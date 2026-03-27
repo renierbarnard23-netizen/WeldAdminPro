@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using Microsoft.Data.Sqlite;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Services;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace WeldAdminPro.Data.Repositories
 {
@@ -18,32 +20,7 @@ namespace WeldAdminPro.Data.Repositories
 			_transactionRepo = new StockTransactionRepository();
 		}
 
-		public StockItem? GetByItemCode(string itemCode)
-		{
-			using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
-			connection.Open();
-
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = @"
-        SELECT ItemCode, Quantity
-        FROM StockItems
-        WHERE ItemCode = @ItemCode";
-
-			cmd.Parameters.AddWithValue("@ItemCode", itemCode);
-
-			using var reader = cmd.ExecuteReader();
-
-			if (reader.Read())
-			{
-				return new StockItem
-				{
-					ItemCode = reader.GetString(0),
-					Quantity = reader.GetDouble(1)
-				};
-			}
-
-			return null;
-		}
+		
 
 		// =========================================================
 		// STOCK ITEM LOOKUP
@@ -337,6 +314,87 @@ WHERE Id = $id;";
 
 			return true;
 		}
-	}
+
+		public StockItem? GetByItemCode(string itemCode)
+		{
+			if (string.IsNullOrWhiteSpace(itemCode))
+				return null;
+
+			using var connection = new SqliteConnection(_connectionString);
+			connection.Open();
+
+			using var cmd = connection.CreateCommand();
+			cmd.CommandText = "SELECT * FROM StockItems WHERE ItemCode = @code";
+			cmd.Parameters.AddWithValue("@code", itemCode);
+
+			using var reader = cmd.ExecuteReader();
+
+			if (reader.Read())
+			{
+				return new StockItem
+				{
+					Id = Guid.Parse(reader["Id"].ToString()!),
+					ItemCode = reader["ItemCode"].ToString() ?? "",
+					Description = reader["Description"].ToString() ?? "",
+					Quantity = Convert.ToDouble(reader["Quantity"]),
+					AverageUnitCost = Convert.ToDecimal(reader["AverageUnitCost"])
+				};
+			}
+
+			return null;
+		}
+
 		
+
+		public List<WorkOrderMaterialTrace> GetMaterialTraceForWorkOrder(string workOrderNumber)
+		{
+			var list = new List<WorkOrderMaterialTrace>();
+
+			try
+			{
+				using var connection = new SqliteConnection(_connectionString);
+				connection.Open();
+
+				Debug.WriteLine($"🔥 SEARCHING TRACE FOR: [{workOrderNumber}]");
+
+				using var cmd = connection.CreateCommand();
+
+				cmd.CommandText = @"
+		SELECT 
+			si.ItemCode,
+			si.Description,
+			st.Quantity,
+			st.UnitCost,
+			st.Reference
+		FROM StockTransactions st
+		JOIN StockItems si ON st.StockItemId = si.Id
+		WHERE st.Reference LIKE @ref";
+
+				cmd.Parameters.AddWithValue("@ref", $"%{workOrderNumber}%");
+
+				using var reader = cmd.ExecuteReader();
+
+				while (reader.Read())
+				{
+					list.Add(new WorkOrderMaterialTrace
+					{
+						ItemCode = reader["ItemCode"]?.ToString() ?? "",
+						Description = reader["Description"]?.ToString() ?? "",
+						Quantity = Convert.ToInt32(reader["Quantity"]),
+						UnitCost = Convert.ToDecimal(reader["UnitCost"])
+					});
+				}
+
+				Debug.WriteLine($"📊 TRACE COUNT: {list.Count}");
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine("❌ TRACE ERROR:");
+				Debug.WriteLine(ex.Message);
+			}
+
+			return list;
+		}
+
+	}
 }
