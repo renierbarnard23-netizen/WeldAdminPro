@@ -14,6 +14,7 @@ namespace WeldAdminPro.Data
 	{
 		public DbSet<User> Users { get; set; } = null!;
 		public DbSet<ProjectStockUsage> ProjectStockUsages { get; set; } = null!;
+		public DbSet<WorkOrder> WorkOrders { get; set; } = null!;
 
 		public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
 			: base(options)
@@ -26,16 +27,15 @@ namespace WeldAdminPro.Data
 		{
 			// Create table if it does not exist
 			Database.ExecuteSqlRaw(@"
-        CREATE TABLE IF NOT EXISTS ProjectStockUsages (
-            Id TEXT PRIMARY KEY,
-            ProjectId TEXT NOT NULL,
-            StockItemId TEXT NOT NULL,
-            Quantity REAL NOT NULL,
-            IssuedOn TEXT NOT NULL,
-            IssuedBy TEXT,
-            Notes TEXT
-        );
-    ");
+			CREATE TABLE IF NOT EXISTS ProjectStockUsages (
+				Id TEXT PRIMARY KEY,
+				ProjectId TEXT NOT NULL,
+				StockItemId TEXT NOT NULL,
+				Quantity REAL NOT NULL,
+				IssuedOn TEXT NOT NULL,
+				IssuedBy TEXT,
+				Notes TEXT
+			);");
 
 			// Ensure Notes column exists (SQLite-safe)
 			try
@@ -70,8 +70,9 @@ namespace WeldAdminPro.Data
 				b.Property(u => u.CreatedAt).HasColumnName("created_at").HasConversion(dateTimeConverter).HasColumnType("TEXT");
 				b.Property(u => u.UpdatedAt).HasColumnName("updated_at").HasConversion(dateTimeConverter).HasColumnType("TEXT");
 			});
-
+			modelBuilder.Entity<WorkOrder>().ToTable("WorkOrders");
 			base.OnModelCreating(modelBuilder);
+			modelBuilder.Ignore<MaterialRequirement>();
 		}
 
 		private void LogDatabasePath()

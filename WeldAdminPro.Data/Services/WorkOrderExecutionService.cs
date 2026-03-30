@@ -11,6 +11,7 @@ namespace WeldAdminPro.Data.Services
 {
 	public class WorkOrderExecutionService
 	{
+		private static bool _isStarting = false;
 		private readonly WorkOrderRepository _repository;
 		private readonly WorkOrderMaterialRepository _materialRepo;
 		private readonly MaterialValidator _materialValidator;
@@ -33,61 +34,89 @@ namespace WeldAdminPro.Data.Services
 
 		public void StartWorkOrder(Guid workOrderId)
 		{
-			Debug.WriteLine("🔥 ENTERED StartWorkOrder()");
-
-			var workOrder = _repository.GetById(workOrderId)
-				?? throw new Exception("Work order not found");
-
-			if (workOrder.Status == WorkOrderStatus.InProduction)
+			if (_isStarting)
 			{
-				Debug.WriteLine($"⚠ Already running: {workOrder.WorkOrderNumber}");
+				Debug.WriteLine("⚠ BLOCKED duplicate start");
 				return;
 			}
 
-			var materials = _materialRepo.GetByWorkOrder(workOrder.Id);
+			_isStarting = true;
 
-			Debug.WriteLine($"🔥 MATERIAL COUNT: {materials?.Count()}");
-
-			foreach (var m in materials)
+			try
 			{
-				Debug.WriteLine($"➡ {m.ItemCode} | Qty: {m.RequiredQuantity}");
-			}
+				Debug.WriteLine("🔥 ENTERED StartWorkOrder()");
+				Debug.WriteLine($"🚀 StartWorkOrder CALLED: {workOrderId}");
 
-			// Determine type
-			workOrder.Type = materials.Any()
-				? WorkOrderType.Production
-				: WorkOrderType.Procurement;
+				var workOrder = _repository.GetById(workOrderId)
+					?? throw new Exception("Work order not found");
 
-			if (workOrder.Type == WorkOrderType.Production)
-			{
-				if (!materials.Any())
-					throw new Exception("No materials linked");
+				if (workOrder.Status == WorkOrderStatus.InProduction)
+				{
+					Debug.WriteLine($"🛑 HARD BLOCK: Already started {workOrder.WorkOrderNumber}");
+					return;
+				}
 
-				if (!_materialValidator.CanStart(workOrder, out var reason))
-					throw new Exception(reason);
+				var materials = _materialRepo.GetByWorkOrderId(workOrder.Id)
+					?? new List<WorkOrderMaterial>();
+				if (materials == null || !materials.Any())
+					return;
 
-				if (!TryReserveMaterials(materials, workOrder))
-					throw new Exception("Stock reservation failed");
-			}
+				Debug.WriteLine($"🔥 MATERIAL COUNT: {materials.Count}");
 
-			using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
-			connection.Open();
+				foreach (var m in materials)
+				{
+					Debug.WriteLine($"➡ {m.ItemCode} | Qty: {m.RequiredQuantity}");
+				}
 
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = @"
+				// Determine type
+				workOrder.Type = materials.Any()
+					? WorkOrderType.Production
+					: WorkOrderType.Procurement;
+
+				if (workOrder.Type == WorkOrderType.Production)
+				{
+					if (!materials.Any())
+						throw new Exception("No materials linked");
+
+					if (!_materialValidator.CanStart(workOrder, out var reason))
+						throw new Exception(reason);
+
+					if (!TryReserveMaterials(materials, workOrder))
+						throw new Exception("Stock reservation failed");
+				}
+
+				// 🔥 COST CALC
+				var transactions = _stockRepo
+					.GetAllTransactions()
+					.Where(t => t.Reference == workOrder.WorkOrderNumber && t.Type == "OUT");
+
+				workOrder.MaterialCost = transactions.Sum(t => t.TransactionValue);
+
+				using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
+				connection.Open();
+
+				using var cmd = connection.CreateCommand();
+				cmd.CommandText = @"
 UPDATE WorkOrders
 SET Status = @Status,
     ActualStartTime = @StartTime,
-    IsPaused = 0
+    IsPaused = 0,
+    MaterialCost = @MaterialCost
 WHERE Id = @Id";
 
-			cmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
-			cmd.Parameters.AddWithValue("@StartTime", DateTime.UtcNow.ToString("O"));
-			cmd.Parameters.AddWithValue("@Status", (int)WorkOrderStatus.InProduction);
+				cmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
+				cmd.Parameters.AddWithValue("@StartTime", DateTime.UtcNow.ToString("O"));
+				cmd.Parameters.AddWithValue("@Status", (int)WorkOrderStatus.InProduction);
+				cmd.Parameters.AddWithValue("@MaterialCost", workOrder.MaterialCost);
 
-			cmd.ExecuteNonQuery();
+				cmd.ExecuteNonQuery();
 
-			Debug.WriteLine("✅ Work order started");
+				Debug.WriteLine("✅ Work order started");
+			}
+			finally
+			{
+				_isStarting = false;
+			}
 		}
 
 		private bool TryReserveMaterials(List<WorkOrderMaterial> materials, WorkOrder workOrder)

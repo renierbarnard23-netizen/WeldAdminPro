@@ -1,12 +1,14 @@
-using Microsoft.Data.Sqlite;
 using System;
-using WeldAdminPro.Core.Models;
 using System.Collections.Generic;
+using System.Diagnostics;
+using Microsoft.Data.Sqlite;
+using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Data.Repositories
 {
 	public class WorkOrderMaterialRepository
 	{
+		private static Dictionary<Guid, List<WorkOrderMaterial>> _cache = new();
 		private readonly string _connectionString;
 
 		public WorkOrderMaterialRepository()
@@ -15,8 +17,14 @@ namespace WeldAdminPro.Data.Repositories
 
 			EnsureTable();
 		}
+		
+		private static HashSet<Guid> _loggedWorkOrders = new();
+
 		public List<WorkOrderMaterial> GetByWorkOrderId(Guid workOrderId)
 		{
+			if (_cache.ContainsKey(workOrderId))
+				return _cache[workOrderId];
+
 			var list = new List<WorkOrderMaterial>();
 
 			using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
@@ -28,7 +36,6 @@ namespace WeldAdminPro.Data.Repositories
         FROM WorkOrderMaterials
         WHERE WorkOrderId = @WorkOrderId";
 
-			// 🔥 CRITICAL FIX
 			cmd.Parameters.AddWithValue("@WorkOrderId", workOrderId.ToString());
 
 			using var reader = cmd.ExecuteReader();
@@ -44,36 +51,17 @@ namespace WeldAdminPro.Data.Repositories
 				});
 			}
 
-			return list;
-		}
-
-		public List<WorkOrderMaterial> GetByWorkOrder(Guid workOrderId)
-		{
-			var result = new List<WorkOrderMaterial>();
-
-			using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
-			connection.Open();
-
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = @"
-        SELECT ItemCode, RequiredQuantity
-        FROM WorkOrderMaterials
-        WHERE WorkOrderId = @Id";
-
-			cmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
-
-			using var reader = cmd.ExecuteReader();
-
-			while (reader.Read())
+			// ✅ LOG ONLY ONCE PER WORK ORDER EVER
+			if (!_loggedWorkOrders.Contains(workOrderId))
 			{
-				result.Add(new WorkOrderMaterial
-				{
-					ItemCode = reader.GetString(0),
-					RequiredQuantity = reader.GetDouble(1)
-				});
+				// Debug logging disabled for production stability
+				// Debug.WriteLine($"🔥 MATERIAL COUNT: {list.Count}");
+				_loggedWorkOrders.Add(workOrderId);
 			}
 
-			return result;
+			_cache[workOrderId] = list;
+
+			return list;
 		}
 		private void EnsureTable()
 		{

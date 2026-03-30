@@ -50,6 +50,8 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly ProductionReplanningService _replanningService = new();
 		private readonly ProductionReplanTriggerService _replanTrigger = new();
 
+		private bool _isRefreshing = false;
+
 		public ObservableCollection<WorkOrderMaterialShortage> MaterialShortages { get; set; } = new();
 		public ObservableCollection<ProductionGanttItem> ProductionTimeline { get; set; } = new();
 		public ObservableCollection<ProductionCapacityForecast> CapacityForecast { get; set; } = new();
@@ -537,6 +539,11 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 		private void LoadProductionQueue()
 		{
+			if (Production.ProductionQueue.Any())
+			{
+				Debug.WriteLine("⚠ QUEUE ALREADY LOADED - SKIPPING");
+				return;
+			}
 			var realWorkOrders = _workOrderRepository.GetAll().ToList();
 
 			var queue = _schedulingService.BuildQueue();
@@ -637,94 +644,96 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 		public void RefreshProductionSystem()
 		{
-			LoadMaterialShortages();
-			LoadProductionBlocks();
-			LoadProductionReadiness();
-			LoadProductionQueue();
-
-			// 🚫 AUTO EXECUTION DISABLED (Phase 7 paused)
-			// Manual control only
-
-			// 🔥 AUTO STOP / ESCALATION (PHASE 7 STEP 2)
-
-			// Get currently running jobs (REAL state)
-			var runningJobs = Execution.RunningWorkOrders.ToList();
-
-			foreach (var running in runningJobs)
+			if (_isRefreshing)
 			{
-				// 🔴 Check if job is now blocked
-				bool isBlocked = ProductionBlocks.Any(b => b.WorkOrderNumber == running.WorkOrderNumber);
+				Debug.WriteLine("⚠ REFRESH BLOCKED");
+				return;
+			}
 
-				if (isBlocked)
+			_isRefreshing = true;
+
+			try
+			{
+				LoadMaterialShortages();
+				LoadProductionBlocks();
+				LoadProductionReadiness();
+				LoadProductionQueue();
+
+				var runningJobs = Execution.RunningWorkOrders.ToList();
+
+				foreach (var running in runningJobs)
 				{
-					System.Diagnostics.Debug.WriteLine($"[AUTO] STOPPING BLOCKED JOB: {running.WorkOrderNumber}");
+					bool isBlocked = ProductionBlocks.Any(b => b.WorkOrderNumber == running.WorkOrderNumber);
 
-					Execution.PauseWorkOrder(running.Id);
-
-					// 🔔 Optional: Raise alert
-					System.Diagnostics.Debug.WriteLine($"[ALERT] Work order {running.WorkOrderNumber} blocked during execution");
+					if (isBlocked)
+					{
+						Debug.WriteLine($"[AUTO] STOPPING BLOCKED JOB: {running.WorkOrderNumber}");
+						Execution.PauseWorkOrder(running.Id);
+					}
 				}
-			}
 
-			LoadProductionTrafficLights();
+				LoadProductionTrafficLights();
 
-			Execution.Load();
-			ProductionControlTower.Load();
+				Execution.Load();
+				ProductionControlTower.Load();
 
-			// 🔹 Refresh production analytics
-			ProductionThroughput = _throughputService.GetThroughput();
-			ProductionEfficiencyTrend = _efficiencyTrendService.GetLast7DaysTrend();
+				// 🔹 Analytics refresh
+				ProductionThroughput = _throughputService.GetThroughput();
+				ProductionEfficiencyTrend = _efficiencyTrendService.GetLast7DaysTrend();
 
-			OnPropertyChanged(nameof(ProductionThroughput));
-			OnPropertyChanged(nameof(ProductionEfficiencyTrend));
+				OnPropertyChanged(nameof(ProductionThroughput));
+				OnPropertyChanged(nameof(ProductionEfficiencyTrend));
 
-			var aiPlanner = new ProductionAIPlannerService();
-			var optimizer = new ProductionOptimizer();
+				// 🔥 AI OPTIMIZATION (RESTORED)
+				var optimizer = new ProductionOptimizer();
 
-			var optimized = optimizer.Optimize(
-				Production.ProductionQueue.ToList(),
-				8
-			);
+				var optimized = optimizer.Optimize(
+					Production.ProductionQueue.ToList(),
+					8
+				);
 
-			var topJob = optimized.BestSequence.FirstOrDefault();
+				var topJob = optimized.BestSequence.FirstOrDefault();
 
-			if (topJob != null)
-			{
-				AdvisorResult = new ProductionAdvisorResult
+				if (topJob != null)
 				{
-					Recommendation = $"Start {topJob.WorkOrderNumber}",
-					Explanation = optimized.Explanation
-				};
+					AdvisorResult = new ProductionAdvisorResult
+					{
+						Recommendation = $"Start {topJob.WorkOrderNumber}",
+						Explanation = optimized.Explanation
+					};
+				}
+
+				// 🔥 SMART REPLANNING (RESTORED)
+				var currentQueue = Production.ProductionQueue.ToList();
+
+				bool shouldReplan = _replanTrigger.ShouldReplan(
+					currentQueue,
+					DelayPredictions.ToList(),
+					ProductionBottlenecks.ToList()
+				);
+
+				if (shouldReplan)
+				{
+					var replanned = _replanningService.Replan(currentQueue);
+					RunScenarioSimulation(replanned.ToList());
+
+					Production.ProductionQueue =
+						new ObservableCollection<ProductionQueueItem>(replanned);
+
+					OptimizedStrategy = "Auto-Replanned (AI detected risk)";
+				}
+				else
+				{
+					OptimizedStrategy = "Stable Plan (No risks detected)";
+				}
+
+				OnPropertyChanged(nameof(Production.ProductionQueue));
+				OnPropertyChanged(nameof(OptimizedStrategy));
 			}
-			// 🔥 SMART AUTO-REPLANNING ENGINE
-
-			var currentQueue = Production.ProductionQueue.ToList();
-
-			bool shouldReplan = _replanTrigger.ShouldReplan(
-				currentQueue,
-				DelayPredictions.ToList(),
-				ProductionBottlenecks.ToList()
-			);
-
-			if (shouldReplan)
+			finally
 			{
-				var replanned = _replanningService.Replan(currentQueue);
-				RunScenarioSimulation(replanned.ToList());
-
-				Production.ProductionQueue =
-					new ObservableCollection<ProductionQueueItem>(replanned);
-
-				OptimizedStrategy = "Auto-Replanned (AI detected risk)";
+				_isRefreshing = false;
 			}
-			else
-			{
-				OptimizedStrategy = "Stable Plan (No risks detected)";
-			}
-
-			OnPropertyChanged(nameof(Production.ProductionQueue));
-			OnPropertyChanged(nameof(OptimizedStrategy));
-
-
 		}
 
 		public void RunScenarioSimulation(List<ProductionQueueItem> customQueue)
@@ -822,8 +831,10 @@ namespace WeldAdminPro.UI.ViewModels
 			get => _selectedWorkOrder;
 			set
 			{
+				if (_selectedWorkOrder == value)
+					return;
+
 				_selectedWorkOrder = value;
-				OnPropertyChanged(nameof(SelectedWorkOrder));
 
 				if (value == null)
 					return;
@@ -840,16 +851,16 @@ namespace WeldAdminPro.UI.ViewModels
 					return;
 				}
 
-				// 🔥 THIS IS THE KEY FIX
+				// 🔥 LOAD MATERIAL TRACE (ONLY ONCE)
 				Execution.LoadMaterialTrace(wo);
 
-				// 🔥 FORCE UI REFRESH
+				// 🔥 UPDATE UI
 				OnPropertyChanged(nameof(SelectedWorkOrderMaterials));
 			}
 		}
-	
-	
-private WorkOrder? GetWorkOrderByNumber(string number)
+
+
+		private WorkOrder? GetWorkOrderByNumber(string number)
 {
 	return _workOrderRepository
 		.GetAll()

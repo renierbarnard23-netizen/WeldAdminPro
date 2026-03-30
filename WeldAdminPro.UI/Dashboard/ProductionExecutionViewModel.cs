@@ -55,7 +55,7 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 
 		public void LoadMaterialTrace(WorkOrder workOrder)
 		{
-			var materials = _materialRepo.GetByWorkOrder(workOrder.Id);
+			var materials = _materialRepo.GetByWorkOrderId(workOrder.Id);
 
 			Debug.WriteLine($"🔥 TRACE LOAD: {materials.Count}");
 
