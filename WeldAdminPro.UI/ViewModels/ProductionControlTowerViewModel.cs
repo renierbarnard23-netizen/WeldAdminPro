@@ -29,19 +29,23 @@ namespace WeldAdminPro.UI.ViewModels
 		public ProductionControlTowerViewModel()
 		{
 			_service = new ProductionControlTowerService();
-			Load();
 		}
 
-		public void Load()
+		public void Load(int? deadlineRiskCount = null)
 		{
-			ProductionControlTowerModel data = _service.GetControlTower();
+			var data = _service.GetControlTower();
 
 			ReadyOrders = data.ReadyOrders;
 			RunningOrders = data.RunningOrders;
 			BlockedOrders = data.BlockedOrders;
 			CompletedToday = data.CompletedToday;
 			CapacityLoad = data.CapacityLoad;
-			DeadlineRisks = data.DeadlineRisks;
+
+			// 🔥 ONLY update if provided
+			if (deadlineRiskCount.HasValue)
+			{
+				DeadlineRisks = deadlineRiskCount.Value;
+			}
 		}
 
 		public bool IsCapacityWarning => CapacityLoad >= 80 && CapacityLoad < 100;

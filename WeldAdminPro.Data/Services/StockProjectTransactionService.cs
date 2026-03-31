@@ -1,5 +1,6 @@
-using Microsoft.Data.Sqlite;
 using System;
+using System.Diagnostics;
+using Microsoft.Data.Sqlite;
 using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Data.Services

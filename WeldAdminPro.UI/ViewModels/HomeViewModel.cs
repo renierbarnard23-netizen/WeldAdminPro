@@ -8,6 +8,8 @@ using System.Timers;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DocumentFormat.OpenXml.Office2010.Excel;
+using Microsoft.VisualBasic;
 using WeldAdminPro.Core.Analytics.Executive;
 using WeldAdminPro.Core.Analytics.Procurement;
 using WeldAdminPro.Core.Analytics.Production;
@@ -18,6 +20,7 @@ using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
 using WeldAdminPro.UI.ViewModels;
 using WeldAdminPro.UI.ViewModels.Dashboard;
+using static QuestPDF.Helpers.Colors;
 
 namespace WeldAdminPro.UI.ViewModels
 {
@@ -57,11 +60,11 @@ namespace WeldAdminPro.UI.ViewModels
 		public ObservableCollection<ProductionCapacityForecast> CapacityForecast { get; set; } = new();
 		
 		public ObservableCollection<DeadlineRisk> DeadlineRisks { get; set; } = new();
+		public ProductionControlTowerViewModel ProductionControlTower { get; }
 		public ProductionControlViewModel Production { get; } = new ProductionControlViewModel();
 
 		public ProductionExecutionViewModel Execution { get; }
-
-		public ProductionControlTowerViewModel ProductionControlTower { get; } = new ProductionControlTowerViewModel();
+		public ProductionExecutionViewModel ProductionExecution { get; set; }
 
 		public List<ProductionBottleneckModel> ProductionBottlenecks { get; set; }
 		public ObservableCollection<ProductionRecommendationModel> ProductionRecommendations { get; set; } = new();
@@ -81,8 +84,11 @@ namespace WeldAdminPro.UI.ViewModels
 		public int ScenarioTotalDelay { get; set; }
 		public string OptimizedStrategy { get; set; } = "";
 		public ICommand CancelWorkOrderCommand => Execution.CancelWorkOrderCommand;
+
+
 		public HomeViewModel()
 		{
+			ProductionControlTower = new ProductionControlTowerViewModel();
 			_riskSummaryService = new InventoryRiskSummaryService();
 			_forecastService = new MaterialDemandForecastService();
 			_consumptionService = new MaterialConsumptionService();
@@ -104,6 +110,8 @@ namespace WeldAdminPro.UI.ViewModels
 			_schedulingService = new ProductionSchedulingService();
 			_reservationService = new MaterialReservationService();
 			_workOrderRepository = new WorkOrderRepository();
+
+		
 
 			// =========================
 			// 🔥 FIXED EXECUTION SETUP
@@ -127,9 +135,11 @@ namespace WeldAdminPro.UI.ViewModels
 
 			// ✅ PASS INTO VIEWMODEL
 			Execution = new ProductionExecutionViewModel(executionService);
+			ProductionExecution = Execution;
 
-			ProductionControlTower = new ProductionControlTowerViewModel();
-			ProductionControlTower.Load();
+			Execution.RefreshRequested = RefreshProductionSystem;
+
+			ProductionControlTower.Load(DeadlineRisks.Count);
 
 			Execution.ControlTower = ProductionControlTower;
 			Execution.Load();
@@ -258,9 +268,6 @@ namespace WeldAdminPro.UI.ViewModels
 				_workOrderRepository,
 				capacityService);
 
-			DeadlineRisks = new ObservableCollection<DeadlineRisk>(
-				riskService.DetectRisks());
-
 			CapacityForecast = new ObservableCollection<ProductionCapacityForecast>(
 				capacityService.GetCapacityForecast());
 
@@ -320,9 +327,10 @@ namespace WeldAdminPro.UI.ViewModels
 			LoadMaterialShortages();
 			LoadProductionReadiness();
 
-			InProduction = Execution.RunningWorkOrders.Count;
-			Completed = Execution.CompletedToday.Count;
+			var allWorkOrders = _workOrderRepository.GetAll();
 
+			InProduction = allWorkOrders.Count(w => w.Status == WorkOrderStatus.InProduction);
+			
 			LoadProcurementSuggestions();
 			LoadProductionBlocks();
 			LoadWorkOrderStatuses();
@@ -420,7 +428,6 @@ namespace WeldAdminPro.UI.ViewModels
 
 		[ObservableProperty]
 		private List<ProductionEfficiencyTrendModel> productionEfficiencyTrend = new();
-
 		private void LoadProductionTrafficLights()
 		{
 			var lights = _trafficLightService.BuildKpis();
@@ -520,8 +527,10 @@ namespace WeldAdminPro.UI.ViewModels
 			BlockedWorkOrderNumbers =
 				new ObservableCollection<string>(readiness.BlockedWorkOrderNumbers);
 
-			InProduction = Execution.RunningWorkOrders.Count;
-			Completed = Execution.CompletedToday.Count;
+			var allWorkOrders = _workOrderRepository.GetAll();
+
+			InProduction = allWorkOrders.Count(w => w.Status == WorkOrderStatus.InProduction);
+			Completed = allWorkOrders.Count(w => w.Status == WorkOrderStatus.Completed);
 		}
 		private void LoadProductionBlocks()
 		{
@@ -539,11 +548,7 @@ namespace WeldAdminPro.UI.ViewModels
 		}
 		private void LoadProductionQueue()
 		{
-			if (Production.ProductionQueue.Any())
-			{
-				Debug.WriteLine("⚠ QUEUE ALREADY LOADED - SKIPPING");
-				return;
-			}
+			
 			var realWorkOrders = _workOrderRepository.GetAll().ToList();
 
 			var queue = _schedulingService.BuildQueue();
@@ -597,7 +602,16 @@ namespace WeldAdminPro.UI.ViewModels
 
 				if (real != null)
 				{
-					q.Status = real.Status.ToString(); // ✅ correct
+					Debug.WriteLine($"QUEUE STATUS: {real.Status}");
+
+					q.Status = real.Status switch
+					{
+						WorkOrderStatus.Ready => "Ready",
+						WorkOrderStatus.InProduction => "InProduction",
+						WorkOrderStatus.Completed => "Completed",
+						WorkOrderStatus.Paused => "Paused",
+						_ => "Unknown"
+					}; // ✅ correct
 				}
 			}
 
@@ -668,16 +682,32 @@ namespace WeldAdminPro.UI.ViewModels
 					if (isBlocked)
 					{
 						Debug.WriteLine($"[AUTO] STOPPING BLOCKED JOB: {running.WorkOrderNumber}");
-						Execution.PauseWorkOrder(running.Id);
+						Execution.PauseWorkOrderCommand.Execute(running.Id);
 					}
 				}
 
-				LoadProductionTrafficLights();
-
+				LoadProductionBlocks();   // 🔥 MUST be before risks
+				
 				Execution.Load();
-				ProductionControlTower.Load();
 
-				// 🔹 Analytics refresh
+				LoadDeadlineRisks();
+
+				Debug.WriteLine($"FINAL RISKS BEFORE SET: {DeadlineRisks.Count}");
+
+					Debug.WriteLine($"VM INSTANCE: {ProductionControlTower.GetHashCode()}");
+				Debug.WriteLine($"VALUE SET: {ProductionControlTower.DeadlineRisks}");
+
+				// 🔥 FORCE UI UPDATE
+				ProductionControlTower.Load(DeadlineRisks.Count);
+
+				// analytics
+				ProductionThroughput = _throughputService.GetThroughput();
+				ProductionEfficiencyTrend = _efficiencyTrendService.GetLast7DaysTrend();
+
+				// AI + replanning (unchanged)
+
+				LoadProductionTrafficLights(); // ✅ LAST
+
 				ProductionThroughput = _throughputService.GetThroughput();
 				ProductionEfficiencyTrend = _efficiencyTrendService.GetLast7DaysTrend();
 
@@ -706,11 +736,7 @@ namespace WeldAdminPro.UI.ViewModels
 				// 🔥 SMART REPLANNING (RESTORED)
 				var currentQueue = Production.ProductionQueue.ToList();
 
-				bool shouldReplan = _replanTrigger.ShouldReplan(
-					currentQueue,
-					DelayPredictions.ToList(),
-					ProductionBottlenecks.ToList()
-				);
+				bool shouldReplan = DeadlineRisks.Any() || ProductionBlocks.Any();
 
 				if (shouldReplan)
 				{
@@ -751,6 +777,59 @@ namespace WeldAdminPro.UI.ViewModels
 			OnPropertyChanged(nameof(ScenarioTotalDelay));
 		}
 
+		private void LoadDeadlineRisks()
+		{
+			// 🔥 USE THE SAME SOURCE AS YOUR TABLE
+			var risks = new List<DeadlineRisk>();
+
+			// 1. DEADLINE RISKS (from scheduler / queue)
+			foreach (var wo in Production.ProductionQueue)
+			{
+				DateTime dueDate;
+
+				if (DateTime.TryParse(wo.DueDate, out dueDate))
+				{
+					if (dueDate <= DateTime.Now.AddHours(48))
+					{
+						risks.Add(new DeadlineRisk
+						{
+							WorkOrderNumber = wo.WorkOrderNumber,
+							DueDate = dueDate,
+							RiskLevel = "Medium",
+							HoursShortage = 0
+						});
+					}
+				}
+				else
+				{
+					Debug.WriteLine($"⚠ INVALID DATE: {wo.WorkOrderNumber} → {wo.DueDate}");
+				}
+			}
+
+			// 2. BLOCKED WORK ORDERS (ALWAYS RISKS)
+			foreach (var block in ProductionBlocks)
+			{
+				if (!risks.Any(r => r.WorkOrderNumber == block.WorkOrderNumber))
+				{
+					risks.Add(new DeadlineRisk
+					{
+						WorkOrderNumber = block.WorkOrderNumber,
+						DueDate = DateTime.Now,
+						RiskLevel = "High",
+						HoursShortage = 0
+					});
+				}
+			}
+
+			Debug.WriteLine($"🔥 FIXED RISKS COUNT: {risks.Count}");
+
+			DeadlineRisks = new ObservableCollection<DeadlineRisk>(risks);
+
+			Debug.WriteLine($"🔥 FINAL RISKS AFTER FIX: {DeadlineRisks.Count}");
+
+			OnPropertyChanged(nameof(DeadlineRisks));
+		}
+
 		[RelayCommand]
 		private void StartWorkOrder(Guid id)
 		{
@@ -782,16 +861,22 @@ namespace WeldAdminPro.UI.ViewModels
 
 			System.Diagnostics.Debug.WriteLine($"▶ MANUAL START: {workOrder.WorkOrderNumber}");
 
-			Execution.StartWorkOrder(id);
+			Execution.StartCommand.Execute(id);
+
+			// 🔥 FORCE HARD RELOAD
+			Execution.Load();
+			LoadProductionQueue();
+			LoadProductionReadiness();
 
 			RefreshProductionSystem();
+
 			ProductionChanged?.Invoke();
 		}
 
 		[RelayCommand]
 		private void PauseWorkOrder(Guid id)
 		{
-			Execution.PauseWorkOrder(id);
+			Execution.PauseWorkOrderCommand.Execute(id);
 
 			RefreshProductionSystem();
 			ProductionChanged?.Invoke();
@@ -800,7 +885,7 @@ namespace WeldAdminPro.UI.ViewModels
 		[RelayCommand]
 		private void CompleteWorkOrder(Guid id)
 		{
-			Execution.CompleteWorkOrder(id);
+			Execution.CompleteWorkOrderCommand.Execute(id);
 
 			RefreshProductionSystem();
 			ProductionChanged?.Invoke();
@@ -840,6 +925,8 @@ namespace WeldAdminPro.UI.ViewModels
 					return;
 
 				Debug.WriteLine($"🔥 SELECTED WO: {value.WorkOrderNumber}");
+				Debug.WriteLine($"FINAL RISKS: {DeadlineRisks.Count}");
+				Debug.WriteLine($"TOWER RISKS: {ProductionControlTower.DeadlineRisks}");
 
 				var wo = _workOrderRepository
 					.GetAll()
@@ -858,14 +945,24 @@ namespace WeldAdminPro.UI.ViewModels
 				OnPropertyChanged(nameof(SelectedWorkOrderMaterials));
 			}
 		}
-
-
 		private WorkOrder? GetWorkOrderByNumber(string number)
 {
 	return _workOrderRepository
 		.GetAll()
 		.FirstOrDefault(w => w.WorkOrderNumber == number);
 }
+		public void RefreshDashboard()
+		{
+			LoadDeadlineRisks();
 
+		
+			Debug.WriteLine($"FINAL RISKS: {DeadlineRisks.Count}");
+			Debug.WriteLine($"TOWER RISKS: {ProductionControlTower.DeadlineRisks}");
+
+			Planner.Load();
+
+			OnPropertyChanged(nameof(ProductionControlTower));
+			OnPropertyChanged(nameof(DeadlineRisks));
+		}
 
 	} }

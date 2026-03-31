@@ -32,15 +32,13 @@ namespace WeldAdminPro.Data.Services
 				workOrders.Count(w => w.Status == WorkOrderStatus.InProduction);
 
 			model.CompletedToday =
-				workOrders.Count(w =>
-					w.Status == WorkOrderStatus.Completed &&
-					w.CompletedOn?.Date == DateTime.Today);
+	workOrders.Count(w => w.Status == WorkOrderStatus.Completed);
 
 			model.ReadyOrders =
 				workOrders.Count(w => w.Status == WorkOrderStatus.Ready)
 				- blockedOrders;
 
-			model.DeadlineRisks = 0; // connect risk engine later
+			// DO NOT set here — controlled externally model.DeadlineRisks = 0; // connect risk engine later
 
 			double totalCapacityPerDay = 32;
 

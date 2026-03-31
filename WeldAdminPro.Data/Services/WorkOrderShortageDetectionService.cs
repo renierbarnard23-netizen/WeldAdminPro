@@ -50,7 +50,7 @@ namespace WeldAdminPro.Data.Services
 
 			foreach (var wo in workOrders)
 			{
-				var materials = _materialRepo.GetByWorkOrderId(wo.Id);
+				var materials = _materialRepo.GetByWorkOrderId(wo.Id) ?? new List<WorkOrderMaterial>();
 
 				Debug.WriteLine($"🔥 MATERIAL COUNT: {materials?.Count()}");
 

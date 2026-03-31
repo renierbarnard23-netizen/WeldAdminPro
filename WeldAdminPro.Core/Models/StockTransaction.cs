@@ -49,6 +49,8 @@ namespace WeldAdminPro.Core.Models
 		public int CalculatedBalance { get; set; }
 		public bool IsBalanceMismatch { get; set; }
 		public bool IsNegativeDrift { get; set; }
+
+
 	}
 
 }

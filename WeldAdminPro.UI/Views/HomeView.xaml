@@ -751,8 +751,7 @@ Width="*"/>
 						<Style TargetType="DataGridRow">
 
 							<!-- 🎨 Background color -->
-							<Setter Property="Background"
-                Value="{Binding BlockReason, Converter={StaticResource BlockReasonBrush}}"/>
+							<Setter Property="Background" Value="White"/>
 
 							<!-- 💬 Tooltip -->
 							<Setter Property="ToolTip"
@@ -795,28 +794,28 @@ Width="*"/>
 										<Button Content="Start"
                         Margin="2"
                         Padding="6,2"
-                        Command="{Binding DataContext.StartWorkOrderCommand,
-                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                        Command="{Binding DataContext.Execution.StartCommand,
+						RelativeSource={RelativeSource AncestorType=UserControl}}"
                         CommandParameter="{Binding Id}"
                         IsEnabled="{Binding CanStart}"/>
 
 										<Button Content="Pause"
                         Margin="2"
                         Padding="6,2"
-                        Command="{Binding DataContext.PauseWorkOrderCommand,
-                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                        Command="{Binding DataContext.Execution.PauseWorkOrderCommand,
+						RelativeSource={RelativeSource AncestorType=UserControl}}"
                         CommandParameter="{Binding Id}"/>
 
 										<Button Content="Complete"
                         Margin="2"
                         Padding="6,2"
-                        Command="{Binding DataContext.CompleteWorkOrderCommand,
-                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                        Command="{Binding DataContext.Execution.CompleteWorkOrderCommand,
+						RelativeSource={RelativeSource AncestorType=UserControl}}"
                         CommandParameter="{Binding Id}"/>
 
 						<Button Content="Cancel"
-						Command="{Binding DataContext.CancelWorkOrderCommand,
-						RelativeSource={RelativeSource AncestorType=DataGrid}}"
+						Command="{Binding DataContext.Execution.CancelWorkOrderCommand,
+					RelativeSource={RelativeSource AncestorType=UserControl}}"
 						CommandParameter="{Binding Id}" />
 
 									</StackPanel>
