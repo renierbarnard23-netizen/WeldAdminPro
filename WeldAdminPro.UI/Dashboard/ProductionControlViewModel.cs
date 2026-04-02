@@ -1,9 +1,10 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using WeldAdminPro.Core.Analytics.Production;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
+using WeldAdminPro.Core.Services.Risk;
+using WeldAdminPro.Core.Analytics.Production;
 
 namespace WeldAdminPro.UI.ViewModels.Dashboard
 {
@@ -13,7 +14,7 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 
 		public ObservableCollection<ProductionCapacityForecast> CapacityForecast { get; set; }
 
-		public ObservableCollection<DeadlineRisk> DeadlineRisks { get; set; }
+		public ObservableCollection<WeldAdminPro.Core.Models.DeadlineRisk> DeadlineRisks { get; set; }
 
 		private readonly ProductionSchedulingService _schedulingService;
 
@@ -29,7 +30,7 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 
 			_capacityService = new ProductionCapacityService(repo);
 
-			_riskService = new DeadlineRiskDetectionService(repo, _capacityService);
+			_riskService = new DeadlineRiskDetectionService();
 
 			ProductionQueue =
 				new ObservableCollection<ProductionQueueItem>(
@@ -40,8 +41,8 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 					_capacityService.GetCapacityForecast());
 
 			DeadlineRisks =
-				new ObservableCollection<DeadlineRisk>(
-					_riskService.DetectRisks());
+	new ObservableCollection<WeldAdminPro.Core.Models.DeadlineRisk>(
+		_riskService.GetDeadlineRisks(new WorkOrderRepository().GetAll()));
 		}
 	}
 }

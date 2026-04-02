@@ -10,6 +10,7 @@ using WeldAdminPro.Data.Services;
 
 namespace WeldAdminPro.UI
 {
+
 	public partial class App : Application
 	{
 		public static ApplicationDbContext DbContext { get; private set; } = null!;
@@ -17,75 +18,93 @@ namespace WeldAdminPro.UI
 
 		protected override void OnStartup(StartupEventArgs e)
 		{
-			base.OnStartup(e);
-
-			// 1️⃣ Ensure DB schema FIRST
-			DatabaseInitializer.Initialize();
-
-			var migration = new DatabaseMigrationService($"Data Source={DatabasePath.Get()}");
-			migration.RunMigrations();
-
-			// 2️⃣ Load Executive Severity Configuration
+			ShutdownMode = ShutdownMode.OnExplicitShutdown;
 			try
 			{
-				var configPath = Path.Combine(
-					AppDomain.CurrentDomain.BaseDirectory,
-					"appsettings.json");
+				base.OnStartup(e);
 
-				if (File.Exists(configPath))
+				// 1️⃣ Ensure DB schema
+				DatabaseInitializer.Initialize();
+
+				var migration = new DatabaseMigrationService($"Data Source={DatabasePath.Get()}");
+				migration.RunMigrations();
+
+				// 2️⃣ Load config
+				try
 				{
-					var json = File.ReadAllText(configPath);
+					var configPath = Path.Combine(
+						AppDomain.CurrentDomain.BaseDirectory,
+						"appsettings.json");
 
-					using var document = JsonDocument.Parse(json);
-
-					if (document.RootElement.TryGetProperty("ExecutiveSeverity", out var section))
+					if (File.Exists(configPath))
 					{
-						var options = section.Deserialize<ExecutiveSeverityOptions>();
+						var json = File.ReadAllText(configPath);
 
-						if (options != null)
-							ExecutiveSeverityOptions = options;
+						using var document = JsonDocument.Parse(json);
+
+						if (document.RootElement.TryGetProperty("ExecutiveSeverity", out var section))
+						{
+							var options = section.Deserialize<ExecutiveSeverityOptions>();
+
+							if (options != null)
+								ExecutiveSeverityOptions = options;
+						}
 					}
 				}
-			}
-			catch
-			{
-				ExecutiveSeverityOptions = new ExecutiveSeverityOptions();
-			}
+				catch
+				{
+					ExecutiveSeverityOptions = new ExecutiveSeverityOptions();
+				}
 
-			// 3️⃣ Ledger Integrity Check
-			try
-			{
-				var ledgerService = new LedgerService();
-				ledgerService.RepairLedgerIfRequired();
+				// 3️⃣ Ledger check
+				try
+				{
+					var ledgerService = new LedgerService();
+					ledgerService.RepairLedgerIfRequired();
+				}
+				catch (Exception ledgerEx)
+				{
+					MessageBox.Show(
+						$"Ledger verification failed: {ledgerEx.Message}",
+						"Ledger Error",
+						MessageBoxButton.OK,
+						MessageBoxImage.Warning);
+				}
+
+				// 4️⃣ DbContext
+				var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>()
+					.UseSqlite($"Data Source={DatabasePath.Get()}")
+					.Options;
+
+				DbContext = new ApplicationDbContext(optionsBuilder);
+
+				// 5️⃣ Global exception handler
+				DispatcherUnhandledException += (sender, args) =>
+				{
+					MessageBox.Show(
+						args.Exception.ToString(),
+						"Unhandled Exception",
+						MessageBoxButton.OK,
+						MessageBoxImage.Error);
+
+					args.Handled = true;
+				};
+
+				// 6️⃣ START UI
+				var loginWindow = new Views.LoginWindow();
+				MainWindow = loginWindow;
+				loginWindow.Show();
 			}
-			catch (Exception ex)
+			catch (Exception startupEx)
 			{
 				MessageBox.Show(
-					$"Ledger verification failed: {ex.Message}",
-					"Ledger Error",
+					startupEx.ToString(),
+					"CRITICAL STARTUP ERROR",
 					MessageBoxButton.OK,
-					MessageBoxImage.Warning);
+					MessageBoxImage.Error);
+
+				Shutdown();
 			}
-
-			// 4️⃣ Create EF DbContext
-			var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>()
-				.UseSqlite($"Data Source={DatabasePath.Get()}")
-				.Options;
-
-			DbContext = new ApplicationDbContext(optionsBuilder);
-					
-			// 5️⃣ Global exception handler
-			DispatcherUnhandledException += (sender, args) =>
-			{
-				MessageBox.Show(
-					args.Exception.ToString(),
-					"Unhandled Exception",
-					MessageBoxButton.OK,
-					MessageBoxImage.Error
-				);
-
-				args.Handled = true;
-			};
 		}
 	}
 }

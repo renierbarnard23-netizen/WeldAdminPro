@@ -45,6 +45,7 @@ namespace WeldAdminPro.Core.Models
 		public BlockReason BlockReason { get; set; } = BlockReason.None;
 		public string BlockMessage { get; set; } = "";
 		public decimal MaterialCost { get; set; }
+		public string WorkCenter { get; set; } = "Welding";
 	}
 
 

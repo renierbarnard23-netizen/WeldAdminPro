@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using WeldAdminPro.UI.Views;
 
@@ -65,6 +66,13 @@ namespace WeldAdminPro.UI.Views
 		private void WorkOrders_Click(object sender, RoutedEventArgs e)
 		{
 			MainContent.Content = new WorkOrdersView();
+		}
+
+		protected override void OnClosed(EventArgs e)
+		{
+			base.OnClosed(e);
+
+			Application.Current.Shutdown();
 		}
 	}
 }

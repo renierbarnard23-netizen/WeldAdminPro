@@ -15,7 +15,9 @@ using WeldAdminPro.Core.Analytics.Procurement;
 using WeldAdminPro.Core.Analytics.Production;
 using WeldAdminPro.Core.Execution;
 using WeldAdminPro.Core.Models;
+using WeldAdminPro.Core.Services.Interfaces;
 using WeldAdminPro.Core.Services.Planning;
+using WeldAdminPro.Core.Services.Risk;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
 using WeldAdminPro.UI.ViewModels;
@@ -44,7 +46,7 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly ProductionSchedulingService _schedulingService;
 		private readonly MaterialReservationService _reservationService;
 		private readonly WorkOrderRepository _workOrderRepository;
-
+		
 		private readonly ProductionBottleneckDetectionService _bottleneckService;
 
 		private readonly ProductionThroughputService _throughputService;
@@ -53,13 +55,21 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly ProductionReplanningService _replanningService = new();
 		private readonly ProductionReplanTriggerService _replanTrigger = new();
 
+		private readonly GlobalRiskService _globalRiskService;
+
+		private readonly WorkOrderMaterialRepository _materialRepo;
+		private readonly StockRepository _stockRepo;
+		private List<StockItem> _allStock = new();
+
+		private readonly WorkCenterCapacityService _capacityEngine = new();
+
 		private bool _isRefreshing = false;
 
 		public ObservableCollection<WorkOrderMaterialShortage> MaterialShortages { get; set; } = new();
 		public ObservableCollection<ProductionGanttItem> ProductionTimeline { get; set; } = new();
 		public ObservableCollection<ProductionCapacityForecast> CapacityForecast { get; set; } = new();
-		
-		public ObservableCollection<DeadlineRisk> DeadlineRisks { get; set; } = new();
+
+		public ObservableCollection<WeldAdminPro.Core.Models.DeadlineRisk> DeadlineRisks { get; set; } = new();
 		public ProductionControlTowerViewModel ProductionControlTower { get; }
 		public ProductionControlViewModel Production { get; } = new ProductionControlViewModel();
 
@@ -80,6 +90,8 @@ namespace WeldAdminPro.UI.ViewModels
 		public ObservableCollection<ProductionCompletionPrediction> ScenarioPredictions { get; set; } = new();
 		public ObservableCollection<WorkOrderMaterialTrace> SelectedWorkOrderMaterials
 	=> Execution.SelectedWorkOrderMaterials;
+
+		public ObservableCollection<WorkCenter> WorkCenters { get; set; } = new();
 		public int ScenarioLateJobs { get; set; }
 		public int ScenarioTotalDelay { get; set; }
 		public string OptimizedStrategy { get; set; } = "";
@@ -111,26 +123,28 @@ namespace WeldAdminPro.UI.ViewModels
 			_reservationService = new MaterialReservationService();
 			_workOrderRepository = new WorkOrderRepository();
 
-		
+			_globalRiskService = new GlobalRiskService();
+
+			_materialRepo = new WorkOrderMaterialRepository();
+			_stockRepo = new StockRepository();
+			_allStock = _stockRepo.GetAll().ToList();
 
 			// =========================
 			// 🔥 FIXED EXECUTION SETUP
 			// =========================
 
 			var workOrderRepo = new WorkOrderRepository();
-			var materialRepo = new WorkOrderMaterialRepository();
-			var stockRepo = new StockRepository();
 
 			var materialValidator = new MaterialValidator(
-				stockRepo,
-				materialRepo
+				_stockRepo,
+				_materialRepo
 			);
 
 			var executionService = new WorkOrderExecutionService(
 				workOrderRepo,
-				materialRepo,
+				_materialRepo,
 				materialValidator,
-				stockRepo // ✅ FIXED
+				_stockRepo
 			);
 
 			// ✅ PASS INTO VIEWMODEL
@@ -231,6 +245,32 @@ namespace WeldAdminPro.UI.ViewModels
 			}
 
 			// ===============================
+			// 🔥 AI PRODUCTION PLANNER
+			// ===============================
+
+			var planner = new ProductionPlannerService();
+
+			// ✅ MUST BE BEFORE planner
+			var allWorkOrders = _workOrderRepository.GetAll().ToList();
+
+			var plannerResult = planner.GeneratePlan(new PlanningContext
+			{
+				WorkOrders = allWorkOrders,
+
+				GetMaterials = id => _materialRepo.GetByWorkOrderId(id)
+							.Select(m => new MaterialRequirement
+			{
+							ItemCode = m.ItemCode,
+							RequiredQuantity = m.RequiredQuantity
+			}),
+
+				GetStock = code => _allStock
+					.FirstOrDefault(s => s.ItemCode == code)?.Quantity ?? 0,
+
+				GetCapacity = wc => 8
+			});
+
+			// ===============================
 			// 🔥 EXISTING SYSTEM (UNCHANGED)
 			// ===============================
 
@@ -263,10 +303,6 @@ namespace WeldAdminPro.UI.ViewModels
 				}));
 
 			var capacityService = new ProductionCapacityService(_workOrderRepository);
-
-			var riskService = new DeadlineRiskDetectionService(
-				_workOrderRepository,
-				capacityService);
 
 			CapacityForecast = new ObservableCollection<ProductionCapacityForecast>(
 				capacityService.GetCapacityForecast());
@@ -327,7 +363,32 @@ namespace WeldAdminPro.UI.ViewModels
 			LoadMaterialShortages();
 			LoadProductionReadiness();
 
-			var allWorkOrders = _workOrderRepository.GetAll();
+			Func<Guid, IEnumerable<MaterialRequirement>> getMaterials = (woId) =>
+			{
+					return _materialRepo.GetByWorkOrderId(woId)
+					.Select(m => new MaterialRequirement
+					{
+						ItemCode = m.ItemCode,
+						RequiredQuantity = m.RequiredQuantity
+					});
+			};
+
+			Func<string, double> getStock = (code) =>
+			{
+				var stock =_allStock.FirstOrDefault(s => s.ItemCode == code);
+				return stock?.Quantity ?? 0;
+			};
+
+			LoadProductionBlocks(); // MUST be before risks
+
+			var risks = _globalRiskService.GetAllRisks(
+				allWorkOrders,
+				getMaterials,
+				getStock
+			);
+
+			ProductionRisks = new ObservableCollection<ProductionRisk>(risks);
+			OnPropertyChanged(nameof(ProductionRisks));
 
 			InProduction = allWorkOrders.Count(w => w.Status == WorkOrderStatus.InProduction);
 			
@@ -428,6 +489,7 @@ namespace WeldAdminPro.UI.ViewModels
 
 		[ObservableProperty]
 		private List<ProductionEfficiencyTrendModel> productionEfficiencyTrend = new();
+		public ObservableCollection<ProductionRisk> ProductionRisks { get; set; } = new();
 		private void LoadProductionTrafficLights()
 		{
 			var lights = _trafficLightService.BuildKpis();
@@ -554,10 +616,7 @@ namespace WeldAdminPro.UI.ViewModels
 			var queue = _schedulingService.BuildQueue();
 
 			var engine = new BlockReasonEngine();
-			var materialRepo = new WorkOrderMaterialRepository();
-			var stockRepo = new StockRepository();
-			var allStock = stockRepo.GetAll().ToList();
-
+			
 			foreach (var item in queue)
 			{
 				var wo = _workOrderRepository.GetAll()
@@ -566,20 +625,19 @@ namespace WeldAdminPro.UI.ViewModels
 				if (wo == null)
 					continue;
 
-				var materials = materialRepo.GetByWorkOrderId(wo.Id);
+				var materials = _materialRepo.GetByWorkOrderId(wo.Id);
 
 				wo.MaterialRequirements = materials.Select(m =>
 				{
-					var stock = allStock.FirstOrDefault(s => s.Id == m.ItemId);
+					var stock = _allStock.FirstOrDefault(s => s.Id == m.ItemId);
 
 					if (stock == null)
-						stock = allStock.FirstOrDefault(s => s.ItemCode == m.ItemCode);
+						stock = _allStock.FirstOrDefault(s => s.ItemCode == m.ItemCode);
 
 					return new MaterialRequirement
 					{
-						MaterialCode = m.ItemCode,
+						ItemCode = m.ItemCode,
 						RequiredQuantity = m.RequiredQuantity,
-						AvailableQuantity = stock?.Quantity ?? 0
 					};
 				}).ToList();
 
@@ -670,10 +728,38 @@ namespace WeldAdminPro.UI.ViewModels
 			{
 				LoadMaterialShortages();
 				LoadProductionBlocks();
+
+				var allWorkOrders = _workOrderRepository.GetAll();
+
+				Func<Guid, IEnumerable<MaterialRequirement>> getMaterials = (woId) =>
+				{
+					return _materialRepo.GetByWorkOrderId(woId)
+						.Select(m => new MaterialRequirement
+						{
+							ItemCode = m.ItemCode,
+							RequiredQuantity = m.RequiredQuantity
+						});
+				};
+
+				Func<string, double> getStock = (code) =>
+				{
+					var stock = _allStock.FirstOrDefault(s => s.ItemCode == code);
+					return stock?.Quantity ?? 0;
+				};
+
+				var risks = _globalRiskService.GetAllRisks(
+					allWorkOrders,
+					getMaterials,
+					getStock
+				);
+
+				ProductionRisks = new ObservableCollection<ProductionRisk>(risks);
+				OnPropertyChanged(nameof(ProductionRisks));
+
 				LoadProductionReadiness();
 				LoadProductionQueue();
 
-				var runningJobs = Execution.RunningWorkOrders.ToList();
+			var runningJobs = Execution.RunningWorkOrders.ToList();
 
 				foreach (var running in runningJobs)
 				{
@@ -687,18 +773,21 @@ namespace WeldAdminPro.UI.ViewModels
 				}
 
 				LoadProductionBlocks();   // 🔥 MUST be before risks
-				
+
+		OnPropertyChanged(nameof(ProductionRisks));
+
 				Execution.Load();
 
-				LoadDeadlineRisks();
+				Debug.WriteLine($"FINAL RISKS BEFORE SET: {ProductionRisks.Count}");
 
-				Debug.WriteLine($"FINAL RISKS BEFORE SET: {DeadlineRisks.Count}");
 
-					Debug.WriteLine($"VM INSTANCE: {ProductionControlTower.GetHashCode()}");
-				Debug.WriteLine($"VALUE SET: {ProductionControlTower.DeadlineRisks}");
+				Debug.WriteLine($"VM INSTANCE: {ProductionControlTower.GetHashCode()}");
+				
 
 				// 🔥 FORCE UI UPDATE
-				ProductionControlTower.Load(DeadlineRisks.Count);
+				ProductionControlTower.Load(
+				ProductionRisks.Count(r => r.RiskType == RiskType.Deadline)
+				);
 
 				// analytics
 				ProductionThroughput = _throughputService.GetThroughput();
@@ -736,7 +825,7 @@ namespace WeldAdminPro.UI.ViewModels
 				// 🔥 SMART REPLANNING (RESTORED)
 				var currentQueue = Production.ProductionQueue.ToList();
 
-				bool shouldReplan = DeadlineRisks.Any() || ProductionBlocks.Any();
+				bool shouldReplan = ProductionRisks.Any() || ProductionBlocks.Any();
 
 				if (shouldReplan)
 				{
@@ -755,7 +844,13 @@ namespace WeldAdminPro.UI.ViewModels
 
 				OnPropertyChanged(nameof(Production.ProductionQueue));
 				OnPropertyChanged(nameof(OptimizedStrategy));
+
+				var capacity = _capacityEngine.CalculateCapacity(allWorkOrders);
+
+				WorkCenters = new ObservableCollection<WorkCenter>(capacity);
+				OnPropertyChanged(nameof(WorkCenters));
 			}
+
 			finally
 			{
 				_isRefreshing = false;
@@ -777,58 +872,7 @@ namespace WeldAdminPro.UI.ViewModels
 			OnPropertyChanged(nameof(ScenarioTotalDelay));
 		}
 
-		private void LoadDeadlineRisks()
-		{
-			// 🔥 USE THE SAME SOURCE AS YOUR TABLE
-			var risks = new List<DeadlineRisk>();
-
-			// 1. DEADLINE RISKS (from scheduler / queue)
-			foreach (var wo in Production.ProductionQueue)
-			{
-				DateTime dueDate;
-
-				if (DateTime.TryParse(wo.DueDate, out dueDate))
-				{
-					if (dueDate <= DateTime.Now.AddHours(48))
-					{
-						risks.Add(new DeadlineRisk
-						{
-							WorkOrderNumber = wo.WorkOrderNumber,
-							DueDate = dueDate,
-							RiskLevel = "Medium",
-							HoursShortage = 0
-						});
-					}
-				}
-				else
-				{
-					Debug.WriteLine($"⚠ INVALID DATE: {wo.WorkOrderNumber} → {wo.DueDate}");
-				}
-			}
-
-			// 2. BLOCKED WORK ORDERS (ALWAYS RISKS)
-			foreach (var block in ProductionBlocks)
-			{
-				if (!risks.Any(r => r.WorkOrderNumber == block.WorkOrderNumber))
-				{
-					risks.Add(new DeadlineRisk
-					{
-						WorkOrderNumber = block.WorkOrderNumber,
-						DueDate = DateTime.Now,
-						RiskLevel = "High",
-						HoursShortage = 0
-					});
-				}
-			}
-
-			Debug.WriteLine($"🔥 FIXED RISKS COUNT: {risks.Count}");
-
-			DeadlineRisks = new ObservableCollection<DeadlineRisk>(risks);
-
-			Debug.WriteLine($"🔥 FINAL RISKS AFTER FIX: {DeadlineRisks.Count}");
-
-			OnPropertyChanged(nameof(DeadlineRisks));
-		}
+		
 
 		[RelayCommand]
 		private void StartWorkOrder(Guid id)
@@ -951,18 +995,34 @@ namespace WeldAdminPro.UI.ViewModels
 		.GetAll()
 		.FirstOrDefault(w => w.WorkOrderNumber == number);
 }
-		public void RefreshDashboard()
-		{
-			LoadDeadlineRisks();
+public void RefreshDashboard()
+{
 
-		
-			Debug.WriteLine($"FINAL RISKS: {DeadlineRisks.Count}");
-			Debug.WriteLine($"TOWER RISKS: {ProductionControlTower.DeadlineRisks}");
+			var allWorkOrders = _workOrderRepository.GetAll();
+			Func<Guid, IEnumerable<MaterialRequirement>> getMaterials = (woId) =>
+	{
+		return _materialRepo.GetByWorkOrderId(woId)
+			.Select(m => new MaterialRequirement
+			{
+				ItemCode = m.ItemCode,
+				RequiredQuantity = m.RequiredQuantity
+			});
+	};
 
-			Planner.Load();
+	Func<string, double> getStock = (code) =>
+	{
+		var stock = _allStock.FirstOrDefault(s => s.ItemCode == code);
+		return stock?.Quantity ?? 0;
+	};
 
-			OnPropertyChanged(nameof(ProductionControlTower));
-			OnPropertyChanged(nameof(DeadlineRisks));
-		}
+	var risks = _globalRiskService.GetAllRisks(
+		allWorkOrders,
+		getMaterials,
+		getStock
+	);
+
+	ProductionRisks = new ObservableCollection<ProductionRisk>(risks);
+	OnPropertyChanged(nameof(ProductionRisks));
+}
 
 	} }

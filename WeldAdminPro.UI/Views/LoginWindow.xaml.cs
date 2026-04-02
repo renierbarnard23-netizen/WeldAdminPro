@@ -7,20 +7,26 @@ namespace WeldAdminPro.UI.Views
         public LoginWindow()
         {
             InitializeComponent();
-        }
+
+			MessageBox.Show("Login Window Loaded"); // 🔥 TEST
+		}
 
         private void Login_Click(object sender, RoutedEventArgs e)
         {
             var username = UsernameBox.Text;
             var password = PasswordBox.Password;
 
-            if (username == "admin" && password == "admin")
-            {
-                var mainWindow = new MainWindow();
-                mainWindow.Show();
-                Close();
-            }
-            else
+			if (username == "admin" && password == "admin")
+			{
+				var mainWindow = new MainWindow();
+
+				Application.Current.MainWindow = mainWindow;
+
+				mainWindow.Show();
+
+				this.Close(); // OK now
+			}
+			else
             {
                 ErrorText.Text = "Invalid username or password";
             }

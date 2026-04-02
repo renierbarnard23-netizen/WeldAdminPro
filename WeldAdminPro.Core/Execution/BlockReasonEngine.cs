@@ -7,17 +7,13 @@ namespace WeldAdminPro.Core.Execution
 	{
 		public BlockResult Evaluate(WorkOrder order)
 		{
-			if (order.Status == WorkOrderStatus.InProduction)
-			{
-				return new BlockResult
-				{
-					Reason = BlockReason.None,
-					Message = ""
-				};
-			}
-
+			// ✅ NULL CHECK FIRST
 			if (order == null)
 				return BlockResult.Create(BlockReason.Unknown, "Work order is null");
+
+			// ✅ Completed orders are NOT blocked
+			if (order.Status == WorkOrderStatus.Completed)
+				return BlockResult.None();
 
 			// RULE 1 — Material Check
 			var materialResult = CheckMaterials(order);
@@ -49,19 +45,22 @@ namespace WeldAdminPro.Core.Execution
 
 			foreach (var req in order.MaterialRequirements)
 			{
-				if (req.AvailableQuantity <= 0)
+				// 🔥 TEMP FIX: assume 0 stock until service is wired
+				double availableQty = 0;
+
+				if (availableQty <= 0)
 				{
 					return BlockResult.Create(
 						BlockReason.NoStock,
-						$"No stock for {req.MaterialCode}"
+						$"No stock for {req.ItemCode}"
 					);
 				}
 
-				if (req.AvailableQuantity < req.RequiredQuantity)
+				if (availableQty < req.RequiredQuantity)
 				{
 					return BlockResult.Create(
 						BlockReason.InsufficientStock,
-						$"Insufficient stock for {req.MaterialCode}"
+						$"Insufficient stock for {req.ItemCode}"
 					);
 				}
 			}

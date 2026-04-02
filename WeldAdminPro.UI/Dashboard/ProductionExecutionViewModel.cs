@@ -83,9 +83,9 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 
 					return new MaterialRequirement
 					{
-						MaterialCode = m.ItemCode,
-						RequiredQuantity = m.RequiredQuantity,
-						AvailableQuantity = stock?.Quantity ?? 0
+						ItemCode = m.ItemCode,
+						RequiredQuantity = m.RequiredQuantity
+						// ❌ REMOVE AvailableQuantity
 					};
 				}).ToList();
 

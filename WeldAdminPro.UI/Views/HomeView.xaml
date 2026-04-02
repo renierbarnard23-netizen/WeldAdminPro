@@ -1280,18 +1280,21 @@ Width="*"/>
 
 					<Expander Header="Deadline Risks" Grid.Row="0" Grid.Column="1">
 						<DataGrid ItemsSource="{Binding Production.DeadlineRisks}"
-                      AutoGenerateColumns="False"
-                      Height="160">
+              AutoGenerateColumns="False"
+              Height="160">
 
 							<DataGrid.Columns>
 								<DataGridTextColumn Header="Work Order"
-                                        Binding="{Binding WorkOrderNumber}" Width="100"/>
-								<DataGridTextColumn Header="Due"
-                                        Binding="{Binding DueDate}" Width="100"/>
-								<DataGridTextColumn Header="Shortage"
-                                        Binding="{Binding HoursShortage}" Width="80"/>
-								<DataGridTextColumn Header="Risk"
-                                        Binding="{Binding RiskLevel}" Width="80"/>
+                                Binding="{Binding WorkOrderNumber}" Width="100"/>
+
+								<DataGridTextColumn Header="Deadline"
+                                Binding="{Binding Deadline}" Width="140"/>
+
+								<DataGridTextColumn Header="Delay (hrs)"
+                                Binding="{Binding DelayHours}" Width="100"/>
+
+								<DataGridTextColumn Header="At Risk"
+                                Binding="{Binding IsAtRisk}" Width="80"/>
 							</DataGrid.Columns>
 
 						</DataGrid>

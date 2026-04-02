@@ -2,17 +2,15 @@ namespace WeldAdminPro.Core.Models
 {
 	public class WorkCenter
 	{
-		public Guid Id { get; set; }
-
 		public string Name { get; set; } = "";
 
-		public int Workers { get; set; }
+		public double HoursPerDay { get; set; } = 8;
 
-		public double HoursPerDay { get; set; }
+		// 🔥 ADD THIS (REQUIRED)
+		public double CurrentLoadHours { get; set; }
 
-		public double OvertimeHours { get; set; }
-
-		public double DailyCapacity =>
-			Workers * (HoursPerDay + OvertimeHours);
+		// 🔥 ADD THIS (USEFUL FOR UI + RISK)
+		public double CapacityUtilization =>
+			HoursPerDay == 0 ? 0 : (CurrentLoadHours / HoursPerDay) * 100;
 	}
 }
