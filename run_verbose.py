@@ -1,0 +1,10 @@
+import subprocess, sys, os
+p = subprocess.Popen([sys.executable, "weldadmin_landing_page_full.py"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+out, err = p.communicate(timeout=10)
+print("=== STDOUT ===")
+print(out)
+print("=== STDERR ===")
+print(err)
+with open("weldadmin_verbose_stdout.log", "w", encoding="utf-8") as f: f.write(out)
+with open("weldadmin_verbose_stderr.log", "w", encoding="utf-8") as f: f.write(err)
+print("Wrote weldadmin_verbose_stdout.log and weldadmin_verbose_stderr.log")

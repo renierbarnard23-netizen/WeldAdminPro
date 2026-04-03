@@ -1,0 +1,19 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h3>Smart Upload — OCR & Auto-fill</h3>
+<p class="text-muted">Upload a scanned WPS / PQR / WPQR (PDF or image). The system will extract text and pre-fill the fields for review.</p>
+<div class="alert alert-info">
+  <div><strong>Tip:</strong> For scanned PDFs, install Tesseract and Poppler (paths in <code>.env</code>) to enable OCR.</div>
+</div>
+<form method="post" enctype="multipart/form-data">
+  <div class="row g-3">
+    <div class="col-md-8">
+      <input type="file" name="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.bmp" required>
+    </div>
+    <div class="col-md-4">
+      <button class="btn btn-primary w-100">Upload & Extract</button>
+    </div>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,39 @@
+name: Release WeldAdmin Pro
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore NuGet packages
+      run: dotnet restore WeldAdminPro.sln
+
+    - name: Build solution (Release)
+      run: dotnet build WeldAdminPro.sln --configuration Release --no-restore
+
+    - name: Install Inno Setup
+      run: choco install innosetup --yes
+
+    - name: Build installer
+      shell: pwsh
+      run: |
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ".\.github\installer_templates\WeldAdminProInstaller.iss"
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          .github/installer_templates/Output/*.exe

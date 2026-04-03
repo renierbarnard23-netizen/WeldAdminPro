@@ -1,0 +1,320 @@
+C:\Program Files\dotnet\sdk\8.0.416\MSBuild.dll -nologo -distributedlogger:Microsoft.DotNet.Tools.MSBuild.MSBuildLogger,C:\Program Files\dotnet\sdk\8.0.416\dotnet.dll*Microsoft.DotNet.Tools.MSBuild.MSBuildForwardingLogger,C:\Program Files\dotnet\sdk\8.0.416\dotnet.dll -maxcpucount -target:Restore -verbosity:m -verbosity:diag WeldAdminPro.sln
+Build started 03 Dec 2025 14:21:18.
+Environment at start of build:
+DOTNET_HOST_PATH = C:\Program Files\dotnet\dotnet.exe
+MSBuildLoadMicrosoftTargetsReadOnly = true
+MSBuildSDKsPath = C:\Program Files\dotnet\sdk\8.0.416\Sdks
+MSBUILDUSESERVER = 0
+MSBUILDFAILONDRIVEENUMERATINGWILDCARD = 1
+MSBuildExtensionsPath = C:\Program Files\dotnet\sdk\8.0.416\
+DOTNET_CLI_TELEMETRY_SESSIONID = 06cb5c37-7edc-4ffb-b106-9fb8d1a22247
+
+14:21:18.382     0>Process = "C:\Program Files\dotnet\dotnet.exe"
+                   MSBuild executable path = "C:\Program Files\dotnet\sdk\8.0.416\MSBuild.dll"
+                   Command line arguments = "C:\Program Files\dotnet\sdk\8.0.416\MSBuild.dll -maxcpucount -verbosity:m -nologo -target:Restore -verbosity:diag WeldAdminPro.sln -distributedlogger:Microsoft.DotNet.Tools.MSBuild.MSBuildLogger,C:\Program Files\dotnet\sdk\8.0.416\dotnet.dll*Microsoft.DotNet.Tools.MSBuild.MSBuildForwardingLogger,C:\Program Files\dotnet\sdk\8.0.416\dotnet.dll"
+                   Current directory = "C:\Users\renie\Documents\WeldAdminPro"
+                   MSBuild version = "17.11.48+02bf66295"
+                   Based on the Windows registry key LongPathsEnabled, the LongPaths feature is disabled.
+                   Assembly loaded during Evaluation: Microsoft.NET.StringTools, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a (location: C:\Program Files\dotnet\sdk\8.0.416\Microsoft.NET.StringTools.dll, MVID: a6df08db-4589-427d-8720-dbb53fdf37b0, AssemblyLoadContext: Default)
+                   Property 'MSBuildExtensionsPath' with value 'C:\Program Files\dotnet\sdk\8.0.416\' expanded from the environment.
+                   Assembly loaded during Evaluation: System.Threading.Tasks.Parallel, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a (location: C:\Program Files\dotnet\shared\Microsoft.NETCore.App\8.0.22\System.Threading.Tasks.Parallel.dll, MVID: 18d786a9-51ef-421f-b895-0f3430ea7f9b, AssemblyLoadContext: Default)
+                   Property reassignment: $(_GenerateRestoreGraphProjectEntryInputProperties)="
+                         ExcludeRestorePackageImports=true;
+                         _RestoreSolutionFileUsed=true;
+                         SolutionDir=C:\Users\renie\Documents\WeldAdminPro\;
+                         SolutionName=WeldAdminPro;
+                         SolutionFileName=WeldAdminPro.sln;
+                         SolutionPath=C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln;
+                         SolutionExt=.sln;
+                       " (previous value: "ExcludeRestorePackageImports=true") at C:\Program Files\dotnet\sdk\8.0.416\NuGet.targets (101,5)
+                   Overriding target "Restore" in project "C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln.metaproj" with target "Restore" from project "C:\Program Files\dotnet\sdk\8.0.416\NuGet.targets".
+                   The target "Store" listed in a BeforeTargets attribute at "C:\Program Files\dotnet\sdk\8.0.416\Current\SolutionFile\ImportAfter\Microsoft.NET.Sdk.Solution.targets (33,11)" does not exist in the project, and will be ignored.
+                   The target "VSTest" listed in a BeforeTargets attribute at "C:\Program Files\dotnet\sdk\8.0.416\Current\SolutionFile\ImportAfter\Microsoft.NET.Sdk.Solution.targets (33,11)" does not exist in the project, and will be ignored.
+                   The target "_CheckForInvalidConfigurationAndPlatform" listed in a BeforeTargets attribute at "C:\Program Files\dotnet\sdk\8.0.416\NuGet.targets (667,11)" does not exist in the project, and will be ignored.
+14:21:18.457     0>Initial Properties:
+                   _DirectorySolutionPropsBasePath = 
+                   _DirectorySolutionPropsFile = Directory.Solution.props
+                   _DirectorySolutionTargetsBasePath = 
+                   _DirectorySolutionTargetsFile = Directory.Solution.targets
+                   _GenerateRestoreGraphProjectEntryInputProperties = 
+                         ExcludeRestorePackageImports=true;
+                         _RestoreSolutionFileUsed=true;
+                         SolutionDir=C:\Users\renie\Documents\WeldAdminPro\;
+                         SolutionName=WeldAdminPro;
+                         SolutionFileName=WeldAdminPro.sln;
+                         SolutionPath=C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln;
+                         SolutionExt=.sln;
+                       
+                   _RestoreSolutionFileUsed = true
+                   AspNetConfiguration = Debug
+                   Configuration = Debug
+                   CurrentSolutionConfigurationContents = <SolutionConfiguration />
+                   DefaultImplicitPackages = Microsoft.NETCore.App;NETStandard.Library
+                   DOTNET_CLI_TELEMETRY_SESSIONID = 06cb5c37-7edc-4ffb-b106-9fb8d1a22247
+                   DOTNET_HOST_PATH = C:\Program Files\dotnet\dotnet.exe
+                   DotnetCliToolTargetFramework = netcoreapp2.2
+                   GetReferenceNearestTargetFrameworkTaskSupportsTargetPlatformParameter = true
+                   HideWarningsAndErrors = false
+                   IsRestoreTargetsFileLoaded = true
+                   MicrosoftNETBuildTasksAssembly = C:\Program Files\dotnet\sdk\8.0.416\Sdks\Microsoft.NET.Sdk\targets\..\tools\net8.0\Microsoft.NET.Build.Tasks.dll
+                   MicrosoftNETBuildTasksDirectory = C:\Program Files\dotnet\sdk\8.0.416\Sdks\Microsoft.NET.Sdk\targets\..\tools\net8.0\
+                   MicrosoftNETBuildTasksDirectoryRoot = C:\Program Files\dotnet\sdk\8.0.416\Sdks\Microsoft.NET.Sdk\targets\..\tools\
+                   MicrosoftNETBuildTasksTFM = net8.0
+                   MSBuildAllProjects = C:\Program Files\dotnet\sdk\8.0.416\Current\SolutionFile\ImportAfter\Microsoft.NET.Sdk.Solution.targets
+                   MSBuildAssemblyVersion = 17.0
+                   MSBuildBinPath = C:\Program Files\dotnet\sdk\8.0.416
+                   MSBuildDisableFeaturesFromVersion = 999.999
+                   MSBuildExtensionsPath = C:\Program Files\dotnet\sdk\8.0.416\
+                   MSBuildExtensionsPath32 = C:\Program Files\dotnet\sdk\8.0.416
+                   MSBuildExtensionsPath64 = C:\Program Files\dotnet\sdk\8.0.416
+                   MSBUILDFAILONDRIVEENUMERATINGWILDCARD = 1
+                   MSBuildFileVersion = 17.11.48.46605
+                   MSBuildIsRestoring = True
+                   MSBuildLoadMicrosoftTargetsReadOnly = true
+                   MSBuildNodeCount = 1
+                   MSBuildProgramFiles32 = C:\Program Files (x86)
+                   MSBuildProjectDefaultTargets = Build
+                   MSBuildProjectDirectory = C:\Users\renie\Documents\WeldAdminPro
+                   MSBuildProjectDirectoryNoRoot = Users\renie\Documents\WeldAdminPro
+                   MSBuildProjectExtension = .metaproj
+                   MSBuildProjectFile = WeldAdminPro.sln.metaproj
+                   MSBuildProjectFullPath = C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln.metaproj
+                   MSBuildProjectName = WeldAdminPro.sln
+                   MSBuildRestoreSessionId = c34fddcc-df30-4247-93b0-2460e4a67450
+                   MSBuildRuntimeType = Core
+                   MSBuildSDKsPath = C:\Program Files\dotnet\sdk\8.0.416\Sdks
+                   MSBuildSemanticVersion = 17.11.48+02bf66295
+                   MSBuildStartupDirectory = C:\Users\renie\Documents\WeldAdminPro
+                   MSBuildToolsPath = C:\Program Files\dotnet\sdk\8.0.416
+                   MSBuildToolsVersion = Current
+                   MSBuildUserExtensionsPath = C:\Users\renie\AppData\Local\Microsoft\MSBuild
+                   MSBUILDUSESERVER = 0
+                   MSBuildVersion = 17.11.48
+                   NuGetAudit = true
+                   NuGetAuditLevel = low
+                   NuGetAuditMode = direct
+                   NuGetInteractive = 
+                   NuGetRestoreTargets = C:\Program Files\dotnet\sdk\8.0.416\\NuGet.targets
+                   PackageDownloadSupported = true
+                   Platform = Any CPU
+                   RestoreBuildInParallel = true
+                   RestoreContinueOnError = WarnAndContinue
+                   RestoreRecursive = true
+                   RestoreTaskAssemblyFile = NuGet.Build.Tasks.dll
+                   RestoreUseSkipNonexistentTargets = true
+                   RoslynTargetsPath = C:\Program Files\dotnet\sdk\8.0.416\Roslyn
+                   SolutionDir = C:\Users\renie\Documents\WeldAdminPro\
+                   SolutionExt = .sln
+                   SolutionFileName = WeldAdminPro.sln
+                   SolutionName = WeldAdminPro
+                   SolutionPath = C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln
+                   TargetFrameworkVersion = v4.0
+                   ValidateRuntimeIdentifierCompatibility = false
+                   VisualStudioVersion = 17.0
+
+14:21:18.457     0>Initial Items:
+                   SolutionConfiguration
+                       Debug|Any CPU
+                           Content = <SolutionConfiguration />
+                           Platform = Any CPU
+                           Configuration = Debug
+                       Release|Any CPU
+                           Content = <SolutionConfiguration />
+                           Platform = Any CPU
+                           Configuration = Release
+
+14:21:18.469     1>Project "C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln" on node 1 (Restore target(s)).
+14:21:18.471     1>Target "ValidateSolutionConfiguration: (TargetId:2)" in file "C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln.metaproj" from project "C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln" (entry point):
+14:21:18.472     1>Task "Error" skipped, due to false condition; (('$(CurrentSolutionConfigurationContents)' == '') and ('$(SkipInvalidConfigurations)' != 'true')) was evaluated as (('<SolutionConfiguration />' == '') and ('' != 'true')).
+                   Task "Warning" skipped, due to false condition; (('$(CurrentSolutionConfigurationContents)' == '') and ('$(SkipInvalidConfigurations)' == 'true')) was evaluated as (('<SolutionConfiguration />' == '') and ('' == 'true')).
+                   Using "Message" task from assembly "Microsoft.Build.Tasks.Core, Version=15.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a".
+                   Task "Message" (TaskId:2)
+                     Task Parameter:Text=Building solution configuration "Debug|Any CPU". (TaskId:2)
+                     Building solution configuration "Debug|Any CPU". (TaskId:2)
+                   Done executing task "Message". (TaskId:2)
+14:21:18.481     1>Done building target "ValidateSolutionConfiguration" in project "WeldAdminPro.sln".: (TargetId:2)
+14:21:18.482     1>Target "ValidateToolsVersions: (TargetId:3)" in file "C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln.metaproj" from project "C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln" (entry point):
+                   Task "Error" skipped, due to false condition; ('$(MSBuildToolsVersion)' == '2.0' and ('$(ProjectToolsVersion)' != '2.0' and '$(ProjectToolsVersion)' != '')) was evaluated as ('Current' == '2.0' and ('' != '2.0' and '' != '')).
+14:21:18.482     1>Done building target "ValidateToolsVersions" in project "WeldAdminPro.sln".: (TargetId:3)
+14:21:18.482     1>Target "ValidateProjects: (TargetId:4)" in file "C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln.metaproj" from project "C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln" (entry point):
+14:21:18.482     1>Done building target "ValidateProjects" in project "WeldAdminPro.sln".: (TargetId:4)
+14:21:18.482     1>Target "_LoadRestoreGraphEntryPoints: (TargetId:5)" in file "C:\Program Files\dotnet\sdk\8.0.416\NuGet.targets" from project "C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln" (target "_FilterRestoreGraphProjectInputItems" depends on it):
+                   Assembly loaded during TaskRun: NuGet.Build.Tasks, Version=6.11.1.2, Culture=neutral, PublicKeyToken=31bf3856ad364e35 (location: C:\Program Files\dotnet\sdk\8.0.416\NuGet.Build.Tasks.dll, MVID: da6659e2-ab3c-4a1c-91d3-86fe81c4da96, AssemblyLoadContext: MSBuild plugin C:\Program Files\dotnet\sdk\8.0.416\NuGet.Build.Tasks.dll)
+                   Assembly loaded during TaskRun: System.Reflection.Metadata, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a (location: C:\Program Files\dotnet\shared\Microsoft.NETCore.App\8.0.22\System.Reflection.Metadata.dll, MVID: e725aa58-0767-4539-8fdc-48fb7e9b6dcf, AssemblyLoadContext: Default)
+                   Assembly loaded during TaskRun: NuGet.Common, Version=6.11.1.2, Culture=neutral, PublicKeyToken=31bf3856ad364e35 (location: C:\Program Files\dotnet\sdk\8.0.416\NuGet.Common.dll, MVID: 71662c50-4eea-46ea-82bf-b2edfd33a945, AssemblyLoadContext: MSBuild plugin C:\Program Files\dotnet\sdk\8.0.416\NuGet.Build.Tasks.dll)
+                   Assembly loaded during TaskRun: NuGet.Commands, Version=6.11.1.2, Culture=neutral, PublicKeyToken=31bf3856ad364e35 (location: C:\Program Files\dotnet\sdk\8.0.416\NuGet.Commands.dll, MVID: fd182425-a30a-445b-9628-b4c5f0ab1353, AssemblyLoadContext: MSBuild plugin C:\Program Files\dotnet\sdk\8.0.416\NuGet.Build.Tasks.dll)
+                   Assembly loaded during TaskRun: NuGet.ProjectModel, Version=6.11.1.2, Culture=neutral, PublicKeyToken=31bf3856ad364e35 (location: C:\Program Files\dotnet\sdk\8.0.416\NuGet.ProjectModel.dll, MVID: de1018f8-9cea-4ea5-aafd-eccdf5a6f888, AssemblyLoadContext: MSBuild plugin C:\Program Files\dotnet\sdk\8.0.416\NuGet.Build.Tasks.dll)
+                   Using "GetRestoreSolutionProjectsTask" task from assembly "C:\Program Files\dotnet\sdk\8.0.416\NuGet.Build.Tasks.dll".
+                   Task "GetRestoreSolutionProjectsTask" (TaskId:3)
+                     Task Parameter:SolutionFilePath=C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln.metaproj (TaskId:3)
+                   Done executing task "GetRestoreSolutionProjectsTask". (TaskId:3)
+14:21:18.492     1>Done building target "_LoadRestoreGraphEntryPoints" in project "WeldAdminPro.sln".: (TargetId:5)
+14:21:18.492     1>Target "_FilterRestoreGraphProjectInputItems: (TargetId:6)" in file "C:\Program Files\dotnet\sdk\8.0.416\NuGet.targets" from project "C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln" (target "_GenerateRestoreGraph" depends on it):
+                   Set Property: RestoreProjectFilterMode=exclusionlist
+                   Using "RemoveDuplicates" task from assembly "Microsoft.Build.Tasks.Core, Version=15.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a".
+                   Task "RemoveDuplicates" (TaskId:4)
+                   Done executing task "RemoveDuplicates". (TaskId:4)
+                   Using "MSBuild" task from assembly "Microsoft.Build.Tasks.Core, Version=15.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a".
+                   Task "MSBuild" (TaskId:5)
+                     Task Parameter:BuildInParallel=True (TaskId:5)
+                     Task Parameter:
+                         Properties=
+                             ExcludeRestorePackageImports=true
+                             _RestoreSolutionFileUsed=true
+                             SolutionDir=C:\Users\renie\Documents\WeldAdminPro\
+                             SolutionName=WeldAdminPro
+                             SolutionFileName=WeldAdminPro.sln
+                             SolutionPath=C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln
+                             SolutionExt=.sln (TaskId:5)
+                     Task Parameter:SkipNonexistentTargets=True (TaskId:5)
+                     Task Parameter:Targets=_IsProjectRestoreSupported (TaskId:5)
+                   Done executing task "MSBuild". (TaskId:5)
+                   Task "MSBuild" skipped, due to false condition; ( '$(RestoreUseSkipNonexistentTargets)' != 'true' ) was evaluated as ( 'true' != 'true' ).
+                   Using "WarnForInvalidProjectsTask" task from assembly "C:\Program Files\dotnet\sdk\8.0.416\NuGet.Build.Tasks.dll".
+                   Task "WarnForInvalidProjectsTask" (TaskId:6)
+                   Done executing task "WarnForInvalidProjectsTask". (TaskId:6)
+14:21:18.516     1>Done building target "_FilterRestoreGraphProjectInputItems" in project "WeldAdminPro.sln".: (TargetId:6)
+                   Target "_FilterRestoreGraphProjectInputItems" skipped. Previously built successfully.
+14:21:18.516     1>Target "_GetAllRestoreProjectPathItems: (TargetId:7)" in file "C:\Program Files\dotnet\sdk\8.0.416\NuGet.targets" from project "C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln" (target "_GenerateRestoreGraph" depends on it):
+                   Using "NuGetMessageTask" task from assembly "C:\Program Files\dotnet\sdk\8.0.416\NuGet.Build.Tasks.dll".
+                   Task "NuGetMessageTask" (TaskId:7)
+                     Task Parameter:Importance=High (TaskId:7)
+                     Task Parameter:Name=DeterminingProjectsToRestore (TaskId:7)
+                     Determining projects to restore... (TaskId:7)
+                   Done executing task "NuGetMessageTask". (TaskId:7)
+                   Task "MSBuild" (TaskId:8)
+                     Task Parameter:BuildInParallel=True (TaskId:8)
+                     Task Parameter:
+                         Properties=
+                             ExcludeRestorePackageImports=true
+                             _RestoreSolutionFileUsed=true
+                             SolutionDir=C:\Users\renie\Documents\WeldAdminPro\
+                             SolutionName=WeldAdminPro
+                             SolutionFileName=WeldAdminPro.sln
+                             SolutionPath=C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln
+                             SolutionExt=.sln (TaskId:8)
+                     Task Parameter:SkipNonexistentTargets=True (TaskId:8)
+                     Task Parameter:Targets=_GenerateRestoreProjectPathWalk (TaskId:8)
+                     Task Parameter:SkipNonexistentProjects=true (TaskId:8)
+                   Done executing task "MSBuild". (TaskId:8)
+                   Task "MSBuild" skipped, due to false condition; ( '$(RestoreUseSkipNonexistentTargets)' != 'true' ) was evaluated as ( 'true' != 'true' ).
+                   Task "RemoveDuplicates" (TaskId:9)
+                   Done executing task "RemoveDuplicates". (TaskId:9)
+                   Task "MSBuild" (TaskId:10)
+                     Task Parameter:BuildInParallel=True (TaskId:10)
+                     Task Parameter:
+                         Properties=
+                             ExcludeRestorePackageImports=true
+                             _RestoreSolutionFileUsed=true
+                             SolutionDir=C:\Users\renie\Documents\WeldAdminPro\
+                             SolutionName=WeldAdminPro
+                             SolutionFileName=WeldAdminPro.sln
+                             SolutionPath=C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln
+                             SolutionExt=.sln (TaskId:10)
+                     Task Parameter:SkipNonexistentTargets=True (TaskId:10)
+                     Task Parameter:Targets=_IsProjectRestoreSupported (TaskId:10)
+                     Task Parameter:SkipNonexistentProjects=true (TaskId:10)
+                   Done executing task "MSBuild". (TaskId:10)
+                   Task "MSBuild" skipped, due to false condition; ( '$(RestoreUseSkipNonexistentTargets)' != 'true' ) was evaluated as ( 'true' != 'true' ).
+14:21:18.520     1>Done building target "_GetAllRestoreProjectPathItems" in project "WeldAdminPro.sln".: (TargetId:7)
+14:21:18.520     1>Target "_GenerateRestoreGraph: (TargetId:8)" in file "C:\Program Files\dotnet\sdk\8.0.416\NuGet.targets" from project "C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln" (target "Restore" depends on it):
+                   Task "Message" (TaskId:11)
+                     Task Parameter:Importance=low (TaskId:11)
+                     Task Parameter:Text=Generating dg file (TaskId:11)
+                     Generating dg file (TaskId:11)
+                   Done executing task "Message". (TaskId:11)
+                   Task "Message" (TaskId:12)
+                     Task Parameter:Importance=low (TaskId:12)
+                   Done executing task "Message". (TaskId:12)
+                   Task "MSBuild" (TaskId:13)
+                     Task Parameter:BuildInParallel=True (TaskId:13)
+                     Task Parameter:
+                         Properties=
+                             ExcludeRestorePackageImports=true
+                             _RestoreSolutionFileUsed=true
+                             SolutionDir=C:\Users\renie\Documents\WeldAdminPro\
+                             SolutionName=WeldAdminPro
+                             SolutionFileName=WeldAdminPro.sln
+                             SolutionPath=C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln
+                             SolutionExt=.sln (TaskId:13)
+                     Task Parameter:Targets=_GenerateRestoreGraphProjectEntry (TaskId:13)
+                   Done executing task "MSBuild". (TaskId:13)
+                   Task "MSBuild" (TaskId:14)
+                     Task Parameter:BuildInParallel=True (TaskId:14)
+                     Task Parameter:
+                         Properties=
+                             ExcludeRestorePackageImports=true
+                             _RestoreSolutionFileUsed=true
+                             SolutionDir=C:\Users\renie\Documents\WeldAdminPro\
+                             SolutionName=WeldAdminPro
+                             SolutionFileName=WeldAdminPro.sln
+                             SolutionPath=C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln
+                             SolutionExt=.sln (TaskId:14)
+                     Task Parameter:Targets=_GenerateProjectRestoreGraph (TaskId:14)
+                   Done executing task "MSBuild". (TaskId:14)
+14:21:18.521     1>Done building target "_GenerateRestoreGraph" in project "WeldAdminPro.sln".: (TargetId:8)
+14:21:18.521     1>Target "Restore: (TargetId:9)" in file "C:\Program Files\dotnet\sdk\8.0.416\NuGet.targets" from project "C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln" (entry point):
+                   Task "RemoveDuplicates" (TaskId:15)
+                   Done executing task "RemoveDuplicates". (TaskId:15)
+                   Using "RestoreTask" task from assembly "C:\Program Files\dotnet\sdk\8.0.416\NuGet.Build.Tasks.dll".
+                   Task "RestoreTask" (TaskId:16)
+                     Task Parameter:HideWarningsAndErrors=False (TaskId:16)
+                     Task Parameter:RestoreRecursive=True (TaskId:16)
+14:21:18.523     1>C:\Program Files\dotnet\sdk\8.0.416\NuGet.targets(174,5): warning : Unable to find a project to restore! [C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln]
+                   Done executing task "RestoreTask". (TaskId:16)
+14:21:18.523     1>Done building target "Restore" in project "WeldAdminPro.sln".: (TargetId:9)
+14:21:18.523     1>Done Building Project "C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln" (Restore target(s)).
+Deferred Messages
+14:21:18.525     0>
+Detailed Build Summary
+======================
+     (TaskId:0)
+                     
+                     ============================== Build Hierarchy (IDs represent configurations) =====================================================
+                     Id                  : Exclusive Time   Total Time   Path (Targets)
+                     ----------------------------------------------------------------------------------------------------------------------------------- (TaskId:0)
+                     0                   : 0.058s           0.058s       C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln (Restore)  (TaskId:0)
+                     
+                     ============================== Node Utilization (IDs represent configurations) ====================================================
+                     Timestamp:            1        Duration   Cumulative
+                     ----------------------------------------------------------------------------------------------------------------------------------- (TaskId:0)
+                     639003612784670881:   0        0,058s     0,058s . (TaskId:0)
+                     -----------------------------------------------------------------------------------------------------------------------------------
+                     Utilization:          100,0    Average Utilization: 100,0 (TaskId:0)
+
+Project Evaluation Performance Summary:
+       47 ms  C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln.metaproj   1 calls
+
+Project Performance Summary:
+       54 ms  C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln   1 calls
+                 54 ms  Restore                                    1 calls
+
+Target Performance Summary:
+        0 ms  ValidateProjects                           1 calls
+        0 ms  ValidateToolsVersions                      1 calls
+        1 ms  _GenerateRestoreGraph                      1 calls
+        3 ms  Restore                                    1 calls
+        4 ms  _GetAllRestoreProjectPathItems             1 calls
+       10 ms  _LoadRestoreGraphEntryPoints               1 calls
+       11 ms  ValidateSolutionConfiguration              1 calls
+       24 ms  _FilterRestoreGraphProjectInputItems       1 calls
+
+Task Performance Summary:
+        0 ms  RemoveDuplicates                           3 calls
+        1 ms  GetRestoreSolutionProjectsTask             1 calls
+        1 ms  WarnForInvalidProjectsTask                 1 calls
+        2 ms  Message                                    3 calls
+        2 ms  MSBuild                                    5 calls
+        2 ms  NuGetMessageTask                           1 calls
+        2 ms  RestoreTask                                1 calls
+
+Build succeeded.
+
+                   "C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln" (Restore target) (1) ->
+                   (Restore target) -> 
+                     C:\Program Files\dotnet\sdk\8.0.416\NuGet.targets(174,5): warning : Unable to find a project to restore! [C:\Users\renie\Documents\WeldAdminPro\WeldAdminPro.sln]
+
+    1 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:00.16

@@ -1,0 +1,800 @@
+import os
+from datetime import datetime, date, timedelta
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file, send_from_directory
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
+from flask_wtf import FlaskForm
+from wtforms import StringField, TextAreaField, DateField, SelectField, IntegerField, BooleanField, FileField, FloatField
+from wtforms.validators import DataRequired, Optional
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+from werkzeug.utils import secure_filename
+
+from dotenv import load_dotenv
+from docx import Document
+import zipfile
+# Smart Upload OCR imports
+from ocr import extract_and_parse
+import json as pyjson
+
+
+
+
+load_dotenv()
+
+# Resolve app base (handles source and PyInstaller-frozen)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Data directory in Documents per user choice (Option 2)
+USER_DOCS = os.path.join(os.path.expanduser("~"), "Documents")
+DATA_DIR = os.path.join(USER_DOCS, "WeldAdminProData")
+os.makedirs(DATA_DIR, exist_ok=True)
+
+UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+app = Flask(__name__, static_folder="static", template_folder="templates")
+app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "dev-key")
+
+# Use a database file inside Documents\WeldAdminProData by default
+default_db = "sqlite:///" + os.path.join(DATA_DIR, "weldadmin.db").replace("\\", "/")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", default_db)
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["REMINDER_DAYS_AHEAD"] = int(os.getenv("REMINDER_DAYS_AHEAD", "30"))
+# Allow user template overrides from Documents\WeldAdminProData\templates_override
+try:
+    override_dir = os.path.join(DATA_DIR, "templates_override")
+    os.makedirs(override_dir, exist_ok=True)
+    if hasattr(app, "jinja_loader") and hasattr(app.jinja_loader, "searchpath"):
+        if override_dir not in app.jinja_loader.searchpath:
+            app.jinja_loader.searchpath.insert(0, override_dir)
+    app.logger.info("Template override dir: %s", override_dir)
+except Exception as e:
+    app.logger.warning("Could not set template override dir: %s", e)
+
+# Basic file logging into the Documents data directory
+import logging, tempfile
+# Robust logging: don't crash if file logging fails
+log_path = os.path.join(DATA_DIR, "weldadmin.log")
+try:
+    # Try touching the file first to catch permission issues
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(log_path, "a", encoding="utf-8") as _f:
+            _f.write("")
+    except Exception:
+        raise
+    logging.basicConfig(filename=log_path, level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    app.logger.addHandler(logging.StreamHandler())
+    app.logger.setLevel(logging.INFO)
+    app.logger.info("WeldAdmin starting. Data dir: %s", DATA_DIR)
+    app.config["LOG_PATH"] = log_path
+except Exception as e:
+    # Fallback to temp directory, then console-only
+    try:
+        tmp_log = os.path.join(tempfile.gettempdir(), "weldadmin.log")
+        logging.basicConfig(filename=tmp_log, level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+        app.logger.addHandler(logging.StreamHandler())
+        app.logger.setLevel(logging.INFO)
+        app.logger.warning("File logging to DATA_DIR failed (%s). Using temp log: %s", e, tmp_log)
+        app.config["LOG_PATH"] = tmp_log
+    except Exception as e2:
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+        app.logger.setLevel(logging.INFO)
+        app.logger.warning("File logging failed completely (%s). Using console logging only.", e2)
+        app.config["LOG_PATH"] = None
+
+
+
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = "login"
+from flask import current_app as flask_current_app
+
+@app.context_processor
+def inject_globals():
+    # Makes `current_app` available in Jinja templates as in your older template
+    return dict(current_app=flask_current_app)
+
+
+# ---------------- Models ------------------
+
+job_qual = db.Table(
+    "job_qual",
+    db.Column("job_id", db.Integer, db.ForeignKey("job.id")),
+    db.Column("qualification_id", db.Integer, db.ForeignKey("qualification.id"))
+)
+
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(120), nullable=False)  # simple demo; hash in production
+    is_admin = db.Column(db.Boolean, default=False)
+
+class Welder(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    employee_no = db.Column(db.String(50))
+    qualifications = db.relationship("WelderQualification", backref="welder", cascade="all, delete-orphan")
+
+class Qualification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String(10), nullable=False)  # WPS, WPQR, PQR
+    code = db.Column(db.String(120), nullable=False) # identifier
+    title = db.Column(db.String(200))
+    issue_date = db.Column(db.Date)
+    expiry_date = db.Column(db.Date)
+    file_path = db.Column(db.String(300))
+    # Parsed fields for better search/filter
+    process = db.Column(db.String(200))
+    material = db.Column(db.String(200))
+    thickness = db.Column(db.String(100))
+    positions = db.Column(db.String(100))
+    filler = db.Column(db.String(200))
+    gas = db.Column(db.String(200))
+    welders_text = db.Column(db.String(500))
+    raw_text = db.Column(db.Text)
+
+
+class WelderQualification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    welder_id = db.Column(db.Integer, db.ForeignKey("welder.id"))
+    qualification_id = db.Column(db.Integer, db.ForeignKey("qualification.id"))
+    assigned_date = db.Column(db.Date)
+    reeval_date = db.Column(db.Date)  # for re-evaluation reminders
+    qualification = db.relationship("Qualification")
+
+class Job(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    job_type = db.Column(db.String(20), nullable=False)  # Fabrication or Repair
+    client = db.Column(db.String(200))
+    start_date = db.Column(db.Date)
+    due_date = db.Column(db.Date)
+    description = db.Column(db.Text)
+    qualifications = db.relationship("Qualification", secondary=job_qual, backref="jobs")
+    documents = db.relationship("JobDocument", backref="job", cascade="all, delete-orphan")
+    qcp_id = db.Column(db.Integer, db.ForeignKey("qcp.id"))
+    bom_items = db.relationship("BOMItem", backref="job", cascade="all, delete-orphan")
+    job_cards = db.relationship("JobCard", backref="job", cascade="all, delete-orphan")
+
+class JobDocument(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey("job.id"))
+    category = db.Column(db.String(50))  # e.g., Weld Map, NDT, Drawings
+    filename = db.Column(db.String(200))
+    file_path = db.Column(db.String(300))
+    # Parsed fields for better search/filter
+    process = db.Column(db.String(200))
+    material = db.Column(db.String(200))
+    thickness = db.Column(db.String(100))
+    positions = db.Column(db.String(100))
+    filler = db.Column(db.String(200))
+    gas = db.Column(db.String(200))
+    welders_text = db.Column(db.String(500))
+    raw_text = db.Column(db.Text)
+
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class QCP(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    job = db.relationship("Job", backref="qcp", uselist=False)
+    title = db.Column(db.String(200), default="Quality Control Plan")
+    revision = db.Column(db.Integer, default=0)
+    standard_refs = db.Column(db.String(300))  # ASME / ISO 3834 / SANS 347 references (free text)
+    json_body = db.Column(db.Text)  # JSON with sections/steps
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class BOMItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey("job.id"))
+    item = db.Column(db.String(200))
+    spec = db.Column(db.String(200))
+    qty = db.Column(db.Float, default=1)
+    unit = db.Column(db.String(20), default="ea")
+    is_consumable = db.Column(db.Boolean, default=False)
+
+class JobCard(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey("job.id"))
+    task = db.Column(db.String(300), nullable=False)
+    assigned_to = db.Column(db.String(200))
+    start_time = db.Column(db.DateTime)
+    end_time = db.Column(db.DateTime)
+    notes = db.Column(db.Text)
+
+class Reminder(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    due_date = db.Column(db.Date, nullable=False)
+    is_done = db.Column(db.Boolean, default=False)
+    link_type = db.Column(db.String(30))  # 'welder' or 'job'
+    link_id = db.Column(db.Integer)       # foreign id
+
+# -------------- Forms --------------------
+
+class LoginForm(FlaskForm):
+    username = StringField("Username", validators=[DataRequired()])
+    password = StringField("Password", validators=[DataRequired()])
+
+class JobForm(FlaskForm):
+    title = StringField("Title", validators=[DataRequired()])
+    job_type = SelectField("Type", choices=[("Fabrication","Fabrication"),("Repair","Repair")], validators=[DataRequired()])
+    client = StringField("Client", validators=[Optional()])
+    start_date = DateField("Start Date", validators=[Optional()])
+    due_date = DateField("Due Date", validators=[Optional()])
+    description = TextAreaField("Description", validators=[Optional()])
+
+class QualificationForm(FlaskForm):
+    type = SelectField("Type", choices=[("WPS","WPS"),("WPQR","WPQR"),("PQR","PQR")], validators=[DataRequired()])
+    code = StringField("Code", validators=[DataRequired()])
+    title = StringField("Title", validators=[Optional()])
+    issue_date = DateField("Issue Date", validators=[Optional()])
+    expiry_date = DateField("Expiry Date", validators=[Optional()])
+    process = StringField("Process", validators=[Optional()])
+    material = StringField("Material", validators=[Optional()])
+    thickness = StringField("Thickness / Range", validators=[Optional()])
+    positions = StringField("Positions", validators=[Optional()])
+    filler = StringField("Filler Metal", validators=[Optional()])
+    gas = StringField("Shielding Gas", validators=[Optional()])
+    welders_text = StringField("Welders (text)", validators=[Optional()])
+    file = FileField("Upload PDF/Image", validators=[Optional()])
+
+class WelderForm(FlaskForm):
+    name = StringField("Welder Name", validators=[DataRequired()])
+    employee_no = StringField("Employee No", validators=[Optional()])
+
+class WelderQualForm(FlaskForm):
+    welder_id = SelectField("Welder", coerce=int)
+    qualification_id = SelectField("Qualification", coerce=int)
+    assigned_date = DateField("Assigned Date", validators=[Optional()])
+    reeval_date = DateField("Re-eval Date", validators=[Optional()])
+
+class ReminderForm(FlaskForm):
+    title = StringField("Title", validators=[DataRequired()])
+    due_date = DateField("Due Date", validators=[DataRequired()])
+    link_type = SelectField("Link Type", choices=[("welder","Welder"),("job","Job")], validators=[Optional()])
+    link_id = IntegerField("Link ID", validators=[Optional()])
+
+class QCPForm(FlaskForm):
+    title = StringField("Title", validators=[DataRequired()])
+    standard_refs = StringField("Standard References (free text)")
+    body = TextAreaField("QCP JSON (sections/steps)", validators=[DataRequired()])
+
+class BOMForm(FlaskForm):
+    item = StringField("Item", validators=[DataRequired()])
+    spec = StringField("Specification", validators=[Optional()])
+    qty = FloatField("Quantity", validators=[DataRequired()])
+    unit = StringField("Unit", validators=[Optional()])
+    is_consumable = BooleanField("Consumable")
+
+class JobCardForm(FlaskForm):
+    task = StringField("Task", validators=[DataRequired()])
+    assigned_to = StringField("Assigned To", validators=[Optional()])
+    start_time = DateField("Start (date)", validators=[Optional()])
+    end_time = DateField("End (date)", validators=[Optional()])
+    notes = TextAreaField("Notes", validators=[Optional()])
+
+# -------------- Auth ---------------------
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+@app.route("/login", methods=["GET","POST"])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user and user.password == form.password.data:
+            login_user(user)
+            return redirect(url_for("dashboard"))
+        flash("Invalid credentials", "danger")
+    return render_template("login.html", form=form)
+
+@app.route("/logout")
+def logout():
+    logout_user()
+    return redirect(url_for("login"))
+
+# -------------- Views --------------------
+
+@app.route("/")
+@login_required
+def dashboard():
+    today = date.today()
+    log_path = app.config.get("LOG_PATH")
+    days_ahead = app.config["REMINDER_DAYS_AHEAD"]
+    upcoming = Reminder.query.filter(Reminder.is_done==False, Reminder.due_date <= today + timedelta(days=days_ahead)).all()
+    expiring = WelderQualification.query.filter(WelderQualification.reeval_date != None).all()
+    expiring_soon = [wq for wq in expiring if wq.reeval_date and wq.reeval_date <= today + timedelta(days=days_ahead)]
+    jobs = Job.query.order_by(Job.due_date.asc().nullslast()).limit(10).all()
+    return render_template("dashboard.html", upcoming=upcoming, expiring=expiring_soon, jobs=jobs, today=today, days_ahead=days_ahead, log_path=log_path)
+
+# Jobs
+@app.route("/jobs")
+@login_required
+def jobs():
+    q = request.args.get("q","").strip()
+    query = Job.query
+    if q:
+        query = query.filter(Job.title.ilike(f"%{q}%"))
+    return render_template("jobs.html", jobs=query.order_by(Job.id.desc()).all(), q=q)
+
+@app.route("/jobs/new", methods=["GET","POST"])
+@login_required
+def jobs_new():
+    form = JobForm()
+    if form.validate_on_submit():
+        job = Job(
+            title=form.title.data, job_type=form.job_type.data, client=form.client.data,
+            start_date=form.start_date.data, due_date=form.due_date.data, description=form.description.data
+        )
+        db.session.add(job); db.session.commit()
+        flash("Job created", "success")
+        return redirect(url_for("jobs"))
+    return render_template("jobs_form.html", form=form, action="New Job")
+
+@app.route("/jobs/<int:job_id>", methods=["GET","POST"])
+@login_required
+def jobs_view(job_id):
+    job = Job.query.get_or_404(job_id)
+    # Link quals
+    if request.method == "POST" and request.form.get("action") == "link_qual":
+        qual_id = int(request.form["qualification_id"])
+        qual = Qualification.query.get(qual_id)
+        if qual and qual not in job.qualifications:
+            job.qualifications.append(qual)
+            db.session.commit()
+            flash("Qualification linked", "success")
+        return redirect(url_for("jobs_view", job_id=job_id))
+    quals = Qualification.query.order_by(Qualification.type, Qualification.code).all()
+    return render_template("jobs_view.html", job=job, quals=quals)
+
+@app.route("/jobs/<int:job_id>/upload", methods=["POST"])
+@login_required
+def jobs_upload(job_id):
+    job = Job.query.get_or_404(job_id)
+    file = request.files.get("file")
+    category = request.form.get("category","General")
+    if file:
+        filename = secure_filename(file.filename)
+        path = os.path.join(UPLOAD_DIR, filename)
+        file.save(path)
+        jd = JobDocument(job=job, category=category, filename=filename, file_path=path)
+        db.session.add(jd); db.session.commit()
+        flash("File uploaded", "success")
+    return redirect(url_for("jobs_view", job_id=job_id))
+
+# Qualifications
+@app.route("/qualifications")
+@login_required
+def qualifications():
+    q = request.args.get("q", "").strip()
+    query = Qualification.query
+    if q:
+        like = f"%{q}%"
+        query = query.filter(db.or_(
+            Qualification.type.ilike(like),
+            Qualification.code.ilike(like),
+            Qualification.title.ilike(like),
+            Qualification.process.ilike(like),
+            Qualification.material.ilike(like),
+            Qualification.thickness.ilike(like),
+            Qualification.positions.ilike(like),
+            Qualification.filler.ilike(like),
+            Qualification.gas.ilike(like),
+            Qualification.welders_text.ilike(like),
+            Qualification.raw_text.ilike(like)
+        ))
+    quals = query.order_by(Qualification.type, Qualification.code).all()
+    return render_template("qualifications.html", quals=quals, q=q)
+
+@app.route("/qualifications/new", methods=["GET","POST"])
+@login_required
+def qualifications_new():
+    form = QualificationForm()
+    if form.validate_on_submit():
+        path = None
+        if form.file.data:
+            filename = secure_filename(form.file.data.filename)
+            path = os.path.join(UPLOAD_DIR, filename)
+            form.file.data.save(path)
+        qual = Qualification(
+            type=form.type.data, code=form.code.data, title=form.title.data,
+            issue_date=form.issue_date.data, expiry_date=form.expiry_date.data, file_path=path,
+            process=form.process.data, material=form.material.data, thickness=form.thickness.data,
+            positions=form.positions.data, filler=form.filler.data, gas=form.gas.data,
+            welders_text=form.welders_text.data
+        )
+        db.session.add(qual); db.session.commit()
+        flash("Qualification saved", "success")
+        return redirect(url_for("qualifications"))
+    return render_template("qualifications_form.html", form=form, action="New Qualification")
+
+# Welders
+@app.route("/welders")
+@login_required
+def welders():
+    return render_template("welders.html", welders=Welder.query.order_by(Welder.name).all())
+
+@app.route("/welders/new", methods=["GET","POST"])
+@login_required
+def welders_new():
+    form = WelderForm()
+    if form.validate_on_submit():
+        w = Welder(name=form.name.data, employee_no=form.employee_no.data)
+        db.session.add(w); db.session.commit()
+        flash("Welder added", "success")
+        return redirect(url_for("welders"))
+    return render_template("welders_form.html", form=form, action="New Welder")
+
+@app.route("/welders/assign", methods=["GET","POST"])
+@login_required
+def welders_assign():
+    form = WelderQualForm()
+    form.welder_id.choices = [(w.id, w.name) for w in Welder.query.all()]
+    form.qualification_id.choices = [(q.id, f"{q.type} {q.code}") for q in Qualification.query.all()]
+    if form.validate_on_submit():
+        wq = WelderQualification(
+            welder_id=form.welder_id.data, qualification_id=form.qualification_id.data,
+            assigned_date=form.assigned_date.data, reeval_date=form.reeval_date.data
+        )
+        db.session.add(wq); db.session.commit()
+        # Auto create reminder
+        if form.reeval_date.data:
+            r = Reminder(title=f"Re-evaluation for {wq.welder.name}", due_date=form.reeval_date.data, link_type="welder", link_id=wq.welder_id)
+            db.session.add(r); db.session.commit()
+        flash("Qualification assigned", "success")
+        return redirect(url_for("welders"))
+    return render_template("welders_assign.html", form=form, action="Assign Qualification")
+
+# Reminders
+@app.route("/reminders", methods=["GET","POST"])
+@login_required
+def reminders():
+    form = ReminderForm()
+    if form.validate_on_submit():
+        r = Reminder(
+            title=form.title.data, due_date=form.due_date.data,
+            link_type=form.link_type.data, link_id=form.link_id.data
+        )
+        db.session.add(r); db.session.commit()
+        flash("Reminder saved", "success")
+        return redirect(url_for("reminders"))
+    items = Reminder.query.order_by(Reminder.due_date.asc()).all()
+    return render_template("reminders.html", form=form, items=items)
+
+@app.route("/reminders/<int:rid>/done")
+
+# ---------- Smart Upload: OCR + Auto-fill for WPS/WPQR/PQR ----------
+@app.route("/qualifications/smart_upload", methods=["GET","POST"])
+@login_required
+def smart_upload():
+    if request.method == "POST":
+        file = request.files.get("file")
+        if not file:
+            flash("Please choose a scanned file (PDF or image).", "warning")
+            return redirect(url_for("smart_upload"))
+        filename = secure_filename(file.filename)
+        temp_path = os.path.join(UPLOAD_DIR, f"_smart_{filename}")
+        file.save(temp_path)
+
+        # OCR/parse
+        tesseract_path = os.getenv("TESSERACT_PATH", "").strip() or None
+        poppler_path = os.getenv("POPPLER_PATH", "").strip() or None
+        data = extract_and_parse(temp_path, tesseract_path or "", poppler_path or "")
+
+        # Pre-fill a QualificationForm-like dict
+        prefill = {
+            "type": data.get("type") or "WPS",
+            "code": data.get("code") or "",
+            "title": f"{data.get('type','WPS')} Auto-import" if data.get("type") else "Auto-import",
+            "issue_date": data.get("issue_date") or "",
+            "expiry_date": data.get("expiry_date") or "",
+            "process": data.get("process") or "",
+            "material": data.get("material") or "",
+            "thickness": data.get("thickness") or "",
+            "positions": data.get("positions") or "",
+            "filler": data.get("filler") or "",
+            "gas": data.get("gas") or "",
+            "welders": data.get("welders") or "",
+            "_raw_text": data.get("_raw_text")[:2000] if data.get("_raw_text") else ""
+        }
+        # Keep the file; user can save as a real Qualification record next
+        return render_template("smart_upload_review.html", prefill=prefill, temp_filename=os.path.basename(temp_path))
+
+    return render_template("smart_upload.html")
+    
+@app.route("/qualifications/smart_upload/save", methods=["POST"])
+@login_required
+def smart_upload_save():
+    # Save a new Qualification plus attach the uploaded file
+    qtype = request.form.get("type","WPS")
+    code = request.form.get("code","").strip()
+    title = request.form.get("title","").strip()
+    issue_date = request.form.get("issue_date") or None
+    expiry_date = request.form.get("expiry_date") or None
+    temp_filename = request.form.get("temp_filename")
+    process = request.form.get("process") or None
+    material = request.form.get("material") or None
+    thickness = request.form.get("thickness") or None
+    positions = request.form.get("positions") or None
+    filler = request.form.get("filler") or None
+    gas = request.form.get("gas") or None
+    welders_text = request.form.get("welders_text") or None
+    raw_text = request.form.get("_raw_text") or None
+    # Move file into uploads/ with safer name
+    file_path = None
+    if temp_filename and os.path.exists(os.path.join(UPLOAD_DIR, temp_filename)):
+        final_name = secure_filename(f"{qtype}_{code or 'doc'}_{temp_filename}")
+        src = os.path.join(UPLOAD_DIR, temp_filename)
+        dst = os.path.join(UPLOAD_DIR, final_name)
+        try:
+            os.replace(src, dst)
+        except Exception:
+            dst = src  # fallback leave as-is
+        file_path = dst
+
+    qual = Qualification(
+        type=qtype, code=code or "(auto)", title=title or None,
+        issue_date=issue_date, expiry_date=expiry_date, file_path=file_path,
+        process=process, material=material, thickness=thickness, positions=positions, filler=filler, gas=gas,
+        welders_text=welders_text, raw_text=raw_text
+    )
+    db.session.add(qual); db.session.commit()
+    flash("Qualification created from Smart Upload.", "success")
+    return redirect(url_for("qualifications"))
+@login_required
+def reminders_done(rid):
+    r = Reminder.query.get_or_404(rid)
+    r.is_done = True
+    db.session.commit()
+    return redirect(url_for("reminders"))
+
+# QCP
+@app.route("/jobs/<int:job_id>/qcp/edit", methods=["GET","POST"])
+@login_required
+def qcp_edit(job_id):
+    job = Job.query.get_or_404(job_id)
+    qcp = job.qcp or QCP(title=f"QCP for {job.title}", json_body="{}", standard_refs="ASME / ISO 3834 / SANS 347")
+    form = QCPForm(obj=qcp)
+    if form.validate_on_submit():
+        qcp.title = form.title.data
+        qcp.standard_refs = form.standard_refs.data
+        qcp.json_body = form.body.data
+        if not job.qcp:
+            db.session.add(qcp); db.session.commit()
+            job.qcp_id = qcp.id
+        db.session.commit()
+        flash("QCP saved", "success")
+        return redirect(url_for("jobs_view", job_id=job_id))
+    # Provide a starter template body if empty
+    if not qcp.json_body or qcp.json_body.strip() == "{}":
+        qcp.json_body = '''{
+  "index": ["QCP", "Method Statement", "Weld Map", "Weld Matrix", "Design & Drawings",
+            "Welding Documentation", "Work Procedures", "Materials", "NDT", "Reports",
+            "PWHT", "Pressure Test", "Certification"],
+  "steps": [
+    {"step":"Material verification","acceptance":"Material test certificates per SANS 347/ISO 3834","hold":"H"},
+    {"step":"WPS/WPQR verification","acceptance":"Qualified per ASME IX and project QCP","hold":"W"},
+    {"step":"Welder qualification","acceptance":"Valid qualifications for process/position","hold":"H"},
+    {"step":"Fit-up inspection","acceptance":"As per WPS and drawing tolerances","hold":"W"},
+    {"step":"Welding","acceptance":"Parameters per WPS; record heat input; consumable control","hold":" "},
+    {"step":"NDT","acceptance":"Procedure & extent per QCP (VT/PT/MT/UT/RT)","hold":"H"},
+    {"step":"PWHT (if applicable)","acceptance":"Procedure, soak, chart records","hold":"H"},
+    {"step":"Pressure test (if applicable)","acceptance":"Hydro/Pneumatic per code","hold":"H"},
+    {"step":"Final inspection & documentation","acceptance":"Dossier complete; C of M / C of R","hold":"H"}
+  ]
+}'''
+    return render_template("qcp_edit.html", form=form, job=job)
+
+@app.route("/jobs/<int:job_id>/qcp/export_docx")
+@login_required
+def qcp_export_docx(job_id):
+    job = Job.query.get_or_404(job_id)
+    qcp = job.qcp
+    if not qcp:
+        flash("No QCP found for this job", "warning")
+        return redirect(url_for("jobs_view", job_id=job_id))
+    doc = Document()
+    doc.add_heading(qcp.title, 0)
+    doc.add_paragraph(f"Job: {job.title}  |  Client: {job.client or '-'}  |  Type: {job.job_type}")
+    doc.add_paragraph(f"Standards/References: {qcp.standard_refs or ''}")
+    doc.add_heading("QCP Index", level=1)
+    try:
+        import json as pyjson
+        body = pyjson.loads(qcp.json_body)
+        for i, item in enumerate(body.get("index", []), 1):
+            doc.add_paragraph(f"{i}. {item}")
+        doc.add_heading("Inspection & Test Plan (ITP)", level=1)
+        table = doc.add_table(rows=1, cols=4)
+        hdr = table.rows[0].cells
+        hdr[0].text = "Step"
+        hdr[1].text = "Acceptance Criteria"
+        hdr[2].text = "Hold/Check"
+        hdr[3].text = "Comments"
+        for s in body.get("steps", []):
+            row_cells = table.add_row().cells
+            row_cells[0].text = s.get("step","")
+            row_cells[1].text = s.get("acceptance","")
+            row_cells[2].text = s.get("hold","")
+            row_cells[3].text = ""
+    except Exception as e:
+        doc.add_paragraph("Error parsing QCP JSON: " + str(e))
+    out_path = os.path.join(BASE_DIR, f"QCP_{job.id}.docx")
+    doc.save(out_path)
+    return send_file(out_path, as_attachment=True)
+
+# Certificates
+@app.route("/jobs/<int:job_id>/certificate/<string:ctype>")
+@login_required
+def certificate(job_id, ctype):
+    job = Job.query.get_or_404(job_id)
+    doc = Document()
+    if ctype == "manufacture":
+        doc.add_heading("Certificate of Manufacture", 0)
+    else:
+        doc.add_heading("Certificate of Repair", 0)
+    doc.add_paragraph(f"Job: {job.title}  |  Client: {job.client or '-'}")
+    doc.add_paragraph(f"Scope: {job.description or '-'}")
+    doc.add_paragraph("We hereby certify that the above work has been performed in accordance with the approved QCP, qualified procedures and welders, and applicable standards (ASME / ISO 3834 / SANS 347), subject to final acceptance by the client/inspector.")
+    path = os.path.join(BASE_DIR, f"Certificate_{ctype}_{job.id}.docx")
+    doc.save(path)
+    return send_file(path, as_attachment=True)
+
+# BOM & Job Cards
+@app.route("/jobs/<int:job_id>/bom", methods=["GET","POST"])
+@login_required
+def job_bom(job_id):
+    job = Job.query.get_or_404(job_id)
+    form = BOMForm()
+    if form.validate_on_submit():
+        it = BOMItem(job_id=job.id, item=form.item.data, spec=form.spec.data, qty=form.qty.data, unit=form.unit.data or "ea", is_consumable=form.is_consumable.data)
+        db.session.add(it); db.session.commit()
+        flash("BOM item added", "success")
+        return redirect(url_for("job_bom", job_id=job_id))
+    items = BOMItem.query.filter_by(job_id=job.id).all()
+    return render_template("bom.html", job=job, form=form, items=items)
+
+@app.route("/jobs/<int:job_id>/jobcards", methods=["GET","POST"])
+@login_required
+def job_cards(job_id):
+    job = Job.query.get_or_404(job_id)
+    form = JobCardForm()
+    if form.validate_on_submit():
+        start_dt = datetime.combine(form.start_time.data, datetime.min.time()) if form.start_time.data else None
+        end_dt = datetime.combine(form.end_time.data, datetime.min.time()) if form.end_time.data else None
+        jc = JobCard(job_id=job.id, task=form.task.data, assigned_to=form.assigned_to.data, start_time=start_dt, end_time=end_dt, notes=form.notes.data)
+        db.session.add(jc); db.session.commit()
+        flash("Job card added", "success")
+        return redirect(url_for("job_cards", job_id=job_id))
+    cards = JobCard.query.filter_by(job_id=job.id).order_by(JobCard.id.desc()).all()
+    return render_template("job_cards.html", job=job, form=form, cards=cards)
+
+# File downloads
+
+@app.route("/settings", methods=["GET","POST"])
+@login_required
+def settings():
+    log_path = app.config.get("LOG_PATH")
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "clear_log":
+            try:
+                if log_path and os.path.exists(log_path):
+                    # rotate to .bak with timestamp, then recreate empty file
+                    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    bak = f"{log_path}.{ts}.bak"
+                    try:
+                        os.replace(log_path, bak)
+                    except Exception:
+                        # if replace fails, try copy-remove
+                        try:
+                            import shutil
+                            shutil.copy2(log_path, bak)
+                            os.remove(log_path)
+                        except Exception:
+                            pass
+                    # Recreate empty log (best-effort)
+                    try:
+                        with open(log_path, "w", encoding="utf-8") as f:
+                            f.write("")
+                    except Exception:
+                        pass
+                    flash(f"Log rotated to: {os.path.basename(bak)}", "success")
+                else:
+                    flash("No log file found or logging to console only.", "warning")
+            except Exception as e:
+                flash(f"Could not clear log: {e}", "danger")
+        return redirect(url_for("settings"))
+    return render_template("settings.html", log_path=log_path)
+
+@app.route("/uploads/<path:filename>")
+@login_required
+def uploads(filename):
+    return send_from_directory(UPLOAD_DIR, filename, as_attachment=True)
+
+# Export/Backup
+@app.route("/settings/export.zip")
+@login_required
+def export_zip():
+    out = os.path.join(BASE_DIR, "export.zip")
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        db_path = app.config["SQLALCHEMY_DATABASE_URI"].replace("sqlite:///", "")
+        if os.path.exists(db_path):
+            z.write(db_path, arcname="weldadmin.db")
+        for root, _, files in os.walk(UPLOAD_DIR):
+            for f in files:
+                p = os.path.join(root, f)
+                z.write(p, arcname=os.path.relpath(p, BASE_DIR))
+    return send_file(out, as_attachment=True)
+
+# ---------- Scheduler for reminders --------
+def check_reminders():
+    today = date.today()
+    days_ahead = app.config["REMINDER_DAYS_AHEAD"]
+    upcoming = Reminder.query.filter(Reminder.is_done==False, Reminder.due_date <= today + timedelta(days=days_ahead)).all()
+    if upcoming:
+        # For demo, we just print to console. Optionally email if SMTP configured.
+        print(f"[Reminders] {len(upcoming)} item(s) due within {days_ahead} days.")
+    # Auto reminders for welder re-eval
+    all_wq = WelderQualification.query.filter(WelderQualification.reeval_date != None).all()
+    for wq in all_wq:
+        if wq.reeval_date and wq.reeval_date >= today and (wq.reeval_date - today).days == days_ahead:
+            title = f"Upcoming Re-evaluation: {wq.welder.name}"
+            exists = Reminder.query.filter_by(title=title, link_type="welder", link_id=wq.welder.id, due_date=wq.reeval_date).first()
+            if not exists:
+                db.session.add(Reminder(title=title, due_date=wq.reeval_date, link_type="welder", link_id=wq.welder.id))
+                db.session.commit()
+
+
+def _column_exists(table: str, column: str) -> bool:
+    try:
+        res = db.session.execute(db.text(f"PRAGMA table_info({table})")).fetchall()
+        return any(r[1] == column for r in res)
+    except Exception:
+        return False
+
+def run_auto_migrations():
+    to_add = [
+        ("qualification", "process", "TEXT"),
+        ("qualification", "material", "TEXT"),
+        ("qualification", "thickness", "TEXT"),
+        ("qualification", "positions", "TEXT"),
+        ("qualification", "filler", "TEXT"),
+        ("qualification", "gas", "TEXT"),
+        ("qualification", "welders_text", "TEXT"),
+        ("qualification", "raw_text", "TEXT"),
+    ]
+    for table, col, ctype in to_add:
+        if not _column_exists(table, col):
+            try:
+                db.session.execute(db.text(f"ALTER TABLE {table} ADD COLUMN {col} {ctype}"))
+                db.session.commit()
+            except Exception as e:
+                app.logger.warning("Migration: could not add %s.%s: %s", table, col, e)
+
+scheduler = BackgroundScheduler(daemon=True)
+scheduler.start()
+scheduler.add_job(check_reminders, trigger=IntervalTrigger(hours=12))
+
+# ---------- CLI init ----------
+@app.cli.command("initdb")
+def initdb():
+    db.create_all()
+    if not User.query.filter_by(username="admin").first():
+        db.session.add(User(username="admin", password="admin", is_admin=True))
+        db.session.commit()
+    print("Database initialized. Admin: admin/admin")
+
+if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
+        run_auto_migrations()
+        if not User.query.filter_by(username="admin").first():
+            db.session.add(User(username="admin", password="admin", is_admin=True))
+            db.session.commit()
+    import os
+    PORT = int(os.getenv('PORT', '5000'))
+    app.logger.info('Starting server on http://127.0.0.1:%s', PORT)
+    app.run(host='127.0.0.1', port=PORT, debug=True, threaded=True)

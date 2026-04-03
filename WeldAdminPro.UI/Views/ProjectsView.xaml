@@ -1,0 +1,78 @@
+<UserControl x:Class="WeldAdminPro.UI.Views.ProjectsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Margin="10">
+
+	<DockPanel>
+
+		<StackPanel DockPanel.Dock="Top"
+                    Orientation="Vertical"
+                    Margin="0,0,0,10">
+
+			<StackPanel Orientation="Horizontal"
+                        Margin="0,0,0,8">
+
+				<Button Content="New Project"
+                        Width="120"
+                        Height="32"
+                        Margin="0,0,10,0"
+                        Command="{Binding NewProjectCommand}" />
+
+				<Button Content="Open"
+                        Width="80"
+                        Height="32"
+                        Command="{Binding EditProjectCommand}" />
+			</StackPanel>
+
+			<StackPanel Orientation="Horizontal"
+                        VerticalAlignment="Center">
+
+				<TextBlock Text="Search:"
+                           VerticalAlignment="Center"
+                           Margin="0,0,6,0"/>
+
+				<TextBox Width="220"
+                         Height="28"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Search by Job #, Project Name or Client"/>
+
+				<Button Content="Clear"
+                        Width="60"
+                        Height="28"
+                        Margin="6,0,0,0"
+                        Command="{Binding ClearSearchCommand}"
+                        IsEnabled="{Binding IsSearchActive}"/>
+			</StackPanel>
+		</StackPanel>
+
+		<DataGrid ItemsSource="{Binding Projects}"
+                  SelectedItem="{Binding SelectedProject}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False">
+
+			<DataGrid.Columns>
+				<DataGridTextColumn Header="Job #" Binding="{Binding JobNumber}" Width="70"/>
+				<DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100"/>
+				<DataGridTextColumn Header="Project Name" Binding="{Binding ProjectName}" Width="150"/>
+				<DataGridTextColumn Header="Client" Binding="{Binding Client}" Width="120"/>
+				<DataGridTextColumn Header="Client Rep" Binding="{Binding ClientRepresentative}" Width="120"/>
+				<DataGridTextColumn Header="Quote #" Binding="{Binding QuoteNumber}" Width="90"/>
+				<DataGridTextColumn Header="Order #" Binding="{Binding OrderNumber}" Width="90"/>
+				<DataGridTextColumn Header="Amount (R)" Binding="{Binding Budget, StringFormat=R {0:N2}}" Width="110"/>
+				<DataGridTextColumn Header="Material" Binding="{Binding Material}" Width="120"/>
+				<DataGridTextColumn Header="Assigned To" Binding="{Binding AssignedTo}" Width="120"/>
+				<DataGridCheckBoxColumn Header="Invoiced" Binding="{Binding IsInvoiced}" Width="80"/>
+				<DataGridTextColumn Header="Invoice #" Binding="{Binding InvoiceNumber}" Width="100"/>
+				<DataGridTextColumn Header="Start Date" Binding="{Binding StartDate, StringFormat=dd MMM yyyy, TargetNullValue=-}" Width="110"/>
+				<DataGridTextColumn Header="End Date" Binding="{Binding EndDate, StringFormat=dd MMM yyyy, TargetNullValue=-}" Width="110"/>
+				<DataGridTextColumn Header="Completed On"
+                    Binding="{Binding CompletedOn, StringFormat=dd MMM yyyy}"
+                    Width="120"/>
+
+			</DataGrid.Columns>
+		</DataGrid>
+
+	</DockPanel>
+</UserControl>

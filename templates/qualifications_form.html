@@ -1,0 +1,24 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h3>{{ action }}</h3>
+<form method="post" enctype="multipart/form-data">
+  {{ form.hidden_tag() }}
+  <div class="row g-3">
+    <div class="col-md-3">{{ form.type.label }} {{ form.type(class="form-select") }}</div>
+    <div class="col-md-3">{{ form.code.label }} {{ form.code(class="form-control") }}</div>
+    <div class="col-md-6">{{ form.title.label }} {{ form.title(class="form-control") }}</div>
+    <div class="col-md-3">{{ form.issue_date.label }} {{ form.issue_date(class="form-control") }}</div>
+    <div class="col-md-3">{{ form.expiry_date.label }} {{ form.expiry_date(class="form-control") }}</div>
+    <div class="col-md-6">{{ form.file.label }} {{ form.file(class="form-control") }}</div>
+<div class="col-md-4">{{ form.process.label }} {{ form.process(class="form-control") }}</div>
+<div class="col-md-4">{{ form.material.label }} {{ form.material(class="form-control") }}</div>
+<div class="col-md-4">{{ form.thickness.label }} {{ form.thickness(class="form-control") }}</div>
+<div class="col-md-4">{{ form.positions.label }} {{ form.positions(class="form-control") }}</div>
+<div class="col-md-4">{{ form.filler.label }} {{ form.filler(class="form-control") }}</div>
+<div class="col-md-4">{{ form.gas.label }} {{ form.gas(class="form-control") }}</div>
+<div class="col-md-12">{{ form.welders_text.label }} {{ form.welders_text(class="form-control") }}</div>
+  </div>
+  <button class="btn btn-primary mt-3">Save</button>
+</form>
+{% endblock %}

@@ -1,0 +1,71 @@
+<UserControl x:Class="WeldAdminPro.UI.Views.SmartReorderPlannerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:WeldAdminPro.Core.Models;assembly=WeldAdminPro.Core">
+
+
+	<Grid Margin="15">
+
+		<DataGrid ItemsSource="{Binding ReorderItems}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  CanUserAddRows="False"
+                  GridLinesVisibility="All">
+
+			<DataGrid.RowStyle>
+				<Style TargetType="DataGridRow">
+					<Style.Triggers>
+
+						<!-- 🔴 CRITICAL -->
+						<DataTrigger Binding="{Binding SmartStatus}"
+                                     Value="Critical">
+							<Setter Property="Background" Value="#FFCDD2"/>
+							<Setter Property="FontWeight" Value="Bold"/>
+						</DataTrigger>
+
+						<!-- 🟡 REORDER REQUIRED -->
+						<DataTrigger Binding="{Binding SmartStatus}"
+                                     Value="ReorderRequired">
+							<Setter Property="Background" Value="#FFF9E79F"/>
+						</DataTrigger>
+
+					</Style.Triggers>
+				</Style>
+			</DataGrid.RowStyle>
+
+			<DataGrid.Columns>
+
+				<DataGridTextColumn Header="Item Code"
+                                    Binding="{Binding ItemCode}"
+                                    Width="100"/>
+
+				<DataGridTextColumn Header="Description"
+                                    Binding="{Binding Description}"
+                                    Width="200"/>
+
+				<DataGridTextColumn Header="Current Qty"
+                                    Binding="{Binding Quantity}"
+                                    Width="100"/>
+
+				<DataGridTextColumn Header="Min Level"
+                                    Binding="{Binding MinLevel}"
+                                    Width="100"/>
+
+				<DataGridTextColumn Header="Max Level"
+                                    Binding="{Binding MaxLevel}"
+                                    Width="100"/>
+
+				<DataGridTextColumn Header="Suggested Order"
+                                    Binding="{Binding SuggestedReorderQuantity}"
+                                    Width="120"/>
+
+				<DataGridTextColumn Header="Risk Value (R)"
+                                    Binding="{Binding StockValueRisk, StringFormat={}{0:N2}}"
+                                    Width="140"/>
+
+			</DataGrid.Columns>
+
+		</DataGrid>
+
+	</Grid>
+</UserControl>

@@ -1,0 +1,45 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20251211140111
+Username: Renier-PC\Renier
+RunAs User: Renier-PC\Renier
+Configuration Name: 
+Machine: RENIER-PC (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+Process ID: 9208
+PSVersion: 5.1.26100.7019
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7019
+BuildVersion: 10.0.26100.7019
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is C:\users\renie\documents\weldadminpro\compile_installer.log
+Working directory: C:\users\renie\documents\weldadminpro
+Detected ISCC_PATH:
+[C:\Program Files (x86)\Inno Setup 6\ISCC.exe]
+Invoking ISCC:
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /O"C:\users\renie\documents\weldadminpro\Output" "C:\users\renie\documents\weldadminpro\.github\installer_templates\WeldAdminProInstaller.iss"
+PS>TerminatingError(out-file): "The process cannot access the file 'C:\users\renie\documents\weldadminpro\compile_installer.log' because it is being used by another process."
+out-file : The process cannot access the file 'C:\users\renie\documents\weldadminpro\compile_installer.log' because it 
+is being used by another process.
+At line:35 char:1
++ & "$ISCC_PATH" "/O$out" "$iss" 2>&1 | Tee-Object -FilePath $log -Appe ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OpenError: (:) [out-file], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Microsoft.PowerShell.Commands.OutFileCommand
+out-file : The process cannot access the file 'C:\users\renie\documents\weldadminpro\compile_installer.log' because it
+is being used by another process.
+At line:35 char:1
++ & "$ISCC_PATH" "/O$out" "$iss" 2>&1 | Tee-Object -FilePath $log -Appe ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OpenError: (:) [out-file], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Microsoft.PowerShell.Commands.OutFileCommand
+
+ISCC exit code: -1
+**********************
+Windows PowerShell transcript end
+End time: 20251211140113
+**********************

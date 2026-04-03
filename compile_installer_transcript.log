@@ -1,0 +1,147 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20251211141902
+Username: Renier-PC\Renier
+RunAs User: Renier-PC\Renier
+Configuration Name: 
+Machine: RENIER-PC (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+Process ID: 13596
+PSVersion: 5.1.26100.7019
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7019
+BuildVersion: 10.0.26100.7019
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is C:\users\renie\documents\weldadminpro\compile_installer_transcript.log
+Copying artifacts from C:\users\renie\documents\weldadminpro\installer_artifacts to C:\users\renie\documents\weldadminpro\installer\source
+Running ISCC with /DSourcePublish=C:\\users\\renie\\documents\\weldadminpro\\installer\\source
+Inno Setup 6 Command-Line Compiler
+Copyright (C) 1997-2025 Jordan Russell. All rights reserved.
+Portions Copyright (C) 2000-2025 Martijn Laan. All rights reserved.
+Portions Copyright (C) 2001-2004 Alex Yackimoff. All rights reserved.
+https://www.innosetup.com
+
+Compiler engine version: Inno Setup 6.6.1
+Non-commercial use only
+
+Preprocessing
+   Reading file: C:\Program Files (x86)\Inno Setup 6\ISPPBuiltins.iss
+Parsing [Setup] section, line 5
+Parsing [Setup] section, line 6
+Parsing [Setup] section, line 7
+Parsing [Setup] section, line 8
+Parsing [Setup] section, line 9
+Parsing [Setup] section, line 10
+Parsing [Setup] section, line 11
+Parsing [Setup] section, line 12
+Parsing [Setup] section, line 13
+Parsing [Setup] section, line 14
+Reading file (WizardImageFile)
+Reading file (WizardSmallImageFile)
+Preparing Setup program executable
+   Verification successful
+   Updating icons (Setup.e32)
+   Updating version info (Setup.e32)
+Determining language code pages
+Parsing [Languages] section, line 17
+   Reading file: C:\Program Files (x86)\Inno Setup 6\Default.isl
+   Messages in script file
+Reading default messages from Default.isl
+Parsing [Languages] section, line 17
+   Reading file: C:\Program Files (x86)\Inno Setup 6\Default.isl
+Parsing [LangOptions], [Messages], and [CustomMessages] sections
+   Messages in script file
+Reading [Code] section
+Parsing [Icons] section, line 25
+Parsing [UninstallDelete] section, line 31
+Parsing [Run] section, line 28
+Parsing [Files] section, line 22
+Deleting WeldAdminPro_Installer_v1.0.0.exe from output directory
+Creating setup files
+   Verification successful
+   Updating icons (Setup.exe)
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\ClosedXML.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\ClosedXML.Parser.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\CommunityToolkit.Mvvm.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\DocumentFormat.OpenXml.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\DocumentFormat.OpenXml.Framework.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\ExcelNumberFormat.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\e_sqlite3.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Data.Sqlite.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.EntityFrameworkCore.Abstractions.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.EntityFrameworkCore.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.EntityFrameworkCore.Relational.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.EntityFrameworkCore.Sqlite.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Caching.Abstractions.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Caching.Memory.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Configuration.Abstractions.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Configuration.Binder.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Configuration.CommandLine.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Configuration.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Configuration.EnvironmentVariables.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Configuration.FileExtensions.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Configuration.Json.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Configuration.UserSecrets.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.DependencyInjection.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.DependencyModel.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Diagnostics.Abstractions.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Diagnostics.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.FileProviders.Abstractions.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.FileProviders.Physical.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.FileSystemGlobbing.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Hosting.Abstractions.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Hosting.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Logging.Abstractions.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Logging.Configuration.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Logging.Console.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Logging.Debug.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Logging.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Logging.EventLog.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Logging.EventSource.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Options.ConfigurationExtensions.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Options.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Microsoft.Extensions.Primitives.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\RBush.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Serilog.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\Serilog.Sinks.File.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\SixLabors.Fonts.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\SQLitePCLRaw.batteries_v2.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\SQLitePCLRaw.core.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\SQLitePCLRaw.provider.e_sqlite3.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\System.Diagnostics.DiagnosticSource.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\System.Diagnostics.EventLog.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\System.Diagnostics.EventLog.Messages.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\System.IO.Packaging.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\System.IO.Pipelines.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\System.Text.Encodings.Web.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\System.Text.Json.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\WeldAdminPro.Core.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\WeldAdminPro.Core.pdb
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\WeldAdminPro.Data.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\WeldAdminPro.Data.pdb
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\WeldAdminPro.UI.deps.json
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\WeldAdminPro.UI.dll
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\WeldAdminPro.UI.exe
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\WeldAdminPro.UI.pdb
+   Compressing: C:\\users\\renie\\documents\\weldadminpro\\installer\\source\WeldAdminPro.UI.runtimeconfig.json
+   Compressing Setup program executable
+   Updating version info (Setup.exe)
+   Updating manifest (Setup.exe)
+
+Warning: Constant "pf" has been renamed. Use "commonpf" instead or consider using its "auto" form.
+
+Successful compile (6,812 sec). Resulting Setup program filename is:
+C:\users\renie\documents\weldadminpro\Output\WeldAdminPro_Installer_v1.0.0.exe
+ISCC exit code: 0
+See compile log: C:\users\renie\documents\weldadminpro\compile_output.log
+See transcript log: C:\users\renie\documents\weldadminpro\compile_installer_transcript.log
+Installer Output folder: C:\users\renie\documents\weldadminpro\Output
+**********************
+Windows PowerShell transcript end
+End time: 20251211141909
+**********************

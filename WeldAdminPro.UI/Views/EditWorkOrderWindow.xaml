@@ -1,0 +1,24 @@
+<Window x:Class="WeldAdminPro.UI.Views.EditWorkOrderWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Edit Work Order"
+        Height="300"
+        Width="350">
+
+	<StackPanel Margin="20">
+
+		<TextBlock Text="Description"/>
+		<TextBox x:Name="DescriptionBox" Margin="0,5,0,10"/>
+
+		<TextBlock Text="Estimated Hours"/>
+		<TextBox x:Name="EstimatedHoursBox" Margin="0,5,0,10"/>
+
+		<TextBlock Text="Due Date"/>
+		<DatePicker x:Name="DueDatePicker" Margin="0,5,0,20"/>
+
+		<Button Content="Save"
+                Height="30"
+                Click="Save_Click"/>
+
+	</StackPanel>
+</Window>
