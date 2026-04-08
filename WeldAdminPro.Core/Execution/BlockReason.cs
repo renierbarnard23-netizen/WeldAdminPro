@@ -9,6 +9,7 @@ namespace WeldAdminPro.Core.Execution
 		NotScheduled,
 		CapacityOverload,
 		ManualHold,
-		Unknown
-	}
+		Unknown,
+        WpsMismatch
+    }
 }

@@ -19,8 +19,9 @@ namespace WeldAdminPro.Data.Services
 		private readonly BlockReasonEngine _blockEngine;
 		private readonly StockRepository _stockRepo;
 		private readonly StockProjectTransactionService _stockTxService;
+        
 
-		public WorkOrderExecutionService(
+        public WorkOrderExecutionService(
 			WorkOrderRepository repo,
 			WorkOrderMaterialRepository materialRepo,
 			MaterialValidator validator,
@@ -35,9 +36,11 @@ namespace WeldAdminPro.Data.Services
 			_stockTxService = new StockProjectTransactionService();
 		}
 
+
 		public void StartWorkOrder(Guid workOrderId)
 		{
-			if (_isStarting)
+           
+            if (_isStarting)
 			{
 				Debug.WriteLine("⚠ BLOCKED duplicate start");
 				return;
@@ -51,8 +54,8 @@ namespace WeldAdminPro.Data.Services
 
 				var workOrder = _repository.GetById(workOrderId)
 					?? throw new Exception("Work order not found");
-
-				using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
+              
+                using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
 				connection.Open();
 
 				// ✅ FIX: GUID must be string
@@ -94,18 +97,17 @@ namespace WeldAdminPro.Data.Services
 				}
 
 				using var cmd = connection.CreateCommand();
-				cmd.CommandText = @"
-        UPDATE WorkOrders
-        SET Status = @Status,
-            ActualStartTime = @StartTime,
-            IsPaused = 0,
-            MaterialCost = @MaterialCost
-        WHERE Id = @Id";
+                cmd.CommandText = @"
+					UPDATE WorkOrders
+					SET Status = @Status,
+					ActualStartTime = @StartTime,
+					IsPaused = 0
+					WHERE Id = @Id"; ;
 
 				cmd.Parameters.AddWithValue("@Id", workOrder.Id.ToString());
 				cmd.Parameters.AddWithValue("@StartTime", DateTime.UtcNow.ToString("O"));
 				cmd.Parameters.AddWithValue("@Status", (int)WorkOrderStatus.InProduction);
-				cmd.Parameters.AddWithValue("@MaterialCost", workOrder.MaterialCost);
+				//cmd.Parameters.AddWithValue("@MaterialCost", workOrder.MaterialCost);
 
 				var rows = cmd.ExecuteNonQuery();
 

@@ -60,10 +60,12 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly WorkOrderMaterialRepository _materialRepo;
 		private readonly StockRepository _stockRepo;
 		private List<StockItem> _allStock = new();
+        private List<ProjectCostSummary> _projectProfitability = new();
+        private readonly WorkCenterCapacityService _capacityEngine = new();
+        
+        
 
-		private readonly WorkCenterCapacityService _capacityEngine = new();
-
-		private bool _isRefreshing = false;
+        private bool _isRefreshing = false;
 
 		public ObservableCollection<WorkOrderMaterialShortage> MaterialShortages { get; set; } = new();
 		public ObservableCollection<ProductionGanttItem> ProductionTimeline { get; set; } = new();
@@ -76,8 +78,9 @@ namespace WeldAdminPro.UI.ViewModels
 		public ProductionExecutionViewModel Execution { get; }
 		public ProductionExecutionViewModel ProductionExecution { get; set; }
 
-		public List<ProductionBottleneckModel> ProductionBottlenecks { get; set; }
-		public ObservableCollection<ProductionRecommendationModel> ProductionRecommendations { get; set; } = new();
+		public List<ProductionBottleneckModel> ProductionBottlenecks { get; set; }        
+       
+        public ObservableCollection<ProductionRecommendationModel> ProductionRecommendations { get; set; } = new();
 		public ObservableCollection<SchedulerDebugItem> SchedulerDebug { get; set; } = new();
 		public ObservableCollection<ProductionDelayPrediction> DelayPredictions { get; set; } = new();
 		public ProductionQueueItem? TopPriorityWorkOrder { get; set; }
@@ -98,9 +101,10 @@ namespace WeldAdminPro.UI.ViewModels
 		public ICommand CancelWorkOrderCommand => Execution.CancelWorkOrderCommand;
 
 
-		public HomeViewModel()
-		{
-			ProductionControlTower = new ProductionControlTowerViewModel();
+		public HomeViewModel()		{
+            
+
+                ProductionControlTower = new ProductionControlTowerViewModel();
 			_riskSummaryService = new InventoryRiskSummaryService();
 			_forecastService = new MaterialDemandForecastService();
 			_consumptionService = new MaterialConsumptionService();
@@ -172,6 +176,7 @@ namespace WeldAdminPro.UI.ViewModels
 			ProductionEfficiencyTrend = _efficiencyTrendService.GetLast7DaysTrend();
 
 			LoadProductionQueue();
+
 
 
 			// ===============================
@@ -955,41 +960,45 @@ namespace WeldAdminPro.UI.ViewModels
 
 		private ProductionQueueItem? _selectedWorkOrder;
 
-		public ProductionQueueItem? SelectedWorkOrder
-		{
-			get => _selectedWorkOrder;
-			set
-			{
-				if (_selectedWorkOrder == value)
-					return;
+        public ProductionQueueItem? SelectedWorkOrder
+        {
+            get => _selectedWorkOrder;
+            set
+            {
+                if (_selectedWorkOrder == value)
+                    return;
 
-				_selectedWorkOrder = value;
+                _selectedWorkOrder = value;
 
-				if (value == null)
-					return;
+                if (value == null)
+                    return;
 
-				Debug.WriteLine($"🔥 SELECTED WO: {value.WorkOrderNumber}");
-				Debug.WriteLine($"FINAL RISKS: {DeadlineRisks.Count}");
-				Debug.WriteLine($"TOWER RISKS: {ProductionControlTower.DeadlineRisks}");
+                Debug.WriteLine($"🔥 SELECTED WO: {value.WorkOrderNumber}");
 
-				var wo = _workOrderRepository
-					.GetAll()
-					.FirstOrDefault(w => w.WorkOrderNumber == value.WorkOrderNumber);
+                var wo = _workOrderRepository
+                    .GetAll()
+                    .FirstOrDefault(w => w.WorkOrderNumber == value.WorkOrderNumber);
 
-				if (wo == null)
-				{
-					Debug.WriteLine("❌ WORK ORDER NOT FOUND");
-					return;
-				}
+                if (wo == null)
+                {
+                    Debug.WriteLine("❌ WORK ORDER NOT FOUND");
+                    return;
+                }
 
-				// 🔥 LOAD MATERIAL TRACE (ONLY ONCE)
-				Execution.LoadMaterialTrace(wo);
+                // 🔥 THIS WAS MISSING
+                Execution.SelectedWorkOrder = wo;
 
-				// 🔥 UPDATE UI
-				OnPropertyChanged(nameof(SelectedWorkOrderMaterials));
-			}
-		}
-		private WorkOrder? GetWorkOrderByNumber(string number)
+                // Existing logic
+                Execution.LoadMaterialTrace(wo);
+
+                // 🔥 UPDATE UI
+                OnPropertyChanged(nameof(SelectedWorkOrderMaterials));
+                OnPropertyChanged(nameof(SelectedWorkOrderCost)); // ADD THIS
+            }
+        }
+        public decimal SelectedWorkOrderCost =>
+    Execution.SelectedWorkOrderCost;
+        private WorkOrder? GetWorkOrderByNumber(string number)
 {
 	return _workOrderRepository
 		.GetAll()
@@ -1023,6 +1032,7 @@ public void RefreshDashboard()
 
 	ProductionRisks = new ObservableCollection<ProductionRisk>(risks);
 	OnPropertyChanged(nameof(ProductionRisks));
+		
+		}
+	} 
 }
-
-	} }

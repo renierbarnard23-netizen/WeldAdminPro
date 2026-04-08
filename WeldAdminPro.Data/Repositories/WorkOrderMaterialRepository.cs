@@ -42,14 +42,17 @@ namespace WeldAdminPro.Data.Repositories
 
 			while (reader.Read())
 			{
-				list.Add(new WorkOrderMaterial
-				{
-					Id = Guid.Parse(reader.GetString(0)),
-					WorkOrderId = Guid.Parse(reader.GetString(1)),
-					ItemCode = reader.GetString(2),
-					RequiredQuantity = reader.GetDouble(3)
-				});
-			}
+                Guid.TryParse(reader[0]?.ToString(), out var id);
+                Guid.TryParse(reader[1]?.ToString(), out var parsedWorkOrderId);
+
+                list.Add(new WorkOrderMaterial
+                {
+                    Id = id,
+                    WorkOrderId = parsedWorkOrderId,
+                    ItemCode = reader.GetString(2),
+                    RequiredQuantity = reader.GetDouble(3)
+                });
+            }
 
 			// ✅ LOG ONLY ONCE PER WORK ORDER EVER
 			if (!_loggedWorkOrders.Contains(workOrderId))

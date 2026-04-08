@@ -34,7 +34,28 @@ namespace WeldAdminPro.UI.ViewModels
 				CommittedCost = 0m,
 				IsArchived = false
 			};
-		}
+
+            project = new Project
+            {
+                Id = Guid.NewGuid(),
+
+                Status = ProjectStatus.Active,
+                IsInvoiced = false,
+                CreatedOn = DateTime.Now,
+                LastModifiedOn = DateTime.Now,
+
+                Budget = 0m,
+                ActualCost = 0m,
+                CommittedCost = 0m,
+                IsArchived = false,
+
+                // 🔥 NEW
+                RequiresWps = false,
+                SelectedWpsId = null
+            };
+        }
+
+
 
 		[RelayCommand]
 		private void Save()
@@ -58,11 +79,23 @@ namespace WeldAdminPro.UI.ViewModels
 				MessageBox.Show("Budget cannot be negative.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
 				return;
 			}
+            // ================= WPS VALIDATION =================
 
-			// ================= NULL-SAFETY (CRITICAL) =================
-			// SQLite DOES NOT allow null parameters
+            if (Project.RequiresWps && Project.SelectedWpsId == null)
+            {
+                MessageBox.Show(
+                    "This project requires a WPS. Please select a WPS before saving.",
+                    "WPS Validation",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
 
-			Project.ClientRepresentative ??= string.Empty;
+                return;
+            }
+
+            // ================= NULL-SAFETY (CRITICAL) =================
+            // SQLite DOES NOT allow null parameters
+
+            Project.ClientRepresentative ??= string.Empty;
 			Project.QuoteNumber ??= string.Empty;
 			Project.OrderNumber ??= string.Empty;
 			Project.Material ??= string.Empty;

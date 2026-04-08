@@ -98,12 +98,13 @@
 							<RowDefinition Height="Auto"/>
 							<RowDefinition Height="Auto"/>
 							<RowDefinition Height="Auto"/>
-							<RowDefinition Height="Auto"/>
-							<RowDefinition Height="Auto"/>
-							<RowDefinition Height="20"/>
-							<RowDefinition Height="Auto"/>
-							<RowDefinition Height="Auto"/>
-						</Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/> <!-- Row 10 -->
+                            <RowDefinition Height="Auto"/> <!-- Row 11 NEW -->
+                            <RowDefinition Height="Auto"/> <!-- Row 12 NEW -->
+                            <RowDefinition Height="20"/> <!-- Row 13 -->
+                            <RowDefinition Height="Auto"/> <!-- Row 14 -->
+                            <RowDefinition Height="Auto"/> <!-- Row 15 -->
+                        </Grid.RowDefinitions>
 
 						<TextBlock Text="Project Name"/>
 						<TextBox Grid.Column="1" Margin="5"
@@ -161,15 +162,35 @@
                                  IsReadOnly="True"
                                  Background="#EEE"/>
 
-						<TextBlock Grid.Row="12" Text="Invoiced"/>
-						<CheckBox Grid.Row="12"
+                        <!-- ================= WPS CONTROL ================= -->
+
+                        <TextBlock Grid.Row="11" Text="Requires WPS"/>
+                        <CheckBox Grid.Row="11"
+          Grid.Column="1"
+          Margin="5"
+          IsChecked="{Binding Project.RequiresWps}"
+          IsEnabled="{Binding IsEditable}"/>
+
+                        <TextBlock Grid.Row="12" Text="Select WPS"/>
+
+                        <ComboBox Grid.Row="12"
+          Grid.Column="1"
+          Margin="5"
+          ItemsSource="{Binding DataContext.WpsList, RelativeSource={RelativeSource AncestorType=Window}}"
+          SelectedValue="{Binding Project.SelectedWpsId}"
+          SelectedValuePath="Id"
+          DisplayMemberPath="WpsNumber"
+          IsEnabled="{Binding Project.RequiresWps}"/>
+
+                        <TextBlock Grid.Row="14" Text="Invoiced"/>
+						<CheckBox Grid.Row="14"
                                   Grid.Column="1"
                                   Margin="5"
                                   IsChecked="{Binding Project.IsInvoiced}"
                                   IsEnabled="{Binding IsEditable}"/>
 
-						<TextBlock Grid.Row="13" Text="Invoice Number"/>
-						<TextBox Grid.Row="13"
+						<TextBlock Grid.Row="15" Text="Invoice Number"/>
+						<TextBox Grid.Row="15"
                                  Grid.Column="1"
                                  Margin="5"
                                  Text="{Binding Project.InvoiceNumber}"

@@ -18,8 +18,9 @@ namespace WeldAdminPro.UI.ViewModels
 		private readonly StockAvailabilityService _stockAvailability;
 		private readonly FinancialService _financialService;
 		private readonly ProjectMaterialService _materialService;
+        private readonly WpsRepository _wpsRepository;
 
-		public Project Project { get; }
+        public Project Project { get; }
 
 		public IReadOnlyList<ProjectStatus> Statuses { get; }
 
@@ -30,7 +31,9 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public ObservableCollection<StockTransaction> ReturnableIssuedItems { get; } = new();
 
-		public event Action? RequestClose;
+        public ObservableCollection<Wps> WpsList { get; } = new();
+
+        public event Action? RequestClose;
 
 		public bool IsPersisted => Project.Id != Guid.Empty;
 
@@ -142,8 +145,9 @@ namespace WeldAdminPro.UI.ViewModels
 			_stockAvailability = new StockAvailabilityService();
 			_financialService = new FinancialService();
 			_materialService = new ProjectMaterialService();
+            _wpsRepository = new WpsRepository();
 
-			Project = project;
+            Project = project;
 
 			if (Project.JobNumber == 0)
 				Project.JobNumber = _projectRepository.GetNextJobNumber();
@@ -158,8 +162,13 @@ namespace WeldAdminPro.UI.ViewModels
 			IssuedStockHistory = new ObservableCollection<ProjectStockUsage>();
 			ProjectStockSummary = new ObservableCollection<ProjectStockSummary>();
 			ProjectCostTransactions = new ObservableCollection<StockTransaction>();
+            
+            foreach (var wps in _wpsRepository.GetAll())
+            {
+                WpsList.Add(wps);
+            }
 
-			RefreshProjectData();
+            RefreshProjectData();
 		}
 
 		// ================= ISSUE STOCK =================
@@ -250,7 +259,21 @@ namespace WeldAdminPro.UI.ViewModels
 		[RelayCommand]
 		private void Save()
 		{
-			ApplyInvoiceRules();
+            // Ensure consistency
+            if (!Project.RequiresWps)
+            {
+                Project.SelectedWpsId = null;
+            }
+
+            // ================= WPS VALIDATION =================
+
+            if (Project.RequiresWps && Project.SelectedWpsId == null)
+            {
+                throw new InvalidOperationException(
+                    "This project requires a WPS. Please select a WPS before saving.");
+            }
+
+            ApplyInvoiceRules();
 
 			ProjectCompletionGuard.ValidateBeforeSave(Project);
 
@@ -264,9 +287,11 @@ namespace WeldAdminPro.UI.ViewModels
 			RequestClose?.Invoke();
 		}
 
-		// ================= INVOICE RULES =================
+       
 
-		public void ApplyInvoiceRules()
+        // ================= INVOICE RULES =================
+
+        public void ApplyInvoiceRules()
 		{
 			if (Project.IsInvoiced)
 			{

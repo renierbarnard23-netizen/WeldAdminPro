@@ -16,29 +16,40 @@ namespace WeldAdminPro.Data
 		public DbSet<ProjectStockUsage> ProjectStockUsages { get; set; } = null!;
 		public DbSet<WorkOrder> WorkOrders { get; set; } = null!;
 
-		public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-			: base(options)
-		{
-			EnsureProjectStockUsageTable();
-			LogDatabasePath();
-		}
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    : base(options)
+        {
+            EnsureProjectStockUsageTable();
+            EnsureProjectsTable();   // 👈 ADD THIS
+            LogDatabasePath();
+        }
 
-		private void EnsureProjectStockUsageTable()
-		{
-			// Create table if it does not exist
-			Database.ExecuteSqlRaw(@"
-			CREATE TABLE IF NOT EXISTS ProjectStockUsages (
-				Id TEXT PRIMARY KEY,
-				ProjectId TEXT NOT NULL,
-				StockItemId TEXT NOT NULL,
-				Quantity REAL NOT NULL,
-				IssuedOn TEXT NOT NULL,
-				IssuedBy TEXT,
-				Notes TEXT
-			);");
+        private void EnsureProjectsTable()
+        {
+            Database.ExecuteSqlRaw(@"
+    CREATE TABLE IF NOT EXISTS Projects (
+        Id TEXT PRIMARY KEY,
+        Name TEXT NOT NULL,
+        Description TEXT,
+        CreatedOn TEXT,
+        Status INTEGER
+    );");
+        }
 
-			// Ensure Notes column exists (SQLite-safe)
-			try
+        private void EnsureProjectStockUsageTable()
+		{
+            // Create table if it does not exist
+            Database.ExecuteSqlRaw(@"
+    CREATE TABLE IF NOT EXISTS Projects (
+        Id TEXT PRIMARY KEY,
+        Name TEXT NOT NULL,
+        Description TEXT,
+        CreatedOn TEXT,
+        Status INTEGER
+    );");
+
+            // Ensure Notes column exists (SQLite-safe)
+            try
 			{
 				Database.ExecuteSqlRaw(
 					"ALTER TABLE ProjectStockUsages ADD COLUMN Notes TEXT;"

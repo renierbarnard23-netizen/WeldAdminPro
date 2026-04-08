@@ -180,12 +180,16 @@ ORDER BY t.TransactionDate ASC, t.Id ASC;";
 			{
 				DateTime.TryParse(reader.GetString(3), out DateTime parsedDate);
 
-				list.Add(new StockTransaction
-				{
-					Id = Guid.Parse(reader.GetString(0)),
-					StockItemId = Guid.Parse(reader.GetString(1)),
-					ProjectId = reader.IsDBNull(2) ? null : Guid.Parse(reader.GetString(2)),
-					TransactionDate = parsedDate,
+                Guid.TryParse(reader[0]?.ToString(), out var id);
+                Guid.TryParse(reader[1]?.ToString(), out var stockItemId);
+                Guid.TryParse(reader[2]?.ToString(), out var projectId);
+
+                list.Add(new StockTransaction
+                {
+                    Id = id,
+                    StockItemId = stockItemId,
+                    ProjectId = projectId == Guid.Empty ? null : projectId,
+                    TransactionDate = parsedDate,
 					Quantity = reader.GetInt32(4),
 					Type = reader.GetString(5),
 					UnitCost = reader.GetDecimal(6),
@@ -235,13 +239,18 @@ ORDER BY t.TransactionDate ASC;";
 			{
 				DateTime.TryParse(reader.GetString(3), out DateTime parsedDate);
 
-				list.Add(new StockTransaction
-				{
-					Id = Guid.Parse(reader.GetString(0)),
-					StockItemId = Guid.Parse(reader.GetString(1)),
-					ProjectId = reader.IsDBNull(2) ? null : Guid.Parse(reader.GetString(2)),
-					TransactionDate = parsedDate,
-					Quantity = reader.GetInt32(4),
+                Guid.TryParse(reader[0]?.ToString(), out var id);
+                Guid.TryParse(reader[1]?.ToString(), out var stockItemId);
+                Guid.TryParse(reader[2]?.ToString(), out var parsedProjectId);
+                DateTime.TryParse(reader[3]?.ToString(), out var transactionDate);
+
+                list.Add(new StockTransaction
+                {
+                    Id = id,
+                    StockItemId = stockItemId,
+                    ProjectId = parsedProjectId,
+                    TransactionDate = transactionDate,
+                    Quantity = reader.GetInt32(4),
 					Type = reader.GetString(5),
 					UnitCost = reader.GetDecimal(6),
 					Reference = reader.IsDBNull(7) ? "" : reader.GetString(7),

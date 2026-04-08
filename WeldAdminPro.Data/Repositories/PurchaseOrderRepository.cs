@@ -146,18 +146,23 @@ ORDER BY CreatedDate DESC;";
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
 			{
-				list.Add(new PurchaseOrder
+                Guid.TryParse(reader[0]?.ToString(), out var id);
+
+                DateTime.TryParse(reader[4]?.ToString(), out var createdDate);
+                Guid.TryParse(reader[0]?.ToString(), out var poId);
+
+                list.Add(new PurchaseOrder
 				{
-					Id = Guid.Parse(reader.GetString(0)),
+					Id = id,
 					ProjectId = projectId,
 					JobNumber = reader.GetInt32(1),
 					PONumber = reader.GetString(2),
 					SupplierName = reader.IsDBNull(3) ? "" : reader.GetString(3),
-					CreatedDate = DateTime.Parse(reader.GetString(4)),
-					Status = reader.GetString(5),
+                    CreatedDate = createdDate,
+                    Status = reader.GetString(5),
 					TotalAmount = reader.GetDecimal(6),
-					Lines = GetLines(Guid.Parse(reader.GetString(0)))
-				});
+                    Lines = GetLines(poId)
+                });
 			}
 
 			return list;
@@ -180,11 +185,14 @@ WHERE PurchaseOrderId = $poId;";
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
 			{
-				lines.Add(new PurchaseOrderLine
+                Guid.TryParse(reader[0]?.ToString(), out var id);
+                Guid.TryParse(reader[1]?.ToString(), out var stockItemId);
+
+                lines.Add(new PurchaseOrderLine
 				{
-					Id = Guid.Parse(reader.GetString(0)),
+					Id = id,
 					PurchaseOrderId = poId,
-					StockItemId = Guid.Parse(reader.GetString(1)),
+					StockItemId = stockItemId,
 					ItemCode = reader.IsDBNull(2) ? "" : reader.GetString(2),
 					Description = reader.IsDBNull(3) ? "" : reader.GetString(3),
 					Quantity = reader.GetInt32(4),

@@ -1,5 +1,6 @@
 using System.Linq;
 using WeldAdminPro.Core.Analytics.Production;
+using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.Data.Services
@@ -17,35 +18,44 @@ namespace WeldAdminPro.Data.Services
 			_shortageService = shortageService;
 		}
 
-		public ProductionReadinessResult Calculate()
-		{
-			var workOrders = _workOrderRepository.GetAll().ToList();
+        public ProductionReadinessResult Calculate()
+        {
+            var workOrders = _workOrderRepository.GetAll().ToList();
 
-			var shortages = _shortageService.GetShortages();
+            var shortages = _shortageService.GetShortages();
 
-			var blockedWorkOrders = shortages
-				.Select(s => s.WorkOrderNumber)
-				.Distinct()
-				.ToList();
+            var blockedWorkOrders = shortages
+                .Select(s => s.WorkOrderNumber)
+                .Distinct()
+                .ToList();
 
-			int total = workOrders.Count;
+            int total = workOrders.Count;
 
-			int blocked = blockedWorkOrders.Count;
+            // ✅ TRUE BLOCKED (from shortages)
+            int blocked = workOrders.Count(w =>
+                blockedWorkOrders.Contains(w.WorkOrderNumber));
 
-			int ready = total - blocked;
+            // ✅ TRUE READY (status-based + not blocked)
+            int ready = workOrders.Count(w =>
+                w.Status == WorkOrderStatus.Ready &&
+                !blockedWorkOrders.Contains(w.WorkOrderNumber));
 
-			double percentage = total == 0
-				? 100
-				: (double)ready / total * 100;
+            // ✅ OPTIONAL (for sanity)
+            int inProduction = workOrders.Count(w => w.Status == WorkOrderStatus.InProduction);
+            int completed = workOrders.Count(w => w.Status == WorkOrderStatus.Completed);
 
-			return new ProductionReadinessResult
-			{
-				TotalWorkOrders = total,
-				ReadyWorkOrders = ready,
-				BlockedWorkOrders = blocked,
-				ReadinessPercentage = percentage,
-				BlockedWorkOrderNumbers = blockedWorkOrders
-			};
-		}
-	}
+            double percentage = total == 0
+                ? 100
+                : (double)ready / total * 100;
+
+            return new ProductionReadinessResult
+            {
+                TotalWorkOrders = total,
+                ReadyWorkOrders = ready,
+                BlockedWorkOrders = blocked,
+                ReadinessPercentage = percentage,
+                BlockedWorkOrderNumbers = blockedWorkOrders
+            };
+        }
+    }
 }

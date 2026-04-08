@@ -388,21 +388,59 @@
             Padding="10"
             Margin="6">
 
-					<StackPanel>
+                    <Grid>
 
-						<TextBlock Text="PRODUCTION RISKS"
-                       FontSize="12"
+                        <Grid.RowDefinitions>
+                            
+                            <RowDefinition Height="2"/> <!-- Risks -->
+                            <RowDefinition Height="1.5"/> <!-- Materials -->
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="PRODUCTION RISKS"
+           FontSize="12"
+           FontWeight="Bold"
+           Foreground="DarkRed"
+           Margin="4"/>
+
+                        <!-- ✅ COST CARD (SEPARATE BLOCK) -->
+                        <Border Grid.Row="0"
+							Background="#1E1E1E"
+							Padding="10"
+							CornerRadius="6"
+							Margin="5">
+
+                            <StackPanel> <!-- ✅ SINGLE CHILD -->
+
+                               
+
+                                <!-- 🔹 COST -->
+                                <StackPanel Margin="5">
+
+                                    <TextBlock Text="Actual Material Cost"
+                       Foreground="Gray"
+                       FontSize="12"/>
+
+                                    <TextBlock Text="{Binding SelectedWorkOrderCost, StringFormat=R {0:N2}}"
+                       FontSize="20"
                        FontWeight="Bold"
-                       Foreground="DarkRed"
-                       Margin="4"/>
+                       Foreground="LimeGreen"/>
+
+                                </StackPanel>
+
+                            </StackPanel>
+
+                        </Border>
+
+                        <!-- ✅ KEEP YOUR EXISTING GRID -->
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding ProductionBottlenecks}"
+          AutoGenerateColumns="False"
+          IsReadOnly="True"
+          RowHeight="30"
+          HeadersVisibility="Column"
+          MinHeight="140">
 
 
-						<DataGrid ItemsSource="{Binding ProductionBottlenecks}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      RowHeight="30"
-                      HeadersVisibility="Column"
-                      MinHeight="140">
+                           
 
 							<DataGrid.Columns>
 
@@ -442,7 +480,7 @@
 
 						</DataGrid>
 
-						<DataGrid ItemsSource="{Binding SelectedWorkOrderMaterials}"
+                        <DataGrid Grid.Row="2" ItemsSource="{Binding SelectedWorkOrderMaterials}"
           SelectedItem="{Binding SelectedWorkOrder, Mode=TwoWay}"
           AutoGenerateColumns="False"
           Height="200"
@@ -458,7 +496,7 @@
 
 						</DataGrid>
 
-					</StackPanel>
+					</Grid>
 
 				</Border>
 

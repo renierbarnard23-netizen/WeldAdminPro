@@ -71,9 +71,11 @@ namespace WeldAdminPro.Data.Repositories
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
 			{
-				list.Add(new Category
+                Guid.TryParse(reader[0]?.ToString(), out var id);
+
+                list.Add(new Category
 				{
-					Id = Guid.Parse(reader.GetString(0)),
+					Id = id,
 					Name = reader.GetString(1),
 					IsActive = true
 				});

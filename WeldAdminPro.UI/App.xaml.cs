@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using WeldAdminPro.Data;
 using WeldAdminPro.UI.Views;
 
 namespace WeldAdminPro.UI
@@ -7,7 +8,9 @@ namespace WeldAdminPro.UI
 	{
 		protected override void OnStartup(StartupEventArgs e)
 		{
-			base.OnStartup(e);
+			DatabaseInitializer.Initialize();
+
+            base.OnStartup(e);
 
 			ShutdownMode = ShutdownMode.OnExplicitShutdown;
 

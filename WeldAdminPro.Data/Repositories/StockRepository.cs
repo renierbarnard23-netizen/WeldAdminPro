@@ -45,10 +45,12 @@ WHERE Id = $id;";
 			if (!reader.Read())
 				return null;
 
-			return new StockItem
-			{
-				Id = Guid.Parse(reader.GetString(0)),
-				ItemCode = reader.GetString(1),
+            Guid.TryParse(reader[0]?.ToString(), out var parsedId);
+
+            return new StockItem
+            {
+                Id = parsedId,
+                ItemCode = reader.GetString(1),
 				Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
 				Quantity = reader.GetInt32(3),
 				Unit = reader.IsDBNull(4) ? "" : reader.GetString(4),
@@ -81,9 +83,11 @@ ORDER BY ItemCode;";
 
 			while (reader.Read())
 			{
-				list.Add(new StockItem
+                Guid.TryParse(reader[0]?.ToString(), out var id);
+
+                list.Add(new StockItem
 				{
-					Id = Guid.Parse(reader.GetString(0)),
+					Id = id,
 					ItemCode = reader.GetString(1),
 					Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
 					Quantity = reader.GetInt32(3),

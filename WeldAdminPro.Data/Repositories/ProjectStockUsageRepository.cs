@@ -13,9 +13,7 @@ namespace WeldAdminPro.Data.Repositories
 		{
 			_connectionString = $"Data Source={DatabasePath.Get()}";
 			
-		}
-
-		
+		}		
 
 		// =========================================================
 		// HARD PROTECTION: NO OVER-RETURN
@@ -106,15 +104,19 @@ ORDER BY IssuedOn DESC;";
 			using var reader = cmd.ExecuteReader();
 			while (reader.Read())
 			{
-				list.Add(new ProjectStockUsage
+                Guid.TryParse(reader[0]?.ToString(), out var id);
+                Guid.TryParse(reader[2]?.ToString(), out var stockItemId);
+                Guid.TryParse(reader[1]?.ToString(), out var parsedProjectId);
+                DateTime.TryParse(reader[5]?.ToString(), out var issuedOn);
+
+                list.Add(new ProjectStockUsage
 				{
-					Id = Guid.Parse(reader.GetString(0)),
-					ProjectId = Guid.Parse(reader.GetString(1)),
-					StockItemId = Guid.Parse(reader.GetString(2)),
-					Quantity = reader.GetDecimal(3),
+                    Id = id,
+                    StockItemId = stockItemId,
+                    ProjectId = parsedProjectId,
+                    Quantity = reader.GetDecimal(3),
 					UnitCostAtIssue = reader.GetDecimal(4),
-					IssuedOn = DateTime.Parse(reader.GetString(5)),
-					IssuedBy = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
+                    IssuedOn = issuedOn,
 					Notes = reader.IsDBNull(7) ? string.Empty : reader.GetString(7)
 				});
 			}

@@ -22,8 +22,9 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 		private readonly WorkOrderExecutionService _executionService;
 		private readonly WorkOrderMaterialRepository _materialRepo;
 		private readonly StockRepository _stockRepo;
+        private readonly CostTrackingService _costService = new();
 
-		public ICommand CancelWorkOrderCommand { get; }
+        public ICommand CancelWorkOrderCommand { get; }
 		
 		[ObservableProperty]
 		private ObservableCollection<WorkOrder> readyWorkOrders = new();
@@ -37,7 +38,10 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 		[ObservableProperty]
 		private ObservableCollection<WorkOrderMaterialTrace> selectedWorkOrderMaterials = new();
 
-		public ProductionControlTowerViewModel? ControlTower { get; set; }
+        [ObservableProperty]
+        private WorkOrder? selectedWorkOrder;
+
+        public ProductionControlTowerViewModel? ControlTower { get; set; }
 
 		// =========================================================
 		// CONSTRUCTOR
@@ -153,7 +157,8 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 			try
 			{
 				_executionService.StartWorkOrder(id);
-			}
+                OnPropertyChanged(nameof(SelectedWorkOrderCost));
+            }
 			catch (Exception ex)
 			{
 				Debug.WriteLine($"❌ START ERROR: {ex.Message}");
@@ -167,7 +172,22 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 			ControlTower?.Load();
 		}
 
-		[RelayCommand]
+        public decimal SelectedWorkOrderCost =>
+    SelectedWorkOrder == null
+        ? 0
+        : _costService.GetWorkOrderMaterialCost(SelectedWorkOrder.WorkOrderNumber);
+
+        partial void OnSelectedWorkOrderChanged(WorkOrder? value)
+        {
+            if (value != null)
+            {
+                LoadMaterialTrace(value);
+            }
+
+            OnPropertyChanged(nameof(SelectedWorkOrderCost));
+        }
+
+        [RelayCommand]
 		private void PauseWorkOrder(Guid id)
 		{
 			_executionService.PauseWorkOrder(id);
