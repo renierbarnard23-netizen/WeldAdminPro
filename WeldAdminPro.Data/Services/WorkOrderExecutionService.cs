@@ -82,8 +82,7 @@ namespace WeldAdminPro.Data.Services
 					var txList = _stockRepo
 						.GetAllTransactions()
 						.Where(t => t.Reference == workOrder.WorkOrderNumber && t.Type == "OUT");
-
-					workOrder.MaterialCost = txList.Sum(t => t.TransactionValue);
+					
 				}
 
 				if (workOrder.Status != WorkOrderStatus.Ready
@@ -94,18 +93,16 @@ namespace WeldAdminPro.Data.Services
 				}
 
 				using var cmd = connection.CreateCommand();
-				cmd.CommandText = @"
-        UPDATE WorkOrders
-        SET Status = @Status,
-            ActualStartTime = @StartTime,
-            IsPaused = 0,
-            MaterialCost = @MaterialCost
-        WHERE Id = @Id";
+                cmd.CommandText = @"
+				UPDATE WorkOrders
+				SET Status = @Status,
+					ActualStartTime = @StartTime,
+					IsPaused = 0
+				WHERE Id = @Id";
 
-				cmd.Parameters.AddWithValue("@Id", workOrder.Id.ToString());
+                cmd.Parameters.AddWithValue("@Id", workOrder.Id.ToString());
 				cmd.Parameters.AddWithValue("@StartTime", DateTime.UtcNow.ToString("O"));
 				cmd.Parameters.AddWithValue("@Status", (int)WorkOrderStatus.InProduction);
-				cmd.Parameters.AddWithValue("@MaterialCost", workOrder.MaterialCost);
 
 				var rows = cmd.ExecuteNonQuery();
 

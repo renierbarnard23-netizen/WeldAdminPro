@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:WeldAdminPro.UI.Views"
 		xmlns:vm="clr-namespace:WeldAdminPro.UI.ViewModels"
+        xmlns:quality="clr-namespace:WeldAdminPro.UI.Views.Quality"
         Title="WeldAdmin Pro"
         Height="700"
         Width="1100">
@@ -14,8 +15,13 @@
 			<MenuItem Header="Home" Click="Home_Click"/>
 			<MenuItem Header="Projects" Click="Projects_Click"/>
 			<MenuItem Header="Stock" Click="Stock_Click"/>
+            <MenuItem Header="Quality">
+                <MenuItem Header="WPS" Click="Wps_Click"/>
+                <MenuItem Header="PQR" Click="Pqr_Click"/>
+                <MenuItem Header="Project Quality" Click="Quality_Click"/> <!-- 🔥 ADD -->
+            </MenuItem>
 
-			<MenuItem Header="Project Costs" Click="ProjectCosts_Click"/>
+            <MenuItem Header="Project Costs" Click="ProjectCosts_Click"/>
 			<MenuItem Header="Material Cost Drivers" Click="MaterialCostDrivers_Click"/>
 			<MenuItem Header="Profitability" Click="Profitability_Click"/>
 			<MenuItem Header="Project Risk" Click="ProjectRisk_Click"/>

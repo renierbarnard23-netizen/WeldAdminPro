@@ -1,0 +1,163 @@
+<UserControl x:Class="WeldAdminPro.UI.Views.Quality.WpsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WeldAdminPro.UI.ViewModels.Quality">
+
+	<Grid Margin="10">
+
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- HEADER -->
+		<TextBlock Grid.Row="0"
+                   Text="WPS Management"
+                   FontSize="22"
+                   FontWeight="Bold"
+                   Margin="0,0,0,10"/>
+
+		<!-- SUMMARY -->
+		<StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    Margin="0,0,0,10">
+
+			<TextBlock Text="{Binding ValidCount, StringFormat=✔ {0} Valid}"
+                       Foreground="Green"
+                       FontWeight="Bold"
+                       Margin="10,0"/>
+
+			<TextBlock Text="{Binding WarningCount, StringFormat=⚠ {0} Warning}"
+                       Foreground="Orange"
+                       FontWeight="Bold"
+                       Margin="10,0"/>
+
+			<TextBlock Text="{Binding InvalidCount, StringFormat=❌ {0} Invalid}"
+                       Foreground="Red"
+                       FontWeight="Bold"
+                       Margin="10,0"/>
+		</StackPanel>
+
+		<!-- FILTERS (MVVM FIXED) -->
+		<StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    Margin="0,0,0,10">
+
+			<Button Content="All" Width="80" Margin="5"
+                    Command="{Binding FilterAllCommand}"/>
+
+			<Button Content="❌ Invalid" Width="100" Margin="5"
+                    Command="{Binding FilterInvalidCommand}"/>
+
+			<Button Content="⚠ Warning" Width="100" Margin="5"
+                    Command="{Binding FilterWarningCommand}"/>
+
+			<Button Content="✔ Valid" Width="100" Margin="5"
+                    Command="{Binding FilterValidCommand}"/>
+		</StackPanel>
+
+		<!-- WPS ALERT -->
+		<Border Grid.Row="3"
+                Background="{Binding AlertColor}"
+                CornerRadius="5"
+                Padding="8"
+                Margin="0,0,0,10">
+
+			<TextBlock Text="{Binding AlertMessage}"
+                       Foreground="White"
+                       FontWeight="Bold"
+                       FontSize="14"/>
+		</Border>
+
+		<!-- WELDER ALERT -->
+		<Border Grid.Row="4"
+                Background="{Binding WelderAlertColor}"
+                CornerRadius="5"
+                Padding="8"
+                Margin="0,0,0,10">
+
+			<TextBlock Text="{Binding WelderAlertMessage}"
+                       Foreground="White"
+                       FontWeight="Bold"
+                       FontSize="14"/>
+		</Border>
+
+		<!-- DATA GRID -->
+        <DataGrid Grid.Row="5"
+          ItemsSource="{Binding WpsList}"
+          SelectedItem="{Binding SelectedWps, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+          AutoGenerateColumns="False"
+          SelectionMode="Single"
+          SelectionUnit="FullRow"
+          IsSynchronizedWithCurrentItem="True"
+          Margin="0,0,0,10"
+          RowHeight="30"
+          GridLinesVisibility="All">
+
+            <DataGrid.Columns>
+
+                <DataGridTextColumn Header="WPS No" Binding="{Binding WpsNumber}" Width="120"/>
+                <DataGridTextColumn Header="Process" Binding="{Binding Process}" Width="100"/>
+                <DataGridTextColumn Header="Material" Binding="{Binding MaterialGroup}" Width="120"/>
+
+                <DataGridTextColumn Header="Thickness" Binding="{Binding ThicknessDisplay}" Width="120"/>
+                <DataGridTextColumn Header="PQR" Binding="{Binding PqrNumber}" Width="120"/>
+
+                <DataGridTextColumn Header="P-No" Binding="{Binding PNumber}" Width="80"/>
+                <DataGridTextColumn Header="F-No" Binding="{Binding FNumber}" Width="80"/>
+
+                <DataGridTextColumn Header="Position" Binding="{Binding Position}" Width="80"/>
+                <DataGridTextColumn Header="Joint" Binding="{Binding JointType}" Width="100"/>
+
+                <DataGridTextColumn Header="Diameter" Binding="{Binding DiameterDisplay}" Width="100"/>
+                <DataGridTextColumn Header="Status" Binding="{Binding StatusIcon}" Width="80"/>
+
+                <DataGridTemplateColumn Header="Status" Width="80">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock 
+                Text="{Binding StatusIcon, FallbackValue=''}"
+                Foreground="{Binding StatusColor, FallbackValue=Black}"
+                ToolTip="{Binding StatusMessage, FallbackValue=''}"
+                FontSize="16"
+                HorizontalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+            </DataGrid.Columns>
+		</DataGrid>
+
+		<!-- BUTTONS (MVVM FIXED) -->
+		<StackPanel Grid.Row="6"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Left">
+
+			<Button Content="Refresh" Width="100" Margin="5"
+                    Command="{Binding RefreshCommand}"/>
+
+            <Button Content="Add" Width="100" Margin="5" Command="{Binding AddWpsCommand}" />
+            <Button Content="Edit" Width="100" Margin="5" 
+        Command="{Binding EditWpsCommand}"
+        Focusable="False"/>
+
+            <Button Content="Delete" Width="100" Margin="5" 
+        Command="{Binding DeleteWpsCommand}"
+        Focusable="False"/>
+
+            <Button Content="Link PQR" Width="100" Margin="5" 
+        Command="{Binding LinkPqrCommand}"
+        Focusable="False"/>
+
+            <Button Content="Import PDF" Width="120" Margin="5"
+                    Command="{Binding ImportPdfCommand}"/>			
+
+		</StackPanel>
+
+	</Grid>
+</UserControl>

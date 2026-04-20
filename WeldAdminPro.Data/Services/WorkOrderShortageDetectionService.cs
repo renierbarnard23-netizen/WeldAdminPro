@@ -50,18 +50,22 @@ namespace WeldAdminPro.Data.Services
 
 			foreach (var wo in workOrders)
 			{
-				var materials = _materialRepo.GetByWorkOrderId(wo.Id) ?? new List<WorkOrderMaterial>();
+                var materials = _materialRepo.GetByWorkOrderId(wo.Id)
+					?? Enumerable.Empty<WorkOrderMaterial>();
 
-				Debug.WriteLine($"🔥 MATERIAL COUNT: {materials?.Count()}");
+                Debug.WriteLine($"🔥 MATERIAL COUNT: {materials.Count()}");
 
-				foreach (var mat in materials)
+                foreach (var mat in materials)
 				{
 					var stock = _stockRepo.GetAll()
 						.FirstOrDefault(s => s.ItemCode == mat.ItemCode);
 
 					int available = (int)Math.Floor(stock?.Quantity ?? 0);
 
-					if (available < mat.RequiredQuantity)
+                    if (string.IsNullOrWhiteSpace(mat.ItemCode))
+                        continue;
+
+                    if (available < mat.RequiredQuantity)
 					{
 						shortages.Add(new WorkOrderMaterialShortage
 						{

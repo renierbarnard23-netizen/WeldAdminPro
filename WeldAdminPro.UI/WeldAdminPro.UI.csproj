@@ -9,6 +9,16 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <None Remove="tessdata\eng.traineddata" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="tessdata\eng.traineddata">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\WeldAdminPro.Core\WeldAdminPro.Core.csproj" />
 		<ProjectReference Include="..\WeldAdminPro.Data\WeldAdminPro.Data.csproj" />
 	</ItemGroup>
@@ -17,6 +27,7 @@
 		<PackageReference Include="ClosedXML" Version="0.105.0" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
 		<PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
+		<PackageReference Include="Tesseract" Version="5.2.0" />
 	</ItemGroup>
 
 </Project>

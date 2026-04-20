@@ -20,61 +20,66 @@ namespace WeldAdminPro.Data.Services
 			_materialRepo = materialRepo;
 		}
 
-		public bool CanStart(WorkOrder workOrder, out string reason)
-		{
-			try
-			{
-				var materials = _materialRepo.GetByWorkOrderId(workOrder.Id);
+        public bool CanStart(WorkOrder workOrder, out string reason)
+        {
+            try
+            {
+                var materials = _materialRepo.GetByWorkOrderId(workOrder.Id)
+                                ?? Enumerable.Empty<WorkOrderMaterial>();
 
-				Debug.WriteLine($"🔥 MATERIAL COUNT: {materials?.Count()}");
+                Debug.WriteLine($"🔥 MATERIAL COUNT: {materials.Count()}");
 
-				foreach (var m in materials)
-				{
-					Debug.WriteLine($"➡ {m.ItemCode} | Qty: {m.RequiredQuantity}");
-				}
+                foreach (var m in materials)
+                {
+                    Debug.WriteLine($"➡ {m.ItemCode} | Qty: {m.RequiredQuantity}");
+                }
 
-				// 🔹 No materials → allow (for now, system stabilization)
-				if (materials == null || !materials.Any())
-				{
-					Console.WriteLine("⚠ No materials assigned — allowing start");
-					reason = string.Empty;
-					return true;
-				}
+                // 🔹 No materials → allow (for now, system stabilization)
+                if (!materials.Any())
+                {
+                    Console.WriteLine("⚠ No materials assigned — allowing start");
+                    reason = string.Empty;
+                    return true;
+                }
 
-				foreach (var mat in materials)
-				{
-					var stock = _stockRepo.GetByItemCode(mat.ItemCode);
+                foreach (var mat in materials)
+                {
+                    // 🔥 EXTRA SAFETY (recommended)
+                    if (string.IsNullOrWhiteSpace(mat.ItemCode))
+                        continue;
 
-					if (stock == null)
-					{
-						Console.WriteLine($"⚠ Missing stock item: {mat.ItemCode} — allowing start");
-						continue; // allow instead of blocking
-					}
+                    var stock = _stockRepo.GetByItemCode(mat.ItemCode);
 
-					if (stock.Quantity < mat.RequiredQuantity)
-					{
-						Console.WriteLine($"⚠ Insufficient stock for {mat.ItemCode} — allowing start");
-						continue;
-					}
+                    if (stock == null)
+                    {
+                        Console.WriteLine($"⚠ Missing stock item: {mat.ItemCode} — allowing start");
+                        continue;
+                    }
 
-					if (stock.Quantity < 0)
-					{
-						Console.WriteLine($"⚠ Negative stock for {mat.ItemCode} — allowing start");
-						continue;
-					}
-				}
+                    if (stock.Quantity < mat.RequiredQuantity)
+                    {
+                        Console.WriteLine($"⚠ Insufficient stock for {mat.ItemCode} — allowing start");
+                        continue;
+                    }
 
-				reason = string.Empty;
-				return true;
-			}
-			catch (Exception ex)
-			{
-				Console.WriteLine($"⚠ MATERIAL VALIDATION ERROR (IGNORED): {ex.Message}");
+                    if (stock.Quantity < 0)
+                    {
+                        Console.WriteLine($"⚠ Negative stock for {mat.ItemCode} — allowing start");
+                        continue;
+                    }
+                }
 
-				// ✅ ALWAYS allow execution (stability mode)
-				reason = string.Empty;
-				return true;
-			}
-		}
-	}
+                reason = string.Empty;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠ MATERIAL VALIDATION ERROR (IGNORED): {ex.Message}");
+
+                // ✅ ALWAYS allow execution (stability mode)
+                reason = string.Empty;
+                return true;
+            }
+        }
+    }
 }

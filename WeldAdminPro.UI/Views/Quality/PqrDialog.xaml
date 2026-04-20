@@ -1,0 +1,37 @@
+<Window x:Class="WeldAdminPro.UI.Views.Quality.PqrDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PQR Editor" Height="400" Width="500">
+
+    <StackPanel Margin="15">
+
+        <TextBlock Text="PQR Number"/>
+        <TextBox Text="{Binding PqrNumber}" Margin="5"/>
+        <TextBlock Text="Process"/>
+        <TextBox Text="{Binding Process}" Margin="5"/>
+        <TextBlock Text="PQR Number"/>
+        <TextBlock Text="P-Number"/>
+        <TextBox Text="{Binding P-Number}" Margin="5"/>
+
+        <TextBlock Text="Thickness Range"/>
+        <StackPanel Orientation="Horizontal">
+            <TextBox Width="100" Text="{Binding ThicknessQualifiedMin}" Margin="5"/>
+            <TextBox Width="100" Text="{Binding ThicknessQualifiedMax}" Margin="5"/>
+        </StackPanel>
+
+        <TextBlock Text="F-Number"/>
+        <TextBox Text="{Binding F-Number}" Margin="5"/>
+        <TextBlock Text="Position"/>
+        <TextBox Text="{Binding Position}" Margin="5"/>
+        <TextBlock Text="Joint Type"/>
+        <TextBox Text="{Binding JointType}" Margin="5"/>
+
+        <TextBlock Text="Diameter Range"/>
+        <StackPanel Orientation="Horizontal">
+            <TextBox Width="100" Text="{Binding DiameterMin}" Margin="5"/>
+            <TextBox Width="100" Text="{Binding DiameterMax}" Margin="5"/>
+        </StackPanel>
+
+        <Button Content="Save" Command="{Binding SaveCommand}" Margin="10"/>
+    </StackPanel>
+</Window>

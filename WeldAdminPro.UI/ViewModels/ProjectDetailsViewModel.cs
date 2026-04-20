@@ -9,6 +9,8 @@ using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
 
+
+
 namespace WeldAdminPro.UI.ViewModels
 {
 	public partial class ProjectDetailsViewModel : ObservableObject
@@ -145,8 +147,8 @@ namespace WeldAdminPro.UI.ViewModels
 
 			Project = project;
 
-			if (Project.JobNumber == 0)
-				Project.JobNumber = _projectRepository.GetNextJobNumber();
+            if (Project.JobNumber == 0)
+                Project.JobNumber = _projectRepository.GetNextJobNumber();
 
 			Statuses = Enum.GetValues(typeof(ProjectStatus))
 				.Cast<ProjectStatus>()

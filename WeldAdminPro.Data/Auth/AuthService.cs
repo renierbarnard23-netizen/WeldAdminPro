@@ -38,13 +38,12 @@ namespace WeldAdminPro.Data.Auth
 
         private static bool Verify(string candidate, byte[] salt, int iterations, byte[] expectedHash)
         {
-            using var derive = new Rfc2898DeriveBytes(
-                candidate, 
-                salt, 
-                iterations, 
-                HashAlgorithmName.SHA256
-            );
-            var testHash = derive.GetBytes(expectedHash.Length);
+            var testHash = Rfc2898DeriveBytes.Pbkdf2(
+                candidate,
+                salt,
+                iterations,
+                HashAlgorithmName.SHA256,
+                expectedHash.Length);
 
             return CryptographicOperations.FixedTimeEquals(testHash, expectedHash);
         }

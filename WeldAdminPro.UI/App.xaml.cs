@@ -1,33 +1,36 @@
 ﻿using System.Windows;
 using WeldAdminPro.UI.Views;
+using WeldAdminPro.Data;
 
 namespace WeldAdminPro.UI
 {
-	public partial class App : Application
-	{
-		protected override void OnStartup(StartupEventArgs e)
-		{
-			base.OnStartup(e);
+    public partial class App : Application
+    {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            DatabaseInitializer.Initialize();
 
-			ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            base.OnStartup(e);
 
-			var loginWindow = new LoginWindow();
-			var result = loginWindow.ShowDialog();
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
-			if (result == true)
-			{
-				var mainWindow = new MainWindow();
+            var loginWindow = new LoginWindow();
+            var result = loginWindow.ShowDialog();
 
-				MainWindow = mainWindow;
-				mainWindow.Show();
-				mainWindow.Activate();
+            if (result == true)
+            {
+                var mainWindow = new MainWindow();
 
-				ShutdownMode = ShutdownMode.OnMainWindowClose;
-			}
-			else
-			{
-				Shutdown();
-			}
-		}
-	}
-	}
+                MainWindow = mainWindow;
+                mainWindow.Show();
+                mainWindow.Activate();
+
+                ShutdownMode = ShutdownMode.OnMainWindowClose;
+            }
+            else
+            {
+                Shutdown();
+            }
+        }
+    }
+}
