@@ -32,5 +32,7 @@ namespace WeldAdminPro.UI.ViewModels.Quality
         public Brush StatusColor { get; set; } = Brushes.Black;
         public string StatusMessage { get; set; } = "";
         public string DiameterDisplay { get; set; } = "";
+        public string ValidationMessage { get; set; } = "";
+        public int Revision { get; set; }
     }
 }

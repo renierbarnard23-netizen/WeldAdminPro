@@ -46,7 +46,24 @@ VALUES
             connection.Open();
 
             var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT * FROM StockTransactions ORDER BY TransactionDate;";
+            cmd.CommandText = @"
+                SELECT 
+                    st.Id,
+                    st.StockItemId,
+                    st.ProjectId,
+                    st.TransactionDate,
+                    st.Quantity,
+                    st.Type,
+                    st.UnitCost,
+                    st.Reference,
+                    st.BalanceAfter,
+                    p.ProjectName,
+                    si.ItemCode,
+                    si.Description
+                FROM StockTransactions st
+                LEFT JOIN Projects p ON st.ProjectId = p.Id
+                LEFT JOIN StockItems si ON st.StockItemId = si.Id
+                ORDER BY st.TransactionDate;"; ;
 
             using var reader = cmd.ExecuteReader();
 
@@ -101,11 +118,43 @@ WHERE Id = $id;";
         // =========================
         // RETURNABLE ITEMS
         // =========================
-        public List<StockTransaction> GetReturnableItems(Guid projectId)
+        public List<ReturnableItemDto> GetReturnableItems(Guid projectId)
         {
-            return GetAllTransactions()
-                .Where(t => t.Type == "OUT" && t.ProjectId == projectId)
-                .ToList();
+            var list = new List<ReturnableItemDto>();
+
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+        SELECT 
+            st.StockItemId,
+            st.Quantity,
+            st.UnitCost,
+            si.ItemCode,
+            si.Description
+        FROM StockTransactions st
+        JOIN StockItems si ON si.Id = st.StockItemId
+        WHERE st.ProjectId = $projectId
+        AND st.Type = 'OUT';";
+
+            cmd.Parameters.AddWithValue("$projectId", projectId.ToString());
+
+            using var reader = cmd.ExecuteReader();
+
+            while (reader.Read())
+            {
+                list.Add(new ReturnableItemDto
+                {
+                    StockItemId = Guid.Parse(reader["StockItemId"].ToString()!),
+                    Quantity = Convert.ToDecimal(reader["Quantity"]),
+                    UnitCost = Convert.ToDecimal(reader["UnitCost"]),
+                    ItemCode = reader["ItemCode"].ToString() ?? "",
+                    Description = reader["Description"].ToString() ?? ""
+                });
+            }
+
+            return list;
         }
 
         // =========================
@@ -139,7 +188,14 @@ WHERE Id = $id;";
                 Type = reader.GetString(5),
                 UnitCost = (decimal)reader.GetDouble(6),
                 Reference = reader.IsDBNull(7) ? "" : reader.GetString(7),
-                BalanceAfter = reader.IsDBNull(8) ? 0 : reader.GetInt32(8)
+                BalanceAfter = reader.IsDBNull(8) ? 0 : reader.GetInt32(8),
+
+                // Already added
+                ProjectName = reader.IsDBNull(9) ? null : reader.GetString(9),
+
+                // 🔥 ADD THESE
+                ItemCode = reader.IsDBNull(10) ? "" : reader.GetString(10),
+                ItemDescription = reader.IsDBNull(11) ? "" : reader.GetString(11)
             };
         }
     }

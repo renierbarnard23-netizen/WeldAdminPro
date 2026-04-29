@@ -280,29 +280,15 @@
 								<RowDefinition Height="Auto"/>
 							</Grid.RowDefinitions>
 
-							<TextBlock Text="Issued Item"/>
+                            <TextBlock Text="Issued Item"/>
 
-							<ComboBox Grid.Column="1"
-                                      Margin="5"
-                                      ItemsSource="{Binding ReturnableIssuedItems}"
-                                      SelectedItem="{Binding SelectedIssuedItem}">
+                            <ComboBox Grid.Column="1"
+          Margin="5"
+          ItemsSource="{Binding ReturnableIssuedItems}"
+          SelectedItem="{Binding SelectedIssuedItem}"
+          DisplayMemberPath="Display"/>
 
-								<ComboBox.ItemTemplate>
-									<DataTemplate>
-										<TextBlock>
-                                            <Run Text="{Binding ItemCode}" />
-                                            <Run Text=" - " />
-                                            <Run Text="{Binding ItemDescription}" />
-                                            <Run Text=" (Issued: " />
-                                            <Run Text="{Binding Quantity}" />
-                                            <Run Text=")" />
-										</TextBlock>
-									</DataTemplate>
-								</ComboBox.ItemTemplate>
-
-							</ComboBox>
-
-							<TextBlock Grid.Row="1" Text="Return Qty"/>
+                            <TextBlock Grid.Row="1" Text="Return Qty"/>
 							<TextBox Grid.Row="1" Grid.Column="1"
                                      Margin="5"
                                      Text="{Binding ReturnQuantity}"/>

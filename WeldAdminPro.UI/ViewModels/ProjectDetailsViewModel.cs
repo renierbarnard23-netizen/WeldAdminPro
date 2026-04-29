@@ -8,6 +8,7 @@ using WeldAdminPro.Core.Guards;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
+using WeldAdminPro.UI.Models;
 
 
 
@@ -30,9 +31,9 @@ namespace WeldAdminPro.UI.ViewModels
 		public ObservableCollection<ProjectStockSummary> ProjectStockSummary { get; }
 		public ObservableCollection<StockTransaction> ProjectCostTransactions { get; }
 
-		public ObservableCollection<StockTransaction> ReturnableIssuedItems { get; } = new();
+        public ObservableCollection<ReturnableItemDisplay> ReturnableIssuedItems { get; } = new();
 
-		public event Action? RequestClose;
+        public event Action? RequestClose;
 
 		public bool IsPersisted => Project.Id != Guid.Empty;
 
@@ -50,6 +51,7 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public decimal MarginPercentage =>
 			_financialService.CalculateMarginPercentage(Project);
+
 
 		// ================= ISSUE FIELDS =================
 
@@ -87,9 +89,9 @@ namespace WeldAdminPro.UI.ViewModels
 			}
 		}
 
-		private StockTransaction? _selectedIssuedItem;
-		public StockTransaction? SelectedIssuedItem
-		{
+        private ReturnableItemDisplay? _selectedIssuedItem;
+        public ReturnableItemDisplay? SelectedIssuedItem
+        {
 			get => _selectedIssuedItem;
 			set
 			{
@@ -191,7 +193,7 @@ namespace WeldAdminPro.UI.ViewModels
 			if (!CanReturnStock || SelectedIssuedItem == null)
 				return;
 
-			var stockItem = StockItems.FirstOrDefault(x => x.Id == SelectedIssuedItem.StockItemId);
+			var stockItem = StockItems.FirstOrDefault(x => x.Id == SelectedIssuedItem.Id);
 
 			if (stockItem == null)
 				throw new InvalidOperationException("Stock item not found.");
@@ -209,21 +211,34 @@ namespace WeldAdminPro.UI.ViewModels
 			RefreshProjectData();
 		}
 
-		// ================= LOAD RETURNABLE ITEMS =================
+        // ================= LOAD RETURNABLE ITEMS =================
 
-		private void LoadReturnableItems()
-		{
-			ReturnableIssuedItems.Clear();
+        private void LoadReturnableItems()
+        {
+            ReturnableIssuedItems.Clear();
 
-			var issued = _materialService.GetReturnableItems(Project.Id);
+            var issued = _materialService.GetReturnableItems(Project.Id);
 
-			foreach (var item in issued)
-				ReturnableIssuedItems.Add(item);
-		}
+            foreach (var item in issued)
+            {
+                var stock = StockItems.FirstOrDefault(s => s.Id == item.StockItemId);
 
-		// ================= REFRESH =================
+                if (stock == null)
+                    continue;
 
-		private void RefreshProjectData()
+                ReturnableIssuedItems.Add(new ReturnableItemDisplay
+                {
+                    Id = item.StockItemId,
+                    Quantity = item.Quantity,
+                    UnitCost = item.UnitCost,
+                    Display = $"{stock.ItemCode} - {stock.Description} (Issued: {item.Quantity})"
+                });
+            }
+        }
+
+        // ================= REFRESH =================
+
+        private void RefreshProjectData()
 		{
 			IssuedStockHistory.Clear();
 			foreach (var u in _usageRepository.GetByProjectId(Project.Id))

@@ -20,20 +20,33 @@ namespace WeldAdminPro.UI.ViewModels.Quality
 
         [ObservableProperty]
         private Pqr? selectedPqr;
-
+        [ObservableProperty] private bool isLocked;
         public PqrViewModel()
         {
             Load();
         }
 
+
+        partial void OnSelectedPqrChanged(Pqr? value)
+        {
+            IsLocked = value?.IsLocked ?? false;
+        }
+
         public void Load()
         {
-            PqrList.Clear();
+            try
+            {
+                PqrList.Clear();
 
-            var data = _repo.GetAll();
+                var data = _repo.GetAll();
 
-            foreach (var p in data)
-                PqrList.Add(p);
+                foreach (var p in data)
+                    PqrList.Add(p);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load PQRs: {ex.Message}");
+            }
         }
 
         [RelayCommand]
@@ -41,6 +54,18 @@ namespace WeldAdminPro.UI.ViewModels.Quality
         {
             Load();
         }
+        public ObservableCollection<string> WeldingProcesses { get; } =
+    new ObservableCollection<string>
+    {
+        "SMAW",
+        "GMAW",
+        "GTAW",
+        "FCAW",
+        "SAW"
+    };
+
+        [ObservableProperty]
+        private string selectedWeldingProcess = "TIG";
 
         // =========================
         // ADD
@@ -48,17 +73,33 @@ namespace WeldAdminPro.UI.ViewModels.Quality
         [RelayCommand]
         private void AddPqr()
         {
-            var dialog = new PqrDialog();
-            var vm = new PqrDialogViewModel();
 
-            dialog.DataContext = vm;
-            vm.CloseAction = () => dialog.DialogResult = true;
 
-            if (dialog.ShowDialog() == true && vm.Result != null)
+            var vm = new PqrEditorViewModel();
+
+            System.Diagnostics.Debug.WriteLine("Dialog closed");
+            System.Diagnostics.Debug.WriteLine(vm.Result?.PqrNumber ?? "NO RESULT");
+
+            var view = new PqrEditorView
             {
-                _repo.Add(vm.Result);
-                Load();
+                DataContext = vm
+            };
+
+            view.ShowDialog();
+
+           
+
+            // ✅ SAVE after closing
+            if (vm.Result == null)
+            {
+                MessageBox.Show("Nothing was saved.", "Info");
+                return;
             }
+
+            _repo.Add(vm.Result);
+            Load();
+
+            MessageBox.Show("PQR saved successfully.", "Success");
         }
 
         // =========================
@@ -73,51 +114,60 @@ namespace WeldAdminPro.UI.ViewModels.Quality
                 return;
             }
 
-            var dialog = new PqrDialog();
-            var vm = new PqrDialogViewModel
+            if (SelectedPqr.IsLocked)
             {
-                PqrNumber = SelectedPqr.PqrNumber,
-                Process = SelectedPqr.Process,
-                MaterialGroup = SelectedPqr.MaterialGroup,
-                PNumber = SelectedPqr.PNumber,
-
-                ThicknessQualifiedMin = SelectedPqr.ThicknessQualifiedMin,
-                ThicknessQualifiedMax = SelectedPqr.ThicknessQualifiedMax,
-
-                FNumber = SelectedPqr.FNumber,
-                QualifiedPosition = SelectedPqr.QualifiedPosition,
-                JointType = SelectedPqr.JointType,
-
-                DiameterMin = SelectedPqr.DiameterMin,
-                DiameterMax = SelectedPqr.DiameterMax
-            };
-
-            dialog.DataContext = vm;
-            vm.CloseAction = () => dialog.DialogResult = true;
-
-            if (dialog.ShowDialog() == true && vm.Result != null)
-            {
-                var pqr = _repo.GetAll().First(x => x.Id == SelectedPqr.Id);
-
-                pqr.PqrNumber = vm.Result.PqrNumber;
-                pqr.Process = vm.Result.Process;
-                pqr.MaterialGroup = vm.Result.MaterialGroup;
-                pqr.PNumber = vm.Result.PNumber;
-
-                pqr.ThicknessQualifiedMin = vm.Result.ThicknessQualifiedMin;
-                pqr.ThicknessQualifiedMax = vm.Result.ThicknessQualifiedMax;
-
-                pqr.FNumber = vm.Result.FNumber;
-                pqr.QualifiedPosition = vm.Result.QualifiedPosition;
-                pqr.JointType = vm.Result.JointType;
-
-                pqr.DiameterMin = vm.Result.DiameterMin;
-                pqr.DiameterMax = vm.Result.DiameterMax;
-
-                _repo.Update(pqr);
-                Load();
+                MessageBox.Show("Cannot edit an approved (locked) PQR.");
+                return;
             }
 
+            var vm = new PqrEditorViewModel(SelectedPqr);
+
+            var view = new PqrEditorView
+            {
+                DataContext = vm
+            };
+
+            view.ShowDialog();
+
+            if (vm.Result == null)
+            {
+                MessageBox.Show("No changes saved.", "Info");
+                return;
+            }
+
+            _repo.Update(vm.Result);
+            Load();
+
+            MessageBox.Show("PQR updated successfully.", "Success");
+        }
+
+        [RelayCommand]
+        private void Approve()
+        {
+            if (SelectedPqr == null)
+                return;
+
+            if (SelectedPqr.IsLocked)
+            {
+                MessageBox.Show("PQR already approved.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(SelectedPqr.PqrNumber))
+            {
+                MessageBox.Show("PQR Number is required before approval.");
+                return;
+            }
+
+            SelectedPqr.IsApproved = true;
+            SelectedPqr.IsLocked = true;
+            SelectedPqr.ApprovedOn = DateTime.Now;
+            SelectedPqr.ApprovedBy = "User";
+
+            _repo.Update(SelectedPqr);
+            Load();
+
+            MessageBox.Show("PQR approved and locked.");
         }
 
         [RelayCommand]
@@ -172,6 +222,8 @@ namespace WeldAdminPro.UI.ViewModels.Quality
                 MessageBox.Show($"Import failed: {ex.Message}");
             }
         }
+
+
 
         // =========================
         // DELETE

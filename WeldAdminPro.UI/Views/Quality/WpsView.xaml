@@ -102,6 +102,7 @@
             <DataGrid.Columns>
 
                 <DataGridTextColumn Header="WPS No" Binding="{Binding WpsNumber}" Width="120"/>
+                <DataGridTextColumn Header="Rev" Binding="{Binding Revision}" Width="50"/>
                 <DataGridTextColumn Header="Process" Binding="{Binding Process}" Width="100"/>
                 <DataGridTextColumn Header="Material" Binding="{Binding MaterialGroup}" Width="120"/>
 
@@ -115,17 +116,24 @@
                 <DataGridTextColumn Header="Joint" Binding="{Binding JointType}" Width="100"/>
 
                 <DataGridTextColumn Header="Diameter" Binding="{Binding DiameterDisplay}" Width="100"/>
-                <DataGridTextColumn Header="Status" Binding="{Binding StatusIcon}" Width="80"/>
+                
 
                 <DataGridTemplateColumn Header="Status" Width="80">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock 
-                Text="{Binding StatusIcon, FallbackValue=''}"
-                Foreground="{Binding StatusColor, FallbackValue=Black}"
-                ToolTip="{Binding StatusMessage, FallbackValue=''}"
-                FontSize="16"
-                HorizontalAlignment="Center"/>
+                            <StackPanel>
+                                <TextBlock 
+        Text="{Binding StatusIcon}"
+        Foreground="{Binding StatusColor}"
+        FontSize="16"
+        HorizontalAlignment="Center"/>
+
+                                <TextBlock         
+        Text="{Binding ValidationMessage}" 
+        Foreground="{Binding StatusColor}"
+        TextWrapping="Wrap"
+        FontSize="11"/>
+                            </StackPanel>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

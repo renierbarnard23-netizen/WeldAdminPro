@@ -1,59 +1,125 @@
 <Window x:Class="WeldAdminPro.UI.Views.Quality.WpsDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="WPS Editor" Height="500" Width="600"
+        xmlns:conv="clr-namespace:WeldAdminPro.UI.Converters"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        Title="WPS Editor" Height="734" Width="650"
         WindowStartupLocation="CenterScreen">
 
-	<ScrollViewer>
-		<StackPanel Margin="15">
+    <Window.Resources>
+        <conv:InverseBoolConverter x:Key="InverseBoolConverter"/>
+    </Window.Resources>
 
-			<!-- GENERAL -->
-			<TextBlock Text="General" FontWeight="Bold"/>
-			<TextBox Text="{Binding WpsNumber}" Margin="0,5" />
-			<TextBox Text="{Binding Process}" Margin="0,5"/>
+    <ScrollViewer>
+        <StackPanel Margin="15">
 
-			<!-- MATERIAL -->
-			<TextBlock Text="Material" FontWeight="Bold" Margin="0,10,0,0"/>
-			<TextBox Text="{Binding MaterialGroup}" Margin="0,5"/>
-			<TextBox Text="{Binding PNumber}" Margin="0,5"/>
+            <!-- GENERAL -->
+            <TextBlock Text="General" FontWeight="Bold"/>
+            <TextBox Text="{Binding WpsNumber}" Margin="0,5" />
+            <TextBox Text="{Binding Process}" Margin="0,5"/>
 
-			<!-- THICKNESS -->
-			<TextBlock Text="Thickness (mm)" FontWeight="Bold" Margin="0,10,0,0"/>
-			<StackPanel Orientation="Horizontal">
-				<TextBox Width="100" Text="{Binding ThicknessMin}" Margin="0,5"/>
-				<TextBlock Text=" to " VerticalAlignment="Center"/>
-				<TextBox Width="100" Text="{Binding ThicknessMax}" Margin="0,5"/>
-			</StackPanel>
+            <!-- LINKED PQR -->
+            <TextBlock Text="Linked PQR" FontWeight="Bold" Margin="0,10,0,0"/>
+            <ComboBox ItemsSource="{Binding AvailablePqrs}"
+                      SelectedItem="{Binding SelectedPqr}"
+                      DisplayMemberPath="PqrNumber"
+                      Margin="0,5"/>
 
-			<!-- DIAMETER -->
-			<TextBlock Text="Diameter (mm)" FontWeight="Bold" Margin="0,10,0,0"/>
-			<TextBox Text="{Binding Diameter}" Margin="0,5"/>
+            <!-- MATERIAL -->
+            <TextBlock Text="Material" FontWeight="Bold" Margin="0,10,0,0"/>
+            <TextBox Text="{Binding PNumber}" Margin="0,5"/>
 
-			<!-- POSITION -->
-			<TextBlock Text="Position" FontWeight="Bold" Margin="0,10,0,0"/>
-			<ComboBox SelectedItem="{Binding Position}" Margin="0,5">
-				<ComboBoxItem Content="1G"/>
-				<ComboBoxItem Content="2G"/>
-				<ComboBoxItem Content="5G"/>
-				<ComboBoxItem Content="6G"/>
-			</ComboBox>
+            <!-- THICKNESS -->
+            <TextBlock Text="Thickness (mm)" FontWeight="Bold" Margin="0,10,0,0"/>
+            <StackPanel Orientation="Horizontal">
+                <TextBox Width="100" Text="{Binding ThicknessMin}" Margin="0,5"/>
+                <TextBlock Text=" to " VerticalAlignment="Center"/>
+                <TextBox Width="100" Text="{Binding ThicknessMax}" Margin="0,5"/>
+            </StackPanel>
 
-			<!-- JOINT -->
-			<TextBlock Text="Joint Type" FontWeight="Bold" Margin="0,10,0,0"/>
-			<ComboBox SelectedItem="{Binding JointType}" Margin="0,5">
-				<ComboBoxItem Content="Groove"/>
-				<ComboBoxItem Content="Fillet"/>
-			</ComboBox>
+            <!-- DIAMETER -->
+            <TextBlock Text="Diameter (mm)" FontWeight="Bold" Margin="0,10,0,0"/>
+            <TextBox Text="{Binding Diameter}" Margin="0,5"/>
 
-			<!-- FILLER -->
-			<TextBlock Text="Filler" FontWeight="Bold" Margin="0,10,0,0"/>
-			<TextBox Text="{Binding FNumber}" Margin="0,5"/>
+            <!-- POSITION -->
+            <TextBlock Text="Position" FontWeight="Bold" Margin="0,10,0,0"/>
+            <ComboBox SelectedItem="{Binding Position}" Margin="0,5">
+                <sys:String>1G</sys:String>
+                <sys:String>2G</sys:String>
+                <sys:String>5G</sys:String>
+                <sys:String>6G</sys:String>
+            </ComboBox>
 
-			<!-- SAVE -->
-			<Button Content="Save"
-                    Command="{Binding SaveCommand}"
-                    Margin="0,15,0,0"
-                    Height="35"/>
-		</StackPanel>
-	</ScrollViewer>
+            <!-- JOINT -->
+            <TextBlock Text="Joint Type" FontWeight="Bold" Margin="0,10,0,0"/>
+            <ComboBox SelectedItem="{Binding JointType}" Margin="0,5">
+                <sys:String>Groove</sys:String>
+                <sys:String>Fillet</sys:String>
+            </ComboBox>
+
+            <TextBlock Text="Joint Design" Margin="0,10,0,0"/>
+            <TextBox Text="{Binding JointDesign}" Margin="0,5"/>
+
+            <!-- FILLER -->
+            <TextBlock Text="Filler" FontWeight="Bold" Margin="0,10,0,0"/>
+            <TextBox Text="{Binding FNumber}" Margin="0,5"/>
+
+            <!-- VALIDATION -->
+            <Border Margin="0,10" Padding="10" BorderThickness="1">
+    <Border.Style>
+        <Style TargetType="Border">
+            <Setter Property="BorderBrush" Value="Gray"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsCompliant}" Value="True">
+                    <Setter Property="BorderBrush" Value="Green"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsCompliant}" Value="False">
+                    <Setter Property="BorderBrush" Value="Red"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Border.Style>
+
+    <StackPanel>
+        <TextBlock Text="{Binding ValidationStatus}" FontWeight="Bold"/>
+        <ListBox ItemsSource="{Binding ValidationMessages}" Height="100"/>
+    </StackPanel>
+</Border>
+
+            <!-- ========================= -->
+<!-- VALIDATION STATUS -->
+<!-- ========================= -->
+<TextBlock Text="{Binding ValidationStatus}"
+           FontWeight="Bold"
+           Margin="0,10"
+           Foreground="Green"/>
+
+<!-- ========================= -->
+<!-- VALIDATION ERRORS -->
+<!-- ========================= -->
+<ListBox ItemsSource="{Binding ValidationMessages}"
+         Margin="0,5"
+         Height="120"/>
+
+            <!-- ========================= -->
+<!-- VALIDATION RESULTS -->
+<!-- ========================= -->
+<TextBlock Text="Validation Results"
+           FontWeight="Bold"
+           Margin="0,10,0,5"/>
+
+<ListBox ItemsSource="{Binding ValidationMessages}"
+         Height="100"
+         BorderBrush="Gray"
+         BorderThickness="1"/>
+
+            <!-- ACTIONS -->
+            <StackPanel Margin="0,15,0,0">
+                <Button Content="Save"
+                        Command="{Binding SaveCommand}"
+                        Margin="0,5"/>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
 </Window>

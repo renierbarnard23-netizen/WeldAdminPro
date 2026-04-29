@@ -1,6 +1,8 @@
 using System.Linq;
 using WeldAdminPro.Core.Quality;
 using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Core.Services;
+
 
 namespace WeldAdminPro.Data.Services
 {
@@ -13,8 +15,6 @@ namespace WeldAdminPro.Data.Services
         public ProjectComplianceResult Evaluate(Guid projectId)
         {
             var result = new ProjectComplianceResult();
-
-            var validator = new WpsValidationService();
 
             var wpsList = _wpsRepo.GetAll();
             var pqrs = _pqrRepo.GetAll();
@@ -30,12 +30,14 @@ namespace WeldAdminPro.Data.Services
                     continue;
                 }
 
-                var (isValid, message) = validator.Validate(wps, pqr);
+                var validator = new WpsValidationService();
 
-                if (!isValid)
+                var errors = validator.Validate(wps, pqr);
+
+                if (errors.Any())
                 {
                     result.WpsInvalid++;
-                    result.Issues.Add($"WPS {wps.WpsNumber}: {message}");
+                    result.Issues.Add($"WPS {wps.WpsNumber}: {string.Join("; ", errors)}");
                 }
                 else
                 {

@@ -1,4 +1,5 @@
 using WeldAdminPro.Core.Quality;
+using System.Linq;
 
 namespace WeldAdminPro.Data.Services
 {

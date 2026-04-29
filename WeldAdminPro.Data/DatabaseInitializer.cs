@@ -55,29 +55,66 @@ CREATE TABLE IF NOT EXISTS Pqr (
             AddColumnIfNotExists(connection, "Pqr", "DiameterMin", "REAL");
             AddColumnIfNotExists(connection, "Pqr", "DiameterMax", "REAL");
             AddColumnIfNotExists(connection, "Pqr", "WpsReferenceNumber", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "IsApproved", "INTEGER DEFAULT 0");
+            AddColumnIfNotExists(connection, "Pqr", "ApprovedOn", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "ApprovedBy", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "IsLocked", "INTEGER DEFAULT 0");
+
+            AddColumnIfNotExists(connection, "Pqr", "Revision", "INTEGER DEFAULT 0");
+            AddColumnIfNotExists(connection, "Pqr", "IsActive", "INTEGER DEFAULT 1");
+
+            AddColumnIfNotExists(connection, "Pqr", "Standard", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "JointDesign", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "SurfacePreparation", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "GrooveAngle", "REAL");
+            AddColumnIfNotExists(connection, "Pqr", "RootFace", "REAL");
+            AddColumnIfNotExists(connection, "Pqr", "RootGap", "REAL");
+            AddColumnIfNotExists(connection, "Pqr", "Backing", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "BackGouging", "TEXT");
+
+            AddColumnIfNotExists(connection, "Pqr", "JointDiagramPath", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "PassDiagramPath", "TEXT");
+
+            AddColumnIfNotExists(connection, "Pqr", "GrooveRadius", "REAL");
+            AddColumnIfNotExists(connection, "Pqr", "Misalignment", "REAL");
+            AddColumnIfNotExists(connection, "Pqr", "BackingType", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "EdgePreparation", "TEXT");
 
             // =========================
             // WPS TABLE (CRITICAL FIX)
             // =========================
             cmd.CommandText = @"
-CREATE TABLE IF NOT EXISTS Wps (
+CREATE TABLE IF NOT EXISTS WpsRecords (
     Id TEXT PRIMARY KEY,
-    WpsNumber TEXT,
-    Process TEXT,
-    MaterialGroup TEXT,
+    WpsNumber TEXT NOT NULL,
+    Revision INTEGER NOT NULL,
+
+    PqrId TEXT NOT NULL,
+    PqrNumber TEXT,
 
     ThicknessMin REAL,
     ThicknessMax REAL,
 
-    PqrId TEXT,
+    DiameterMin REAL,
+    DiameterMax REAL,
 
-    PNumber TEXT,
-    FNumber TEXT,
-    Position TEXT,
-    JointType TEXT,
-    Diameter REAL
+    PositionRange TEXT,
+
+    PNumber INTEGER,
+    FNumber INTEGER,
+
+    IsApproved INTEGER NOT NULL,
+    IsLocked INTEGER NOT NULL
 );";
             cmd.ExecuteNonQuery();
+
+            AddColumnIfNotExists(connection, "WpsRecords", "IsApproved", "INTEGER DEFAULT 0");
+            AddColumnIfNotExists(connection, "WpsRecords", "IsLocked", "INTEGER DEFAULT 0");
+            AddColumnIfNotExists(connection, "WpsRecords", "ApprovedOn", "TEXT");
+            AddColumnIfNotExists(connection, "WpsRecords", "ApprovedBy", "TEXT");
+
+            AddColumnIfNotExists(connection, "WpsRecords", "Revision", "INTEGER DEFAULT 0");
+            AddColumnIfNotExists(connection, "WpsRecords", "IsActive", "INTEGER DEFAULT 1");
 
             // =========================
             // PROJECTS
@@ -85,11 +122,27 @@ CREATE TABLE IF NOT EXISTS Wps (
             cmd.CommandText = @"
 CREATE TABLE IF NOT EXISTS Projects (
     Id TEXT PRIMARY KEY,
-    JobNumber INTEGER,
+    JobNumber INTEGER NOT NULL UNIQUE,
     ProjectName TEXT NOT NULL,
-    Client TEXT,
-    Status TEXT,
-    CreatedOn TEXT
+    Client TEXT NOT NULL,
+    ClientRepresentative TEXT,
+    Amount REAL NOT NULL DEFAULT 0,
+    Budget REAL NOT NULL DEFAULT 0,
+    QuoteNumber TEXT,
+    OrderNumber TEXT,
+    Material TEXT,
+    AssignedTo TEXT,
+    IsInvoiced INTEGER NOT NULL,
+    InvoiceNumber TEXT,
+    StartDate TEXT,
+    EndDate TEXT,
+    Status INTEGER NOT NULL,
+    CreatedOn TEXT NOT NULL,
+    ActualCost REAL NOT NULL DEFAULT 0,
+    CommittedCost REAL NOT NULL DEFAULT 0,
+    CompletedOn TEXT,
+    LastModifiedOn TEXT,
+    IsArchived INTEGER NOT NULL DEFAULT 0
 );";
             cmd.ExecuteNonQuery();
 
@@ -134,44 +187,7 @@ CREATE TABLE IF NOT EXISTS StockTransactions (
 
             AddColumnIfNotExists(connection, "StockTransactions", "BalanceAfter", "INTEGER");
 
-            // =========================
-            // PROJECT STOCK USAGE
-            // =========================
-            cmd.CommandText = @"
-CREATE TABLE IF NOT EXISTS Projects (
-    Id TEXT PRIMARY KEY,
-    JobNumber INTEGER NOT NULL,
-    ProjectName TEXT NOT NULL,
-    Client TEXT,
-    ClientRepresentative TEXT,
-    Amount REAL NOT NULL DEFAULT 0,
-    Budget REAL NOT NULL DEFAULT 0,
-    QuoteNumber TEXT,
-    OrderNumber TEXT,
-    Material TEXT,
-    AssignedTo TEXT,
-    IsInvoiced INTEGER NOT NULL DEFAULT 0,
-    InvoiceNumber TEXT,
-    StartDate TEXT,
-    EndDate TEXT,
-    Status INTEGER NOT NULL,
-    CreatedOn TEXT NOT NULL,
-    ActualCost REAL NOT NULL DEFAULT 0,
-    CommittedCost REAL NOT NULL DEFAULT 0,
-    CompletedOn TEXT,
-    LastModifiedOn TEXT,
-    IsArchived INTEGER NOT NULL DEFAULT 0
-);";
-
-            AddColumnIfNotExists(connection, "Projects", "IsArchived", "INTEGER");
-            AddColumnIfNotExists(connection, "Projects", "ActualCost", "REAL");
-            AddColumnIfNotExists(connection, "Projects", "CommittedCost", "REAL");
-            AddColumnIfNotExists(connection, "Projects", "LastModifiedOn", "TEXT");
-            AddColumnIfNotExists(connection, "Projects", "CompletedOn", "TEXT");
-            AddColumnIfNotExists(connection, "Projects", "ClientRepresentative", "TEXT");
-            AddColumnIfNotExists(connection, "Projects", "AssignedTo", "TEXT");
-            AddColumnIfNotExists(connection, "Projects", "Budget", "REAL");
-            cmd.ExecuteNonQuery();
+            
 
 
             cmd.CommandText = @"
@@ -250,6 +266,19 @@ CREATE TABLE IF NOT EXISTS Categories (
     Id TEXT PRIMARY KEY,
     Name TEXT NOT NULL,
     IsActive INTEGER NOT NULL DEFAULT 1
+);";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS ProjectStockUsages (
+    Id TEXT PRIMARY KEY,
+    ProjectId TEXT NOT NULL,
+    StockItemId TEXT NOT NULL,
+    Quantity REAL NOT NULL,
+    UnitCostAtIssue REAL NOT NULL,
+    IssuedOn TEXT NOT NULL,
+    IssuedBy TEXT,
+    Notes TEXT
 );";
             cmd.ExecuteNonQuery();
 

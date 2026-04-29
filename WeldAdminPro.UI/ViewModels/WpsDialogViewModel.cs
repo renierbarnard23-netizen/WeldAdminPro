@@ -1,9 +1,32 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System;
+using System.Collections.ObjectModel;
 using WeldAdminPro.Core.Quality;
+using WeldAdminPro.Core.Quality.Services;
+using WeldAdminPro.Data.Repositories;
 
 public partial class WpsDialogViewModel : ObservableObject
 {
+    private readonly WpsGeneratorService _generator = new();
+
+    // =========================
+    // CONSTRUCTOR
+    // =========================
+    public WpsDialogViewModel()
+    {
+        AvailablePqrs = new ObservableCollection<Pqr>(
+            new PqrRepository().GetAll()
+        );
+    }
+
+    // =========================
+    // PROPERTIES
+    // =========================
+
+    public ObservableCollection<Pqr> AvailablePqrs { get; set; } = new();
+    public ObservableCollection<string> ValidationMessages { get; } = new();
+
     [ObservableProperty] private string wpsNumber = "";
     [ObservableProperty] private string process = "";
     [ObservableProperty] private string materialGroup = "";
@@ -22,10 +45,56 @@ public partial class WpsDialogViewModel : ObservableObject
     [ObservableProperty] private double? interpassMax;
     [ObservableProperty] private bool pwhtRequired;
 
+    [ObservableProperty] private Pqr? selectedPqr;
+    [ObservableProperty] private bool isLocked;
+
+    [ObservableProperty] private string jointDesign = "";
+
+    [ObservableProperty] private bool isCompliant;
+
+    [ObservableProperty] private string validationStatus = "";
     public Wps? Result { get; private set; }
 
     public Action? CloseAction { get; set; }
 
+    // =========================
+    // AUTO GENERATE FROM PQR
+    // =========================
+    partial void OnSelectedPqrChanged(Pqr? value)
+    {
+        if (value == null)
+            return;
+
+        var generated = _generator.GenerateFromPqr(value);
+
+        WpsNumber = generated.WpsNumber ?? "";
+        Process = generated.Process ?? "";
+        MaterialGroup = generated.MaterialGroup ?? "";
+
+        PNumber = generated.PNumber ?? "";
+        FNumber = generated.FNumber ?? "";
+
+        ThicknessMin = generated.ThicknessMin;
+        ThicknessMax = generated.ThicknessMax;
+        Diameter = generated.Diameter;
+
+        Position = generated.Position ?? "";
+        JointType = generated.JointType ?? "";        
+    }
+
+    [RelayCommand]
+    private void ApproveWps()
+    {
+        if (Result == null)
+            return;
+
+        Result.IsApproved = true;
+        Result.IsLocked = true;
+    }
+
+    // =========================
+    // SAVE
+    // =========================
     [RelayCommand]
     private void Save()
     {
@@ -47,7 +116,8 @@ public partial class WpsDialogViewModel : ObservableObject
             PreheatMin = PreheatMin,
             PreheatMax = PreheatMax,
             InterpassMax = InterpassMax,
-            PwhtRequired = PwhtRequired
+            PwhtRequired = PwhtRequired,
+
         };
 
         CloseAction?.Invoke();

@@ -7,5 +7,8 @@ namespace WeldAdminPro.Core.Interfaces
         void Add(Wps wps);
         void Update(Wps wps);
         Wps? GetByWpsNumber(string wpsNumber);
+
+        int GetNextRevision(string wpsNumber);
+        void DeactivatePrevious(string wpsNumber);
     }
 }

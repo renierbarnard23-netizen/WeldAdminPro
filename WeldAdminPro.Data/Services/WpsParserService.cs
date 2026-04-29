@@ -3,22 +3,23 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using WeldAdminPro.Core.Quality;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace WeldAdminPro.Data.Services
 {
     public class WpsParserService
     {
-        public List<Wps> ParseMultiple(string text, string fallbackName)
+        public List<Wps> ParseMultiple(string text, string fallbackName, Pqr? linkedPqr = null)
         {
-            return new List<Wps> { ParseSingle(text, fallbackName) };
+            return new List<Wps> { ParseSingle(text, fallbackName, linkedPqr) };
         }
 
-        private Wps ParseSingle(string text, string fallbackName)
+        private Wps ParseSingle(string text, string fallbackName, Pqr? linkedPqr = null)
         {
             text ??= "";
 
             text = text.ToUpper();
-                        
+
             System.IO.File.WriteAllText($@"C:\Temp\WPS_DEBUG_{DateTime.Now.Ticks}.txt", text);
 
             text = text.Replace("\n", " ").Replace("\r", " ");
@@ -29,7 +30,7 @@ namespace WeldAdminPro.Data.Services
                 Id = Guid.NewGuid(),
                 WpsNumber = Clean(fallbackName),
                 Process = text.Contains("GTAW", StringComparison.OrdinalIgnoreCase) ? "TIG" : "UNKNOWN",
-                MaterialGroup = "UNKNOWN",
+                MaterialGroup = "",
                 Position = "ALL",
                 JointType = "",
                 Diameter = 0
@@ -163,19 +164,20 @@ namespace WeldAdminPro.Data.Services
             // ✅ P NUMBER
             // =========================
 
-            //var pMatch = Regex.Match(header, @"P\s*([0-9]{1,2}[A-Z]?)", RegexOptions.IgnoreCase);
-            //if (pMatch.Success)
-            //    wps.PNumber = $"P{pMatch.Groups[1].Value.ToUpper()}";
+            var pMatch = Regex.Match(header, @"P\s*([0-9]{1,2}[A-Z]?)", RegexOptions.IgnoreCase);
+            if (pMatch.Success)
+                wps.PNumber = $"P{pMatch.Groups[1].Value.ToUpper()}";
 
-           
+
             // =========================
             // 🔥 MATERIAL SECTION EXTRACTION (CRITICAL FIX)
             // =========================
 
+
             // Try isolate BASE MATERIAL section first
             string materialText;
 
-            // Try section extraction
+
             var materialSectionMatch = Regex.Match(text,
                 @"(BASE MATERIAL|MATERIAL|PARENT MATERIAL).*?(FILLER|WELDING|PREHEAT|PROCESS|POSITION)",
                 RegexOptions.IgnoreCase | RegexOptions.Singleline);
@@ -186,9 +188,26 @@ namespace WeldAdminPro.Data.Services
             }
             else
             {
-                // 🔥 EXPANDED fallback (CRITICAL FIX)
-                materialText = text.Substring(0, Math.Min(1200, text.Length)).ToUpper();
+                // 🔥 JUST REUSE VARIABLE (NO var)
+                materialSectionMatch = Regex.Match(text,
+                    @"BASE METALS?.{0,800}",
+                    RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+                if (materialSectionMatch.Success)
+                {
+                    materialText = materialSectionMatch.Value.ToUpper();
+                }
+                else
+                {
+                    materialText = text.Substring(0, Math.Min(400, text.Length)).ToUpper();
+                }
             }
+            // 🔥 ONLY remove WPS references IF THEY ARE NOT MATERIAL LINES
+            materialText = Regex.Replace(materialText,
+                @"WPS[-\s]*SAF\s*2507\s*(REV|DATE)",
+                "",
+                RegexOptions.IgnoreCase);
+
 
             // OCR fixes
             materialText = materialText.Replace("5A", "SA");
@@ -198,30 +217,62 @@ namespace WeldAdminPro.Data.Services
             materialText = Regex.Replace(materialText, @"[\-_/]", " ");
             materialText = Regex.Replace(materialText, @"\s+", " ");
 
+            // 🔥 DIRECT SPEC EXTRACTION (MUST BE HERE)
+            if (Regex.IsMatch(materialText, @"TP\s*304L|S30403"))
+                wps.MaterialGroup = "Stainless 304L";
+
+            else if (Regex.IsMatch(materialText, @"TP\s*310|S31000"))
+                wps.MaterialGroup = "Stainless 310";
+
+            else if (Regex.IsMatch(materialText, @"TP\s*316|S31600"))
+                wps.MaterialGroup = "Stainless 316";
+
+            // 🔥 ONLY detect SAF2507 if part of BASE MATERIAL SPEC (NOT WPS reference)
+            if (Regex.IsMatch(materialText, @"A/SA[-\s]*790.*S32750", RegexOptions.IgnoreCase) ||
+                Regex.IsMatch(materialText, @"UNS\s*S32750", RegexOptions.IgnoreCase))
+            {
+                wps.MaterialGroup = "Duplex SAF2507";
+            }
+
+            // 🔥 FINAL FALLBACK — CHECK FULL TEXT (CRITICAL FIX)
+            if (string.IsNullOrWhiteSpace(wps.MaterialGroup))
+            {
+                if (Regex.IsMatch(text, @"SAF\s*2507", RegexOptions.IgnoreCase))
+                {
+                    wps.MaterialGroup = "Duplex SAF2507";
+                }
+            }
+
             // =========================
             // 🔥 HARD PRIORITY MATERIAL OVERRIDE (NEW)
             // =========================
 
-            if (materialText.Contains("SA106") || materialText.Contains("SA 106"))
+            // 🔥 PRIORITY MATERIAL (ORDER FIXED)
+
+            if (string.IsNullOrWhiteSpace(wps.MaterialGroup) || wps.MaterialGroup == "UNKNOWN")
             {
-                wps.MaterialGroup = "Carbon Steel A106";
-            }
-            else if (materialText.Contains("SB 163"))
-            {
-                wps.MaterialGroup = "Nickel Alloy SB163";
-            }
-            else if (materialText.Contains("SA 304"))
-            {
-                wps.MaterialGroup = "Stainless 304L";
-            }
-            else if (materialText.Contains("SA 310"))
-            {
-                wps.MaterialGroup = "Stainless 310";
-            }
-            else if (materialText.Contains("SA 316"))
-            {
-                wps.MaterialGroup = "Stainless 316";
-            }
+                if (Regex.IsMatch(materialText, @"430A|BS\s*1501", RegexOptions.IgnoreCase))
+                    wps.MaterialGroup = "Carbon Steel 430A";
+
+                else if (Regex.IsMatch(materialText, @"S?A\s*106", RegexOptions.IgnoreCase))
+                    wps.MaterialGroup = "Carbon Steel A106";
+
+                else if (Regex.IsMatch(materialText, @"S?B\s*163"))
+                    wps.MaterialGroup = "Nickel Alloy";
+
+                else if (Regex.IsMatch(materialText, @"904L|N08904"))
+                    wps.MaterialGroup = "Nickel Alloy 904L";
+
+                else if (Regex.IsMatch(materialText, @"3\s*0\s*4\s*L"))
+                    wps.MaterialGroup = "Stainless 304L";
+
+                else if (Regex.IsMatch(materialText, @"\b316\b"))
+                    wps.MaterialGroup = "Stainless 316";
+
+                else if (Regex.IsMatch(materialText, @"\b310\b"))
+                    wps.MaterialGroup = "Stainless 310";
+            }         
+            
 
             // =========================
             // 🔥 MATERIAL DETECTION (ORDER FIXED)
@@ -237,7 +288,7 @@ namespace WeldAdminPro.Data.Services
                     scores[key] = 0;
 
                 scores[key] += value;
-            }
+            }                 
 
             // CARBON STEEL
             if (Regex.IsMatch(materialText, @"430A|BS\s*1501|A105|A106"))
@@ -251,17 +302,17 @@ namespace WeldAdminPro.Data.Services
             if (Regex.IsMatch(materialText, @"3\s*0\s*4\s*L"))
                 AddScore("Stainless 304L", 20);
 
-            if (Regex.IsMatch(materialText, @"3\s*1\s*6\s*L?"))
+            if (Regex.IsMatch(materialText, @"\b3\s*1\s*6\s*L?\b"))
                 AddScore("Stainless 316", 20);
 
-            if (Regex.IsMatch(materialText, @"3\s*1\s*0"))
-                AddScore("Stainless 310", 20);
+            if (Regex.IsMatch(materialText, @"\b3\s*1\s*0\b"))
+                AddScore("Stainless 310", 20);            
 
             // DUPLEX
-            if (Regex.IsMatch(materialText, @"SAF\s*2\s*5\s*0\s*7|S32750|2\s*5\s*0\s*7", RegexOptions.IgnoreCase))
+            if (Regex.IsMatch(materialText, @"S32750") && Regex.IsMatch(materialText, @"A/SA\-790"))
+            {
                 AddScore("Duplex SAF2507", 20);
-          
-
+            }
             // NICKEL
             if (Regex.IsMatch(materialText, @"904L|N08904"))
             {
@@ -270,15 +321,25 @@ namespace WeldAdminPro.Data.Services
 
             if (Regex.IsMatch(materialText, @"SB\s*163"))
             {
-                AddScore("Nickel Alloy SB163", 50); // 🔥 HIGH PRIORITY + UNIQUE
+                AddScore("Nickel Alloy", 50); // 🔥 HIGH PRIORITY + UNIQUE
             }
 
             // TITANIUM
             if (Regex.IsMatch(materialText, @"R50400|GR\s*2|TITANIUM", RegexOptions.IgnoreCase))
                 AddScore("Titanium", 15);
+            // 🔥 STRONG PREFERENCE FOR ENGINEERING LIMITS
 
-            // ONLY use scoring if NOT already set
-            if (string.IsNullOrWhiteSpace(wps.MaterialGroup) && scores.Count > 0)
+
+            // =========================
+            // 🔥 FINAL MATERIAL LOCK (CRITICAL FIX)
+            // =========================
+
+            // 🚨 DO NOT TOUCH MATERIAL IF ALREADY SET
+            if (!string.IsNullOrWhiteSpace(wps.MaterialGroup) && wps.MaterialGroup != "UNKNOWN")
+            {
+                // LOCK IT — DO NOTHING
+            }
+            else if (scores.Count > 0)
             {
                 var best = scores.OrderByDescending(x => x.Value).First().Key;
 
@@ -290,306 +351,48 @@ namespace WeldAdminPro.Data.Services
                 };
             }
 
-            // =========================
-            // 🔥 FINAL STABLE THICKNESS ENGINE
-            // =========================
 
             // =========================
-            // 🔥 SMART THICKNESS WINDOW (FINAL FIX)
+            // 🔥 FINAL THICKNESS LOGIC (CLEAN & STABLE)
             // =========================
 
-            string thicknessText;
-
-            // Find "APPROVAL RANGE"
-            var startMatch = Regex.Match(text, @"APPROVAL RANGE", RegexOptions.IgnoreCase);
-
-            if (startMatch.Success)
+            if (linkedPqr != null)
             {
-                int start = startMatch.Index;
-
-                // Take a FIXED WINDOW after it (safe for OCR)
-                int length = Math.Min(1200, text.Length - start);
-
-                thicknessText = text.Substring(start, length);
+                // ✅ ALWAYS TRUST PQR
+                wps.ThicknessMin = linkedPqr.ThicknessQualifiedMin;
+                wps.ThicknessMax = linkedPqr.ThicknessQualifiedMax;
             }
             else
             {
-                // fallback
-                thicknessText = text.Substring(0, Math.Min(1200, text.Length));
-            }
+                // ✅ PRIORITY 1: DESIGNATION (MOST RELIABLE)
+                var designation = ExtractFromDesignation(text);
 
-            thicknessText = thicknessText.Replace(",", ".");
-            thicknessText = Regex.Replace(thicknessText, @"\s+", " ");
-
-            // =========================
-            // 🔥 DIRECT DESIGNATION MATCH (CRITICAL FINAL FIX)
-            // =========================
-
-            var directMatch = Regex.Match(text,
-                @"T\s*(\d{1,2}(?:\.\d+)?)\s*[-–]\s*(\d{1,2}(?:\.\d+)?)",
-                RegexOptions.IgnoreCase);
-
-            if (directMatch.Success)
-            {
-                var v1 = ParseDouble(directMatch.Groups[1].Value);
-                var v2 = ParseDouble(directMatch.Groups[2].Value);
-
-                var min = Math.Min(v1, v2);
-                var max = Math.Max(v1, v2);
-
-                // sanity check
-                if (min > 0 && max > min && max <= 30)
+                if (designation.HasValue)
                 {
-                    wps.ThicknessMin = min;
-                    wps.ThicknessMax = max;
-                    
+                    wps.ThicknessMin = designation.Value.min;
+                    wps.ThicknessMax = designation.Value.max;
                 }
-            }
-
-            // Fix OCR merged values
-            thicknessText = Regex.Replace(thicknessText,
-                @"(\d\.\d)(\d\.\d+)",
-                "$1-$2");
-
-            // Fix cases like 1.511.08 → 1.5-11.08
-            thicknessText = Regex.Replace(thicknessText,
-                @"(\d+\.\d+)\s*(\d+\.\d+)",
-                "$1-$2");
-
-            // 🔥 FIX BROKEN OCR LIKE 1108 → 11.08
-            thicknessText = Regex.Replace(thicknessText,
-                @"\b(1[01])\s*0?8\b",
-                "$1.08");
-
-            // 🔥 FIX 1098 → 10.98
-            thicknessText = Regex.Replace(thicknessText,
-                @"\b10\s*98\b",
-                "10.98");
-                       
-            // Match ranges
-            var matches = Regex.Matches(thicknessText,
-                @"(\d{1,2}(?:\.\d+)?)\s*(?:-|–|TO)\s*(\d{1,2}(?:\.\d+)?)");
-
-            // 🔥 FALLBACK: handle OCR cases like "1.5 11.08"
-            if (matches.Count == 0)
-            {
-                matches = Regex.Matches(thicknessText,
-                    @"(\d{1,2}(?:\.\d+)?)\s+(\d{1,2}(?:\.\d+)?)");
-            }
-
-            double earlyMin = 0;
-            double earlyMax = 0;
-
-
-            // 🔥 ORDER SMALLEST RANGE FIRST
-
-            Match? bestMatch = null;
-            double bestScore = double.MinValue;
-
-            System.IO.File.WriteAllText(@"C:\Temp\THICKNESS_MATCHES.txt", string.Join("\n", matches.Cast<Match>().Select(m => m.Value)));
-
-            // =========================
-            // 🔥 EARLY RANGE DETECTION (CORRECT PLACE)
-            // =========================
-
-            foreach (Match m in matches)
-            {
-                var v1 = ParseDouble(m.Groups[1].Value);
-                var v2 = ParseDouble(m.Groups[2].Value);
-
-                var min = Math.Min(v1, v2);
-                var max = Math.Max(v1, v2);
-
-                if (min >= 1.3 && min <= 2.0 && max >= 7 && max <= 25)
+                else
                 {
-                    earlyMin = min;
-                    earlyMax = max;
-                }
-            }
+                    // ✅ PRIORITY 2: APPROVAL RANGE
+                    var approvalText = ExtractApprovalSection(text);
+                    var approval = ExtractFromApproval(approvalText);
 
-            foreach (Match m in matches)
-            {
-                var v1 = ParseDouble(m.Groups[1].Value);
-                var v2 = ParseDouble(m.Groups[2].Value);
-
-                bool isDuplex = wps.MaterialGroup.Contains("SAF2507");
-
-                var min = Math.Min(v1, v2);
-                var max = Math.Max(v1, v2);
-
-                // 🔥 HARD FILTER - INVALID THICKNESS VALUES
-
-                // Reject nonsense values
-                if (min <= 0 || max <= 0)
-                    continue;
-
-                // Reject unrealistic thickness
-                if (max > 30)
-                    continue;
-
-                // Reject identical values (like 2.4–2.4 filler sizes)
-                if (Math.Abs(max - min) < 0.01)
-                    continue;
-
-                var range = max - min;
-
-                // 🔥 HARD FILTER FOR DUPLEX (FINAL FIX)
-                if (wps.MaterialGroup.Contains("SAF2507"))
-                {
-                    // Must include root range
-                    if (min > 2.5)
-                        continue;
-
-                    // Must be realistic thickness
-                    if (max < 8)
-                        continue;
-                }
-
-                double score = 0;
-
-                
-                // Root ranges (reduced influence)
-                // 🔥 Strong preference for root-start ranges
-                if (min >= 1.3 && min <= 2.5)
-                    score += 15;              
-
-
-                // Prefer full engineering ranges
-                if (range >= 5 && range <= 25)
-                    score += 4;
-
-                // =========================
-                // 🔥 HARD REJECTION RULES (FINAL FIX)
-                // =========================
-
-                // ❌ Reject ROOT GAP / SMALL RANGES
-                if (max <= 3)
-                    continue;
-
-                // ❌ Reject filler sizes
-                if (min >= 2.0 && max <= 3.5)
-                    continue;
-
-                // ❌ Reject reversed weird ranges like 2.4–1.5
-                if (range < 1.0)
-                    continue;
-
-                // ❌ Reject mid-only ranges (NO ROOT)
-                if (min > 3)
-                    continue;
-
-                // Carbon steel boost
-                bool isCarbon = wps.MaterialGroup.Contains("Carbon");
-                if (isCarbon && max >= 15)
-                    score += 10;
-
-                // 🔥 Duplex must include root range
-                if (isDuplex)
-                {
-                    // Must start near root (critical rule)
-                    if (min <= 2.5)
-                        score += 40;
+                    if (approval.HasValue)
+                    {
+                        wps.ThicknessMin = approval.Value.min;
+                        wps.ThicknessMax = approval.Value.max;
+                    }
                     else
-                        score -= 20;
-
-                    // Prefer realistic upper bound
-                    if (max >= 8 && max <= 15)
-                        score += 20;
-
-                    // 🔥 CRITICAL: prefer ranges that include BOTH root + high thickness
-                    if (isDuplex && min <= 2.5 && max >= 8)
-                        score += 30;
-
-                    // 🔥 Kill rounded fake ranges completely
-                    if (isDuplex && Math.Abs(max - 10) < 0.01)
-                        score -= 100;
-
-                    // 🔥 Reject mid-only ranges (NO ROOT)
-                    if (min > 3 && min < 8)
                     {
-                        score -= 40;
+                        // ✅ PRIORITY 3: TEST THICKNESS
+                        var result = ExtractTestThickness(text);
+                        wps.ThicknessMin = result.min;
+                        wps.ThicknessMax = result.max;
                     }
-
-                    // 🔥 PRIORITIZE TRUE ENGINEERING RANGE (FINAL FIX)
-                    if (isDuplex && min <= 2.5 && max >= 10.5)
-                    {
-                        score += 50;
-                    }
-
-                    // 🔥 FINAL RULE: Duplex MUST include root
-                    if (isDuplex && min > 3)
-                    {
-                        score -= 60;
-                    }                  
-
-                    if (isDuplex && min <= 2.5 && max >= 10)
-                    {
-                        score += 100;
-                    }
-
-                }
-
-                // =========================
-                // 🔥 FINAL DECISION (CORRECT PLACE)
-                // =========================
-
-                
-                // Standard penalties
-                score -= range * 0.5;
-
-                if (max <= 12) score += 5;
-                if (max > 20) score -= 5;
-
-                // Prefer decimal precision (engineering values)
-                if (m.Groups[2].Value.Contains("."))
-                    score += 15;
-
-                // 🔥 Prefer non-rounded engineering limits like 11.08, 10.98, etc.
-                if (m.Groups[2].Value.EndsWith("08") || m.Groups[2].Value.EndsWith("98") || m.Groups[2].Value.EndsWith("24"))
-                    score += 20;
-
-                // =========================
-                // 🔥 FORCE TRUE ROOT RANGE PRIORITY
-                // =========================
-
-                if (min >= 1.3 && min <= 2.0 && max >= 7)
-                {
-                    score += 100; // THIS MAKES CORRECT RANGE ALWAYS WIN
-                }
-
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    bestMatch = m;
                 }
             }
 
-            if (bestMatch != null)
-            {
-                var v1 = ParseDouble(bestMatch.Groups[1].Value);
-                var v2 = ParseDouble(bestMatch.Groups[2].Value);
-
-                v1 = Math.Round(v1, 2);
-                v2 = Math.Round(v2, 2);
-
-                var finalMin = Math.Min(v1, v2);
-                var finalMax = Math.Max(v1, v2);
-
-                // 🔥 Prefer early engineering range if valid
-                if (earlyMin > 0 && earlyMax > 0)
-                {
-                    // Must be a proper engineering range
-                    if (earlyMin <= 2.0 && earlyMax >= 7)
-                    {
-                        wps.ThicknessMin = earlyMin;
-                        wps.ThicknessMax = earlyMax;
-                        
-                    }
-                }
-
-                wps.ThicknessMin = finalMin;
-                wps.ThicknessMax = finalMax;
-            }
 
             // =========================
             // ✅ P FROM MATERIAL
@@ -663,7 +466,7 @@ namespace WeldAdminPro.Data.Services
             foreach (Match m in fillermatches)
             {
                 var val = Regex.Replace(m.Value.ToUpper(), @"\s+", "");
-                                
+
                 if (val.Contains("ERTI"))
                 {
                     bestFiller = val;
@@ -714,10 +517,13 @@ namespace WeldAdminPro.Data.Services
                 else if (mat2.Contains("NICKEL"))
                     wps.FNumber = "F41";  // ✅ GENERIC NICKEL ALLOYS
                 if (mat.Contains("SB163"))
+                {
                     wps.FNumber = "F41";
-
+                }
                 else if (mat2.Contains("TITANIUM"))
+                {
                     wps.FNumber = "F51";
+                }
 
                 else if (mat2.Contains("2507"))
                     wps.FNumber = "F6";
@@ -725,7 +531,7 @@ namespace WeldAdminPro.Data.Services
 
             System.IO.File.WriteAllText(@"C:\Temp\FILLER_FOUND.txt", bestFiller);
 
-          
+
             // 🔥 FALLBACK (KEEP THIS)
             if (string.IsNullOrWhiteSpace(wps.FNumber))
             {
@@ -783,107 +589,245 @@ namespace WeldAdminPro.Data.Services
                 wps.JointType = "Groove"; // 🔥 SAFE DEFAULT
             }
 
-            bool isPipe = Regex.IsMatch(text, @"\bPIPE\b|DN\s*\d+|NPS", RegexOptions.IgnoreCase);
+            bool isPipe = Regex.IsMatch(text, @"PIPE|DN\s*\d+|NPS|OUTSIDE DIAMETER|OD", RegexOptions.IgnoreCase);
             bool isPlate = Regex.IsMatch(text, @"\bPLATE\b|\bSHEET\b", RegexOptions.IgnoreCase);
-            
 
-            // =========================
-            // 🔥 DIAMETER DETECTION (SMART FINAL)
-            // =========================
+            // 🔥 ONLY treat as plate if NOT pipe
+            bool isDefinitelyPlate = isPlate && !isPipe;
 
-            string diaText;
-
-            // 🔥 HARD OVERRIDE FROM DESIGNATION
-            if (Regex.IsMatch(text, @"PIPE", RegexOptions.IgnoreCase) &&
-                Regex.IsMatch(text, @"NO\s*LIMIT|ALL", RegexOptions.IgnoreCase))
+            if (isDefinitelyPlate)
             {
-                wps.Diameter = double.MaxValue;
-                
+                wps.Diameter = 0;
             }
 
-            // Try extract ONLY DESIGNATION + APPROVAL RANGE area
-            var diaSection = Regex.Match(text,
-                @"DESIGNATION.*?(APPROVAL RANGE|JOINT DESIGN)",
+            // =========================
+            // 🔥 DIAMETER DETECTION (FINAL CLEAN)
+            // =========================
+
+            string diaText = "";
+
+            var pipeSection = Regex.Match(text,
+                @"OUTSIDE DIAMETER.*?(NO LIMIT|ALL PRACTICAL PURPOSES|ALL DIAMETER|DN\s*\d+.*?DN\s*\d+|\d{2,4}\s*MM\s*[-–TO]{1,3}\s*\d{2,4}\s*MM)",
                 RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-            if (diaSection.Success)
+            if (pipeSection.Success)
             {
-                diaText = diaSection.Value;
+                diaText = pipeSection.Value;
             }
             else
             {
-                diaText = text.Substring(0, Math.Min(800, text.Length));
+                diaText = text; // fallback ONLY if not found
             }
 
             diaText = diaText.Replace(",", ".");
 
-            // 🚫 PLATE → NO DIAMETER
-            if (isPlate && !isPipe)
+            // ✅ DECLARE FIRST (GLOBAL TO THIS BLOCK)
+            double detectedDiameter = 0;
+
+            // 🔥 SINGLE MATCH MUST BE DECLARED HERE
+            var singleMatch = Regex.Match(diaText,
+                    @"(OD|OUTSIDE DIAMETER)[^\d]*(\d{2,4})\s*MM",
+                    RegexOptions.IgnoreCase);
+
+            // 1️⃣ NO LIMIT
+            if (Regex.IsMatch(diaText, @"NO\s*LIMIT|ALL\s*DIAMETER|ALL\s*PRACTICAL", RegexOptions.IgnoreCase))
             {
-                wps.Diameter = 0; // or double.NaN if you prefer
+                detectedDiameter = double.MaxValue;
             }
             else
             {
-                // 1️⃣ NO LIMIT / ALL
-                if (Regex.IsMatch(diaText, @"NO\s*LIMIT|ALL\s*DIAMETER|ALL\s*PRACTICAL", RegexOptions.IgnoreCase))
+                // 2️⃣ RANGE
+                var rangeMatch = Regex.Match(diaText,
+                    @"(\d{2,4})\s*(MM)?\s*[-–TO]{1,3}\s*(\d{2,4})\s*(MM)?",
+                    RegexOptions.IgnoreCase);
+
+                if (rangeMatch.Success)
                 {
-                    wps.Diameter = double.MaxValue;
+                    var maxDia = ParseDouble(rangeMatch.Groups[3].Value);
+
+                    // 🔥 FIX: reject OCR garbage
+                    if (maxDia > 1000)
+                        detectedDiameter = 0;
+                    else if (maxDia >= 20 && maxDia <= 5000)
+                        detectedDiameter = maxDia;
                 }
                 else
                 {
-                    // 2️⃣ RANGE
-                    var rangeMatch = Regex.Match(diaText,
-                        @"(\d{2,4})\s*(MM)?\s*[-–TO]{1,3}\s*(\d{2,4})\s*(MM)?",
+                    // 3️⃣ DN
+                    var dnMatch = Regex.Match(diaText,
+                        @"DN\s*(\d{2,4}).*?DN\s*(\d{2,4})",
                         RegexOptions.IgnoreCase);
 
-                    if (rangeMatch.Success)
+                    if (dnMatch.Success)
                     {
-                        var max = ParseDouble(rangeMatch.Groups[3].Value);
+                        var maxDia = ParseDouble(dnMatch.Groups[2].Value);
 
-                        if (max > 0 && max <= 5000)
-                            wps.Diameter = max;
+                        if (maxDia >= 20)
+                            detectedDiameter = maxDia;
                     }
                     else
                     {
-                        // 3️⃣ DN FORMAT
-                        var dnMatch = Regex.Match(diaText,
-                            @"DN\s*(\d{2,4}).*?DN\s*(\d{2,4})",
-                            RegexOptions.IgnoreCase);
-
-                        if (dnMatch.Success)
+                        // 4️⃣ SINGLE VALUE
+                        if (singleMatch.Success)
                         {
-                            var max = ParseDouble(dnMatch.Groups[2].Value);
+                            var val = ParseDouble(singleMatch.Groups[2].Value);
 
-                            if (max > 0)
-                                wps.Diameter = max;
+                            if (val >= 20 && val <= 5000)
+                                detectedDiameter = val;
                         }
-                        else
-                        {
-                            // 4️⃣ SINGLE VALUE
-                            var singleMatch = Regex.Match(diaText,
-                                @"(≥|>=)?\s*(\d{2,4})\s*MM",
-                                RegexOptions.IgnoreCase);
+                    }
 
-                            if (singleMatch.Success)
-                            {
-                                var val = ParseDouble(singleMatch.Groups[2].Value);
+                }
 
-                                if (val > 0)
-                                    wps.Diameter = val;
-                            }
-                            else
-                            {
-                                // 🔥 FINAL PIPE FALLBACK
-                                if (isPipe)
-                                    wps.Diameter = double.MaxValue;
-                            }
-                        }
+            }
+
+            // ❌ Reject unrealistic diameters (like thickness leaks)
+            if (detectedDiameter > 0 && detectedDiameter < 20)
+            {
+                detectedDiameter = 0;
+            }
+
+            // ✅ APPLY ONCE
+            if (detectedDiameter >= 20 && detectedDiameter <= 5000)
+            {
+                wps.Diameter = detectedDiameter;
+            }
+
+            // 🔥 FINAL PIPE FALLBACK (CORRECT LOCATION)
+            if (wps.Diameter == 0 && isPipe)
+            {
+                wps.Diameter = double.MaxValue;
+            }            
+
+            return wps;
+        }
+
+        // =========================
+        // 🔥 EXTRACT TEST THICKNESS (CRITICAL)
+        // =========================
+
+        private (double min, double max)? ExtractFromApproval(string text)
+        {
+            var match = Regex.Match(text,
+                @"THICKNESS[^0-9]{0,20}(\d+[\.,]?\d*)\s*[-–TO]{1,3}\s*(\d+[\.,]?\d*)",
+                RegexOptions.IgnoreCase);
+
+            if (!match.Success)
+                return null;
+
+            double min = double.Parse(match.Groups[1].Value.Replace(",", "."), CultureInfo.InvariantCulture);
+            double max = double.Parse(match.Groups[2].Value.Replace(",", "."), CultureInfo.InvariantCulture);
+
+            if (min >= 1 && max <= 50 && max > min)
+                return (min, max);
+
+            return null;
+        }
+
+        private (double min, double max) ExtractTestThickness(string text)
+        {
+            text = text.Replace(",", ".");
+
+            // 🔥 STEP 1: STRONG FILTER → ONLY THICKNESS CONTEXT
+            var matches = Regex.Matches(text,
+                @"THICKNESS[^0-9]{0,20}(\d+[\.,]?\d*)\s*[-–TO]{1,3}\s*(\d+[\.,]?\d*)",
+                RegexOptions.IgnoreCase);
+
+            double bestMin = 0;
+            double bestMax = 0;
+
+            foreach (Match m in matches)
+            {
+                var tMin = double.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
+                var tMax = double.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
+
+                // 🔥 VALID RANGE FILTER
+                if (tMin >= 0.5 && tMax <= 50)
+                {
+                    // 🔥 PICK THE LARGEST VALID RANGE (PQR logic)
+                    if (tMax > bestMax)
+                    {
+                        bestMin = tMin;
+                        bestMax = tMax;
                     }
                 }
             }
 
-            return wps;
+            if (bestMax > 0)
+                return (bestMin, bestMax);
+
+            // 🔥 FALLBACK → SINGLE VALUE (ONLY IF CLEAR)
+            var singleMatches = Regex.Matches(text,
+                @"THICKNESS[^0-9]{0,20}(\d+[\.,]?\d*)",
+                RegexOptions.IgnoreCase);
+
+            foreach (Match m in singleMatches)
+            {
+                var val = double.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
+
+                if (val >= 1 && val <= 50)
+                {
+                    return (1.5, val * 2);
+                }
+            }
+
+            return (0, 0);
         }
+
+        private (double min, double max)? ExtractFromDesignation(string text)
+        {
+            text = text.Replace(",", ".");
+
+
+            // 🔥 FIX LINE BREAKS / SPLIT VALUES
+            text = Regex.Replace(text, @"(\d+[\.,]?\d*)\s*-\s*(\r?\n|\s)+\s*(\d+[\.,]?\d*)", "$1-$3");
+
+            // ONLY fix known OCR patterns like 1108 → 11.08
+            text = Regex.Replace(text, @"\b(1[0-9]{3})\b", m =>
+            {
+                var val = m.Value;
+                return val.Substring(0, 2) + "." + val.Substring(2);
+            });
+
+            var matches = Regex.Matches(text,
+                @"THICKNESS[^0-9]{0,20}T?\s*(\d+[\.,]?\d*)\s*[-–]\s*(\d+[\.,]?\d*)",
+                RegexOptions.IgnoreCase);
+
+            var candidates = new List<(double min, double max)>();
+
+            foreach (Match match in matches)
+            {
+                double min = double.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+                double max = double.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+
+                if (min >= 1 && max <= 50 && max > min)
+                {
+                    candidates.Add((min, max));
+                }
+            }
+
+            if (candidates.Count == 0)
+                return null;
+
+            return candidates.OrderByDescending(c => c.max).First();
+        }
+
+        // =========================
+        // 🔥 EXTRACT APPROVAL SECTION (CRITICAL FIX)
+        // =========================
+        private string ExtractApprovalSection(string text)
+        {
+            var match = Regex.Match(text,
+                @"APPROVAL RANGE(.{0,2000})WELDING DATA",
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+            if (match.Success)
+                return match.Value;
+
+            // 🚨 DO NOT RETURN FULL TEXT
+            return "";
+        }
+
 
         private string Clean(string input)
         {

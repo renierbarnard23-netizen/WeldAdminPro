@@ -27,5 +27,18 @@ namespace WeldAdminPro.Core.Quality.Services
                 _repo.Update(wps);    // UPDATE
             }
         }
+        public void SaveRevision(Wps wps)
+        {
+            var repo = _repo;
+
+            // 🔒 lock old revision
+            repo.DeactivatePrevious(wps.WpsNumber);
+
+            // 🆕 assign new revision
+            wps.Revision = repo.GetNextRevision(wps.WpsNumber);
+            wps.IsActive = true;
+
+            repo.Add(wps);
+        }
     }
     }

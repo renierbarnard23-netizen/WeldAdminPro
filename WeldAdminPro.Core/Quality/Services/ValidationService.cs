@@ -1,38 +1,52 @@
+using WeldAdminPro.Core.Quality;
+
 namespace WeldAdminPro.Core.Quality.Services
 {
     public class ValidationService
     {
-        public (bool IsValid, string Message) Validate(Wps wps, WelderQualification welder)
+        public ValidationResult Validate(Wps wps, Pqr pqr)
         {
-            // 1. PQR linked
-            if (wps.PqrId == null)
-                return (false, "WPS has no PQR assigned");
+            var result = new ValidationResult();
 
-            // 2. Process
-            if (!string.Equals(wps.Process, welder.Process, StringComparison.OrdinalIgnoreCase))
-                return (false, "Welder not qualified for process");
+            // 1️⃣ PQR LINK
+            if (pqr == null)
+            {
+                result.Errors.Add("No PQR linked to WPS");
+                return result;
+            }
 
-            // 3. Expiry
-            if (welder.ExpiryDate < DateTime.Today)
-                return (false, "Welder qualification expired");
+            // 2️⃣ PROCESS
+            if (!string.Equals(wps.Process, pqr.Process, StringComparison.OrdinalIgnoreCase))
+            {
+                result.Errors.Add($"Process mismatch (WPS: {wps.Process}, PQR: {pqr.Process})");
+            }
 
-            // 4. P-No match
-            if (wps.PNumber != welder.PNumber)
-                return (false, $"P-No mismatch (WPS: {wps.PNumber}, Welder: {welder.PNumber})");
+            // 3️⃣ P-NUMBER
+            if (!string.Equals(wps.PNumber, pqr.PNumber))
+            {
+                result.Errors.Add($"P-No mismatch (WPS: {wps.PNumber}, PQR: {pqr.PNumber})");
+            }
 
-            // 5. F-No match
-            if (wps.FNumber != welder.FNumber)
-                return (false, $"F-No mismatch (WPS: {wps.FNumber}, Welder: {welder.FNumber})");
+            // 4️⃣ F-NUMBER
+            if (!string.Equals(wps.FNumber, pqr.FNumber))
+            {
+                result.Errors.Add($"F-No mismatch (WPS: {wps.FNumber}, PQR: {pqr.FNumber})");
+            }
 
-            // 6. Thickness range
-            if (welder.MinThickness > wps.ThicknessMin || welder.MaxThickness < wps.ThicknessMax)
-                return (false, "Thickness out of qualified range");
+            // 5️⃣ THICKNESS
+            if (wps.ThicknessMax > pqr.ThicknessQualifiedMax)
+            {
+                result.Errors.Add(
+                    $"Thickness exceeds PQR (WPS: {wps.ThicknessMax} mm > PQR: {pqr.ThicknessQualifiedMax} mm)");
+            }
 
-            // 7. Diameter
-            if (wps.Diameter != double.MaxValue && welder.Diameter < wps.Diameter)
-                return (false, "Welder not qualified for diameter");
+            if (wps.ThicknessMin < pqr.ThicknessQualifiedMin)
+            {
+                result.Errors.Add(
+                    $"Minimum thickness below qualified range (WPS: {wps.ThicknessMin} mm < PQR: {pqr.ThicknessQualifiedMin} mm)");
+            }
 
-            return (true, "Valid");
+            return result;
         }
     }
 }

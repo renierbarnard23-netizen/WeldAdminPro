@@ -1,0 +1,401 @@
+<Window x:Class="WeldAdminPro.UI.Views.Quality.PqrEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:conv="clr-namespace:WeldAdminPro.UI.Converters"
+             mc:Ignorable="d">
+
+	<Window.Resources>
+    <conv:InverseBoolConverter x:Key="InverseBoolConverter"/>
+	</Window.Resources>
+
+	<ScrollViewer VerticalScrollBarVisibility="Auto">
+
+		<StackPanel Margin="10">
+
+			<!-- ========================= -->
+			<!-- HEADER -->
+			<!-- ========================= -->
+			<GroupBox Header="PQR / WPS Details" Margin="0,0,0,10">
+				<Grid Margin="10">
+
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="2*"/>
+						<ColumnDefinition Width="1*"/>
+						<ColumnDefinition Width="2*"/>
+						<ColumnDefinition Width="2*"/>
+						<ColumnDefinition Width="1*"/>
+						<ColumnDefinition Width="2*"/>
+					</Grid.ColumnDefinitions>
+
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+
+					<!-- Labels -->
+					<TextBlock Text="PQR Number" Grid.Row="0" Grid.Column="0"/>
+					<TextBlock Text="Rev" Grid.Row="0" Grid.Column="1"/>
+					<TextBlock Text="Date" Grid.Row="0" Grid.Column="2"/>
+
+					<TextBlock Text="WPS Number" Grid.Row="0" Grid.Column="3"/>
+					<TextBlock Text="Rev" Grid.Row="0" Grid.Column="4"/>
+					<TextBlock Text="Date" Grid.Row="0" Grid.Column="5"/>
+
+					<!-- Inputs -->
+					<TextBox Text="{Binding PqrNumber}" Grid.Row="1" Grid.Column="0"/>
+					<TextBox Text="{Binding PqrRevision}" Grid.Row="1" Grid.Column="1"/>
+					<DatePicker SelectedDate="{Binding PqrDate}" Grid.Row="1" Grid.Column="2"/>
+
+					<TextBox Text="{Binding WpsNumber}" Grid.Row="1" Grid.Column="3"/>
+					<TextBox Text="{Binding WpsRevision}" Grid.Row="1" Grid.Column="4"/>
+					<DatePicker SelectedDate="{Binding WpsDate}" Grid.Row="1" Grid.Column="5"/>
+
+				</Grid>
+			</GroupBox>
+
+			<!-- ========================= -->
+			<!-- CODE / STANDARD -->
+			<!-- ========================= -->
+			<GroupBox Header="Code / Standard" Margin="0,0,0,10">
+				<StackPanel Margin="10">
+					<ComboBox ItemsSource="{Binding WeldingStandards}"
+                              SelectedItem="{Binding SelectedStandard}" />
+				</StackPanel>
+			</GroupBox>
+
+			<StackPanel Margin="10">
+				<TextBlock Text="Welding Process"/>
+				<ComboBox ItemsSource="{Binding WeldingProcesses}"
+						  SelectedItem="{Binding SelectedProcess}"/>
+			</StackPanel>
+
+			<!-- ========================= -->
+			<!-- JOINT DESIGN -->
+			<!-- ========================= -->
+			<GroupBox Header="Joint Design (QW-402)" Margin="0,0,0,10">
+				<Grid Margin="10">
+
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="2*"/>
+						<ColumnDefinition Width="3*"/>
+						<ColumnDefinition Width="2*"/>
+					</Grid.ColumnDefinitions>
+
+					<!-- LEFT: CONTROLS -->
+					<StackPanel Grid.Column="0" Margin="5">
+						<TextBlock Text="Joint Type"/>
+						<ComboBox ItemsSource="{Binding JointTypes}"
+                                  SelectedItem="{Binding SelectedJointType}"/>
+
+						<TextBlock Text="Joint Design" Margin="0,10,0,0"/>
+						<ComboBox ItemsSource="{Binding FilteredJointDesigns}"
+                                  SelectedItem="{Binding SelectedJointDesign}"/>
+					</StackPanel>
+
+					<!-- CENTER: IMAGE -->
+					<Grid Grid.Column="1" Margin="5">
+
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="1*"/>
+							<ColumnDefinition Width="1*"/>
+						</Grid.ColumnDefinitions>
+
+						<!-- ========================= -->
+						<!-- JOINT DIAGRAM -->
+						<!-- ========================= -->
+						<StackPanel Grid.Column="0" HorizontalAlignment="Center">
+							<TextBlock Text="Joint Diagram" FontWeight="Bold" Margin="0,0,0,5"/>
+
+							<Border BorderBrush="Gray" BorderThickness="1" Padding="5">
+								<Image Width="250" Height="180" Stretch="Uniform">
+									<Image.Source>
+										<Binding Path="SelectedJointImage"
+												 FallbackValue="pack://application:,,,/Images/Joints/default.png"/>
+									</Image.Source>
+								</Image>
+							</Border>
+						</StackPanel>
+
+						<!-- ========================= -->
+						<!-- PASS DIAGRAM -->
+						<!-- ========================= -->
+						<StackPanel Grid.Column="1" HorizontalAlignment="Center">
+							<TextBlock Text="Pass Sequence" FontWeight="Bold" Margin="0,0,0,5"/>
+
+							<Border BorderBrush="Gray" BorderThickness="1" Padding="5">
+								<Image Width="250" Height="180" Stretch="Uniform">
+									<Image.Source>
+										<Binding Path="SelectedPassDiagram"
+												 TargetNullValue="pack://application:,,,/Images/Passes/default.png"
+												 FallbackValue="pack://application:,,,/Images/Passes/default.png"/>
+									</Image.Source>
+								</Image>
+							</Border>
+						</StackPanel>
+
+					</Grid>
+
+					<!-- RIGHT: SUMMARY -->
+					<StackPanel Grid.Column="2" Margin="5">
+
+						<TextBlock Text="Joint Variables" FontWeight="Bold" Margin="0,0,0,5"/>
+
+						<TextBlock Text="Surface Prep"/>
+						<ComboBox ItemsSource="{Binding SurfacePreparations}"
+              SelectedItem="{Binding SurfacePreparation}"/>
+
+						<TextBlock Text="Groove Angle"/>
+						<TextBox Text="{Binding GrooveAngle, StringFormat=F2}"/>
+
+						<TextBlock Text="Root Face"/>
+						<TextBox Text="{Binding RootFace}"/>
+
+						<TextBlock Text="Root Gap"/>
+						<TextBox Text="{Binding RootGap}"/>
+
+						<TextBlock Text="Groove Radius"/>
+						<TextBox Text="{Binding GrooveRadius}"/>
+
+						<TextBlock Text="Misalignment"/>
+						<TextBox Text="{Binding Misalignment}"/>
+
+						<TextBlock Text="Back Gouging"/>
+						<ComboBox ItemsSource="{Binding BackGougingOptions}"
+              SelectedItem="{Binding BackGouging}"/>
+
+						<TextBlock Text="Backing"/>
+						<ComboBox ItemsSource="{Binding BackingOptions}"
+              SelectedItem="{Binding Backing}"/>
+
+						<TextBlock Text="Backing Type"/>
+						<TextBox Text="{Binding BackingType}"/>
+
+						<TextBlock Text="Edge Prep"/>
+						<ComboBox ItemsSource="{Binding EdgePreparations}"
+          SelectedItem="{Binding EdgePreparation}" />
+
+					</StackPanel>
+
+				</Grid>
+			</GroupBox>
+
+			<!-- ========================= -->
+			<!-- BASE METALS -->
+			<!-- ========================= -->
+			<GroupBox Header="Base Metals (QW-403)">
+				<Grid Margin="10">
+
+					<!-- ADD ROWS -->
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="2*"/>
+						<ColumnDefinition Width="1*"/>
+						<ColumnDefinition Width="1*"/>
+					</Grid.ColumnDefinitions>
+
+					<!-- ========================= -->
+					<!-- BASE METAL 1 -->
+					<!-- ========================= -->
+
+					<StackPanel Grid.Row="0" Grid.Column="0">
+						<TextBlock Text="Base Metal 1"/>
+						<ComboBox ItemsSource="{Binding BaseMaterialLibrary}"
+								  SelectedItem="{Binding SelectedBaseMaterial1}"
+								  DisplayMemberPath="Display"/>
+					</StackPanel>
+
+					<StackPanel Grid.Row="0" Grid.Column="1">
+						<TextBlock Text="P-No"/>
+						<TextBox Text="{Binding BaseMetal1PNo}" IsReadOnly="True"/>
+					</StackPanel>
+
+					<StackPanel Grid.Row="0" Grid.Column="2">
+						<TextBlock Text="Group"/>
+						<TextBox Text="{Binding BaseMetal1Group}" IsReadOnly="True"/>
+					</StackPanel>
+
+					<!-- ========================= -->
+					<!-- BASE METAL 2 (ADD THIS) -->
+					<!-- ========================= -->
+
+					<StackPanel Grid.Row="1" Grid.Column="0">
+						<TextBlock Text="Base Metal 2"/>
+						<ComboBox ItemsSource="{Binding BaseMaterialLibrary}"
+								  SelectedItem="{Binding SelectedBaseMaterial2}"
+								  DisplayMemberPath="Display"/>
+					</StackPanel>
+
+					<StackPanel Grid.Row="1" Grid.Column="1">
+						<TextBlock Text="P-No"/>
+						<TextBox Text="{Binding BaseMetal2PNo}" IsReadOnly="True"/>
+					</StackPanel>
+
+					<StackPanel Grid.Row="1" Grid.Column="2">
+						<TextBlock Text="Group"/>
+						<TextBox Text="{Binding BaseMetal2Group}" IsReadOnly="True"/>
+					</StackPanel>
+
+				</Grid>
+			</GroupBox>
+
+			<!-- ========================= -->
+			<!-- FILLER MATERIALS -->
+			<!-- ========================= -->
+			<GroupBox Header="Filler Metal (QW-404)" Margin="0,10,0,0">
+				<Grid Margin="10">
+
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="2*"/>
+						<ColumnDefinition Width="1*"/>
+						<ColumnDefinition Width="1*"/>
+					</Grid.ColumnDefinitions>
+
+					<!-- Filler -->
+					<StackPanel Grid.Column="0">
+						<TextBlock Text="Filler Classification"/>
+						<ComboBox ItemsSource="{Binding FillerLibrary}"
+                      SelectedItem="{Binding SelectedFiller}"
+                      DisplayMemberPath="Display"/>
+					</StackPanel>
+
+					<!-- F-No -->
+					<StackPanel Grid.Column="1">
+						<TextBlock Text="F-No"/>
+						<TextBox Text="{Binding FNumber, Mode=OneWay}" IsReadOnly="True"/>
+					</StackPanel>
+
+					<!-- A-No -->
+					<StackPanel Grid.Column="2">
+						<TextBlock Text="A-No"/>
+						<TextBox Text="{Binding ANumber, Mode=OneWay}" IsReadOnly="True"/>
+					</StackPanel>
+
+				</Grid>
+			</GroupBox>
+
+			<GroupBox Header="Qualification Range (ASME IX)" Margin="0,10,0,0">
+				<Grid Margin="10">
+
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="1*"/>
+						<ColumnDefinition Width="1*"/>
+						<ColumnDefinition Width="1*"/>
+					</Grid.ColumnDefinitions>
+
+					<!-- Test Thickness -->
+					<StackPanel Grid.Column="0">
+						<TextBlock Text="Test Thickness (mm)"/>
+						<TextBox Text="{Binding TestThickness}"/>
+					</StackPanel>
+
+					<!-- Min -->
+					<StackPanel Grid.Column="1">
+						<TextBlock Text="Min Qualified"/>
+						<TextBox Text="{Binding QualifiedMinThickness, Mode=OneWay}" IsReadOnly="True"/>
+					</StackPanel>
+
+					<!-- Max -->
+					<StackPanel Grid.Column="2">
+						<TextBlock Text="Max Qualified"/>
+						<TextBox Text="{Binding QualifiedMaxThickness, Mode=OneWay}" IsReadOnly="True"/>
+					</StackPanel>
+
+				</Grid>
+			</GroupBox>
+			<GroupBox Header="Extended Qualification (ASME IX)" Margin="0,10,0,0">
+				<Grid Margin="10">
+
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="1*"/>
+						<ColumnDefinition Width="1*"/>
+						<ColumnDefinition Width="1*"/>
+					</Grid.ColumnDefinitions>
+
+					<!-- Product -->
+					<StackPanel Grid.Column="0">
+						<TextBlock Text="Product Type"/>
+						<ComboBox ItemsSource="{Binding ProductTypes}"
+                      SelectedItem="{Binding SelectedProductType}"/>
+
+						<TextBlock Text="Test Diameter (mm)" Margin="0,10,0,0"/>
+						<TextBox Text="{Binding TestDiameter}"/>
+					</StackPanel>
+
+					<!-- Position -->
+					<StackPanel Grid.Column="1">
+						<TextBlock Text="Welding Position"/>
+						<ComboBox ItemsSource="{Binding WeldingPositions}"
+                      SelectedItem="{Binding SelectedPosition}"/>
+
+						<TextBlock Text="Qualified Positions" Margin="0,10,0,0"/>
+						<TextBox Text="{Binding QualifiedPositionRange, Mode=OneWay}" IsReadOnly="True"/>
+					</StackPanel>
+
+					<!-- Results -->
+					<StackPanel Grid.Column="2">
+						<TextBlock Text="Diameter Range"/>
+						<TextBox Text="{Binding QualifiedDiameterRange, Mode=OneWay}" IsReadOnly="True"/>
+
+						<TextBlock Text="Material Range" Margin="0,10,0,0"/>
+						<TextBox Text="{Binding QualifiedPNumberRange, Mode=OneWay}" IsReadOnly="True"/>
+					</StackPanel>
+
+				</Grid>
+			</GroupBox>
+
+			<GroupBox Header="Validation &amp; Compliance" Margin="0,10,0,0">
+				<ItemsControl ItemsSource="{Binding ValidationMessages}">
+					<ItemsControl.ItemTemplate>
+						<DataTemplate>
+							<Border Padding="5" Margin="2">
+								<TextBlock Text="{Binding Message}">
+									<TextBlock.Style>
+										<Style TargetType="TextBlock">
+											<Setter Property="Foreground" Value="Black"/>
+											<Style.Triggers>
+
+												<!-- ERROR -->
+												<DataTrigger Binding="{Binding Severity}" Value="Error">
+													<Setter Property="Foreground" Value="Red"/>
+													<Setter Property="FontWeight" Value="Bold"/>
+												</DataTrigger>
+
+												<!-- WARNING -->
+												<DataTrigger Binding="{Binding Severity}" Value="Warning">
+													<Setter Property="Foreground" Value="Orange"/>
+												</DataTrigger>
+
+											</Style.Triggers>
+										</Style>
+									</TextBlock.Style>
+								</TextBlock>
+							</Border>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+			</GroupBox>
+			<StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+
+				<Button Content="Save"
+            Command="{Binding SaveCommand}"
+            Margin="5"
+            IsEnabled="{Binding IsLocked, Converter={StaticResource InverseBoolConverter}}"/>
+
+				<Button Content="Approve"
+            Command="{Binding ApproveCommand}"
+            Margin="5"
+            IsEnabled="{Binding IsLocked, Converter={StaticResource InverseBoolConverter}}"/>
+
+			</StackPanel>
+
+		</StackPanel>
+
+	</ScrollViewer>
+
+</Window>

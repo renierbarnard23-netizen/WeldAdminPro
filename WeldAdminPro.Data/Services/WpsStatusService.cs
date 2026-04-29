@@ -1,6 +1,8 @@
+using System.Linq;
+using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Core.Services;
 using QualityWps = WeldAdminPro.Core.Quality.Wps;
 using QualityPqr = WeldAdminPro.Core.Quality.Pqr;
-using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.Data.Services
 {
@@ -29,9 +31,16 @@ namespace WeldAdminPro.Data.Services
                     continue;
                 }
 
-                var validation = _validator.Validate(wps, pqr);
+                var errors = _validator.Validate(wps, pqr);
 
-                result.Add((wps, validation.IsValid, validation.Message));
+                if (errors.Any())
+                {
+                    result.Add((wps, false, string.Join("; ", errors)));
+                }
+                else
+                {
+                    result.Add((wps, true, "WPS COMPLIANT"));
+                }
             }
 
             return result;

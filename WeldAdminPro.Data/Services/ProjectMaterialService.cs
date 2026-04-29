@@ -53,10 +53,10 @@ namespace WeldAdminPro.Data.Services
 			return _stockRepository.GetProjectTransactions(projectId);
 		}
 
-		// ================= RETURNABLE ITEMS =================
+        // ================= RETURNABLE ITEMS =================
 
-		public IEnumerable<StockTransaction> GetReturnableItems(Guid projectId)
-		{
+        public IEnumerable<ReturnableItemDto> GetReturnableItems(Guid projectId)
+        {
 			return _stockRepository.GetReturnableItems(projectId);
 		}
 

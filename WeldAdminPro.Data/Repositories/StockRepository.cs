@@ -247,8 +247,8 @@ WHERE Id = $id;";
 			return _transactionRepo.GetIssuedMaterials(projectId);
 		}
 
-		public IEnumerable<StockTransaction> GetReturnableItems(Guid projectId)
-		{
+        public IEnumerable<ReturnableItemDto> GetReturnableItems(Guid projectId)
+        {
 			return _transactionRepo.GetReturnableItems(projectId);
 		}
 

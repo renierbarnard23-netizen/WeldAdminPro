@@ -6,11 +6,14 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Media;
+using WeldAdminPro.Core.Models;
 using WeldAdminPro.Core.Quality;
 using WeldAdminPro.Core.Quality.Services;
+using WeldAdminPro.Core.Services;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
 using WeldAdminPro.UI.Views.Quality;
+
 
 namespace WeldAdminPro.UI.ViewModels.Quality
 {
@@ -28,6 +31,11 @@ namespace WeldAdminPro.UI.ViewModels.Quality
             get => _wpsList;
             set => SetProperty(ref _wpsList, value);
         }
+
+        public ObservableCollection<PqrRecord> AvailablePqrs { get; set; } = new();
+
+        [ObservableProperty]
+        private PqrRecord? selectedPqr;
 
         private WpsDisplay? _selectedWps;
         public WpsDisplay? SelectedWps
@@ -94,6 +102,7 @@ namespace WeldAdminPro.UI.ViewModels.Quality
 
         public WpsViewModel()
         {
+            LoadPqrs();   // 🔥 ADD THIS
             Load();
         }
 
@@ -134,14 +143,14 @@ namespace WeldAdminPro.UI.ViewModels.Quality
                 else
                 {
                     var validator = new WpsValidationService();
-                    var (isValid, msg) = validator.Validate(w, pqr);
+                    var errors = validator.Validate(w, pqr);
 
-                    if (!isValid)
+                    if (errors.Any())
                     {
                         status = "INVALID";
                         icon = "❌";
                         color = Brushes.Red;
-                        message = msg;
+                        message = string.Join("\n", errors);
                         InvalidCount++;
                     }
                     else
@@ -149,7 +158,7 @@ namespace WeldAdminPro.UI.ViewModels.Quality
                         status = "VALID";
                         icon = "✔";
                         color = Brushes.Green;
-                        message = "WPS compliant";
+                        message = "✔ COMPLIANT (ASME IX)";
                         ValidCount++;
                     }
                 }
@@ -158,6 +167,8 @@ namespace WeldAdminPro.UI.ViewModels.Quality
                 {
                     Id = w.Id,
                     WpsNumber = w.WpsNumber,
+                    Revision = w.Revision,
+
                     Process = w.Process,
                     MaterialGroup = w.MaterialGroup,
 
@@ -174,7 +185,9 @@ namespace WeldAdminPro.UI.ViewModels.Quality
                     StatusIcon = icon,
                     StatusColor = color,
                     StatusMessage = message,
-                    ValidationStatus = status
+                    ValidationStatus = status,
+
+                    ValidationMessage = message,
                 };
 
                 if (CurrentFilter == "ALL" ||
@@ -209,6 +222,22 @@ namespace WeldAdminPro.UI.ViewModels.Quality
                 WelderAlertColor = Brushes.Green;
             }
         }
+
+        private void LoadPqrs()
+        {
+            var repo = new PqrRepository();
+
+            var pqrs = repo.GetAll();
+
+            AvailablePqrs = new ObservableCollection<PqrRecord>(
+                pqrs.Select(p => new PqrRecord
+                {
+                    Id = p.Id,
+                    PqrNumber = p.PqrNumber
+                })
+            );
+        }
+
 
         // =========================
         // COMMANDS
@@ -282,7 +311,7 @@ namespace WeldAdminPro.UI.ViewModels.Quality
                 wps.FNumber = vm.Result.FNumber;
 
                 var wpsService = new WpsService(_repo);
-                wpsService.SaveWps(wps);
+                wpsService.SaveRevision(wps);
                 Load();
             }
         }
@@ -334,6 +363,8 @@ namespace WeldAdminPro.UI.ViewModels.Quality
                 var ocrService = new WpsOcrService();
                 var parser = new WpsParserService();
                 var pqrRepo = new PqrRepository();
+                var wpsData = _repo.GetActive();
+                
 
                 // ✅ Extract filename correctly
                 var fileName = Path.GetFileName(dialog.FileName);
@@ -351,7 +382,7 @@ namespace WeldAdminPro.UI.ViewModels.Quality
 
                 foreach (var wps in wpsList)
                 {
-                    // ✅ Auto-link PQR if found
+                    // ✅ Auto-link PQR if foreach (var w in wpsData)
                     if (!string.IsNullOrWhiteSpace(wps.LinkedPqrNumber))
                     {
                         var pqr = pqrRepo.GetByNumber(wps.LinkedPqrNumber);
@@ -360,7 +391,7 @@ namespace WeldAdminPro.UI.ViewModels.Quality
                     }
 
                     var wpsService = new WpsService(_repo);
-                    wpsService.SaveWps(wps);
+                    wpsService.SaveRevision(wps);
                     imported++;
                 }
 
@@ -374,11 +405,39 @@ namespace WeldAdminPro.UI.ViewModels.Quality
                 MessageBox.Show($"Import failed: {ex.Message}");
             }
         }
+        [RelayCommand]
+        private void Generate()
+        {
+            if (SelectedPqr == null)
+                return;
+
+            OnSelectedPqrChanged(SelectedPqr);
+        }
 
         [RelayCommand]
         private void FilterWarning()
         {
             CurrentFilter = "WARNING";
+            Load();
+        }
+
+        [RelayCommand]
+        private void ApproveWps()
+        {
+            if (SelectedWps == null)
+                return;
+
+            var wps = _repo.GetAll().First(x => x.Id == SelectedWps.Id);
+
+            if (wps.IsLocked)
+                return;
+
+            wps.IsApproved = true;
+            wps.IsLocked = true;
+            wps.ApprovedOn = DateTime.Now;
+            wps.ApprovedBy = "User";
+
+            _repo.Update(wps);
             Load();
         }
     }

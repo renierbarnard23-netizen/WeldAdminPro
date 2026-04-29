@@ -14,8 +14,7 @@ namespace WeldAdminPro.Data.Repositories
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
-            if (wps.Id == Guid.Empty)
-                wps.Id = Guid.NewGuid();
+            wps.Id = Guid.NewGuid();
 
             var cmd = connection.CreateCommand();
             cmd.CommandText = @"
@@ -38,6 +37,11 @@ namespace WeldAdminPro.Data.Repositories
             cmd.Parameters.AddWithValue("$position", (object?)wps.Position ?? DBNull.Value);
             cmd.Parameters.AddWithValue("$jointType", (object?)wps.JointType ?? DBNull.Value);
             cmd.Parameters.AddWithValue("$diameter", wps.Diameter);
+
+            cmd.Parameters.AddWithValue("$approved", wps.IsApproved ? 1 : 0);
+            cmd.Parameters.AddWithValue("$locked", wps.IsLocked ? 1 : 0);
+            cmd.Parameters.AddWithValue("$approvedOn", (object?)wps.ApprovedOn?.ToString("s") ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("$approvedBy", (object?)wps.ApprovedBy ?? DBNull.Value);
 
             cmd.ExecuteNonQuery();
         }
@@ -88,6 +92,11 @@ namespace WeldAdminPro.Data.Repositories
                     FNumber = reader["FNumber"] == DBNull.Value ? null : reader["FNumber"].ToString(),
                     Position = reader["Position"] == DBNull.Value ? null : reader["Position"].ToString(),
                     JointType = reader["JointType"] == DBNull.Value ? null : reader["JointType"].ToString(),
+
+                    IsApproved = Convert.ToInt32(reader["IsApproved"]) == 1,
+                    IsLocked = Convert.ToInt32(reader["IsLocked"]) == 1,
+                    ApprovedOn = reader["ApprovedOn"] == DBNull.Value ? null : DateTime.Parse(reader["ApprovedOn"].ToString()!),
+                    ApprovedBy = reader["ApprovedBy"]?.ToString(),
 
                     Diameter = reader["Diameter"] != DBNull.Value
                         ? Convert.ToDouble(reader["Diameter"])
@@ -208,11 +217,39 @@ WHERE Id = $id;";
 
             cmd.ExecuteNonQuery();
         }
+        public List<Wps> GetActive()
+        {
+            return GetAll().Where(x => x.IsActive).ToList();
+        }
 
         private Guid SafeGuid(object value)
         {
             return Guid.TryParse(value?.ToString(), out var g) ? g : Guid.Empty;
         }
 
+        public int GetNextRevision(string wpsNumber)
+        {
+            var all = GetAll()
+                .Where(x => x.WpsNumber == wpsNumber)
+                .ToList();
+
+            if (!all.Any())
+                return 0;
+
+            return all.Max(x => x.Revision) + 1;
+        }
+
+        public void DeactivatePrevious(string wpsNumber)
+        {
+            var items = GetAll()
+                .Where(x => x.WpsNumber == wpsNumber && x.IsActive)
+                .ToList();
+
+            foreach (var item in items)
+            {
+                item.IsActive = false;
+                Update(item);
+            }
+        }
     }
 }
