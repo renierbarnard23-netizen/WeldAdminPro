@@ -1,0 +1,15 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h3>{{ action }}</h3>
+<form method="post">
+  {{ form.hidden_tag() }}
+  <div class="row g-3">
+    <div class="col-md-6">{{ form.welder_id.label }} {{ form.welder_id(class="form-select") }}</div>
+    <div class="col-md-6">{{ form.qualification_id.label }} {{ form.qualification_id(class="form-select") }}</div>
+    <div class="col-md-6">{{ form.assigned_date.label }} {{ form.assigned_date(class="form-control") }}</div>
+    <div class="col-md-6">{{ form.reeval_date.label }} {{ form.reeval_date(class="form-control") }}</div>
+  </div>
+  <button class="btn btn-primary mt-3">Assign</button>
+</form>
+{% endblock %}

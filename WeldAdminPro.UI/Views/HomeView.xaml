@@ -1,0 +1,1694 @@
+<UserControl x:Class="WeldAdminPro.UI.Views.HomeView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:conv="clr-namespace:WeldAdminPro.UI.Converters">
+
+	<UserControl.Resources>
+		<conv:BlockReasonToBrushConverter x:Key="BlockReasonBrush"/>
+	</UserControl.Resources>
+
+	<ScrollViewer VerticalScrollBarVisibility="Auto">
+
+		<Grid Margin="12">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- 0 System Alerts -->
+                <RowDefinition Height="Auto"/> <!-- 1 KPI Cards -->
+                <RowDefinition Height="Auto"/> <!-- 2 Production Control Tower -->
+                <RowDefinition Height="Auto"/> <!-- 3 AI Advisor -->
+                <RowDefinition Height="Auto"/> <!-- 4 Production Alerts -->
+                <RowDefinition Height="Auto"/> <!-- 5 Recommendations -->
+                <RowDefinition Height="Auto"/> <!-- 6 Throughput -->
+                <RowDefinition Height="Auto"/> <!-- 7 Efficiency -->
+                <RowDefinition Height="Auto"/> <!-- 8 Traffic Lights -->
+                <RowDefinition Height="Auto"/> <!-- 9 Readiness -->
+                <RowDefinition Height="Auto"/> <!--10 Capacity -->
+                <RowDefinition Height="Auto"/> <!--11 Control Center -->
+                <RowDefinition Height="Auto"/> <!--12 Production Status -->
+                <RowDefinition Height="Auto"/> <!--13 Queue -->
+                <RowDefinition Height="Auto"/> <!--14 Timeline -->
+                <RowDefinition Height="Auto"/> <!--15 Completion Predictions -->
+                <RowDefinition Height="Auto"/> <!--16 Scheduler -->
+                <RowDefinition Height="Auto"/> <!--17 Inventory -->
+                <RowDefinition Height="Auto"/> <!--18 Procurement -->
+                <RowDefinition Height="Auto"/> <!--19 Financial -->
+                <RowDefinition Height="Auto"/> <!--20 Material Planning -->
+                <RowDefinition Height="Auto"/> <!--21 Reservations -->
+                <RowDefinition Height="Auto"/> <!--22 Procurement Suggestions -->
+                <RowDefinition Height="Auto"/> <!--23 Capacity Forecast -->
+                <RowDefinition Height="Auto"/> <!--24 Scenario Simulation -->
+                <RowDefinition Height="Auto"/> <!--25 Delay Predictions -->
+            </Grid.RowDefinitions>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.3*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <ItemsControl ItemsSource="{Binding SystemAlerts}"
+              Grid.Row="0"
+              Grid.ColumnSpan="2"
+              Margin="6">
+
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
+
+						<Border CornerRadius="6" Padding="10" Margin="4">
+
+							<Border.Style>
+								<Style TargetType="Border">
+
+									<Setter Property="Background" Value="#E3F2FD"/>
+
+									<Style.Triggers>
+
+										<DataTrigger Binding="{Binding Level}" Value="Critical">
+											<Setter Property="Background" Value="#FFCDD2"/>
+										</DataTrigger>
+
+										<DataTrigger Binding="{Binding Level}" Value="Warning">
+											<Setter Property="Background" Value="#FFE0B2"/>
+										</DataTrigger>
+
+									</Style.Triggers>
+
+								</Style>
+							</Border.Style>
+
+							<TextBlock Text="{Binding Message}"
+                           FontWeight="Bold"/>
+
+						</Border>
+
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+
+			</ItemsControl>
+
+			<!-- KPI CARDS -->
+
+			<ItemsControl ItemsSource="{Binding ExecutiveKpis}"
+						  Grid.Row="1"
+                          Margin="8"
+                          Padding="18"
+						  Grid.ColumnSpan="2">
+
+				<ItemsControl.ItemsPanel>
+					<ItemsPanelTemplate>
+						<UniformGrid Columns="4"/>
+					</ItemsPanelTemplate>
+				</ItemsControl.ItemsPanel>
+
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
+
+						<Border Background="#2D3E50"
+                                Height="110"
+								CornerRadius="8"
+								Margin="6"
+								Padding="18">
+
+							<StackPanel>
+
+								<TextBlock Text="{Binding Title}"
+										   Foreground="White"
+										   FontSize="14"
+										   FontWeight="Bold"/>
+
+								<TextBlock Text="{Binding Value}"
+										   Foreground="White"
+										   FontSize="28"
+										   FontWeight="Bold"
+										   Margin="0,8,0,0"/>
+
+								<TextBlock Text="{Binding Description}"
+										   Foreground="#D0D0D0"
+										   FontSize="11"/>
+
+							</StackPanel>
+
+						</Border>
+
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+
+			</ItemsControl>
+
+			<!-- PRODUCTION CONTROL TOWER -->
+
+            <GroupBox Header="Production Control Tower"
+          Grid.Row="2"
+          Grid.ColumnSpan="2"
+          Margin="8">
+
+                <UniformGrid Columns="4"
+                 Margin="12">
+
+                    <!-- Ready Orders -->
+
+                    <Border Background="#2E7D32"
+                CornerRadius="10"
+                Margin="6"
+                Padding="16"
+                Height="95">
+
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Ready Orders"
+                           Foreground="White"
+                           FontSize="13"/>
+
+                            <TextBlock Text="{Binding ProductionControlTower.ReadyOrders}"
+                           Foreground="White"
+                           FontSize="28"
+                           FontWeight="Bold"/>
+                        </StackPanel>
+
+                    </Border>
+
+                    <!-- Running -->
+
+                    <Border Background="#1565C0"
+                CornerRadius="10"
+                Margin="6"
+                Padding="16"
+                Height="95">
+
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Running"
+                           Foreground="White"
+                           FontSize="13"/>
+
+                            <TextBlock Text="{Binding ProductionControlTower.RunningOrders}"
+                           Foreground="White"
+                           FontSize="28"
+                           FontWeight="Bold"/>
+                        </StackPanel>
+
+                    </Border>
+
+                    <!-- Blocked -->
+
+                    <Border Background="#455A64"
+                CornerRadius="10"
+                Margin="6"
+                Padding="16"
+                Height="95">
+
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Blocked"
+                           Foreground="White"
+                           FontSize="13"/>
+
+                            <TextBlock Text="{Binding ProductionControlTower.BlockedOrders}"
+                           Foreground="White"
+                           FontSize="28"
+                           FontWeight="Bold"/>
+                        </StackPanel>
+
+                    </Border>
+
+                    <!-- Completed -->
+
+                    <Border Background="#6A1B9A"
+                CornerRadius="10"
+                Margin="6"
+                Padding="16"
+                Height="95">
+
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Completed Today"
+                           Foreground="White"
+                           FontSize="13"/>
+
+                            <TextBlock Text="{Binding ProductionControlTower.CompletedToday}"
+                           Foreground="White"
+                           FontSize="28"
+                           FontWeight="Bold"/>
+                        </StackPanel>
+
+                    </Border>
+
+                    <!-- Capacity -->
+
+                    <Border Background="#2E7D32"
+                CornerRadius="10"
+                Margin="6"
+                Padding="16"
+                Height="95">
+
+                        <StackPanel VerticalAlignment="Center">
+
+                            <TextBlock Text="Capacity Load"
+                           Foreground="White"
+                           FontSize="13"/>
+
+                            <TextBlock Text="{Binding ProductionControlTower.CapacityLoad,
+                                          StringFormat={}{0:F0}%}"
+                           Foreground="White"
+                           FontSize="28"
+                           FontWeight="Bold"/>
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <!-- Deadline -->
+
+                    <Border Background="#C62828"
+                CornerRadius="10"
+                Margin="6"
+                Padding="16"
+                Height="95">
+
+                        <StackPanel VerticalAlignment="Center">
+
+                            <TextBlock Text="Deadline Risks"
+                           Foreground="White"
+                           FontSize="13"/>
+
+                            <TextBlock Text="{Binding ProductionControlTower.DeadlineRisks}"
+                           Foreground="White"
+                           FontSize="28"
+                           FontWeight="Bold"/>
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <!-- Total WO -->
+
+                    <Border Background="#37474F"
+                CornerRadius="10"
+                Margin="6"
+                Padding="16"
+                Height="95">
+
+                        <StackPanel VerticalAlignment="Center">
+
+                            <TextBlock Text="Total Work Orders"
+                           Foreground="White"
+                           FontSize="13"/>
+
+                            <TextBlock Text="{Binding ProductionControlTower.TotalWorkOrders}"
+                           Foreground="White"
+                           FontSize="28"
+                           FontWeight="Bold"/>
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <!-- Health -->
+
+                    <Border Background="#1565C0"
+                CornerRadius="10"
+                Margin="6"
+                Padding="16"
+                Height="95">
+
+                        <StackPanel>
+
+                            <TextBlock Text="Health Score"
+                           Foreground="White"
+                           FontSize="13"/>
+
+                            <ProgressBar Height="16"
+                             Maximum="100"
+                             Margin="0,8,0,4"
+                             Value="{Binding ProductionControlTower.HealthScore}"/>
+
+                            <TextBlock Text="{Binding ProductionControlTower.HealthScore,
+                                          StringFormat={}{0:F0}%}"
+                           HorizontalAlignment="Center"
+                           Foreground="White"
+                           FontWeight="Bold"/>
+
+                        </StackPanel>
+
+                    </Border>
+
+                </UniformGrid>
+
+            </GroupBox>
+
+            <Grid Grid.Row="10"
+      Grid.ColumnSpan="2"
+      Margin="8">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.4*" />
+                    <ColumnDefinition Width="0.8*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- ================================================= -->
+                <!-- WORK CENTER CAPACITY -->
+                <!-- ================================================= -->
+
+                <Border Grid.Column="0"
+            Background="White"
+            BorderBrush="#D8DDE3"
+            BorderThickness="1"
+            CornerRadius="12"
+            Margin="6"
+            Padding="20">
+
+                    <StackPanel>
+
+                        <TextBlock Text="WORK CENTER CAPACITY"
+                       FontSize="13"
+                       FontWeight="Bold"
+                       Foreground="#666"
+                       Margin="0,0,0,20"/>
+
+                        <ItemsControl ItemsSource="{Binding WorkCenters}">
+
+                            <ItemsControl.ItemTemplate>
+
+                                <DataTemplate>
+
+                                    <StackPanel Margin="0,0,0,18">
+
+                                        <DockPanel>
+
+                                            <TextBlock Text="{Binding Name}"
+                                           FontWeight="SemiBold"
+                                           FontSize="14"
+                                           DockPanel.Dock="Left"/>
+
+                                            <TextBlock Text="{Binding LoadPercentage,
+                                                          StringFormat={}{0:F0}%}"
+                                           FontWeight="Bold"
+                                           HorizontalAlignment="Right"/>
+
+                                        </DockPanel>
+
+                                        <ProgressBar Height="20"
+                                         Margin="0,8,0,0"
+                                         Maximum="100"
+                                         Value="{Binding LoadPercentage}" />
+
+                                    </StackPanel>
+
+                                </DataTemplate>
+
+                            </ItemsControl.ItemTemplate>
+
+                        </ItemsControl>
+
+                    </StackPanel>
+
+                </Border>
+
+                <!-- ================================================= -->
+                <!-- TOP PRIORITY WORK ORDER -->
+                <!-- ================================================= -->
+
+                <Border Grid.Column="1"
+            Background="#F8FAFC"
+            BorderBrush="#D8DDE3"
+            BorderThickness="1"
+            CornerRadius="12"
+            Margin="6"
+            Padding="20">
+
+                    <StackPanel>
+
+                        <TextBlock Text="TOP PRIORITY WORK ORDER"
+                       FontSize="13"
+                       FontWeight="Bold"
+                       Foreground="#666"
+                       Margin="0,0,0,20"/>
+
+                        <TextBlock Text="{Binding TopPriorityWorkOrder.WorkOrderNumber}"
+                       FontSize="32"
+                       FontWeight="Bold"
+                       Foreground="#222"
+                       Margin="0,0,0,18"/>
+
+                        <TextBlock Text="Status"
+                       FontWeight="Bold"
+                       Foreground="#777"/>
+
+                        <TextBlock Text="{Binding TopPriorityWorkOrder.Status}"
+                       FontSize="15"
+                       Margin="0,4,0,14"/>
+
+                        <TextBlock Text="Block Reason"
+                       FontWeight="Bold"
+                       Foreground="#777"/>
+
+                        <TextBlock Text="{Binding TopPriorityWorkOrder.BlockReason}"
+                       TextWrapping="Wrap"
+                       Margin="0,4,0,14"/>
+
+                        <TextBlock Text="{Binding TopPriorityWorkOrder.PriorityScore,
+                                      StringFormat=Priority Score: {0:F0}}"
+                       FontWeight="Bold"
+                       Foreground="#1565C0"/>
+
+                    </StackPanel>
+
+                </Border>
+
+            </Grid>
+
+            <GroupBox Header="Production Alerts"
+                      Grid.Row="4"
+                      Grid.ColumnSpan="2"
+                      Margin="8"
+                      MinHeight="120">
+
+                <ItemsControl
+					ItemsSource="{Binding ProductionControlTower.Alerts}">
+                  
+                    <ItemsControl.ItemTemplate>
+
+                        <DataTemplate>
+
+                            <Border
+								Background="#FFF8E1"
+								Margin="3"
+								Padding="8"
+								CornerRadius="4">
+
+                                <TextBlock
+                        Text="{Binding Message}"
+                        FontWeight="Bold"/>
+
+                            </Border>
+
+                        </DataTemplate>
+
+                    </ItemsControl.ItemTemplate>
+
+                </ItemsControl>
+
+            </GroupBox>
+
+            <Grid Grid.Row="3"
+      Grid.ColumnSpan="2"
+      Margin="8">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.1*" />
+                    <ColumnDefinition Width="1.9*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT SIDE -->
+                <!-- AI PRODUCTION ADVISOR -->
+
+                <Border Grid.Column="0"
+            Background="#F4F8F4"
+            CornerRadius="12"
+            Margin="6"
+            Padding="20"
+            MinHeight="320">
+
+                    <StackPanel>
+
+                        <TextBlock Text="AI PRODUCTION ADVISOR"
+                       FontSize="13"
+                       FontWeight="Bold"
+                       Foreground="#666"
+                       Margin="0,0,0,15"/>
+
+                        <TextBlock Text="{Binding AdvisorResult.WorkOrderNumber}"
+                       FontSize="36"
+                       FontWeight="Bold"
+                       Foreground="#222"/>
+
+                        <TextBlock Text="{Binding AdvisorResult.Recommendation}"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       Foreground="#2E7D32"
+                       Margin="0,12,0,10"/>
+
+                        <Separator Margin="0,5"/>
+
+                        <TextBlock Text="{Binding AdvisorResult.Reason}"
+                       TextWrapping="Wrap"
+                       FontSize="14"
+                       Foreground="#444"
+                       Margin="0,15,0,0"/>
+
+                    </StackPanel>
+
+                </Border>
+
+                <!-- RIGHT SIDE -->
+                <!-- PRODUCTION RISKS -->
+
+                <Border Grid.Column="1"
+            Background="#FFF8F8"
+            CornerRadius="12"
+            Margin="6"
+            Padding="16"
+            MinHeight="320">
+
+                    <DockPanel>
+
+                        <TextBlock Text="PRODUCTION RISKS"
+                       DockPanel.Dock="Top"
+                       FontWeight="Bold"
+                       FontSize="13"
+                       Foreground="#B71C1C"
+                       Margin="0,0,0,12"/>
+
+                        <DataGrid ItemsSource="{Binding ProductionBottlenecks}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      HeadersVisibility="Column"
+                      RowHeight="32">
+
+                            <DataGrid.Columns>
+
+                                <DataGridTextColumn Header="WO"
+                                        Binding="{Binding WorkOrderNumber}"
+                                        Width="100"/>
+
+                                <DataGridTextColumn Header="Type"
+                                        Binding="{Binding BottleneckType}"
+                                        Width="150"/>
+
+                                <DataGridTextColumn Header="Issue"
+                                        Binding="{Binding Description}"
+                                        Width="*"/>
+
+                                <DataGridTextColumn Header="Action"
+                                        Binding="{Binding SuggestedAction}"
+                                        Width="220"/>
+
+                            </DataGrid.Columns>
+
+                        </DataGrid>
+
+                    </DockPanel>
+
+                </Border>
+
+            </Grid>
+
+            <Expander Header="Smart Production Recommendations"
+          Grid.Row="5"
+          Grid.ColumnSpan="2"
+          Margin="6">
+
+				<DataGrid ItemsSource="{Binding ProductionRecommendations}"
+              AutoGenerateColumns="False"
+			  IsReadOnly="True"
+              Height="160"
+              RowHeight="32"
+              Margin="6">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Work Order" Binding="{Binding WorkOrderNumber}" Width="140"/>
+
+						<DataGridTextColumn Header="Recommendation" Binding="{Binding Recommendation}" Width="220"/>
+
+						<DataGridTextColumn Header="Explanation" Binding="{Binding Explanation}" Width="*" />
+
+						<DataGridTextColumn Header="Score" Binding="{Binding Score, StringFormat={}{0}}" Width="80"/>
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</Expander>
+
+			<GroupBox Header="Production Throughput Analytics"
+					  Grid.Row="6"
+					  Grid.ColumnSpan="2"
+					  Margin="6">
+
+				<Grid Margin="10">
+
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition/>
+						<ColumnDefinition/>
+						<ColumnDefinition/>
+						<ColumnDefinition/>
+					</Grid.ColumnDefinitions>
+
+					<StackPanel Grid.Column="0">
+						<TextBlock Text="Completed Today" FontWeight="Bold"/>
+						<TextBlock Text="{Binding ProductionThroughput.CompletedToday}" FontSize="26"/>
+					</StackPanel>
+
+					<StackPanel Grid.Column="1">
+						<TextBlock Text="Avg Duration (hrs)" FontWeight="Bold"/>
+						<TextBlock Text="{Binding ProductionThroughput.AvgDurationHours, StringFormat={}{0:F2}}" FontSize="26"/>
+					</StackPanel>
+
+					<StackPanel Grid.Column="2">
+						<TextBlock Text="Active Work Orders" FontWeight="Bold"/>
+						<TextBlock Text="{Binding ProductionThroughput.ActiveWorkOrders}" FontSize="26"/>
+					</StackPanel>
+
+					<StackPanel Grid.Column="3">
+						<TextBlock Text="Completion Rate %" FontWeight="Bold"/>
+						<TextBlock Text="{Binding ProductionThroughput.CompletionRate}" FontSize="26"/>
+					</StackPanel>
+
+				</Grid>
+
+			</GroupBox>
+
+			<Expander Header="Production Efficiency Trends (Last 7 Days)"
+          Grid.Row="7"
+          Grid.ColumnSpan="2"
+          Margin="6">
+
+				<DataGrid ItemsSource="{Binding ProductionEfficiencyTrend}"
+              AutoGenerateColumns="False"
+              Height="180"
+              RowHeight="32"
+              Margin="6">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Date"
+                                Binding="{Binding Date}"
+                                Width="160"/>
+
+						<DataGridTextColumn Header="Completed Work Orders"
+                                Binding="{Binding CompletedWorkOrders}"
+                                Width="200"/>
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</Expander>
+
+			
+
+			<!-- TRAFFIC LIGHTS -->
+
+			<ItemsControl ItemsSource="{Binding ProductionTrafficLights}"
+						  Grid.Row="8"
+						  Grid.ColumnSpan="2"
+						  Margin="6">
+
+				<ItemsControl.ItemsPanel>
+					<ItemsPanelTemplate>
+						<UniformGrid Columns="4"/>
+					</ItemsPanelTemplate>
+				</ItemsControl.ItemsPanel>
+
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
+
+						<Border Background="{Binding Color}"
+								CornerRadius="8"
+								Margin="6"
+								Padding="16">
+
+							<StackPanel>
+
+								<TextBlock Text="{Binding Title}"
+										   Foreground="White"
+										   FontWeight="Bold"
+										   FontSize="14"/>
+
+								<TextBlock Text="{Binding Value}"
+										   Foreground="White"
+										   FontSize="26"
+										   FontWeight="Bold"
+										   Margin="0,6,0,0"/>
+
+							</StackPanel>
+
+						</Border>
+
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+
+			</ItemsControl>
+
+			<!-- PRODUCTION READINESS -->
+
+            <Grid Grid.Row="9"
+      Grid.ColumnSpan="2"
+      Margin="8">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="1*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- READINESS CARD -->
+
+                <Border Grid.Column="0"
+            Background="White"
+            BorderBrush="#D8DDE3"
+            BorderThickness="1"
+            CornerRadius="12"
+            Margin="6"
+            Padding="20">
+
+                    <StackPanel>
+
+                        <TextBlock Text="PRODUCTION READINESS"
+                       FontWeight="Bold"
+                       FontSize="13"
+                       Foreground="#666"
+                       Margin="0,0,0,20"/>
+
+                        <TextBlock Text="{Binding ProductionReadinessPercentage,
+                                      StringFormat=Readiness: {0:F0}%}"
+                       FontSize="32"
+                       FontWeight="Bold"
+                       Foreground="#1565C0"
+                       Margin="0,0,0,20"/>
+
+                        <TextBlock Text="{Binding ReadyWorkOrders,
+                                      StringFormat=Ready Work Orders: {0}}"
+                       FontSize="15"
+                       Margin="0,0,0,10"/>
+
+                        <TextBlock Text="{Binding BlockedWorkOrders,
+                                      StringFormat=Blocked Work Orders: {0}}"
+                       FontSize="15"/>
+
+                    </StackPanel>
+
+                </Border>
+
+                <!-- BLOCK MONITOR -->
+
+                <Border Grid.Column="1"
+            Background="White"
+            BorderBrush="#D8DDE3"
+            BorderThickness="1"
+            CornerRadius="12"
+            Margin="6"
+            Padding="20">
+
+                    <DockPanel>
+
+                        <TextBlock Text="PRODUCTION BLOCKS"
+                       DockPanel.Dock="Top"
+                       FontWeight="Bold"
+                       FontSize="13"
+                       Foreground="#666"
+                       Margin="0,0,0,15"/>
+
+                        <DataGrid ItemsSource="{Binding ProductionBlocks}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      Height="250"
+                      HeadersVisibility="Column">
+
+                            <DataGrid.Columns>
+
+                                <DataGridTextColumn Header="WO"
+                                        Binding="{Binding WorkOrderNumber}"
+                                        Width="120"/>
+
+                                <DataGridTextColumn Header="Shortage"
+                                        Binding="{Binding TotalShortage}"
+                                        Width="100"/>
+
+                                <DataGridTextColumn Header="Blocking Items"
+                                        Binding="{Binding BlockingItemsText}"
+                                        Width="*"/>
+
+                            </DataGrid.Columns>
+
+                        </DataGrid>
+
+                    </DockPanel>
+
+                </Border>
+
+            </Grid>
+
+            <!-- PRODUCTION STATUS -->
+
+            <Grid Grid.Row="12"
+      Grid.ColumnSpan="2"
+      Margin="8">
+
+                <UniformGrid Columns="4">
+
+                    <!-- READY -->
+
+                    <Border Background="#E8F5E9"
+                BorderBrush="#2E7D32"
+                BorderThickness="1"
+                CornerRadius="10"
+                Margin="6"
+                Padding="18">
+
+                        <StackPanel>
+                            <TextBlock Text="READY"
+                           FontWeight="Bold"
+                           Foreground="#2E7D32"
+                           FontSize="13"/>
+
+                            <TextBlock Text="{Binding ProductionControlTower.ReadyOrders}"
+                           FontSize="34"
+                           FontWeight="Bold"
+                           Margin="0,8,0,0"/>
+                        </StackPanel>
+
+                    </Border>
+
+                    <!-- RUNNING -->
+
+                    <Border Background="#E3F2FD"
+                BorderBrush="#1565C0"
+                BorderThickness="1"
+                CornerRadius="10"
+                Margin="6"
+                Padding="18">
+
+                        <StackPanel>
+                            <TextBlock Text="RUNNING"
+                           FontWeight="Bold"
+                           Foreground="#1565C0"
+                           FontSize="13"/>
+
+                            <TextBlock Text="{Binding ProductionControlTower.RunningOrders}"
+                           FontSize="34"
+                           FontWeight="Bold"
+                           Margin="0,8,0,0"/>
+                        </StackPanel>
+
+                    </Border>
+
+                    <!-- BLOCKED -->
+
+                    <Border Background="#FFEBEE"
+                BorderBrush="#C62828"
+                BorderThickness="1"
+                CornerRadius="10"
+                Margin="6"
+                Padding="18">
+
+                        <StackPanel>
+                            <TextBlock Text="BLOCKED"
+                           FontWeight="Bold"
+                           Foreground="#C62828"
+                           FontSize="13"/>
+
+                            <TextBlock Text="{Binding ProductionControlTower.BlockedOrders}"
+                           FontSize="34"
+                           FontWeight="Bold"
+                           Margin="0,8,0,0"/>
+                        </StackPanel>
+
+                    </Border>
+
+                    <!-- COMPLETED -->
+
+                    <Border Background="#F3E5F5"
+                BorderBrush="#6A1B9A"
+                BorderThickness="1"
+                CornerRadius="10"
+                Margin="6"
+                Padding="18">
+
+                        <StackPanel>
+                            <TextBlock Text="COMPLETED TODAY"
+                           FontWeight="Bold"
+                           Foreground="#6A1B9A"
+                           FontSize="13"/>
+
+                            <TextBlock Text="{Binding ProductionControlTower.CompletedToday}"
+                           FontSize="34"
+                           FontWeight="Bold"
+                           Margin="0,8,0,0"/>
+                        </StackPanel>
+
+                    </Border>
+
+                </UniformGrid>
+
+            </Grid>
+
+            <!-- PRODUCTION QUEUE -->
+
+            <GroupBox Header="Production Queue"
+          Grid.Row="13"
+          Grid.ColumnSpan="2"
+          Margin="8">
+
+                <DataGrid ItemsSource="{Binding Production.ProductionQueue}"
+              SelectedItem="{Binding SelectedWorkOrder, Mode=TwoWay}"
+              AutoGenerateColumns="False"
+              AllowDrop="True"
+              PreviewMouseLeftButtonDown="Queue_MouseDown"
+              Drop="Queue_Drop"
+              Margin="12"
+              Height="320"
+              HeadersVisibility="Column"
+              GridLinesVisibility="Horizontal"
+              AlternatingRowBackground="#F7F9FB"
+              CanUserSortColumns="True">
+
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+
+                            <Setter Property="Background"
+                        Value="White"/>
+
+                            <Setter Property="ToolTip"
+                        Value="{Binding BlockMessage}"/>
+
+                            <Style.Triggers>
+
+                                <DataTrigger Binding="{Binding Status}"
+                                 Value="Ready">
+                                    <Setter Property="Background"
+                                Value="#E8F5E9"/>
+                                </DataTrigger>
+
+                                <DataTrigger Binding="{Binding Status}"
+                                 Value="Blocked">
+                                    <Setter Property="Background"
+                                Value="#FFEBEE"/>
+                                </DataTrigger>
+
+                                <DataTrigger Binding="{Binding Status}"
+                                 Value="InProduction">
+                                    <Setter Property="Background"
+                                Value="#E3F2FD"/>
+                                </DataTrigger>
+
+                                <DataTrigger Binding="{Binding Status}"
+                                 Value="Completed">
+                                    <Setter Property="Background"
+                                Value="#EEEEEE"/>
+                                </DataTrigger>
+
+                                <Trigger Property="IsSelected"
+                             Value="True">
+                                    <Setter Property="Background"
+                                Value="#3399FF"/>
+                                    <Setter Property="Foreground"
+                                Value="White"/>
+                                </Trigger>
+
+                            </Style.Triggers>
+
+                        </Style>
+                    </DataGrid.RowStyle>
+
+                    <DataGrid.Columns>
+
+                        <DataGridTextColumn Header="Rank"
+                                Binding="{Binding Priority}"
+                                Width="70"/>
+
+                        <DataGridTextColumn Header="Work Order"
+                                Binding="{Binding WorkOrderNumber}"
+                                Width="140"/>
+
+                        <DataGridTextColumn Header="Status"
+                                Binding="{Binding Status}"
+                                Width="120"/>
+
+                        <DataGridTextColumn Header="Type"
+                                Binding="{Binding Type}"
+                                Width="120"/>
+
+                        <DataGridTextColumn Header="Block Reason"
+                                Binding="{Binding BlockReason}"
+                                Width="220"/>
+
+                        <DataGridTextColumn Header="Start"
+                                Binding="{Binding StartDate}"
+                                Width="120"/>
+
+                        <DataGridTextColumn Header="Due"
+                                Binding="{Binding DueDate}"
+                                Width="120"/>
+
+                        <DataGridTemplateColumn Header="Actions"
+                                    Width="260">
+
+                            <DataGridTemplateColumn.CellTemplate>
+
+                                <DataTemplate>
+
+                                    <WrapPanel>
+
+                                        <Button Content="Start"
+                                    Width="60"
+                                    Margin="2"
+                                    Command="{Binding DataContext.Execution.StartCommand,
+                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding Id}"
+                                    IsEnabled="{Binding CanStart}"/>
+
+                                        <Button Content="Pause"
+                                    Width="60"
+                                    Margin="2"
+                                    Command="{Binding DataContext.Execution.PauseWorkOrderCommand,
+                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding Id}"/>
+
+                                        <Button Content="Complete"
+                                    Width="75"
+                                    Margin="2"
+                                    Command="{Binding DataContext.Execution.CompleteWorkOrderCommand,
+                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding Id}"/>
+
+                                        <Button Content="Cancel"
+                                    Width="60"
+                                    Margin="2"
+                                    Command="{Binding DataContext.Execution.CancelWorkOrderCommand,
+                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding Id}"/>
+
+                                    </WrapPanel>
+
+                                </DataTemplate>
+
+                            </DataGridTemplateColumn.CellTemplate>
+
+                        </DataGridTemplateColumn>
+
+                    </DataGrid.Columns>
+
+                </DataGrid>
+
+            </GroupBox>
+
+            <!-- PRODUCTION TIMELINE -->
+
+            <GroupBox Header="Production Schedule Timeline"
+					  Grid.Row="14"
+					  Grid.ColumnSpan="2"
+					  Margin="8"
+					  Padding="10">
+
+                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+
+					<Grid x:Name="GanttGrid">
+
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="120"/>
+							<ColumnDefinition Width="*"/>
+						</Grid.ColumnDefinitions>
+
+						<!-- Work Order Labels -->
+                        <Border Grid.Column="0"
+								Background="#F8FAFC"
+								BorderBrush="#D8DDE3"
+								BorderThickness="1"
+								CornerRadius="8"
+								Padding="10"
+								Margin="5">
+
+                            <StackPanel x:Name="GanttLabels"/>
+                        </Border>
+
+                        <!-- Timeline Canvas -->
+                        <Border Grid.Column="1"
+								Background="White"
+								BorderBrush="#D8DDE3"
+								BorderThickness="1"
+								CornerRadius="8"
+								Padding="10"
+								Margin="5">
+
+                            <Canvas x:Name="GanttCanvas"
+									Height="450"
+									MinWidth="1200"
+									Background="#FAFAFA"/>
+                        </Border>
+
+                    </Grid>
+
+				</ScrollViewer>
+
+			</GroupBox>
+
+			<Expander Header="Production Completion Predictions"
+          Grid.Row="15"
+          Grid.ColumnSpan="2"
+          Margin="6">
+
+				<DataGrid ItemsSource="{Binding CompletionPredictions}"
+              AutoGenerateColumns="False"
+              Height="220">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Work Order"
+                                Binding="{Binding WorkOrderNumber}"
+                                Width="120"/>
+
+						<DataGridTextColumn Header="Start"
+                                Binding="{Binding PredictedStart}"
+                                Width="140"/>
+
+						<DataGridTextColumn Header="End"
+                                Binding="{Binding PredictedEnd}"
+                                Width="140"/>
+
+						<DataGridTextColumn Header="Days Late"
+                                Binding="{Binding DaysLate}"
+                                Width="100"/>
+
+					</DataGrid.Columns>
+
+					<DataGrid.RowStyle>
+						<Style TargetType="DataGridRow">
+							<Style.Triggers>
+
+								<DataTrigger Binding="{Binding IsLate}" Value="True">
+									<Setter Property="Background" Value="#FFCDD2"/>
+								</DataTrigger>
+
+							</Style.Triggers>
+						</Style>
+					</DataGrid.RowStyle>
+
+				</DataGrid>
+
+			</Expander>
+
+			<Expander Header="Scheduler Debug Panel"
+          Grid.Row="16"
+          Grid.ColumnSpan="2"
+          Margin="6"
+          IsExpanded="False">
+
+				<DataGrid ItemsSource="{Binding SchedulerDebug}"
+              AutoGenerateColumns="False"
+              Height="200">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Work Order"
+                                Binding="{Binding WorkOrderNumber}" />
+
+						<DataGridTextColumn Header="Start"
+                                Binding="{Binding StartDate}" />
+
+						<DataGridTextColumn Header="End"
+                                Binding="{Binding EndDate}" />
+
+						<DataGridTextColumn Header="Hours"
+                                Binding="{Binding Hours}" />
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</Expander>
+
+			<!-- INVENTORY -->
+
+			<GroupBox Header="Inventory Health"
+					  Grid.Row="17"
+					  Grid.Column="0"
+					  Margin="6">
+
+				<StackPanel Margin="10">
+
+					<TextBlock FontWeight="Bold" Text="{Binding InventoryRiskLevel, StringFormat=Risk Level: {0}}"/>
+
+					<TextBlock Text="{Binding InventoryHealthScore, StringFormat=Health Score: {0}%}"/>
+					<TextBlock Text="{Binding NegativeStockItems, StringFormat=Negative Stock: {0}}"/>
+					<TextBlock Text="{Binding DeadStockItems, StringFormat=Dead Stock: {0}}"/>
+					<TextBlock Text="{Binding ConsumptionSpikes, StringFormat=Consumption Spikes: {0}}"/>
+					<TextBlock Text="{Binding CriticalInventoryItems, StringFormat=Critical Items: {0}}"/>
+
+				</StackPanel>
+
+			</GroupBox>
+
+			<Expander Header="Operational Alerts"
+					  Grid.Row="17"
+					  Grid.Column="1"
+					  Margin="6">
+
+				<DataGrid ItemsSource="{Binding OperationalAlerts}"
+						  AutoGenerateColumns="False"
+						  Height="220"
+						  Margin="6">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Severity" Binding="{Binding Severity}" Width="120"/>
+
+						<DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*"/>
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</Expander>
+
+			<!-- PROCUREMENT -->
+
+			<Expander Header="Procurement Alerts"
+					  Grid.Row="18"
+					  Grid.Column="0"
+					  Margin="6">
+
+				<DataGrid ItemsSource="{Binding ProcurementAlerts}"
+						  AutoGenerateColumns="False"
+						  MinHeight="240"
+						  Margin="6">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Item" Binding="{Binding ItemCode}" Width="120"/>
+
+						<DataGridTextColumn Header="Days Remaining" Binding="{Binding DaysRemaining}" Width="120"/>
+
+						<DataGridTextColumn Header="Priority" Binding="{Binding PriorityScore}" Width="100"/>
+
+						<DataGridTextColumn Header="Suggested Order" Binding="{Binding SuggestedOrderQuantity}" Width="140"/>
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</Expander>
+
+			<Expander Header="Top Consumed Materials"
+					  Grid.Row="18"
+					  Grid.Column="1"
+					  Margin="6">
+
+				<DataGrid ItemsSource="{Binding TopConsumedMaterials}"
+						  AutoGenerateColumns="False"
+						  MinHeight="240"
+						  Margin="6">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Item" Binding="{Binding ItemCode}" Width="120"/>
+
+						<DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
+
+						<DataGridTextColumn Header="Total Used" Binding="{Binding TotalConsumed}" Width="120"/>
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</Expander>
+
+			<!-- FINANCIAL -->
+
+			<Expander Header="Project Material Cost Intelligence"
+					  Grid.Row="19"
+					  Grid.ColumnSpan="2"
+					  Margin="6">
+
+				<DataGrid ItemsSource="{Binding ProjectProfitability}"
+						  AutoGenerateColumns="False"
+						  MinHeight="240"
+						  Margin="6">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="*"/>
+
+						<DataGridTextColumn Header="Revenue" Binding="{Binding Revenue}" Width="120"/>
+
+						<DataGridTextColumn Header="Material Cost" Binding="{Binding MaterialCost}" Width="140"/>
+
+						<DataGridTextColumn Header="Profit" Binding="{Binding Profit}" Width="120"/>
+
+						<DataGridTextColumn Header="Margin %" Binding="{Binding Margin, StringFormat={}{0:N2}}" Width="100"/>
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</Expander>
+
+			<!-- WORK ORDER MATERIAL PLANNING -->
+
+			<Expander Header="Work Order Material Planning"
+					  Grid.Row="20"
+					  Grid.ColumnSpan="2"
+					  Margin="6">
+
+				<DataGrid ItemsSource="{Binding WorkOrderMaterialPlans}"
+						  AutoGenerateColumns="False"
+						  MinHeight="240"
+						  Margin="6">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Work Order" Binding="{Binding WorkOrderNumber}" Width="120"/>
+
+						<DataGridTextColumn Header="Item" Binding="{Binding ItemCode}" Width="120"/>
+
+						<DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
+
+						<DataGridTextColumn Header="Required" Binding="{Binding RequiredQuantity}" Width="100"/>
+
+						<DataGridTextColumn Header="In Stock" Binding="{Binding StockAvailable}" Width="100"/>
+
+						<DataGridTextColumn Header="Shortage" Binding="{Binding Shortage}" Width="100"/>
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</Expander>
+
+
+
+			<!-- RESERVATIONS -->
+
+			<Expander Header="Material Reservations"
+					  Grid.Row="21"
+					  Grid.ColumnSpan="2"
+					  Margin="6">
+
+				<DataGrid ItemsSource="{Binding MaterialReservations}"
+						  AutoGenerateColumns="False"
+						  MinHeight="220"
+						  Margin="6">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Work Order" Binding="{Binding WorkOrderNumber}" Width="120"/>
+
+						<DataGridTextColumn Header="Item" Binding="{Binding ItemCode}" Width="120"/>
+
+						<DataGridTextColumn Header="Required" Binding="{Binding RequiredQuantity}" Width="100"/>
+
+						<DataGridTextColumn Header="Reserved" Binding="{Binding ReservedQuantity}" Width="100"/>
+
+						<DataGridTextColumn Header="Available After" Binding="{Binding AvailableStock}" Width="120"/>
+
+						<DataGridTextColumn Header="Status" Binding="{Binding Reason}" Width="*"/>
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</Expander>
+
+			<!-- PROCUREMENT SUGGESTIONS -->
+
+			<Expander Header="Smart Procurement Suggestions"
+					  Grid.Row="22"
+					  Grid.ColumnSpan="2"
+					  Margin="6">
+
+				<DataGrid ItemsSource="{Binding ProcurementSuggestions}"
+						  AutoGenerateColumns="False"
+						  Height="220"
+						  Margin="6">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Item" Binding="{Binding ItemCode}" Width="120"/>
+
+						<DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
+
+						<DataGridTextColumn Header="Current Stock" Binding="{Binding CurrentStock}" Width="120"/>
+
+						<DataGridTextColumn Header="Required" Binding="{Binding RequiredQuantity}" Width="120"/>
+
+						<DataGridTextColumn Header="Suggested Order" Binding="{Binding SuggestedOrderQuantity}" Width="150"/>
+
+						<DataGridTextColumn Header="Priority" Binding="{Binding PriorityScore}" Width="100"/>
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</Expander>
+
+			<!-- PRODUCTION CAPACITY FORECAST -->
+
+			<Expander Header="Production Capacity Forecast (Next 14 Days)"
+					  Grid.Row="23"
+					  Grid.ColumnSpan="2"
+					  Margin="6">
+
+				<DataGrid ItemsSource="{Binding Production.CapacityForecast}"
+						  AutoGenerateColumns="False"
+						  Height="220"
+						  Margin="6">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Date" Binding="{Binding Date}" Width="160"/>
+
+						<DataGridTextColumn Header="Capacity (hrs)" Binding="{Binding CapacityHours}" Width="140"/>
+
+						<DataGridTextColumn Header="Scheduled (hrs)" Binding="{Binding ScheduledHours}" Width="140"/>
+
+						<DataGridTemplateColumn Header="Load %" Width="120">
+
+							<DataGridTemplateColumn.CellTemplate>
+								<DataTemplate>
+
+									<Border Padding="4"
+										    CornerRadius="4">
+
+										<Border.Style>
+
+											<Style TargetType="Border">
+
+												<Setter Property="Background" Value="LightGreen"/>
+
+												<Style.Triggers>
+
+													<!-- Near capacity -->
+
+													<DataTrigger Binding="{Binding IsNearCapacity}" Value="True">
+														<Setter Property="Background" Value="Orange"/>
+													</DataTrigger>
+
+													<!-- Over capacity -->
+
+													<DataTrigger Binding="{Binding IsOverCapacity}" Value="True">
+														<Setter Property="Background" Value="darkRed"/>
+													</DataTrigger>
+
+												</Style.Triggers>
+
+											</Style>
+
+										</Border.Style>
+
+										<TextBlock Text="{Binding LoadPercentage, StringFormat={}{0:F0}%}"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Center"/>
+
+									</Border>
+
+								</DataTemplate>
+
+							</DataGridTemplateColumn.CellTemplate>
+
+						</DataGridTemplateColumn>
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</Expander>
+
+            <Expander Header="Production Control Center"
+				Grid.Row="11"
+				Grid.ColumnSpan="2"
+				Margin="8"
+				IsExpanded="False">
+
+                <Grid Margin="10">
+
+					<Grid.RowDefinitions>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="*"/>
+					</Grid.RowDefinitions>
+
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="*"/>
+					</Grid.ColumnDefinitions>
+
+				
+					<!-- Deadline Risks -->
+
+					<Expander Header="Deadline Risks" Grid.Row="0" Grid.Column="1">
+						<DataGrid ItemsSource="{Binding Production.DeadlineRisks}"
+              AutoGenerateColumns="False"
+              Height="160">
+
+							<DataGrid.Columns>
+
+                                <DataGridTextColumn
+ Header="Reason"
+ Binding="{Binding Reason}"
+ Width="*" />
+
+                                <DataGridTextColumn
+ Header="Priority"
+ Binding="{Binding RiskLevel}"
+ Width="120"/>
+                                <DataGridTextColumn Header="Work Order"
+                                Binding="{Binding WorkOrderNumber}" Width="100"/>
+
+								<DataGridTextColumn Header="Deadline"
+                                Binding="{Binding Deadline}" Width="140"/>
+
+								<DataGridTextColumn Header="Delay (hrs)"
+                                Binding="{Binding DelayHours}" Width="100"/>
+
+								<DataGridTextColumn Header="At Risk"
+                                Binding="{Binding IsAtRisk}" Width="80"/>
+							</DataGrid.Columns>
+
+						</DataGrid>
+					</Expander>
+
+					<!-- SHORTAGES -->
+
+					<Expander Header="Material Shortages" 
+                              Grid.Row="0" 
+                              Grid.Column="0">
+
+						<DataGrid ItemsSource="{Binding MaterialShortages}"
+  AutoGenerateColumns="False"
+  MinHeight="160">
+
+							<DataGrid.Columns>
+
+								<DataGridTextColumn Header="Work Order"
+                    Binding="{Binding WorkOrderNumber}"
+                    Width="120"/>
+
+								<DataGridTextColumn Header="Item"
+                    Binding="{Binding ItemCode}"
+                    Width="120"/>
+
+								<DataGridTextColumn Header="Required"
+                    Binding="{Binding RequiredQuantity}"
+                    Width="100"/>
+
+								<DataGridTextColumn Header="Available"
+                    Binding="{Binding AvailableQuantity}"
+                    Width="100"/>
+
+								<DataGridTextColumn Header="Shortage"
+                    Binding="{Binding ShortageQuantity}"
+                    Width="100"/>
+
+							</DataGrid.Columns>
+
+						</DataGrid>
+
+					</Expander>					
+
+				</Grid>
+
+			</Expander>
+			<Expander Header="Production Delay Predictions"
+						Grid.Row="25"
+						Grid.ColumnSpan="2"
+						Margin="6"
+						IsExpanded="False">
+
+				<DataGrid ItemsSource="{Binding DelayPredictions}"
+    AutoGenerateColumns="False"
+    Height="200">
+
+					<DataGrid.Columns>
+
+						<DataGridTextColumn Header="Work Order"
+                      Binding="{Binding WorkOrderNumber}" />
+
+						<DataGridTextColumn Header="Scheduled End"
+                      Binding="{Binding ScheduledEnd}" />
+
+						<DataGridTextColumn Header="Due Date"
+                      Binding="{Binding DueDate}" />
+
+						<DataGridTextColumn Header="Days Late"
+                      Binding="{Binding DaysLate}" />
+
+						<DataGridTextColumn Header="Risk"
+                      Binding="{Binding RiskLevel}" />
+
+					</DataGrid.Columns>
+
+				</DataGrid>
+
+			</Expander>
+			<TextBlock Text="{Binding OptimizedStrategy}"
+           FontWeight="Bold"
+           Foreground="DarkGreen"
+           Margin="6"/>
+			<Expander Header="Scenario Simulation"
+					Grid.Row="24"
+					Grid.ColumnSpan="2"
+					Margin="6"
+					IsExpanded="True">
+
+				<StackPanel>
+
+					<!-- SUMMARY -->
+					<StackPanel Orientation="Horizontal" Margin="6">
+
+						<TextBlock Text="Late Jobs: "
+                       FontWeight="Bold"/>
+
+						<TextBlock Text="{Binding ScenarioLateJobs}"
+                       Margin="4,0"/>
+
+						<TextBlock Text="Total Delay (Days): "
+                       FontWeight="Bold"
+                       Margin="20,0,0,0"/>
+
+						<TextBlock Text="{Binding ScenarioTotalDelay}"
+                       Margin="4,0"/>
+
+					</StackPanel>
+
+					<!-- GRID -->
+					<DataGrid ItemsSource="{Binding ScenarioPredictions}"
+                  AutoGenerateColumns="False"
+                  Height="220"
+                  Margin="6">
+
+						<DataGrid.Columns>
+
+							<DataGridTextColumn Header="Work Order"
+                                    Binding="{Binding WorkOrderNumber}"
+                                    Width="120"/>
+
+							<DataGridTextColumn Header="Start"
+                                    Binding="{Binding PredictedStart}"
+                                    Width="140"/>
+
+							<DataGridTextColumn Header="End"
+                                    Binding="{Binding PredictedEnd}"
+                                    Width="140"/>
+
+							<DataGridTextColumn Header="Days Late"
+                                    Binding="{Binding DaysLate}"
+                                    Width="100"/>
+
+						</DataGrid.Columns>
+
+					</DataGrid>
+
+				</StackPanel>
+
+			</Expander>
+
+		</Grid>
+
+
+	</ScrollViewer>
+</UserControl>

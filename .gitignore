@@ -1,0 +1,13 @@
+bin/
+obj/
+.vs/
+Publish_SelfContained/
+Publish_Test/
+artifacts/
+installer/
+*.exe
+*.dll
+*.zip
+*.pdb
+*.db
+.env

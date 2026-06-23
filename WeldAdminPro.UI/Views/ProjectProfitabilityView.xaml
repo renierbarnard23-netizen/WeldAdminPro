@@ -1,0 +1,49 @@
+<UserControl x:Class="WeldAdminPro.UI.Views.ProjectProfitabilityView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<Grid Margin="20">
+
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+
+		<TextBlock Text="Project Profitability Dashboard"
+                   FontSize="22"
+                   FontWeight="Bold"
+                   Margin="0,0,0,15"/>
+
+		<DataGrid Grid.Row="1"
+                  ItemsSource="{Binding Projects}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True">
+
+			<DataGrid.Columns>
+
+				<DataGridTextColumn Header="Project"
+                                    Binding="{Binding ProjectName}"
+                                    Width="2*" />
+
+				<DataGridTextColumn Header="Revenue"
+                                    Binding="{Binding Revenue, StringFormat=R {0:N2}}"
+                                    Width="*" />
+
+				<DataGridTextColumn Header="Material Cost"
+                                    Binding="{Binding MaterialCost, StringFormat=R {0:N2}}"
+                                    Width="*" />
+
+				<DataGridTextColumn Header="Labour Cost"
+                                    Binding="{Binding LabourCost, StringFormat=R {0:N2}}"
+                                    Width="*" />
+
+				<DataGridTextColumn Header="Profit"
+                                    Binding="{Binding Profit, StringFormat=R {0:N2}}"
+                                    Width="*" />
+
+			</DataGrid.Columns>
+
+		</DataGrid>
+
+	</Grid>
+</UserControl>

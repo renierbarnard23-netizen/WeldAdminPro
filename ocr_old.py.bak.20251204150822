@@ -1,0 +1,327 @@
+import os, re
+from typing import Dict, List, Any
+from PIL import Image
+
+# NEW: bring in the structured parser
+try:
+    from parser_weldadmin import parse_ocr_to_records
+except Exception:
+    parse_ocr_to_records = None
+
+# Optional dependencies (present if installed)
+try:
+    import pytesseract
+except Exception:
+    pytesseract = None
+
+try:
+    import pdfplumber
+except Exception:
+    pdfplumber = None
+
+try:
+    from pdf2image import convert_from_path
+except Exception:
+    convert_from_path = None
+
+
+# ----------------- small helpers -----------------
+def set_tesseract_path(tesseract_path: str):
+    """Allow overriding the tesseract.exe path from .env"""
+    global pytesseract
+    if pytesseract and tesseract_path:
+        pytesseract.pytesseract.tesseract_cmd = tesseract_path
+
+def normalize_text(s: str) -> str:
+    return re.sub(r"[^\S\r\n]+", " ", s or "").strip()
+
+def _first_group(text: str, pattern: str, flags=re.IGNORECASE | re.MULTILINE):
+    m = re.search(pattern, text, flags)
+    return normalize_text(m.group(1)) if m else ""
+
+def _to_iso_date(s: str) -> str:
+    # Convert dd/mm/yyyy or yyyy-mm-dd to yyyy-mm-dd if possible
+    s = s.strip()
+    m = re.match(r"^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$", s)
+    if m:
+        d, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        if y < 100:
+            y += 2000 if y < 70 else 1900
+        return f"{y:04d}-{mo:02d}-{d:02d}"
+    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", s)
+    if m:
+        return s
+    return s
+
+
+# ----------------- OCR extraction -----------------
+def extract_text_from_pdf(path: str, poppler_path: str = None, use_ocr_if_needed: bool = True, max_pages_ocr: int = 3) -> str:
+    """Try text layer via pdfplumber; if empty and OCR is allowed, rasterize first pages and run tesseract."""
+    text_parts: List[str] = []
+    text = ""
+
+    # 1) Text layer
+    if pdfplumber:
+        try:
+            with pdfplumber.open(path) as pdf:
+                for page in pdf.pages:
+                    t = page.extract_text() or ""
+                    if t.strip():
+                        text_parts.append(t)
+            text = "\n".join(text_parts).strip()
+        except Exception:
+            text = ""
+
+    # 2) OCR fallback for scanned PDFs
+    if not text and use_ocr_if_needed and pytesseract and convert_from_path:
+        try:
+            images = convert_from_path(path, dpi=300, poppler_path=poppler_path)[0:max_pages_ocr]
+            ocr_texts = []
+            for img in images:
+                ocr_texts.append(pytesseract.image_to_string(img))
+            text = "\n".join(ocr_texts)
+        except Exception:
+            pass
+
+    return normalize_text(text)
+
+def extract_text_from_image(path: str) -> str:
+    if not pytesseract:
+        return ""
+    try:
+        img = Image.open(path)
+        return normalize_text(pytesseract.image_to_string(img))
+    except Exception:
+        return ""
+
+
+# ----------------- generic field patterns -----------------
+FIELD_PATTERNS = [
+    ("type", r"\b(WPQR|PQR|WPS)\b"),
+    # ("code", r"\b(?:WPS|WPQR|PQR)[\s:\-]*([A-Za-z0-9_.\-\/]+)"),  # too noisy; prefer header-specific and parser
+    ("process", r"\b(Process|Welding\s*Process(?:es)?)\s*[:\-]\s*([A-Z0-9+\/\s,]+)"),
+    ("material", r"\b(Base\s*Material|Material|Parent\s*Material)\s*[:\-]\s*([A-Za-z0-9\-\s\.]+)"),
+    ("thickness", r"\b(Thickness|Range|Qualified\s*Range)\s*[:\-]\s*([0-9.,\-\smmMM]+)"),
+    ("positions", r"\b(Position|Positions)\s*[:\-]\s*([0-9A-Za-z,\sGFOULR]+)"),
+    ("filler", r"\b(Filler|Filler\s*Metal|Electrode)\s*[:\-]\s*([A-Za-z0-9\-\s\/]+)"),
+    ("issue_date", r"\b(Issue\s*Date|Date\s*of\s*Issue|Qualified\s*Date)\s*[:\-]\s*([0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2}|[0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4})"),
+    ("expiry_date", r"\b(Expiry\s*Date|Valid\s*Until|Expiration)\s*[:\-]\s*([0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2}|[0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4})"),
+    ("welders", r"\b(Welder|Welder\s*Name[s]?)\s*[:\-]\s*([A-Za-z ,.\-]+)"),
+]
+
+
+# ----------------- generic parser -----------------
+def parse_fields(text: str) -> Dict[str, str]:
+    data: Dict[str, str] = {}
+    for key, pattern in FIELD_PATTERNS:
+        m = re.search(pattern, text, flags=re.IGNORECASE)
+        if m:
+            val = m.group(m.lastindex) if m.lastindex else m.group(0)
+            data[key] = normalize_text(val)
+
+    # Fallback detection for type
+    if "type" not in data:
+        if re.search(r"\bWPS\b", text): data["type"] = "WPS"
+        elif re.search(r"\bWPQR\b", text): data["type"] = "WPQR"
+        elif re.search(r"\bPQR\b", text): data["type"] = "PQR"
+    return data
+
+
+# ----------------- WeldTrace-style heuristics -----------------
+def parse_weldtrace_layout(text: str) -> Dict[str, str]:
+    data: Dict[str, str] = {}
+
+    # Type
+    if "WELDING PROCEDURE SPECIFICATION" in text.upper() or re.search(r"\bWPS\b", text):
+        data["type"] = "WPS"
+
+    # WPS Number / code (header-specific)
+    code = _first_group(text, r"(?im)^\s*WPS\s*(?:Number|No\.?)\s*[:\s]*([A-Z0-9_\-\/\.]+)")
+    if not code:
+        code = _first_group(text, r"\bWPS[-\s]*([A-Z0-9][A-Z0-9_\-\/\.]+)")
+    if code:
+        data["code"] = code
+
+    # PQR number
+    pqr = _first_group(text, r"(?im)^\s*PQR\s*(?:Number|No\.?)\s*[:\s]*([A-Z0-9_\-\/\.]+)")
+    if pqr:
+        data["pqr"] = pqr
+
+    # Process
+    proc = _first_group(text, r"Designation.*?;\s*([^;]*GTAW|SMAW|GMAW|FCAW|SAW)[^;\n]*;", flags=re.IGNORECASE | re.DOTALL)
+    if not proc:
+        proc = _first_group(text, r"\bPROCESS\s*Type\s*([A-Z0-9\+\/]+)")
+    if proc:
+        m = re.search(r"(GTAW|SMAW|GMAW|FCAW|SAW|TIG|MIG|MAG)", proc, flags=re.I)
+        if m:
+            proc = m.group(1).upper()
+        data["process"] = proc
+
+    # Thickness range
+    thick = _first_group(text, r"\bT\s*([0-9]+(?:\.[0-9]+)?)\s*[-–]\s*([0-9]+(?:\.[0-9]+)?)\s*mm")
+    if thick:
+        data["thickness"] = f"{thick} mm" if "-" in thick else thick
+    else:
+        thick2 = _first_group(text, r"Thickness.*?\b([0-9]+(?:\.[0-9]+)?)\s*[-–]\s*([0-9]+(?:\.[0-9]+)?)", flags=re.IGNORECASE | re.DOTALL)
+        if thick2:
+            data["thickness"] = thick2
+
+    # Shielding Gas (single-line)
+    gas = _first_group(text, r"(?im)^\s*Shielding\s*Gas\s+([^\r\n]+)")
+    if gas:
+        gas = re.sub(r"\s{2,}", " ", gas).strip()
+        gas = re.sub(r"^\-+\s*|\s*\-+$", "", gas)
+        # de-duplicate repeated phrases across columns
+        m = re.match(r"^(?P<x>.+?)(?:\s+\1)+$", gas)
+        if m:
+            gas = m.group('x')
+        data["gas"] = gas
+
+    # Filler
+    filler = _first_group(text, r"\bTrade\s*Name\s*([A-Za-z0-9\-\/]+)")
+    if not filler:
+        filler = _first_group(text, r"\bAWS\s*(?:No\.|A\d\.\d)?\s*([A-Z0-9\-\/]*ER[0-9]+[A-Z0-9\-]*)")
+    if filler:
+        data["filler"] = filler.upper()
+
+    # Positions
+    pos = _first_group(text, r"\bPositions?\s*([A-Za-z0-9, \-]+)")
+    if pos:
+        data["positions"] = pos
+
+    # Dates near WPS/PQR tables
+    date1 = _first_group(text, r"WPS\s*(?:Number|No\.?).*?Date\s*([0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{2,4})", flags=re.IGNORECASE | re.DOTALL)
+    date2 = _first_group(text, r"PQR\s*(?:Number|No\.?).*?Date\s*([0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{2,4})", flags=re.IGNORECASE | re.DOTALL)
+    if date1:
+        data["issue_date"] = date1
+    if date2:
+        data["expiry_date"] = date2
+
+    return data
+
+
+# ----------------- merge from parser_weldadmin -----------------
+def _should_replace(existing: str, new: str, field: str, context: Dict[str, Any]) -> bool:
+    if not existing:
+        return True
+    ex = (existing or "").strip()
+    nw = (new or "").strip()
+    if not nw:
+        return False
+
+    # Code: prefer a real document number over a code family or very short tokens
+    if field == "code":
+        family = (context.get("_parser_code_family") or "").upper()
+        if ex.upper() in {"ASME", "ISO", "AWS", "EN", "SANS", "API"}:
+            return True
+        if family and ex.upper() == family:
+            return True
+        if len(ex) <= 5:
+            return True
+        if "-" in nw and "-" not in ex:
+            return True
+        return False
+
+    # Thickness: prefer ranges like "a-b mm" over single values
+    if field == "thickness":
+        if "-" in nw and "-" not in ex:
+            return True
+
+    # Dates: prefer ISO
+    if field in {"issue_date", "expiry_date"}:
+        if "/" in ex and "-" in nw:
+            return True
+
+    # Gas: prefer cleaner (shorter) value
+    if field == "gas":
+        return len(nw) < len(ex)
+
+    # Default: keep existing
+    return False
+
+def _merge_best_record(fields: Dict[str, str], text: str) -> Dict[str, str]:
+    if not parse_ocr_to_records:
+        fields["_parser_note"] = "parser_weldadmin not available/imported"
+        fields["_raw_text"] = text
+        return fields
+
+    try:
+        records = parse_ocr_to_records(text) or []
+    except Exception as e:
+        fields["_parser_error"] = f"{type(e).__name__}: {e}"
+        fields["_raw_text"] = text
+        return fields
+
+    if not records:
+        fields["_raw_text"] = text
+        return fields
+
+    best = max(records, key=lambda r: (r.get("confidence_overall") or 0.0))
+    conf = best.get("confidence_overall") or 0.0
+
+    # Pre-normalize date outputs to ISO
+    if best.get("date"):
+        best["date"] = _to_iso_date(str(best["date"]))
+
+    mapping = {
+        "doc_type": "type",
+        "document_number": "code",
+        "date": "issue_date",
+        "process": "process",
+        "materials": "material",
+        "thickness": "thickness",
+        "positions": "positions",
+        "gas": "gas",
+    }
+
+    # provide context to replacement logic
+    context = {"_parser_code_family": best.get("code_family")}
+
+    for src, dst in mapping.items():
+        val = best.get(src)
+        if val and (dst not in fields or _should_replace(fields.get(dst, ""), str(val), dst, context)):
+            fields[dst] = str(val)
+
+    fields["_parser_confidence"] = f"{conf:.2f}"
+    if best.get("code_family"):
+        fields["_parser_code_family"] = best["code_family"]
+    if best.get("revision") and not fields.get("revision"):
+        fields["revision"] = best["revision"]
+    if best.get("raw_excerpt"):
+        fields["_parser_excerpt"] = best["raw_excerpt"]
+
+    fields["_raw_text"] = text
+    return fields
+
+
+# ----------------- top-level: extract + parse + merge -----------------
+def extract_and_parse(path: str, tesseract_path: str = "", poppler_path: str = "") -> Dict[str, str]:
+    set_tesseract_path(tesseract_path)
+    text = ""
+    lower = path.lower()
+    if lower.endswith(".pdf"):
+        text = extract_text_from_pdf(path, poppler_path=poppler_path, use_ocr_if_needed=True)
+    elif any(lower.endswith(ext) for ext in (".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp")):
+        text = extract_text_from_image(path)
+    else:
+        text = extract_text_from_pdf(path, poppler_path=poppler_path, use_ocr_if_needed=True) or extract_text_from_image(path)
+
+    fields = parse_fields(text)
+
+    try:
+        wt = parse_weldtrace_layout(text)
+        for k, v in wt.items():
+            if v and not fields.get(k):
+                fields[k] = v
+    except Exception:
+        pass
+
+    fields = _merge_best_record(fields, text)
+
+    # Normalize known date fields to ISO for consistency
+    if "issue_date" in fields:
+        fields["issue_date"] = _to_iso_date(fields["issue_date"])
+    if "expiry_date" in fields:
+        fields["expiry_date"] = _to_iso_date(fields["expiry_date"])
+
+    return fields

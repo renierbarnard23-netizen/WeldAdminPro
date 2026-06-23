@@ -1,0 +1,462 @@
+"""
+OCR utilities (pattern-safe) for WeldAdmin Pro
+---------------------------------------------
+Fixes noisy Poppler "PatternX invalid float" warnings by:
+- Preferring PyMuPDF (fitz) rasterization when installed
+- Using pdf2image with pdftocairo backend and grayscale fallback
+- Allowing backend override via env var OCR_RASTER_BACKEND = pymupdf|poppler
+Drop-in replacement for your existing ocr.py (same public API):
+    - extract_text_from_pdf(path, poppler_path=None, use_ocr_if_needed=True, max_pages_ocr=3)
+    - extract_text_from_image(path)
+    - extract_and_parse(path, tesseract_path="", poppler_path="")
+"""
+# ocr.py  (accuracy-focused version for WeldAdmin Pro)
+
+import os
+from typing import List, Dict, Optional, Tuple
+
+from PIL import Image, ImageFilter, ImageOps
+import pytesseract
+
+# Try PyMuPDF first (usually better), then fall back to pdf2image
+try:
+    import fitz  # PyMuPDF
+    HAS_PYMUPDF = True
+except ImportError:
+    HAS_PYMUPDF = False
+
+try:
+    from pdf2image import convert_from_path
+    HAS_PDF2IMAGE = True
+except ImportError:
+    HAS_PDF2IMAGE = False
+
+
+# -------------------------------
+# PDF → IMAGE CONVERSION
+# -------------------------------
+
+def _pdf_to_images_pymupdf(pdf_path: str, dpi: int = 400, max_pages: Optional[int] = None) -> List[Image.Image]:
+    """Render PDF pages to PIL Images using PyMuPDF."""
+    images = []
+    doc = fitz.open(pdf_path)
+    for page_index in range(len(doc)):
+        if max_pages is not None and page_index >= max_pages:
+            break
+        page = doc.load_page(page_index)
+        zoom = dpi / 72.0  # 72 dpi is default
+        mat = fitz.Matrix(zoom, zoom)
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        images.append(img)
+    doc.close()
+    return images
+
+
+def _pdf_to_images_pdf2image(pdf_path: str, dpi: int = 400, max_pages: Optional[int] = None) -> List[Image.Image]:
+    """Render PDF pages to PIL Images using pdf2image."""
+    if not HAS_PDF2IMAGE:
+        raise RuntimeError("pdf2image is not installed and PyMuPDF is unavailable.")
+    first_page = 1
+    last_page = max_pages if max_pages is not None else None
+    images = convert_from_path(
+        pdf_path,
+        dpi=dpi,
+        first_page=first_page,
+        last_page=last_page,
+        fmt="jpeg"  # good compromise
+    )
+    return images
+
+
+def pdf_to_images(pdf_path: str, dpi: int = 400, max_pages: Optional[int] = None) -> List[Image.Image]:
+    """High-level: choose the best available backend to convert PDF to images."""
+    if HAS_PYMUPDF:
+        return _pdf_to_images_pymupdf(pdf_path, dpi=dpi, max_pages=max_pages)
+    return _pdf_to_images_pdf2image(pdf_path, dpi=dpi, max_pages=max_pages)
+
+
+# -------------------------------
+# IMAGE PREPROCESSING
+# -------------------------------
+
+def preprocess_image_for_ocr(
+    image: Image.Image,
+    mode: str = "text"
+) -> Image.Image:
+    """
+    Clean up the image to improve OCR accuracy.
+    mode:
+        - "text": general text pages
+        - "form": forms / tables like WPS/PQR
+        - "digits": numbers-heavy areas like thickness, amps, volts
+    """
+    # Convert to grayscale
+    img = image.convert("L")
+
+    # Slight contrast boost
+    img = ImageOps.autocontrast(img)
+
+    # Binarize (simple adaptive threshold style)
+    # You can tune this threshold if needed
+    img = img.point(lambda x: 0 if x < 180 else 255, "1")
+
+    # Optional filters per mode
+    if mode in ("form", "digits"):
+        # Reduce noise while keeping edges
+        img = img.filter(ImageFilter.MedianFilter(size=3))
+
+    return img
+
+
+# -------------------------------
+# TESSERACT WRAPPER
+# -------------------------------
+
+def run_tesseract(
+    image: Image.Image,
+    lang: str = "eng",
+    psm: int = 6,
+    oem: int = 3,
+    config_extra: str = ""
+) -> str:
+    """
+    Common Tesseract call with tunable PSM/OEM.
+    psm suggestions:
+        6: single uniform block of text (good default)
+       11: sparse text (for messy scans)
+        4: columns
+        7: single text line
+        8: single word
+    """
+    config = f"--oem {oem} --psm {psm}"
+    if config_extra:
+        config += f" {config_extra}"
+    text = pytesseract.image_to_string(image, lang=lang, config=config)
+    return text
+
+
+# -------------------------------
+# HIGH-LEVEL TEXT EXTRACTION
+# -------------------------------
+
+def extract_text_from_pdf(
+    pdf_path: str,
+    max_pages: Optional[int] = None,
+    dpi: int = 400,
+    mode: str = "text"
+) -> str:
+    """
+    High-level helper:
+    - Converts PDF to images
+    - Preprocesses each page
+    - Runs Tesseract
+    - Returns joined text for all pages
+    """
+    if not os.path.isfile(pdf_path):
+        raise FileNotFoundError(f"PDF not found: {pdf_path}")
+
+    images = pdf_to_images(pdf_path, dpi=dpi, max_pages=max_pages)
+    page_texts: List[str] = []
+
+    for idx, img in enumerate(images):
+        pre = preprocess_image_for_ocr(img, mode=mode)
+        # For typical WPS/PQR forms, psm=6 usually works well
+        text = run_tesseract(pre, lang="eng", psm=6, oem=3)
+        page_texts.append(text)
+
+    full_text = "\n\n".join(page_texts)
+    return full_text
+
+
+# -------------------------------
+# CLEANUP + FIELD EXTRACTION
+# -------------------------------
+
+import re
+
+
+def cleanup_text(raw: str) -> str:
+    """Normalize whitespace and common OCR artefacts."""
+    text = raw.replace("\x0c", " ")  # remove form feed
+    text = re.sub(r"[|]", "I", text)  # | often mis-read for I
+    text = re.sub(r"[“”]", '"', text)
+    text = re.sub(r"[’`]", "'", text)
+    text = re.sub(r"[–—]", "-", text)
+    # collapse spaces
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _search_patterns(
+    text: str,
+    patterns: List[re.Pattern],
+) -> Optional[re.Match]:
+    for pat in patterns:
+        m = pat.search(text)
+        if m:
+            return m
+    return None
+
+
+def extract_field(
+    text: str,
+    patterns: List[str],
+    group: int = 1,
+    postprocess=None
+) -> Optional[str]:
+    """
+    Generic field extractor using multiple regex patterns.
+    patterns: list of regex patterns with at least one capturing group.
+    group: which capturing group to use.
+    postprocess: optional function to clean/validate the extracted value.
+    """
+    compiled = [re.compile(pat, re.IGNORECASE) for pat in patterns]
+    m = _search_patterns(text, compiled)
+    if not m:
+        return None
+    value = m.group(group).strip()
+    if postprocess:
+        value = postprocess(value)
+    return value or None
+
+
+# -------------------------------
+# EXAMPLE: WPS / PQR / WPQR FIELDS
+# -------------------------------
+
+def normalize_code(value: str) -> str:
+    # Remove spaces between letters + digits, common OCR issue: "W P S - 0 0 1"
+    value = re.sub(r"\s+", "", value)
+    return value
+
+
+def normalize_revision(value: str) -> str:
+    value = value.upper()
+    # Often "0" and "O" get swapped
+    value = value.replace("0", "0")  # left in for future tweaks
+    return value
+
+
+def normalize_date(value: str) -> str:
+    # Very light clean-up, you can later parse to a real date
+    value = value.replace(" ", "")
+    return value
+
+
+def extract_wps_pqr_fields(text_raw: str) -> Dict[str, Optional[str]]:
+    """
+    Extract key welding procedure fields from OCR text using regex patterns.
+    You can expand/tune these as you see misreads.
+    """
+    te
+
+import os, re
+from typing import Dict, List
+from PIL import Image
+
+# Optional deps
+try:
+    import pytesseract
+except Exception:
+    pytesseract = None
+
+try:
+    import pdfplumber
+except Exception:
+    pdfplumber = None
+
+# poppler path rasterizer
+try:
+    from pdf2image import convert_from_path
+except Exception:
+    convert_from_path = None
+
+# PyMuPDF (pattern-safe renderer)
+try:
+    import fitz  # PyMuPDF
+except Exception:
+    fitz = None
+
+# Parser kept external; import if present
+try:
+    from parser_weldadmin import parse_fields, parse_weldtrace_layout  # type: ignore
+except Exception:
+    # Minimal inline generic parser if module not available
+    def normalize_text(s: str) -> str:
+        import re as _re
+        return _re.sub(r"[^\S\r\n]+", " ", s or "").strip()
+
+    FIELD_PATTERNS = [
+        ("type", r"\b(WPQR|PQR|WPS)\b"),
+        ("code", r"\b(?:WPS|WPQR|PQR)[\s:\-]*([A-Za-z0-9_.\-\/]+)"),
+        ("process", r"\b(Process|Welding\s*Process(?:es)?)\s*[:\-]\s*([A-Z0-9+\/\s,]+)"),
+        ("material", r"\b(Base\s*Material|Material|Parent\s*Material)\s*[:\-]\s*([A-Za-z0-9\-\s\.]+)"),
+    ]
+
+    def parse_fields(text: str) -> Dict[str, str]:
+        import re as _re
+        data: Dict[str, str] = {}
+        for key, pattern in FIELD_PATTERNS:
+            m = _re.search(pattern, text, flags=_re.IGNORECASE)
+            if m:
+                val = m.group(m.lastindex) if m.lastindex else m.group(0)
+                data[key] = normalize_text(val)
+        if "type" not in data:
+            if re.search(r"\bWPS\b", text): data["type"] = "WPS"
+            elif re.search(r"\bWPQR\b", text): data["type"] = "WPQR"
+            elif re.search(r"\bPQR\b", text): data["type"] = "PQR"
+        return data
+
+    def parse_weldtrace_layout(text: str) -> Dict[str, str]:
+        return {}
+
+# ----------------- small helpers -----------------
+def set_tesseract_path(tesseract_path: str):
+    """Allow overriding the tesseract.exe path from .env"""
+    global pytesseract
+    if pytesseract and tesseract_path:
+        pytesseract.pytesseract.tesseract_cmd = tesseract_path
+
+def normalize_text(s: str) -> str:
+    return re.sub(r"[^\S\r\n]+", " ", s or "").strip()
+
+def _first_group(text: str, pattern: str, flags=re.IGNORECASE | re.MULTILINE):
+    m = re.search(pattern, text, flags)
+    return normalize_text(m.group(1)) if m else ""
+
+# ----------------- rasterization backends -----------------
+def _render_with_pymupdf(path: str, max_pages: int = 3, dpi: int = 300) -> List[Image.Image]:
+    """Render first pages with PyMuPDF (handles patterns cleanly)."""
+    if not fitz:
+        return []
+    imgs: List[Image.Image] = []
+    try:
+        doc = fitz.open(path)
+        try:
+            n = min(len(doc), max_pages)
+            zoom = dpi / 72.0
+            mat = fitz.Matrix(zoom, zoom)
+            for i in range(n):
+                page = doc.load_page(i)
+                pix = page.get_pixmap(matrix=mat, alpha=False)  # RGB, no alpha
+                img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+                imgs.append(img)
+        finally:
+            doc.close()
+    except Exception:
+        pass
+    return imgs
+
+def _render_with_poppler(path: str, poppler_path: str = None, max_pages: int = 3, dpi: int = 300) -> List[Image.Image]:
+    """Render with pdf2image/pdftocairo; grayscale reduces pattern warnings."""
+    if not convert_from_path:
+        return []
+    try:
+        # Use pdftocairo backend to avoid Ghostscript
+        images = convert_from_path(
+            path, dpi=dpi, poppler_path=poppler_path, first_page=1, last_page=max_pages,
+            fmt="png", thread_count=1, use_pdftocairo=True, grayscale=True
+        )
+        return images
+    except Exception:
+        # Retry without grayscale
+        try:
+            images = convert_from_path(
+                path, dpi=dpi, poppler_path=poppler_path, first_page=1, last_page=max_pages,
+                fmt="png", thread_count=1, use_pdftocairo=True
+            )
+            return images
+        except Exception:
+            return []
+
+def render_pdf_to_images(path: str, poppler_path: str = None, max_pages: int = 3, dpi: int = 300) -> List[Image.Image]:
+    """Choose best renderer based on availability and env override."""
+    backend = (os.getenv("OCR_RASTER_BACKEND") or "").strip().lower()
+    order = []
+    if backend == "pymupdf":
+        order = ["pymupdf", "poppler"]
+    elif backend == "poppler":
+        order = ["poppler", "pymupdf"]
+    else:
+        # Prefer PyMuPDF if available
+        order = ["pymupdf", "poppler"]
+    images: List[Image.Image] = []
+    for b in order:
+        if b == "pymupdf":
+            imgs = _render_with_pymupdf(path, max_pages=max_pages, dpi=dpi)
+        else:
+            imgs = _render_with_poppler(path, poppler_path=poppler_path, max_pages=max_pages, dpi=dpi)
+        if imgs:
+            images = imgs
+            break
+    return images
+
+# ----------------- OCR extraction -----------------
+def extract_text_from_pdf(path: str, poppler_path: str = None, use_ocr_if_needed: bool = True, max_pages_ocr: int = 3) -> str:
+    """Try text layer via pdfplumber; if empty and OCR is allowed, rasterize first pages and run Tesseract."""
+    text_parts: List[str] = []
+    text = ""
+
+    # 1) Text layer (fast & lossless)
+    if pdfplumber:
+        try:
+            with pdfplumber.open(path) as pdf:
+                for page in pdf.pages:
+                    t = page.extract_text() or ""
+                    if t.strip():
+                        text_parts.append(t)
+            text = "\n".join(text_parts).strip()
+        except Exception:
+            text = ""
+
+    # 2) OCR fallback for scanned PDFs
+    if not text and use_ocr_if_needed and pytesseract:
+        images = render_pdf_to_images(path, poppler_path=poppler_path, max_pages=max_pages_ocr, dpi=300)
+        if images:
+            ocr_texts = []
+            for img in images:
+                try:
+                    ocr_texts.append(pytesseract.image_to_string(img))
+                except Exception:
+                    pass
+            text = "\n".join(ocr_texts)
+
+    return normalize_text(text)
+
+def extract_text_from_image(path: str) -> str:
+    if not pytesseract:
+        return ""
+    try:
+        img = Image.open(path)
+        return normalize_text(pytesseract.image_to_string(img))
+    except Exception:
+        return ""
+
+# ----------------- top-level: extract + parse + merge -----------------
+def extract_and_parse(path: str, tesseract_path: str = "", poppler_path: str = "") -> Dict[str, str]:
+    """Return structured fields + _raw_text from a PDF/image WPS/PQR/WPQR."""
+    set_tesseract_path(tesseract_path)
+    text = ""
+    lower = path.lower()
+    if lower.endswith(".pdf"):
+        text = extract_text_from_pdf(path, poppler_path=poppler_path, use_ocr_if_needed=True)
+    elif any(lower.endswith(ext) for ext in (".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp")):
+        text = extract_text_from_image(path)
+    else:
+        text = extract_text_from_pdf(path, poppler_path=poppler_path, use_ocr_if_needed=True) or extract_text_from_image(path)
+
+    # Generic parse
+    fields = parse_fields(text) if 'parse_fields' in globals() else {}
+
+    # Merge in WeldTrace-specific heuristics (only fill blanks) if available
+    try:
+        wt = parse_weldtrace_layout(text) if 'parse_weldtrace_layout' in globals() else {}
+        for k, v in (wt or {}).items():
+            if v and not fields.get(k):
+                fields[k] = v
+    except Exception:
+        pass
+
+    fields["_raw_text"] = text
+    return fields

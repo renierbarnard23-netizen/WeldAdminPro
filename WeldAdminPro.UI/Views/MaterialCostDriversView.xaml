@@ -1,0 +1,45 @@
+<UserControl x:Class="WeldAdminPro.UI.Views.MaterialCostDriversView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<Grid Margin="20">
+
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+
+		<TextBlock Text="Top Material Cost Drivers"
+                   FontSize="22"
+                   FontWeight="Bold"
+                   Margin="0,0,0,15"/>
+
+		<DataGrid Grid.Row="1"
+                  ItemsSource="{Binding CostDrivers}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True">
+
+			<DataGrid.Columns>
+
+				<DataGridTextColumn Header="Item Code"
+                                    Binding="{Binding ItemCode}"
+                                    Width="*" />
+
+				<DataGridTextColumn Header="Description"
+                                    Binding="{Binding Description}"
+                                    Width="2*" />
+
+				<DataGridTextColumn Header="Units Consumed"
+                                    Binding="{Binding UnitsConsumed}"
+                                    Width="*" />
+
+				<DataGridTextColumn Header="Total Cost"
+                                    Binding="{Binding TotalCost, StringFormat=R {0:N2}}"
+                                    Width="*" />
+
+			</DataGrid.Columns>
+
+		</DataGrid>
+
+	</Grid>
+</UserControl>

@@ -1,0 +1,91 @@
+<UserControl x:Class="WeldAdminPro.UI.Views.Quality.NcrManagementView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="10">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DataGrid Grid.Row="0"
+                  ItemsSource="{Binding Ncrs}"
+                  SelectedItem="{Binding SelectedNcr}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="False">
+
+			<DataGrid.Columns>
+
+				<DataGridTextColumn Header="NCR"
+                    							Binding="{Binding NcrNumber}"
+                    							Width="140"/>
+
+				<DataGridTextColumn Header="Weld"
+									Binding="{Binding WeldNumber}"
+									Width="120"/>
+
+				<DataGridTextColumn Header="Description"
+									Binding="{Binding Description}"
+									Width="220"/>
+
+				<DataGridTextColumn Header="Root Cause"
+									Binding="{Binding RootCause}"
+									Width="180"/>
+
+				<DataGridTextColumn Header="Corrective Action"
+									Binding="{Binding CorrectiveAction}"
+									Width="220"/>
+
+				<DataGridTextColumn Header="Preventive Action"
+									Binding="{Binding PreventiveAction}"
+									Width="220"/>
+
+				<DataGridTextColumn Header="Assigned To"
+									Binding="{Binding AssignedTo}"
+									Width="140"/>
+
+				<DataGridTextColumn Header="Due Date"
+									Binding="{Binding DueDate}"
+									Width="140"/>
+
+				<DataGridTextColumn Header="Status"
+									Binding="{Binding Status}"
+									Width="140"/>
+
+				<DataGridCheckBoxColumn Header="Closed"
+										Binding="{Binding IsClosed}"
+										Width="80"/>
+
+			</DataGrid.Columns>
+
+        </DataGrid>
+
+		<StackPanel Grid.Row="1"
+            Orientation="Horizontal"
+            Margin="0,10,0,0">
+
+			<Button Content="Investigate"
+					Width="120"
+					Margin="0,0,10,0"
+					Command="{Binding StartInvestigationCommand}"/>
+
+			<Button Content="Assign CAPA"
+					Width="140"
+					Margin="0,0,10,0"
+					Command="{Binding AssignCorrectiveActionCommand}"/>
+
+			<Button Content="Verify"
+					Width="120"
+					Margin="0,0,10,0"
+					Command="{Binding VerifyCommand}"/>
+
+			<Button Content="Close NCR"
+					Width="140"
+					Command="{Binding CloseNcrCommand}"/>
+
+		</StackPanel>
+
+    </Grid>
+
+</UserControl>

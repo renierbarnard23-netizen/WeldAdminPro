@@ -1,0 +1,56 @@
+<UserControl x:Class="WeldAdminPro.UI.Views.Quality.PqrView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="PQR Management"
+                   FontSize="22"
+                   FontWeight="Bold"
+                   Margin="0,0,0,10"/>
+
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding PqrList}"
+                  SelectedItem="{Binding SelectedPqr}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True">
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="PQR No" Binding="{Binding PqrNumber}"/>
+                <DataGridTextColumn Header="Process" Binding="{Binding Process}"/>
+                <DataGridTextColumn Header="P-No" Binding="{Binding PNumber}"/>
+                <DataGridTextColumn Header="F-No" Binding="{Binding FNumber}"/>
+                <DataGridTextColumn Header="Position" Binding="{Binding QualifiedPosition}"/>
+                <DataGridTextColumn Header="Joint" Binding="{Binding JointType}"/>
+                <DataGridTextColumn Header="Tested (mm)" Binding="{Binding ThicknessTested}" />
+                <DataGridTextColumn Header="Qualified Range" Binding="{Binding QualifiedRangeDisplay}" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
+
+            <Button Content="Refresh" Width="100" Margin="5"
+            Command="{Binding RefreshCommand}"/>
+
+            <Button Content="Add" Width="100" Margin="5"
+            Command="{Binding AddPqrCommand}"/>
+
+            <Button Content="Edit" Width="100" Margin="5"
+            Command="{Binding EditPqrCommand}"/>
+
+            <Button Content="Import PDF"
+            Command="{Binding ImportPqrCommand}"
+            Width="120"
+            Margin="5"/>
+
+            <Button Content="Delete" Width="100" Margin="5"
+            Command="{Binding DeletePqrCommand}"/>
+
+        </StackPanel>
+    </Grid>
+</UserControl>

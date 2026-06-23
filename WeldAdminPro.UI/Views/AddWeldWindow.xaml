@@ -1,0 +1,251 @@
+<Window x:Class="WeldAdminPro.UI.Views.AddWeldWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Add Weld"
+        Height="700"
+        Width="450"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid Margin="15">
+
+		<Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- 0 Weld -->
+            <RowDefinition Height="Auto"/> <!-- 1 Joint Number -->
+            <RowDefinition Height="Auto"/> <!-- 2 Drawing -->
+            <RowDefinition Height="Auto"/> <!-- 3 Status -->
+            <RowDefinition Height="Auto"/> <!-- 4 Joint Type -->
+            <RowDefinition Height="Auto"/> <!-- 5 WPS -->
+            <RowDefinition Height="Auto"/> <!-- 6 Process -->
+            <RowDefinition Height="Auto"/> <!-- 7 Material -->
+            <RowDefinition Height="Auto"/> <!-- 8 Material Group -->
+            <RowDefinition Height="Auto"/> <!-- 9 Diameter -->
+            <RowDefinition Height="Auto"/> <!-- 10 Thickness -->
+            <RowDefinition Height="Auto"/> <!-- 11 Position -->
+            <RowDefinition Height="Auto"/> <!-- 12 Welder -->
+            <RowDefinition Height="Auto"/> <!-- 13 Heat1 -->
+            <RowDefinition Height="Auto"/> <!-- 14 Heat2 -->
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="140"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- WELD NUMBER -->
+        <TextBlock Text="Weld Number:"
+                   Grid.Row="0"
+                   VerticalAlignment="Center"
+                   Margin="0,5"/>
+
+        <TextBox x:Name="WeldNumberTextBox"
+                 Grid.Row="0"
+                 Grid.Column="1"
+                 Margin="5"/>
+        
+        <!--JOINT NUMBER-->
+
+        <TextBlock Text="Joint Number:"
+           Grid.Row="1"
+           VerticalAlignment="Center"/>
+
+        <TextBox x:Name="JointNumberTextBox"
+         Grid.Row="1"
+         Grid.Column="1"
+         Margin="5"/>
+
+        <!-- DRAWING -->
+        <TextBlock Text="Drawing Number:"
+                   Grid.Row="2"
+                   VerticalAlignment="Center"
+                   Margin="0,5"/>
+
+        <TextBox x:Name="DrawingNumberTextBox"
+                 Grid.Row="2"
+                 Grid.Column="1"
+                 Margin="5"/>
+        
+        <!--STATUS-->
+
+        <TextBlock Text="Status:"
+           Grid.Row="3"
+           VerticalAlignment="Center"/>
+
+        <ComboBox x:Name="StatusComboBox"
+          Grid.Row="3"
+          Grid.Column="1"
+          Margin="5">
+
+            <ComboBoxItem Content="Pending"/>
+            <ComboBoxItem Content="NdtPending"/>
+            <ComboBoxItem Content="Accepted"/>
+            <ComboBoxItem Content="Rejected"/>
+
+        </ComboBox>
+
+        <!-- JOINT TYPE -->
+        <TextBlock Text="Joint Type:"
+                   Grid.Row="4"
+                   VerticalAlignment="Center"
+                   Margin="0,5"/>
+
+        <ComboBox x:Name="JointTypeComboBox"
+                  Grid.Row="4"
+                  Grid.Column="1"
+                  Margin="5">
+
+            <ComboBoxItem Content="Butt"/>
+            <ComboBoxItem Content="Fillet"/>
+            <ComboBoxItem Content="Lap"/>
+            <ComboBoxItem Content="Tee"/>
+            <ComboBoxItem Content="Corner"/>
+
+        </ComboBox>
+
+        <!-- WPS -->
+<TextBlock Text="WPS Number:"
+           Grid.Row="5"
+           VerticalAlignment="Center"
+           Margin="0,5"/>
+
+<ComboBox x:Name="WpsComboBox"
+          Grid.Row="5"
+          Grid.Column="1"
+          Margin="5"/>
+
+		<TextBlock Text="Process:"
+				   Grid.Row="6"
+				   VerticalAlignment="Center"
+				   Margin="0,5"/>
+
+		<ComboBox x:Name="ProcessComboBox"
+				  Grid.Row="6"
+				  Grid.Column="1"
+				  Margin="5">
+
+			<ComboBoxItem Content="SMAW"/>
+            <ComboBoxItem Content="MIG"/>
+            <ComboBoxItem Content="MAG"/>
+            <ComboBoxItem Content="GTAW"/>
+            <ComboBoxItem Content="FCAW"/>
+
+		</ComboBox>
+
+		<TextBlock Text="Material Group:"
+           Grid.Row="8"
+           VerticalAlignment="Center"
+           Margin="0,5"/>
+
+		<ComboBox x:Name="MaterialGroupComboBox"
+          Grid.Row="8"
+          Grid.Column="1"
+          Margin="5"/>
+        
+        <!-- DIAMETER -->
+
+        <TextBlock Text="Diameter (mm):"
+           Grid.Row="9"
+           VerticalAlignment="Center"
+           Margin="0,5"/>
+
+        <TextBox x:Name="DiameterTextBox"
+            Grid.Row="9"
+            Grid.Column="1"
+            Margin="5"/>
+
+        <!-- POSITION -->
+        
+        <TextBlock Text="Position:"
+           Grid.Row="11"
+           VerticalAlignment="Center"
+           Margin="0,5"/>
+
+		<ComboBox x:Name="PositionComboBox"
+				  Grid.Row="11"
+				  Grid.Column="1"
+				  Margin="5">
+
+			<ComboBoxItem Content="1G"/>
+			<ComboBoxItem Content="2G"/>
+			<ComboBoxItem Content="5G"/>
+			<ComboBoxItem Content="6G"/>
+
+		</ComboBox>
+
+		<TextBlock Text="Thickness (mm):"
+           Grid.Row="10"
+           VerticalAlignment="Center"
+           Margin="0,5"/>
+
+		<TextBox x:Name="ThicknessTextBox"
+				 Grid.Row="10"
+				 Grid.Column="1"
+				 Margin="5"/>
+
+            <!-- WELDER -->
+            <TextBlock Text="Welder Number:"
+                Grid.Row="12"
+                VerticalAlignment="Center"
+                Margin="0,5"/>
+
+            <ComboBox x:Name="WelderComboBox"
+                Grid.Row="12"
+                Grid.Column="1"
+                Margin="5"/>
+        
+        <!--MATERIAL SPECIFICATION-->
+
+        <TextBlock Text="Material:"
+           Grid.Row="7"
+           VerticalAlignment="Center"/>
+
+        <TextBox x:Name="MaterialTextBox"
+            Grid.Row="7"
+            Grid.Column="1"
+            Margin="5"/>
+
+        <!-- HEAT 1 -->
+        <TextBlock Text="Material Heat 1:"
+                   Grid.Row="13"
+                   VerticalAlignment="Center"
+                   Margin="0,5"/>
+
+        <TextBox x:Name="Heat1TextBox"
+                 Grid.Row="13"
+                 Grid.Column="1"
+                 Margin="5"/>
+
+        <!-- HEAT 2 -->
+        <TextBlock Text="Material Heat 2:"
+                   Grid.Row="14"
+                   VerticalAlignment="Center"
+                   Margin="0,5"/>
+
+        <TextBox x:Name="Heat2TextBox"
+                 Grid.Row="14"
+                 Grid.Column="1"
+                 Margin="5"/>
+
+        <!-- BUTTONS -->
+        <StackPanel Grid.Row="16"
+                    Grid.ColumnSpan="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right">
+
+            <Button Content="Save"
+                    Width="100"
+                    Height="35"
+                    Margin="5"
+                    Click="Save_Click"/>
+
+            <Button Content="Cancel"
+                    Width="100"
+                    Height="35"
+                    Margin="5"
+                    Click="Cancel_Click"/>
+
+        </StackPanel>
+
+    </Grid>
+</Window>

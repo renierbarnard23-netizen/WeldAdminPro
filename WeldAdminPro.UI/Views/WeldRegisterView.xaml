@@ -1,0 +1,593 @@
+<UserControl x:Class="WeldAdminPro.UI.Views.WeldRegisterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:conv="clr-namespace:WeldAdminPro.UI.Converters"
+             mc:Ignorable="d">
+
+    <UserControl.Resources>
+
+        <conv:WeldStatusToBrushConverter x:Key="WeldStatusToBrushConverter"/>
+
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        
+
+
+        <Grid Margin="10"
+              MinWidth="1400">
+
+            <Grid.RowDefinitions>
+
+                <!-- Toolbar -->
+                <RowDefinition Height="Auto"/>
+
+                <!-- Filters -->
+                <RowDefinition Height="Auto"/>
+
+                <!-- KPI -->
+                <RowDefinition Height="Auto"/>
+
+                <!-- Main Weld Grid -->
+                <RowDefinition Height="*"/>
+
+                <!-- QA Blocking -->
+                <RowDefinition Height="Auto"/>
+
+                <!-- NDT History -->
+                <RowDefinition Height="Auto"/>
+
+                <!-- Weld History -->
+                <RowDefinition Height="Auto"/>
+
+                <!-- Hold Points -->
+                <RowDefinition Height="Auto"/>
+
+            </Grid.RowDefinitions>
+
+            <!-- ===================================== -->
+        <!-- TOOLBAR -->
+        <!-- ===================================== -->
+
+        <WrapPanel Orientation="Horizontal"
+                    Margin="0,0,0,10">
+
+            <Button Content="Load Welds"
+                    MinWidth="140"
+                    Height="35"
+                    Margin="5"
+                    Command="{Binding LoadCommand}" />
+
+            <Button Content="Add Weld"                    
+                    MinWidth="140"
+                    Height="35"
+                    Margin="5"
+                    Command="{Binding AddWeldCommand}" />
+
+                <Button Content="Export Project MRB"                    
+                    MinWidth="140"
+                    Height="35"
+                    Margin="5"
+                    Click="ExportProjectMrb_Click"/>
+
+                <Button Content="Add NDT"
+                    MinWidth="140"
+                    Height="35"
+                    Margin="5"
+                    Command="{Binding AddNdtCommand}" />
+
+                <Button Content="Mark Repaired"
+                    MinWidth="140"
+                    Height="35"
+                    Margin="5"
+                    Command="{Binding MarkRepairedCommand}" />
+
+                <Button Content="Close Weld"
+                    MinWidth="140"
+                    Height="35"
+                    Margin="5"
+                    Command="{Binding CloseWeldCommand}" />
+
+                <Button Content="Release Weld"
+                    MinWidth="140"
+                    Height="35"
+                    Margin="5"
+                    Command="{Binding ReleaseWeldCommand}"/>
+
+                <Button Content="Export Data Book"
+                    MinWidth="140"
+                    Height="35"
+                    Margin="5"
+                    Command="{Binding ExportDataBookCommand}" />
+
+            <Button Content="Export Turnover Package" 
+                    Command="{Binding ExportTurnoverPackageCommand}" 
+                    Width="120" 
+                    MinWidth="140"
+                    Height="35"
+                    Margin="5"/>
+
+                <Button Content="Traceability Editor"
+                    MinWidth="140"
+                    Height="35"
+                    Margin="5"
+                    Command="{Binding OpenTraceabilityEditorCommand}"/>
+
+            <Button Content="Traceability"
+                    MinWidth="140"
+                    Height="35"
+                    Margin="5"
+                    Command="{Binding OpenTraceabilityCommand}"/>
+
+                <Button Content="NCR Management"
+                    MinWidth="140"
+                    Height="35"
+                    Margin="5"
+                    Command="{Binding OpenNcrManagementCommand}"/>
+
+        </WrapPanel>
+
+            <Border Grid.Row="1"
+        Background="#E5E7EB"
+        Padding="10"
+        Margin="0,0,0,10"
+        CornerRadius="5">
+
+                <WrapPanel Orientation="Horizontal">
+
+                    <TextBox Width="200"
+                 Height="30"
+                 Margin="0,0,10,0"
+                 Text="{Binding SearchText,
+                                UpdateSourceTrigger=PropertyChanged}" />
+
+                    <ComboBox Width="180"
+                  Height="30"
+                  Margin="0,0,10,0"
+                  ItemsSource="{Binding WorkflowFilters}"
+                  SelectedItem="{Binding SelectedWorkflowFilter}" />
+
+                    <ComboBox Width="180"
+                  Height="30"
+                  Margin="0,0,10,0"
+                  ItemsSource="{Binding WelderFilters}"
+                  SelectedItem="{Binding SelectedWelderFilter}" />
+
+                    <ComboBox Width="180"
+                  Height="30"
+                  Margin="0,0,10,0"
+                  ItemsSource="{Binding WpsFilters}"
+                  SelectedItem="{Binding SelectedWpsFilter}" />
+
+                    <CheckBox Content="NCR Only"
+                  VerticalAlignment="Center"
+                  IsChecked="{Binding ShowNcrOnly}" />
+
+                </WrapPanel>
+
+            </Border>
+
+            <Border Grid.Row="2"
+        Background="#1E293B"
+        CornerRadius="8"
+        Padding="12"
+        Margin="0,0,0,10">
+
+    <UniformGrid Columns="6">
+
+        <StackPanel Margin="10">
+            <TextBlock Text="Total Welds"
+                       Foreground="White"
+                       FontWeight="Bold"/>
+            <TextBlock Text="{Binding Analytics.TotalWelds}"
+                       FontSize="24"
+                       Foreground="#38BDF8"/>
+        </StackPanel>
+
+        <StackPanel Margin="10">
+            <TextBlock Text="Repairs"
+                       Foreground="White"
+                       FontWeight="Bold"/>
+            <TextBlock Text="{Binding Analytics.TotalRepairs}"
+                       FontSize="24"
+                       Foreground="#F97316"/>
+        </StackPanel>
+
+        <StackPanel Margin="10">
+            <TextBlock Text="Repair Rate"
+                       Foreground="White"
+                       FontWeight="Bold"/>
+            <TextBlock Text="{Binding Analytics.RepairRate,
+                              StringFormat={}{0:F1}%}"
+                       FontSize="24"
+                       Foreground="#FACC15"/>
+        </StackPanel>
+
+        <StackPanel Margin="10">
+            <TextBlock Text="Worst Welder"
+                       Foreground="White"
+                       FontWeight="Bold"/>
+            <TextBlock Text="{Binding Analytics.MostFailedWelder}"
+                       FontSize="18"
+                       Foreground="#FB7185"/>
+        </StackPanel>
+
+       <StackPanel Margin="10">
+            <TextBlock Text="Worst WPS"
+                       Foreground="White"
+                       FontWeight="Bold"/>
+            <TextBlock Text="{Binding Analytics.MostFailedWps}"
+                       FontSize="18"
+                       Foreground="#C084FC"/>
+        </StackPanel>
+
+        <StackPanel Margin="10">
+            <TextBlock Text="Repeat Repairs"
+                       Foreground="White"
+                       FontWeight="Bold"/>
+            <TextBlock Text="{Binding Analytics.RepeatRepairWelds}"
+                       FontSize="24"
+                       Foreground="#F87171"/>
+        </StackPanel>
+
+    </UniformGrid>
+
+</Border>
+
+        <!-- ===================================== -->
+        <!-- WELD GRID -->
+        <!-- ===================================== -->
+
+            <DataGrid   x:Name="WeldGrid"
+                        Grid.Row="3"
+                        ItemsSource="{Binding FilteredWelds}"
+                        SelectedItem="{Binding SelectedWeld}"
+                        AutoGenerateColumns="False"
+                        IsReadOnly="True"
+                        MouseDoubleClick="WeldGrid_MouseDoubleClick"
+                        CanUserResizeColumns="True"
+                        CanUserReorderColumns="True"
+                        FrozenColumnCount="2">
+
+                <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+
+                    <Setter Property="Background"
+                            Value="{Binding WorkflowStatus,
+                            Converter={StaticResource WeldStatusToBrushConverter}}"/>
+
+                </Style>
+            </DataGrid.RowStyle>
+
+                <DataGrid.Columns>
+
+                    <!-- WELD NUMBER -->
+                    <DataGridTextColumn Header="Weld No"
+                        Binding="{Binding WeldNumber}"
+                        Width="120"/>
+
+                    <!-- STATUS -->
+                    <DataGridTemplateColumn Header="Status"
+                        Width="110">
+
+                        <DataGridTemplateColumn.CellTemplate>
+
+                            <DataTemplate>
+
+                                <Border Padding="4"
+                    CornerRadius="4">
+
+                                    <TextBlock FontWeight="Bold">
+
+                                        <TextBlock.Style>
+
+                                            <Style TargetType="TextBlock">
+
+                                                <Setter Property="Text"
+                                    Value="BLOCKED"/>
+
+                                                <Setter Property="Foreground"
+                                    Value="Red"/>
+
+                                                <Style.Triggers>
+
+                                                    <!-- Released -->
+                                                    <DataTrigger
+                                    Binding="{Binding WorkflowStatus}"
+                                    Value="Released">
+
+                                                        <Setter Property="Text"
+                                            Value="RELEASED"/>
+
+                                                        <Setter Property="Foreground"
+                                            Value="DodgerBlue"/>
+
+                                                    </DataTrigger>
+
+                                                    <!-- Closed -->
+                                                    <DataTrigger
+                                    Binding="{Binding WorkflowStatus}"
+                                    Value="Closed">
+
+                                                        <Setter Property="Text"
+                                            Value="CLOSED"/>
+
+                                                        <Setter Property="Foreground"
+                                            Value="Gray"/>
+
+                                                    </DataTrigger>
+
+                                                    <!-- Ready -->
+                                                    <DataTrigger
+                                    Binding="{Binding ReleaseReady}"
+                                    Value="True">
+
+                                                        <Setter Property="Text"
+                                            Value="READY"/>
+
+                                                        <Setter Property="Foreground"
+                                            Value="LimeGreen"/>
+
+                                                    </DataTrigger>
+
+                                                </Style.Triggers>
+
+                                            </Style>
+
+                                        </TextBlock.Style>
+
+                                    </TextBlock>
+
+                                </Border>
+
+                            </DataTemplate>
+
+                        </DataGridTemplateColumn.CellTemplate>
+
+                    </DataGridTemplateColumn>
+
+                    <!-- DRAWING -->
+                    <DataGridTextColumn Header="Drawing"
+                        Binding="{Binding DrawingNumber}"
+                        Width="150"/>
+
+                    <!-- JOINT -->
+                    <DataGridTextColumn Header="Joint Type"
+                        Binding="{Binding JointType}"
+                        Width="120"/>
+
+                    <!-- WPS -->
+                    <DataGridTextColumn Header="WPS"
+                        Binding="{Binding WpsNumber}"
+                        Width="120"/>
+
+                    <!-- WELDER -->
+                    <DataGridTextColumn Header="Welder"
+                        Binding="{Binding WelderNumber}"
+                        Width="120"/>
+
+                    <!-- WORKFLOW -->
+                    <DataGridTextColumn Header="Workflow"
+                        Binding="{Binding WorkflowStatus}"
+                        Width="160"/>
+
+                    <!-- TURNOVER -->
+                    <DataGridCheckBoxColumn Header="Turnover"
+                            Binding="{Binding TurnoverReady}"
+                            Width="100"/>
+
+                    <!-- BLOCKS -->
+                    <DataGridTextColumn Header="Blocks"
+                        Binding="{Binding BlockingCount}"
+                        Width="80"/>
+
+                    <!-- READINESS -->
+                    <DataGridTextColumn Header="Readiness"
+                        Binding="{Binding ReadinessSummary}"
+                        Width="250"/>
+
+                    <!-- NDT -->
+                    <DataGridTextColumn Header="NDT"
+                        Binding="{Binding NdtStatus}"
+                        Width="140"/>
+
+                    <!-- PROCESS -->
+                    <DataGridTextColumn Header="Process"
+                        Binding="{Binding Process}"
+                        Width="100"/>
+
+                    <!-- POSITION -->
+                    <DataGridTextColumn Header="Position"
+                        Binding="{Binding Position}"
+                        Width="80"/>
+
+                    <!-- THICKNESS -->
+                    <DataGridTextColumn Header="Thickness"
+                        Binding="{Binding Thickness}"
+                        Width="90"/>
+
+                    <!-- VALID -->
+                    <DataGridTextColumn Header="Valid"
+                        Binding="{Binding IsValid}"
+                        Width="70"/>
+
+                    <!-- VALIDATION -->
+                    <DataGridTextColumn Header="Validation"
+                        Binding="{Binding ValidationMessage}"
+                        Width="250"/>
+
+                    <!-- REPAIR -->
+                    <DataGridTextColumn Header="Repair Cycle"
+                        Binding="{Binding RepairCycle}"
+                        Width="120"/>
+
+                    <DataGridCheckBoxColumn Header="Repair"
+                            Binding="{Binding RequiresRepair}"
+                            Width="80"/>
+
+                    <!-- HISTORY -->
+                    <DataGridTemplateColumn Header="History"
+                            Width="120">
+
+                        <DataGridTemplateColumn.CellTemplate>
+
+                            <DataTemplate>
+
+                                <Button Content="View History"
+                        Padding="5"
+                        Click="ViewHistory_Click"/>
+
+                            </DataTemplate>
+
+                        </DataGridTemplateColumn.CellTemplate>
+
+                    </DataGridTemplateColumn>
+
+                </DataGrid.Columns>
+
+            </DataGrid>
+            
+
+        <Expander Header="QA Blocking Analysis"
+          Grid.Row="4"
+          Margin="0,10,0,0"
+          IsExpanded="True">
+
+                <DataGrid ItemsSource="{Binding BlockingItems}"
+                  AutoGenerateColumns="False"
+                  RowHeight="32"
+                  
+                  HeadersVisibility="Column"
+                  CanUserResizeColumns="True">
+
+                    <DataGrid.Columns>
+
+            <DataGridTextColumn Header="Weld"
+                                Binding="{Binding WeldNumber}"
+                                Width="120"/>
+
+            <DataGridTextColumn Header="Workflow"
+                                Binding="{Binding WorkflowStatus}"
+                                Width="180"/>
+
+            <DataGridCheckBoxColumn Header="Blocked"
+                                    Binding="{Binding IsBlocked}"
+                                    Width="100"/>
+
+            <DataGridTextColumn Header="Blocking Reasons"
+                                Binding="{Binding BlockingReasons}"
+                                Width="*"/>
+
+        </DataGrid.Columns>
+
+    </DataGrid>
+
+</Expander>
+
+        <!-- ===================================== -->
+        <!-- NDT HISTORY -->
+        <!-- ===================================== -->
+
+            <Expander Header="NDT History"
+                        Grid.Row="5"
+                        Margin="0,10,0,0"
+                        IsExpanded="False">
+
+                <DataGrid ItemsSource="{Binding SelectedWeldNdtResults}"
+                    AutoGenerateColumns="False"
+                    RowHeight="32"
+                    HeadersVisibility="Column"
+                    CanUserResizeColumns="True">
+                    <DataGrid.Columns>
+
+                    <DataGridTextColumn Header="Method"
+                                        Binding="{Binding NdtMethod}"
+                                        Width="100"/>
+
+                    <DataGridTextColumn Header="Result"
+                                        Binding="{Binding Result}"
+                                        Width="100"/>
+
+                    <DataGridTextColumn Header="Date"
+                                        Binding="{Binding InspectionDate}"
+                                        Width="140"/>
+
+                    <DataGridTextColumn Header="Inspector"
+                                        Binding="{Binding InspectorName}"
+                                        Width="140"/>
+
+                    <DataGridTextColumn Header="Report"
+                                        Binding="{Binding ReportNumber}"
+                                        Width="140"/>
+
+                    <DataGridCheckBoxColumn Header="Repair"
+                                            Binding="{Binding RequiresRepair}"
+                                            Width="80"/>
+
+                    <DataGridTextColumn Header="Remarks"
+                                        Binding="{Binding Remarks}"
+                                        Width="700"/>
+
+                </DataGrid.Columns>
+
+            </DataGrid>
+
+        </Expander>
+
+        <!-- ===================================== -->
+        <!-- WELD HISTORY -->
+        <!-- ===================================== -->
+
+            <Expander Header="Weld History"
+                        Grid.Row="6"
+                        Margin="0,10,0,0"
+                        IsExpanded="False">
+
+                <DataGrid ItemsSource="{Binding SelectedWeldHistory}"
+                          AutoGenerateColumns="False"
+                            RowHeight="32"
+                            HeadersVisibility="Column"
+                            CanUserResizeColumns="True">
+                    
+                    <DataGrid.Columns>
+
+                    <DataGridTextColumn Header="Date"
+                                        Binding="{Binding EventDate}"
+                                        Width="180"/>
+
+                    <DataGridTextColumn Header="Event"
+                                        Binding="{Binding EventType}"
+                                        Width="180"/>
+
+                    <DataGridTextColumn Header="Description"
+                                        Binding="{Binding Description}"
+                                        Width="1400"/>
+
+                    <DataGridTextColumn Header="User"
+                                        Binding="{Binding UserName}"
+                                        Width="140"/>
+
+                </DataGrid.Columns>                
+
+            </DataGrid>
+
+        </Expander>
+
+                    <Expander Header="Hold Point Governance"
+                                Grid.Row="7"
+                                Margin="0,10,0,20"
+                                IsExpanded="False">
+
+                <Border MinHeight="350">
+
+                    <ContentControl x:Name="HoldPointHost"/>
+
+                        </Border>
+
+                </Expander>
+
+    </Grid>
+     </ScrollViewer>
+</UserControl>

@@ -1,0 +1,50 @@
+<UserControl x:Class="WeldAdminPro.UI.Views.Quality.DocumentAttachmentPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="10">
+
+        <Grid.RowDefinitions>
+
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+
+        </Grid.RowDefinitions>
+
+        <Button Content="Upload Document"
+                Width="180"
+                Height="30"
+                HorizontalAlignment="Left"
+                Command="{Binding UploadCommand}"/>
+
+        <DataGrid Grid.Row="1"
+                    Margin="0,10,0,0"
+                    ItemsSource="{Binding Attachments}"
+                    AutoGenerateColumns="False"
+                    MouseDoubleClick="DataGrid_MouseDoubleClick">
+
+            <DataGrid.Columns>
+
+                <DataGridTextColumn Header="File"
+                                    Binding="{Binding FileName}"
+                                    Width="300"/>
+
+                <DataGridTextColumn Header="Category"
+                                    Binding="{Binding Category}"
+                                    Width="180"/>
+
+                <DataGridTextColumn Header="Uploaded By"
+                                    Binding="{Binding UploadedBy}"
+                                    Width="180"/>
+
+                <DataGridTextColumn Header="Date"
+                                    Binding="{Binding UploadedDate}"
+                                    Width="180"/>
+
+            </DataGrid.Columns>
+
+        </DataGrid>
+
+    </Grid>
+
+</UserControl>

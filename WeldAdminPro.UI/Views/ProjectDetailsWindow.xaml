@@ -1,0 +1,592 @@
+﻿<Window x:Class="WeldAdminPro.UI.Views.ProjectDetailsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:WeldAdminPro.UI.Converters"
+        Title="Project Details"
+        MinWidth="1200"
+        MinHeight="800"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        ResizeMode="CanResize"
+        WindowStyle="SingleBorderWindow">
+    
+        <Window.Resources>
+        <conv:BoolToYesNoConverter x:Key="BoolToYesNoConverter"/>
+        </Window.Resources>
+
+    <ScrollViewer
+        VerticalScrollBarVisibility="Auto"
+        HorizontalScrollBarVisibility="Disabled"
+        CanContentScroll="True">
+
+
+        <Grid Margin="20">
+
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+
+		<!-- ================= HEADER ================= -->
+<TabControl Grid.Row="0" Margin="0,0,0,20">
+
+    <!-- ================= OVERVIEW TAB ================= -->
+                <TabItem Header="Overview">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+
+                            <StackPanel>
+
+                            <!-- COMPLIANCE PANEL -->
+            <Border Padding="12"
+                    Margin="0,0,0,15"
+                    BorderThickness="2"
+                    CornerRadius="5">
+
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="BorderBrush" Value="Red"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ComplianceResult.IsCompliant}" Value="True">
+                                <Setter Property="BorderBrush" Value="Green"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <StackPanel>
+
+                                <TextBlock Text="Project Documents"
+                                            FontWeight="Bold"
+                                            Margin="0,10,0,5"/>
+
+                                    <GroupBox Header="Required Documents"
+          Margin="0,0,0,10">
+
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  MinHeight="220"
+                  MaxHeight="350">
+
+                                            <ItemsControl
+            ItemsSource="{Binding GroupedProjectDocuments}">
+
+                                                <ItemsControl.ItemTemplate>
+
+                                                    <DataTemplate>
+
+                                                        <Expander
+                        Header="{Binding Key}"
+                        IsExpanded="True"
+                        Margin="0,5">
+
+                                                            <ItemsControl ItemsSource="{Binding}">
+
+                                                                <ItemsControl.ItemTemplate>
+
+                                                                    <DataTemplate>
+
+                                                                        <CheckBox
+                                                                            Margin="10,4"
+                                                                            FontSize="13"
+                                                                            Content="{Binding DocumentName}"
+                                                                            IsChecked="{Binding IsRequired, Mode=TwoWay}" />
+
+                                                                    </DataTemplate>
+
+                                                                </ItemsControl.ItemTemplate>
+
+                                                            </ItemsControl>
+
+                                                        </Expander>
+
+                                                    </DataTemplate>
+
+                                                </ItemsControl.ItemTemplate>
+
+                                            </ItemsControl>
+
+                                        </ScrollViewer>
+
+                                    </GroupBox>
+
+                                    <!-- DOCUMENT LIST -->
+                    <GroupBox Header="Project Documents">
+                        <ListBox ItemsSource="{Binding ProjectDocuments}"
+                                    MinHeight="200"
+                                    MaxHeight="400">
+
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+
+                                        <TextBlock Text="{Binding DocumentName}" Width="200"/>
+                                        <TextBlock Text="{Binding Revision}" Width="50"/>
+                                        <TextBlock Text="{Binding IsUploaded, Converter={StaticResource BoolToYesNoConverter}}" Width="80"/>
+                                        <TextBlock Text="{Binding IsApproved, Converter={StaticResource BoolToYesNoConverter}}" Width="80"/>
+                                        <TextBlock Text="{Binding IsRequired, Converter={StaticResource BoolToYesNoConverter}}" Width="80"/>
+                                        <TextBlock Text="{Binding Files.Count, StringFormat=Files: {0}}" Width="100"/>
+
+                                        <Button Content="Upload"
+                                                Width="70"
+                                                Margin="5,0,0,0"
+                                                Command="{Binding DataContext.UploadDocumentCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}" />
+
+                                        <Button Content="Approve"
+                                                Width="70"
+                                                Margin="5,0,0,0"
+                                                Command="{Binding DataContext.ToggleApprovalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}" />
+
+                                        <Button Content="Open"
+                                                Width="60"
+                                                Margin="5,0,0,0"
+                                                Command="{Binding DataContext.OpenDocumentCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}" />
+
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+
+                        </ListBox>
+                    </GroupBox>
+
+                    <!-- STATUS -->
+                    <TextBlock Text="{Binding ComplianceStatus}"
+                               Foreground="{Binding ComplianceColor}"
+                               FontSize="20"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               Margin="0,10,0,0"/>
+
+                    <TextBlock Text="{Binding WpsComplianceText}"
+                               HorizontalAlignment="Center"/>
+
+                    <ListBox ItemsSource="{Binding ComplianceResult.Issues}"
+                             Height="80"
+                             Margin="0,10,0,0"/>
+
+                </StackPanel>
+            </Border>
+
+            <!-- HEADER GRID -->
+            <Grid Margin="0,10,0,0">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="3*"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="Job Number" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1"
+                    Margin="5"
+                    Text="{Binding Project.JobNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                <TextBlock Grid.Column="2" Text="Status"/>
+                <ComboBox Grid.Column="3" Margin="5"
+                          ItemsSource="{Binding Statuses}"
+                          SelectedItem="{Binding Project.Status}"/>
+
+                <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Content="Weld Register"
+                                            MinWidth="140"
+                                            Height="35"
+                                            Margin="5"
+                                            Command="{Binding OpenWeldRegisterCommand}"/>
+
+                                    <Button Content="Save"
+                                            MinWidth="120"
+                                            Height="35"
+                                            Margin="5"
+                                            Command="{Binding SaveCommand}"/>
+
+                                    <Button Content="Cancel"
+                                            MinWidth="120"
+                                            Height="35"
+                                            Margin="5"
+                                            Command="{Binding CancelCommand}"/>
+                                </StackPanel>
+
+            </Grid>
+
+                </StackPanel>
+                        
+                            </ScrollViewer>              
+                                        </TabItem>
+
+    <!-- ================= WELD MAP TAB ================= -->
+    <TabItem Header="Weld Map">
+        <Grid>
+            <Canvas Background="LightGray">
+
+                <Image Source="{Binding WeldMapImage}"
+                       Stretch="Uniform"
+                       Width="800"
+                       Height="600"/>
+
+                <ItemsControl ItemsSource="{Binding WeldPoints}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding WeldNumber}"
+                                       Canvas.Left="{Binding X}"
+                                       Canvas.Top="{Binding Y}"
+                                       Foreground="Red"
+                                       FontWeight="Bold"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+            </Canvas>
+        </Grid>
+    </TabItem>
+
+</TabControl>
+
+
+		<!-- ================= MAIN CONTENT ================= -->
+		<Grid Grid.Row="1">
+
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="1.1*"/>
+				<ColumnDefinition Width="1.4*"/>
+			</Grid.ColumnDefinitions>
+
+
+			<!-- ================= LEFT SIDE ================= -->
+                <Grid Grid.Column="0"
+                      Margin="0,0,20,0">
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+
+                    <!-- PROJECT INFO -->
+                    <GroupBox Header="Project Information"
+                              Grid.Row="0">
+
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+
+                            <Grid Margin="15">
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="20"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="Project Name"/>
+						<TextBox Grid.Column="1" Margin="5"
+                                 Text="{Binding Project.ProjectName}"
+                                 IsEnabled="{Binding IsEditable}"/>
+
+						<TextBlock Grid.Row="1" Text="Client"/>
+						<TextBox Grid.Row="1" Grid.Column="1" Margin="5"
+                                 Text="{Binding Project.Client}"
+                                 IsEnabled="{Binding IsEditable}"/>
+
+						<TextBlock Grid.Row="2" Text="Client Rep"/>
+						<TextBox Grid.Row="2" Grid.Column="1" Margin="5"
+                                 Text="{Binding Project.ClientRepresentative}"
+                                 IsEnabled="{Binding IsEditable}"/>
+
+						<TextBlock Grid.Row="3" Text="Quote #"/>
+						<TextBox Grid.Row="3" Grid.Column="1" Margin="5"
+                                 Text="{Binding Project.QuoteNumber}"
+                                 IsEnabled="{Binding IsEditable}"/>
+
+						<TextBlock Grid.Row="4" Text="Order #"/>
+						<TextBox Grid.Row="4" Grid.Column="1" Margin="5"
+                                 Text="{Binding Project.OrderNumber}"
+                                 IsEnabled="{Binding IsEditable}"/>
+
+						<TextBlock Grid.Row="5" Text="Budget (R)"/>
+						<TextBox Grid.Row="5" Grid.Column="1" Margin="5"
+                                 Text="{Binding Project.Budget}"
+                                 IsEnabled="{Binding IsEditable}"/>
+
+						<TextBlock Grid.Row="6" Text="Material"/>
+						<TextBox Grid.Row="6" Grid.Column="1" Margin="5"
+                                 Text="{Binding Project.Material}"
+                                 IsEnabled="{Binding IsEditable}"/>
+
+						<TextBlock Grid.Row="7" Text="Assigned To"/>
+						<TextBox Grid.Row="7" Grid.Column="1" Margin="5"
+                                 Text="{Binding Project.AssignedTo}"
+                                 IsEnabled="{Binding IsEditable}"/>
+
+						<TextBlock Grid.Row="8" Text="Start Date"/>
+						<DatePicker Grid.Row="8" Grid.Column="1" Margin="5"
+                                    SelectedDate="{Binding Project.StartDate}"
+                                    IsEnabled="{Binding IsEditable}"/>
+
+						<TextBlock Grid.Row="9" Text="End Date"/>
+						<DatePicker Grid.Row="9" Grid.Column="1" Margin="5"
+                                    SelectedDate="{Binding Project.EndDate}"
+                                    IsEnabled="{Binding IsEditable}"/>
+
+						<TextBlock Grid.Row="10" Text="Created On"/>
+						<TextBox Grid.Row="10" Grid.Column="1" Margin="5"
+                                 Text="{Binding Project.CreatedOn, StringFormat={}{0:yyyy-MM-dd HH:mm}}"
+                                 IsReadOnly="True"
+                                 Background="#EEE"/>
+
+						<TextBlock Grid.Row="12" Text="Invoiced"/>
+						<CheckBox Grid.Row="12"
+                                  Grid.Column="1"
+                                  Margin="5"
+                                  IsChecked="{Binding Project.IsInvoiced}"
+                                  IsEnabled="{Binding IsEditable}"/>
+
+						<TextBlock Grid.Row="13" Text="Invoice Number"/>
+						<TextBox Grid.Row="13"
+                                 Grid.Column="1"
+                                 Margin="5"
+                                 Text="{Binding Project.InvoiceNumber}"
+                                 IsEnabled="{Binding IsEditable}"/>
+
+					</Grid>
+                        </ScrollViewer>
+				    </GroupBox>
+
+
+				<!-- FINANCIAL -->
+                <GroupBox Header="Financial Summary"
+                        Grid.Row="1"
+                        Margin="0,20,0,0">
+                    <StackPanel Margin="15">
+						<TextBlock Text="{Binding Project.Budget, StringFormat=Budget: R {0:N2}}"/>
+						<TextBlock Text="{Binding Project.ActualCost, StringFormat=Actual Cost: R {0:N2}}"/>
+						<TextBlock Text="{Binding Project.CommittedCost, StringFormat=Committed: R {0:N2}}"/>
+						<TextBlock Text="{Binding Variance, StringFormat=Variance: R {0:N2}}" FontWeight="Bold"/>
+						<TextBlock Text="{Binding MarginPercentage, StringFormat=Margin: {0:N2}%}" FontWeight="Bold"/>
+					</StackPanel>
+				</GroupBox>
+
+			</Grid>
+
+
+			<!-- ================= RIGHT SIDE ================= -->
+			<Grid Grid.Column="1">
+
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="*"/>
+				</Grid.RowDefinitions>
+
+
+				<!-- ISSUE / RETURN -->
+				<Grid Grid.Row="0" Margin="0,0,0,20">
+
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="1*"/>
+						<ColumnDefinition Width="1*"/>
+					</Grid.ColumnDefinitions>
+
+
+					<!-- ISSUE -->
+					<GroupBox Header="Issue Stock" Margin="0,0,15,0">
+						<Grid Margin="15">
+
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="110"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+
+							<Grid.RowDefinitions>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+							</Grid.RowDefinitions>
+
+							<TextBlock Text="Stock Item"/>
+							<ComboBox Grid.Column="1"
+                                      Margin="5"
+                                      ItemsSource="{Binding StockItems}"
+                                      SelectedItem="{Binding SelectedStockItem}"
+                                      DisplayMemberPath="Description"/>
+
+							<TextBlock Grid.Row="1" Text="Quantity"/>
+							<TextBox Grid.Row="1" Grid.Column="1"
+                                     Margin="5"
+                                     Text="{Binding IssueQuantity}"/>
+
+							<TextBlock Grid.Row="2"
+                                       Grid.Column="1"
+                                       Margin="5,2"
+                                       Foreground="DarkGreen"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding AvailableQuantity, StringFormat=Available: {0}}"/>
+
+							<TextBlock Grid.Row="3" Text="Issued By"/>
+							<TextBox Grid.Row="3" Grid.Column="1"
+                                     Margin="5"
+                                     Text="{Binding IssuedBy}"/>
+
+							<Button Grid.Row="4"
+                                    Grid.Column="1"
+                                    Content="Issue Stock"
+                                    HorizontalAlignment="Right"
+                                    Margin="5,10,5,0"
+                                    Command="{Binding IssueStockCommand}"
+                                    IsEnabled="{Binding CanIssueStock}"/>
+
+						</Grid>
+					</GroupBox>
+
+
+					<!-- RETURN -->
+					<GroupBox Header="Return Stock" Grid.Column="1">
+						<Grid Margin="15">
+
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="110"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+
+							<Grid.RowDefinitions>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+							</Grid.RowDefinitions>
+
+                            <TextBlock Text="Issued Item"/>
+
+                            <ComboBox Grid.Column="1"
+          Margin="5"
+          ItemsSource="{Binding ReturnableIssuedItems}"
+          SelectedItem="{Binding SelectedIssuedItem}"
+          DisplayMemberPath="Display"/>
+
+                            <TextBlock Grid.Row="1" Text="Return Qty"/>
+							<TextBox Grid.Row="1" Grid.Column="1"
+                                     Margin="5"
+                                     Text="{Binding ReturnQuantity}"/>
+
+							<TextBlock Grid.Row="2"
+                                       Grid.Column="1"
+                                       Margin="5,2"
+                                       Foreground="Gray"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding RemainingIssuedBalance, StringFormat=Issued: {0}}"/>
+
+							<Button Grid.Row="3"
+                                    Grid.Column="1"
+                                    Content="Return Stock"
+                                    HorizontalAlignment="Right"
+                                    Margin="5,10,5,0"
+                                    Command="{Binding ReturnStockCommand}"
+                                    IsEnabled="{Binding CanReturnStock}"/>
+
+						</Grid>
+					</GroupBox>
+
+				</Grid>
+
+
+				<!-- SUMMARY + COST -->
+				<Grid Grid.Row="1">
+
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="1*"/>
+						<ColumnDefinition Width="1.6*"/>
+					</Grid.ColumnDefinitions>
+
+
+					<GroupBox Header="Project Stock Summary" Margin="0,0,15,0">
+						<DataGrid ItemsSource="{Binding ProjectStockSummary}"
+                                  MinHeight="250"
+                                  MaxHeight="500"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  CanUserAddRows="False"
+                                  Margin="15">
+
+							<DataGrid.Columns>
+								<DataGridTextColumn Header="Code" Binding="{Binding ItemCode}" Width="90"/>
+								<DataGridTextColumn Header="Item" Binding="{Binding Description}" Width="*"/>
+								<DataGridTextColumn Header="Net Used" Binding="{Binding NetQuantity}" Width="80"/>
+							</DataGrid.Columns>
+
+						</DataGrid>
+					</GroupBox>
+
+
+					<GroupBox Header="Project Cost Breakdown" Grid.Column="1">
+
+						<DataGrid ItemsSource="{Binding ProjectCostTransactions}"
+                                  MinHeight="250"
+                                  MaxHeight="500"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  CanUserAddRows="False"
+                                  Margin="15">
+
+							<DataGrid.Columns>
+
+								<DataGridTextColumn Header="Date"
+                                    Binding="{Binding TransactionDate, StringFormat={}{0:yyyy-MM-dd HH:mm}}"
+                                    Width="150"/>
+
+								<DataGridTextColumn Header="Item Code"
+                                    Binding="{Binding ItemCode}"
+                                    Width="90"/>
+
+								<DataGridTextColumn Header="Description"
+                                    Binding="{Binding ItemDescription}"
+                                    Width="*"/>
+
+								<DataGridTextColumn Header="Type"
+                                    Binding="{Binding Type}"
+                                    Width="60"/>
+
+								<DataGridTextColumn Header="Qty"
+                                    Binding="{Binding Quantity}"
+                                    Width="60"/>
+
+								<DataGridTextColumn Header="Unit Cost"
+                                    Binding="{Binding UnitCost, StringFormat={}{0:N2}}"
+                                    Width="90"/>
+
+								<DataGridTextColumn Header="Line Total"
+                                    Binding="{Binding TransactionValue, StringFormat={}{0:N2}}"
+                                    Width="110"/>
+
+							</DataGrid.Columns>
+
+						</DataGrid>
+
+					</GroupBox>
+
+				</Grid>
+
+			</Grid>
+
+		</Grid>
+
+	</Grid>
+</ScrollViewer>
+</Window>

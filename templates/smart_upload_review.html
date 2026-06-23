@@ -1,0 +1,70 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h3>Review & Save — Smart Upload</h3>
+<form method="post" action="{{ url_for('smart_upload_save') }}">
+  <input type="hidden" name="temp_filename" value="{{ temp_filename }}">
+  <div class="row g-3">
+    <div class="col-md-2">
+      <label class="form-label">Type</label>
+      <select name="type" class="form-select">
+        <option value="WPS" {% if prefill.type == 'WPS' %}selected{% endif %}>WPS</option>
+        <option value="WPQR" {% if prefill.type == 'WPQR' %}selected{% endif %}>WPQR</option>
+        <option value="PQR" {% if prefill.type == 'PQR' %}selected{% endif %}>PQR</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Code/Number</label>
+      <input name="code" class="form-control" value="{{ prefill.code }}">
+    </div>
+    <div class="col-md-7">
+      <label class="form-label">Title</label>
+      <input name="title" class="form-control" value="{{ prefill.title }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Issue Date</label>
+      <input name="issue_date" class="form-control" value="{{ prefill.issue_date }}" placeholder="YYYY-MM-DD">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Expiry Date</label>
+      <input name="expiry_date" class="form-control" value="{{ prefill.expiry_date }}" placeholder="YYYY-MM-DD">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Detected Process</label>
+      <input class="form-control" value="{{ prefill.process }}" readonly>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Material</label>
+      <input class="form-control" value="{{ prefill.material }}" readonly>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Thickness/Range</label>
+      <input class="form-control" value="{{ prefill.thickness }}" readonly>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Positions</label>
+      <input class="form-control" value="{{ prefill.positions }}" readonly>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Filler Metal</label>
+      <input class="form-control" value="{{ prefill.filler }}" readonly>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Shielding Gas</label>
+      <input class="form-control" value="{{ prefill.gas }}" readonly>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Welders</label>
+      <input class="form-control" value="{{ prefill.welders }}" readonly>
+    </div>
+  </div>
+  <button class="btn btn-success mt-3">Save Qualification</button>
+</form>
+
+<div class="mt-4">
+  <details>
+    <summary>Show extracted raw text</summary>
+    <pre class="mt-2" style="white-space: pre-wrap; max-height: 300px; overflow:auto;">{{ prefill._raw_text }}</pre>
+  </details>
+</div>
+{% endblock %}

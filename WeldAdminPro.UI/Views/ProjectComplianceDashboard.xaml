@@ -1,0 +1,124 @@
+<UserControl x:Class="WeldAdminPro.UI.Views.ProjectComplianceDashboard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d">
+
+    <Grid Margin="20">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- HEADER -->
+        <TextBlock Text="PROJECT COMPLIANCE DASHBOARD"
+                   FontSize="22"
+                   FontWeight="Bold"
+                   Margin="0,0,0,20"/>
+
+        <!-- GRID -->
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding Projects}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  IsReadOnly="True">
+
+            <DataGrid.Columns>
+
+                <DataGridTextColumn Header="Job #" Binding="{Binding JobNumber}" Width="80"/>
+                <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="200"/>
+                <DataGridTextColumn Header="Client" Binding="{Binding Client}" Width="150"/>
+
+                <DataGridTemplateColumn Header="Risk" Width="160">
+    <DataGridTemplateColumn.CellTemplate>
+        <DataTemplate>
+            <TextBlock Text="{Binding RiskDisplay}"
+                       FontWeight="Bold">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="Red"/>
+                        <Style.Triggers>
+
+                            <DataTrigger Binding="{Binding RiskLevel}" Value="LOW">
+                                <Setter Property="Foreground" Value="Green"/>
+                            </DataTrigger>
+
+                            <DataTrigger Binding="{Binding RiskLevel}" Value="MEDIUM">
+                                <Setter Property="Foreground" Value="Orange"/>
+                            </DataTrigger>
+
+                            <DataTrigger Binding="{Binding RiskLevel}" Value="HIGH">
+                                <Setter Property="Foreground" Value="Red"/>
+                            </DataTrigger>
+
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </DataTemplate>
+    </DataGridTemplateColumn.CellTemplate>
+</DataGridTemplateColumn>
+
+                <!-- WPS PROGRESS -->
+                <DataGridTemplateColumn Header="WPS Compliance" Width="180">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <ProgressBar Value="{Binding WpsPercent}"
+                                             Maximum="100"
+                                             Height="15"/>
+                                <TextBlock Text="{Binding WpsPercent, StringFormat={}{0:F0}%}"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- DOCUMENT PROGRESS -->
+                <DataGridTemplateColumn Header="Docs Compliance" Width="180">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <ProgressBar Value="{Binding DocPercent}"
+                                             Maximum="100"
+                                             Height="15"/>
+                                <TextBlock Text="{Binding DocPercent, StringFormat={}{0:F0}%}"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- ISSUES -->
+                <DataGridTextColumn Header="Issues"
+                                    Binding="{Binding IssueCount}"
+                                    Width="80"/>
+
+                <!-- STATUS -->
+                <DataGridTemplateColumn Header="Status" Width="160">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding StatusText}"
+                                       FontWeight="Bold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="Red"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsCompliant}" Value="True">
+                                                <Setter Property="Foreground" Value="Green"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+            </DataGrid.Columns>
+        </DataGrid>
+
+    </Grid>
+</UserControl>

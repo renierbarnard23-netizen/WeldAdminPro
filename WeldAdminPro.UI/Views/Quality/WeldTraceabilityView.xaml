@@ -1,0 +1,62 @@
+<UserControl x:Class="WeldAdminPro.UI.Views.Quality.WeldTraceabilityView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="20">
+
+        <StackPanel>
+
+            <TextBlock Text="Weld Traceability Matrix"
+                       FontSize="28"
+                       FontWeight="Bold"
+                       Margin="0,0,0,20"/>
+
+            <DataGrid ItemsSource="{Binding Welds}"
+                      AutoGenerateColumns="False"
+                      Height="500">
+
+                <DataGrid.Columns>
+
+                    <DataGridTextColumn
+                        Header="Weld No"
+                        Binding="{Binding WeldNumber}"
+                        Width="120"/>
+
+                    <DataGridTextColumn
+                        Header="Welder"
+                        Binding="{Binding Welder}"
+                        Width="140"/>
+
+                    <DataGridTextColumn
+                        Header="WPS"
+                        Binding="{Binding WpsNumber}"
+                        Width="180"/>
+
+                    <DataGridTextColumn
+                        Header="Material"
+                        Binding="{Binding Material}"
+                        Width="140"/>
+
+                    <DataGridTextColumn
+                        Header="NDT"
+                        Binding="{Binding NdtStatus}"
+                        Width="140"/>
+
+                    <DataGridTextColumn
+                        Header="Status"
+                        Binding="{Binding WeldStatus}"
+                        Width="180"/>
+
+                    <DataGridTextColumn
+                        Header="Repairs"
+                        Binding="{Binding RepairCount}"
+                        Width="100"/>
+
+                </DataGrid.Columns>
+
+            </DataGrid>
+
+        </StackPanel>
+
+    </Grid>
+</UserControl>

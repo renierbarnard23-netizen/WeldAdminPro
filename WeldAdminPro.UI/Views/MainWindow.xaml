@@ -1,0 +1,155 @@
+<Window x:Class="WeldAdminPro.UI.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:WeldAdminPro.UI.Views"
+        xmlns:vm="clr-namespace:WeldAdminPro.UI.ViewModels"
+        xmlns:quality="clr-namespace:WeldAdminPro.UI.Views.Quality"
+        Title="WeldAdmin Pro"
+        Height="950"
+        Width="1600"
+        WindowState="Maximized">
+
+    <DockPanel>
+
+        <!-- TOP MENU -->
+        <Menu DockPanel.Dock="Top">
+
+            <MenuItem Header="Home"
+                      Click="Home_Click"/>
+
+            <MenuItem Header="Projects"
+                      Click="Projects_Click"/>
+
+            <MenuItem Header="Stock"
+                      Click="Stock_Click"/>
+
+            <!-- QUALITY -->
+            <MenuItem Header="Quality"
+                            Visibility="{Binding Permissions.QualityVisibility}">
+
+                <MenuItem Header="WPS"
+                          Click="Wps_Click"/>
+
+                <MenuItem Header="PQR"
+                          Click="Pqr_Click"/>
+
+                <MenuItem Header="Project Quality"
+                          Click="Quality_Click"/>
+
+                <MenuItem Header="Traceability Matrix"
+                          Click="TraceabilityMatrix_Click"/>
+
+                <MenuItem Header="Weld Register"
+                          Click="WeldRegister_Click"/>
+
+                <MenuItem Header="Repairs"
+                          Click="Repairs_Click"/>
+
+                <MenuItem Header="NCR Dashboard"
+                          Click="NcrDashboard_Click"/>
+
+                <MenuItem Header="Turnover Governance"
+                          Click="TurnoverGovernance_Click"/>
+
+                <MenuItem Header="Welder Qualifications"
+                          Click="WelderQualifications_Click"/>
+
+                <MenuItem Header="QA Dashboard"
+                          Click="QaDashboard_Click"/>
+
+                <MenuItem Header="Executive Quality Dashboard"
+                          Click="ExecutiveQualityDashboard_Click"/>
+
+                <MenuItem Header="Weld Control Tower"
+                          Click="OpenWeldControlTower_Click"/>
+
+                <!-- NEW -->
+                <Separator/>
+
+                <MenuItem Header="Document Vault"
+                    Click="OpenDocumentVault_Click"
+                    Visibility="{Binding Permissions.DocumentVaultVisibility}"/>
+                
+            </MenuItem>
+
+            <!-- ANALYTICS -->
+            <MenuItem Header="Executive"
+          Visibility="{Binding Permissions.ExecutiveVisibility}">
+
+                <MenuItem Header="Project Costs"
+              Click="ProjectCosts_Click"/>
+
+                <MenuItem Header="Material Cost Drivers"
+              Click="MaterialCostDrivers_Click"/>
+
+                <MenuItem Header="Profitability"
+              Click="Profitability_Click"/>
+
+                <MenuItem Header="Project Risk"
+              Click="ProjectRisk_Click"/>
+
+                <MenuItem Header="Material Trends"
+              Click="MaterialTrends_Click"/>
+
+                <MenuItem Header="Stock Forecast"
+              Click="StockForecast_Click"/>
+
+            </MenuItem>
+
+            <MenuItem Header="Work Orders"
+                Click="WorkOrders_Click"
+                Visibility="{Binding Permissions.ProductionVisibility}"/>
+
+            <MenuItem Header="Audit Logs"
+                        Click="AuditLogs_Click"
+                        Visibility="{Binding Permissions.AuditVisibility}"/>
+
+            <!-- REPORTING -->
+
+            <MenuItem Header="Production Control Tower"
+                Click="ProductionControlTower_Click"/>
+            
+            <MenuItem Header="Reports"
+                Click="Reports_Click"
+                Visibility="{Binding Permissions.ReportsVisibility}"/>
+
+            <!-- SETTINGS -->
+
+            <MenuItem Header="Production Settings"
+          Click="ProductionSettings_Click"/>
+
+            <MenuItem Header="User Management"
+                Click="UserManagement_Click"
+                Visibility="{Binding Permissions.AdminVisibility}"/>
+
+            <MenuItem Header="Logout"
+          Click="Logout_Click"/>    
+
+            <!-- EXIT -->
+            <MenuItem Header="Exit"
+                      Click="Exit_Click"/>
+
+        </Menu>
+
+        <Border DockPanel.Dock="Top"
+        Background="#2D2D30"
+        Padding="8">
+
+            <TextBlock Foreground="White"
+               FontWeight="Bold"
+               Text="{Binding Vm.CurrentUserDisplay}"/>
+
+        </Border>
+
+        <!-- MAIN CONTENT HOST -->
+        <Grid>
+
+            <ContentControl x:Name="MainContent"
+                Content="{Binding Vm.CurrentView}"
+                    HorizontalContentAlignment="Stretch"
+                    VerticalContentAlignment="Stretch"/>
+
+        </Grid>
+        
+    </DockPanel>
+</Window>

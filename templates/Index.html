@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WeldAdmin Pro (Web) — Dashboard</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body class="bg-dark text-light">
+
+  <!-- Top nav -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-steel py-2">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center" href="#">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" class="me-2">
+          <rect width="24" height="24" rx="4" fill="#2b2f33"/>
+          <path d="M6 12h12" stroke="#ff8a00" stroke-width="2" stroke-linecap="round"/>
+          <path d="M6 8h12" stroke="#6bd3ff" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="fw-bold">WeldAdmin Pro</span>
+        <small class="ms-2 text-muted">Web</small>
+      </a>
+
+      <div class="ms-auto d-flex gap-2">
+        <!-- Local GUI script download (local path used as URL) -->
+        <a class="btn btn-outline-light btn-sm" href="/download?path=/mnt/data/weldadmin_gui.py" title="Download Desktop GUI">
+          Download Desktop GUI
+        </a>
+        <a class="btn btn-outline-secondary btn-sm" href="/downloads">Downloads</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container py-4">
+    <div class="row">
+      <!-- Left column: Upload / Controls -->
+      <div class="col-lg-4 mb-3">
+        <div class="card bg-card">
+          <div class="card-header bg-steel text-white">
+            <strong>Upload / Parse</strong>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label">PDF file</label>
+              <input id="pdfFile" class="form-control form-control-sm" type="file" accept=".pdf" />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Or server path</label>
+              <input id="pdfPath" class="form-control form-control-sm" placeholder="e.g. uploads/WPS-SA304L.pdf" />
+            </div>
+
+            <div class="d-grid gap-2">
+              <button id="btnParse" class="btn btn-warning btn-sm">Parse PDF</button>
+              <button id="btnImport" class="btn btn-success btn-sm">Import to DB</button>
+            </div>
+
+            <hr class="my-3" />
+
+            <div>
+              <small class="text-muted">Raw server response</small>
+              <pre id="rawOut" class="json-output mt-2">No response yet.</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="card bg-card mt-3">
+          <div class="card-body small text-muted">
+            <strong>Notes:</strong>
+            <ul>
+              <li>Use the Parse button to preview parsed fields.</li>
+              <li>Use Import to DB to save the record into the WeldAdmin SQLite DB.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column: Parsed record tabs -->
+      <div class="col-lg-8">
+        <div class="card bg-card">
+          <div class="card-header bg-steel text-white d-flex justify-content-between align-items-center">
+            <strong>Parsed Record Viewer</strong>
+            <span id="detectedBadge" class="badge bg-dark text-warning">Detected: —</span>
+          </div>
+
+          <div class="card-body">
+            <ul class="nav nav-tabs" id="recordTabs" role="tablist">
+              <li class="nav-item"><button class="nav-link active" id="tab-wps" data-bs-toggle="tab" data-bs-target="#wps">WPS</button></li>
+              <li class="nav-item"><button class="nav-link" id="tab-pqr" data-bs-toggle="tab" data-bs-target="#pqr">PQR</button></li>
+              <li class="nav-item"><button class="nav-link" id="tab-wpq" data-bs-toggle="tab" data-bs-target="#wpq">WPQ</button></li>
+            </ul>
+
+            <div class="tab-content mt-3">
+              <div class="tab-pane fade show active" id="wps">
+                <div id="wps-fields" class="field-grid">No WPS loaded.</div>
+              </div>
+
+              <div class="tab-pane fade" id="pqr">
+                <div id="pqr-fields" class="field-grid">No PQR loaded.</div>
+              </div>
+
+              <div class="tab-pane fade" id="wpq">
+                <div id="wpq-fields" class="field-grid">No WPQ loaded.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card bg-card mt-3">
+          <div class="card-body">
+            <strong>Recent actions</strong>
+            <ul id="actionLog" class="mb-0 small text-muted"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

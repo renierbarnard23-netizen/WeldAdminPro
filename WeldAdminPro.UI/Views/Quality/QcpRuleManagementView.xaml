@@ -1,0 +1,61 @@
+<UserControl x:Class="WeldAdminPro.UI.Views.Quality.QcpRuleManagementView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="10">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DataGrid Grid.Row="0"
+                  ItemsSource="{Binding Rules}"
+                  SelectedItem="{Binding SelectedRule}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="False">
+
+            <DataGrid.Columns>
+
+                <DataGridTextColumn Header="Weld Type"
+                                    Binding="{Binding WeldType}"
+                                    Width="180"/>
+
+                <DataGridTextColumn Header="Inspection %"
+                                    Binding="{Binding InspectionPercentage}"
+                                    Width="140"/>
+
+                <DataGridTextColumn Header="NDT Type"
+                                    Binding="{Binding RequiredNdtType}"
+                                    Width="140"/>
+
+                <DataGridCheckBoxColumn Header="Witness"
+                                        Binding="{Binding RequiresClientWitness}"
+                                        Width="100"/>
+
+                <DataGridCheckBoxColumn Header="Hold Point"
+                                        Binding="{Binding RequiresHoldPoint}"
+                                        Width="100"/>
+
+            </DataGrid.Columns>
+
+        </DataGrid>
+
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    Margin="0,10,0,0">
+
+            <Button Content="Add Rule"
+                    Width="120"
+                    Margin="0,0,10,0"
+                    Command="{Binding AddRuleCommand}"/>
+
+            <Button Content="Save"
+                    Width="120"
+                    Command="{Binding SaveRuleCommand}"/>
+
+        </StackPanel>
+
+    </Grid>
+
+</UserControl>

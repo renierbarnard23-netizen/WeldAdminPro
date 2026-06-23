@@ -1,0 +1,227 @@
+# Projects view + ViewModel scaffold for WeldAdminPro
+
+This scaffold adds a ProjectsView (WPF UserControl), ProjectsViewModel, and an Excel export service. Paste the files into the project as shown.
+
+---
+
+## File: /WeldAdminPro.UI/Views/ProjectsView.xaml
+```xml
+<UserControl x:Class="WeldAdminPro.UI.Views.ProjectsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:WeldAdminPro.UI.ViewModels"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="800">
+
+    <UserControl.DataContext>
+        <vm:ProjectsViewModel />
+    </UserControl.DataContext>
+
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="0" HorizontalAlignment="Stretch">
+            <TextBox Width="240" Margin="0,0,8,0" Text=""
+                     PlaceholderText="Search projects..."
+                     TextChanged="OnSearchTextChanged"/>
+            <Button Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,0,8,0" />
+            <Button Content="Export Excel" Command="{Binding ExportExcelCommand}" />
+        </StackPanel>
+
+        <DataGrid Grid.Row="1" ItemsSource="{Binding Projects}" AutoGenerateColumns="False" IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Project #" Binding="{Binding ProjectNumber}" Width="150" />
+                <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="*" />
+                <DataGridTextColumn Header="Client" Binding="{Binding Client}" Width="200" />
+                <DataGridTextColumn Header="Start Date" Binding="{Binding StartDate, StringFormat=d}" Width="130" />
+                <DataGridTextColumn Header="Databook" Binding="{Binding DatabookVersion}" Width="120" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>
+```
+
+---
+
+## File: /WeldAdminPro.UI/Views/ProjectsView.xaml.cs
+```csharp
+using System.Windows.Controls;
+using System.Windows;
+
+namespace WeldAdminPro.UI.Views
+{
+    public partial class ProjectsView : UserControl
+    {
+        public ProjectsView()
+        {
+            InitializeComponent();
+        }
+
+        // simple search hook to call VM (keeps XAML simple)
+        private void OnSearchTextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (DataContext is ViewModels.ProjectsViewModel vm && sender is TextBox tb)
+            {
+                vm.Filter = tb.Text;
+            }
+        }
+    }
+}
+```
+
+---
+
+## File: /WeldAdminPro.UI/ViewModels/ProjectsViewModel.cs
+```csharp
+using System;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.EntityFrameworkCore;
+using WeldAdminPro.Core.Models;
+using WeldAdminPro.Data;
+
+namespace WeldAdminPro.UI.ViewModels
+{
+    public class ProjectsViewModel : ObservableObject
+    {
+        private readonly WeldAdminDbContext _db;
+        private readonly Services.ExcelExportService _excel;
+
+        public ObservableCollection<Project> Projects { get; } = new ObservableCollection<Project>();
+
+        private string _filter = string.Empty;
+        public string Filter
+n        {
+            get => _filter;
+            set
+            {
+                SetProperty(ref _filter, value);
+                _ = RefreshAsync();
+            }
+        }
+
+        public IAsyncRelayCommand RefreshCommand { get; }
+        public IAsyncRelayCommand ExportExcelCommand { get; }
+
+        public ProjectsViewModel()
+        {
+            // build a short-lived DbContext using default connection string used in App.xaml.cs
+            var options = new DbContextOptionsBuilder<WeldAdminDbContext>()
+                .UseSqlite("Data Source=weldadmin.db")
+                .Options;
+
+            _db = new WeldAdminDbContext(options);
+            _excel = new Services.ExcelExportService();
+
+            RefreshCommand = new AsyncRelayCommand(RefreshAsync);
+            ExportExcelCommand = new AsyncRelayCommand(ExportExcelAsync);
+
+            // initial load (fire and forget)
+            _ = RefreshAsync();
+        }
+
+        private async Task RefreshAsync()
+        {
+            var q = _db.Projects.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(Filter))
+            {
+                var f = Filter.Trim();
+                q = q.Where(p => p.ProjectNumber.Contains(f) || p.Title.Contains(f) || p.Client.Contains(f));
+            }
+
+            var list = await q.OrderBy(p => p.ProjectNumber).ToListAsync();
+
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                Projects.Clear();
+                foreach (var p in list) Projects.Add(p);
+            });
+        }
+
+        private async Task ExportExcelAsync()
+        {
+            // simple export of current Projects collection
+            var rows = Projects.Select(p => new { p.ProjectNumber, p.Title, p.Client, StartDate = p.StartDate?.ToString("yyyy-MM-dd"), p.DatabookVersion }).ToList();
+            await _excel.ExportProjectsAsync(rows, "ProjectsExport.xlsx");
+        }
+    }
+}
+```
+
+---
+
+## File: /WeldAdminPro.UI/Services/ExcelExportService.cs
+```csharp
+using System.Collections.Generic;
+using System.Data;
+using System.IO;
+using System.Threading.Tasks;
+
+namespace WeldAdminPro.UI.Services
+{
+    // Simple Excel export using CSV to avoid external dependencies. If you prefer a real .xlsx
+    // implementation we can add ClosedXML or EPPlus as a package and create a nicer file.
+    public class ExcelExportService
+    {
+        public Task ExportProjectsAsync<T>(IEnumerable<T> rows, string filename)
+        {
+            // Write CSV with UTF8 BOM so Excel opens it nicely
+            var sb = new System.Text.StringBuilder();
+            var props = typeof(T).GetProperties();
+
+            // header
+            for (int i = 0; i < props.Length; i++)
+            {
+                sb.Append(props[i].Name);
+                if (i < props.Length - 1) sb.Append(',');
+            }
+            sb.AppendLine();
+
+            foreach (var r in rows)
+            {
+                for (int i = 0; i < props.Length; i++)
+                {
+                    var v = props[i].GetValue(r)?.ToString() ?? string.Empty;
+                    // escape
+                    if (v.Contains(',') || v.Contains('"') || v.Contains('\n'))
+                    {
+                        v = '"' + v.Replace('"', '"') + '"';
+                    }
+                    sb.Append(v);
+                    if (i < props.Length - 1) sb.Append(',');
+                }
+                sb.AppendLine();
+            }
+
+            var bytes = System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+            File.WriteAllBytes(filename, bytes);
+            return Task.CompletedTask;
+        }
+    }
+}
+```
+
+---
+
+## Quick wiring notes
+- Add the new `ProjectsView` to the UI project under `Views/` and `ViewModels/` respectively.
+- In `WeldAdminPro.UI.ViewModels.MainViewModel`, change the `ShowProjectsCommand` to set `CurrentView = new Views.ProjectsView();` instead of the placeholder string.
+- The export currently writes a simple CSV named `ProjectsExport.xlsx` in the working folder (Excel will open it). If you prefer .xlsx, I can switch to ClosedXML and produce a styled workbook.
+
+---
+
+Drop a note when you want me to:
+- Convert CSV export to real .xlsx (ClosedXML)
+- Add paging and sorting on DataGrid
+- Add create/edit/delete project forms + dialogs
+- Add unit tests for the ViewModel
