@@ -1,13 +1,70 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build output
 bin/
 obj/
-.vs/
-Publish_SelfContained/
-Publish_Test/
+build/
+dist/
+publish/
+Publish_*/
 artifacts/
-installer/
-*.exe
-*.dll
-*.zip
-*.pdb
+release/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+buildenv/
+
+# Logs
+*.log
+stdout.log
+stderr.log
+run_debug_log.txt
+patch_run_log.txt
+compile_output.log
+compile_installer.log
+compile_installer_transcript.log
+
+# Databases
 *.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.old
+*.tmp
+*.cache
+*.wip
+
+# Generated installers
+*.exe
+*.msi
+Output/
+
+# Rider/VSCode
+.idea/
+.vscode/
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Installer artifacts
+installer/
+installer_artifacts*/
+weldadmin-ui-windows/
+*.zip
+
+# Environment files
 .env
+buildenv.zip
