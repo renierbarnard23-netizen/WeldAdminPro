@@ -261,7 +261,6 @@ WHERE Id = $id;";
 		{
 			_transactionRepo.UpdateTransactionBalance(transactionId, newBalance);
 		}
-
 		public void RecalculateAllBalances()
 		{
 			var transactions = _transactionRepo.GetAllTransactions();
@@ -314,7 +313,6 @@ WHERE Id = $id;";
 
 			return true;
 		}
-
 		public StockItem? GetByItemCode(string itemCode)
 		{
 			if (string.IsNullOrWhiteSpace(itemCode))
@@ -343,9 +341,6 @@ WHERE Id = $id;";
 
 			return null;
 		}
-
-		
-
 		public List<WorkOrderMaterialTrace> GetMaterialTraceForWorkOrder(string workOrderNumber)
 		{
 			var list = new List<WorkOrderMaterialTrace>();

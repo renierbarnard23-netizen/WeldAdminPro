@@ -147,7 +147,10 @@ INSERT INTO Welds
     IsValid,
     ValidationMessage,
 
-    CreatedDate
+    CreatedDate,
+    RequiredNdt,
+    ReadinessScore,
+    IsReady
 )
 VALUES
 (
@@ -186,7 +189,10 @@ VALUES
     $IsValid,
     $ValidationMessage,
 
-    $CreatedDate
+    $CreatedDate,
+    $RequiredNdt,
+    $ReadinessScore,
+    $IsReady
 );";
 
             cmd.Parameters.AddWithValue(
@@ -311,6 +317,18 @@ VALUES
             cmd.Parameters.AddWithValue(
                 "$CreatedDate",
                 weld.CreatedDate.ToString("O"));
+
+            cmd.Parameters.AddWithValue(
+                "$RequiredNdt",
+                weld.RequiredNdt);
+
+            cmd.Parameters.AddWithValue(
+                "$ReadinessScore",
+                weld.ReadinessScore);
+
+            cmd.Parameters.AddWithValue(
+                "$IsReady",
+                weld.IsReady ? 1 : 0);
 
             await cmd.ExecuteNonQueryAsync();
         }
@@ -469,6 +487,21 @@ ORDER BY WeldNumber;";
                     CreatedDate =
                         DateTime.Parse(
                             reader["CreatedDate"].ToString()!),
+
+                    RequiredNdt =
+                            reader["RequiredNdt"]?.ToString() ?? "",
+
+                    ReadinessScore =
+                            reader["ReadinessScore"] == DBNull.Value
+                                ? 0
+                                : Convert.ToInt32(
+                            reader["ReadinessScore"]),
+
+                    IsReady =
+                            reader["IsReady"] != DBNull.Value
+                                &&
+                                Convert.ToInt32(
+                            reader["IsReady"]) == 1,
 
                     Process =
                         reader["Process"]?.ToString() ?? "",
@@ -658,6 +691,27 @@ WHERE ProjectId = $ProjectId;";
                                 ? DateTime.UtcNow
                                 : DateTime.Parse(
                             reader["CreatedDate"].ToString()!),
+
+                        RequiredNdt =
+                            HasColumn(reader, "RequiredNdt")
+                                ? reader["RequiredNdt"]?.ToString() ?? ""
+                                : "",
+
+                        ReadinessScore =
+                            HasColumn(reader, "ReadinessScore")
+                            &&
+                            reader["ReadinessScore"] != DBNull.Value
+                            ? Convert.ToInt32(
+                                reader["ReadinessScore"])
+                            : 0,
+
+                        IsReady =
+                            HasColumn(reader, "IsReady")
+                            &&
+                            reader["IsReady"] != DBNull.Value
+                            &&
+                                Convert.ToInt32(
+                            reader["IsReady"]) == 1,
 
                         ReleaseReady =
                             HasColumn(reader, "ReleaseReady")
@@ -863,6 +917,18 @@ WHERE Id = $Id;";
             TryAddColumn(
                 connection,
                 "ALTER TABLE Welds ADD COLUMN RequiredReleaseRole INTEGER DEFAULT 0");
+
+            TryAddColumn(
+                connection,
+                "ALTER TABLE Welds ADD COLUMN RequiredNdt TEXT");
+
+            TryAddColumn(
+                connection,
+                "ALTER TABLE Welds ADD COLUMN ReadinessScore INTEGER DEFAULT 0");
+
+            TryAddColumn(
+                connection,
+                "ALTER TABLE Welds ADD COLUMN IsReady INTEGER DEFAULT 0");
 
         }
         private void CreateIndexes()

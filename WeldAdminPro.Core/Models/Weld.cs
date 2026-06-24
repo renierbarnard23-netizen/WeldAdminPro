@@ -120,9 +120,13 @@ namespace WeldAdminPro.Core.Models
         }
             = WeldReleaseRole.QA;
 
-        public string DefectType
-        { get; set; }
-        = "";
+        public string DefectType { get; set; } = "";
+
+        public string RequiredNdt { get; set; } = "";
+
+        public int ReadinessScore { get; set; }
+
+        public bool IsReady { get; set; }
 
     }
 }
