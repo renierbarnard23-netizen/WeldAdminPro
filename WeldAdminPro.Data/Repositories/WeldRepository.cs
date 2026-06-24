@@ -3,6 +3,7 @@ using System.IO;
 using WeldAdminPro.Core.Interfaces;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Core.Quality.Enums;
+using WeldAdminPro.Core.Quality.Services;
 
 namespace WeldAdminPro.Data.Repositories
 {
@@ -101,6 +102,21 @@ namespace WeldAdminPro.Data.Repositories
             {
                 weld.CreatedDate = DateTime.UtcNow;
             }
+
+            var readiness =
+                _readinessEngine
+                    .Evaluate(weld);
+
+            weld.ReadinessScore =
+                readiness.ReadinessScore;
+
+            weld.IsReady =
+                readiness.IsReady;
+
+            weld.ReadinessSummary =
+                string.Join(
+                    Environment.NewLine,
+                    readiness.BlockingReasons);
 
             await connection.OpenAsync();
 
@@ -333,6 +349,10 @@ VALUES
             await cmd.ExecuteNonQueryAsync();
         }
 
+        private readonly IWeldReadinessEngine
+    _readinessEngine =
+        new WeldReadinessEngine();
+
         private async Task<bool> ExistsAsync(
     Guid projectId,
     string weldNumber)
@@ -502,6 +522,49 @@ ORDER BY WeldNumber;";
                                 &&
                                 Convert.ToInt32(
                             reader["IsReady"]) == 1,
+
+                    ReadinessSummary =
+                            reader["ReadinessSummary"]?.ToString() ?? "",
+
+                    ReleaseReady =
+                        reader["ReleaseReady"] != DBNull.Value
+                        &&
+                        Convert.ToInt32(
+                            reader["ReleaseReady"]) == 1,
+
+                    TurnoverReady =
+                        reader["TurnoverReady"] != DBNull.Value
+                        &&
+                        Convert.ToInt32(
+                            reader["TurnoverReady"]) == 1,
+
+                    BlockingCount =
+                        reader["BlockingCount"] == DBNull.Value
+                            ? 0
+                            : Convert.ToInt32(
+                        reader["BlockingCount"]),
+
+                    ReleasedBy =
+                        reader["ReleasedBy"]?.ToString() ?? "",
+
+                    ReleasedDate =
+                        reader["ReleasedDate"] == DBNull.Value
+                            ? null
+                            : DateTime.Parse(
+                                reader["ReleasedDate"].ToString()!),
+
+                    IsReleased =
+                        reader["IsReleased"] != DBNull.Value
+                        &&
+                        Convert.ToInt32(
+                            reader["IsReleased"]) == 1,
+
+                    RequiredReleaseRole =
+                        reader["RequiredReleaseRole"] == DBNull.Value
+                            ? WeldReleaseRole.QA
+                            : (WeldReleaseRole)
+                                Convert.ToInt32(
+                                    reader["RequiredReleaseRole"]),
 
                     Process =
                         reader["Process"]?.ToString() ?? "",
@@ -776,6 +839,21 @@ WHERE ProjectId = $ProjectId;";
         public async Task UpdateAsync(Weld weld)
         {
 
+            var readiness =
+                _readinessEngine
+                    .Evaluate(weld);
+
+            weld.ReadinessScore =
+                readiness.ReadinessScore;
+
+            weld.IsReady =
+                readiness.IsReady;
+
+            weld.ReadinessSummary =
+                string.Join(
+                    Environment.NewLine,
+                    readiness.BlockingReasons);
+
             if (weld.Id == Guid.Empty)
             {
                 throw new InvalidOperationException(
@@ -802,7 +880,11 @@ SET
     RequiresRepair = $RequiresRepair,
     LastNdtDate = $LastNdtDate,
     LastNdtResult = $LastNdtResult,
-    NdtPendingDate = $NdtPendingDate
+    NdtPendingDate = $NdtPendingDate,
+
+    ReadinessScore = $ReadinessScore,
+    IsReady = $IsReady,
+    ReadinessSummary = $ReadinessSummary
 WHERE Id = $Id;";
 
             cmd.Parameters.AddWithValue(
@@ -859,6 +941,18 @@ WHERE Id = $Id;";
             cmd.Parameters.AddWithValue(
                 "$Id",
                 weld.Id.ToString());
+
+            cmd.Parameters.AddWithValue(
+                "$ReadinessScore",
+                weld.ReadinessScore);
+
+            cmd.Parameters.AddWithValue(
+                "$IsReady",
+                weld.IsReady ? 1 : 0);
+
+            cmd.Parameters.AddWithValue(
+                "$ReadinessSummary",
+                weld.ReadinessSummary);
 
             await cmd.ExecuteNonQueryAsync();
         }

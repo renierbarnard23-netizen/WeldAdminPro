@@ -5,7 +5,6 @@ namespace WeldAdminPro.Core.Quality.Services
 {
     public interface IWeldReadinessEngine
     {
-        WeldReadinessResult Evaluate(
-            Weld weld);
+        WeldReadinessResult Evaluate(Weld weld);
     }
 }
