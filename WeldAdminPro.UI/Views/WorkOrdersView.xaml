@@ -39,6 +39,30 @@
             Margin="5"
             Click="EditWorkOrder_Click"/>
 
+            <Button x:Name="StartWorkOrderButton"
+            Content="Start"
+            Width="90"
+            Margin="5"
+            Click="StartWorkOrder_Click"/>
+
+            <Button x:Name="PauseWorkOrderButton"
+            Content="Pause"
+            Width="90"
+            Margin="5"
+            Click="PauseWorkOrder_Click"/>
+
+            <Button x:Name="CompleteWorkOrderButton"
+            Content="Complete"
+            Width="90"
+            Margin="5"
+            Click="CompleteWorkOrder_Click"/>
+
+            <Button x:Name="CancelWorkOrderButton"
+            Content="Cancel"
+            Width="90"
+            Margin="5"
+            Click="CancelWorkOrder_Click"/>
+
         </StackPanel>
 
         <!-- Work Orders Grid -->
@@ -85,7 +109,17 @@
                             Binding="{Binding CompletedOn, StringFormat=d}"
                             Width="120"/>
 
-			</DataGrid.Columns>
+                <DataGridTextColumn
+                            Header="Ready"
+                            Binding="{Binding BlockMessage}"
+                            Width="220"/>
+
+                <DataGridTextColumn
+                            Header="Block"
+                            Binding="{Binding BlockReason}"
+                            Width="160"/>
+
+            </DataGrid.Columns>
 
 		</DataGrid>
 

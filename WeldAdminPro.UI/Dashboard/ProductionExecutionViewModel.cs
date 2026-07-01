@@ -10,6 +10,7 @@ using WeldAdminPro.Core.Execution;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
+using WeldAdminPro.Core.Events;
 
 namespace WeldAdminPro.UI.ViewModels.Dashboard
 {
@@ -60,9 +61,15 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 
 		public void Load()
 		{
-			var all = _repository.GetAll().ToList();
+            var all =
+				_repository.GetAll().ToList();
 
-			var engine = new BlockReasonEngine();
+            var active =
+                all.Where(w =>
+                    w.Status != WorkOrderStatus.Completed)
+                .ToList();
+
+            var engine = new BlockReasonEngine();
 			var materialRepo = new WorkOrderMaterialRepository();
 			var stockRepo = new StockRepository();
 
@@ -95,17 +102,22 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 				wo.BlockMessage = result.Message;
 			}
 
-			ReadyWorkOrders = new ObservableCollection<WorkOrder>(
-				all.Where(w => w.Status == WorkOrderStatus.Ready));
+            ReadyWorkOrders =
+				new ObservableCollection<WorkOrder>(
+					active.Where(w =>
+					w.Status == WorkOrderStatus.Ready));
 
-			RunningWorkOrders = new ObservableCollection<WorkOrder>(
-				all.Where(w => w.Status == WorkOrderStatus.InProduction));
+            RunningWorkOrders =
+                new ObservableCollection<WorkOrder>(
+                    active.Where(w =>
+                        w.Status == WorkOrderStatus.InProduction));
 
-			CompletedToday = new ObservableCollection<WorkOrder>(
-				all.Where(w =>
+            CompletedToday =
+				new ObservableCollection<WorkOrder>(
+					all.Where(w =>
 					w.Status == WorkOrderStatus.Completed &&
-					w.CompletedOn?.Date == DateTime.Today));
-		}
+					w.ActualEndTime?.Date == DateTime.Today));
+        }
 
 		// =========================================================
 		// MATERIAL TRACE
@@ -124,15 +136,33 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
 
 				var stock = _stockRepo.GetAll()
 					.FirstOrDefault(s => s.ItemCode == m.ItemCode);
+                var reservationRepo =
+					new ReservedMaterialRepository();
 
-				SelectedWorkOrderMaterials.Add(new WorkOrderMaterialTrace
-				{
-					ItemCode = m.ItemCode,
-					Description = stock?.Description ?? m.ItemCode,
-					Quantity = (int)m.RequiredQuantity,
-					UnitCost = stock?.AverageUnitCost ?? 0
-				});
-			}
+                double available =
+                    reservationRepo
+                        .GetAvailableQuantity(
+                            m.ItemCode,
+                            stock?.Quantity ?? 0);
+
+                SelectedWorkOrderMaterials.Add(
+					new WorkOrderMaterialTrace
+					{
+						ItemCode = m.ItemCode,
+						Description =
+						stock?.Description
+						?? m.ItemCode,
+						
+						Quantity =
+						(int)m.RequiredQuantity,
+						
+						AvailableQuantity =
+						(int)available,
+						
+						UnitCost =
+						stock?.AverageUnitCost ?? 0
+					});
+            }
 
 			OnPropertyChanged(nameof(SelectedWorkOrderMaterials));
 			OnPropertyChanged(nameof(TotalMaterialCost));

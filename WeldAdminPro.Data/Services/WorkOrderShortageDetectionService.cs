@@ -13,13 +13,14 @@ namespace WeldAdminPro.Data.Services
 		private readonly WorkOrderMaterialRepository _materialRepo;
 		private readonly WorkOrderRepository _workOrderRepo;
 		private readonly StockRepository _stockRepo;
-
-		public WorkOrderShortageDetectionService()
+        private readonly ReservedMaterialRepository _reservationRepo;
+        public WorkOrderShortageDetectionService()
 		{
 			_bomRequirementService = new BomRequirementService();
 			_materialRepo = new WorkOrderMaterialRepository();
 			_workOrderRepo = new WorkOrderRepository();
 			_stockRepo = new StockRepository();
+            _reservationRepo = new ReservedMaterialRepository();
 		}
 
 		public List<WorkOrderMaterialShortage> DetectShortages()
@@ -55,32 +56,74 @@ namespace WeldAdminPro.Data.Services
 
                 Debug.WriteLine($"🔥 MATERIAL COUNT: {materials.Count()}");
 
+                Debug.WriteLine($"WO: {wo.WorkOrderNumber}");
+
                 foreach (var mat in materials)
-				{
-					var stock = _stockRepo.GetAll()
-						.FirstOrDefault(s => s.ItemCode == mat.ItemCode);
+                {
+                    Debug.WriteLine(
+                        $"Item={mat.ItemCode}  Req={mat.RequiredQuantity}");
 
-					int available = (int)Math.Floor(stock?.Quantity ?? 0);
+                    var stock =
+                        _stockRepo.GetAll()
+                        .FirstOrDefault(s =>
+                            s.ItemCode == mat.ItemCode);
 
-                    if (string.IsNullOrWhiteSpace(mat.ItemCode))
-                        continue;
+                    Debug.WriteLine(
+                        $"Available={stock?.Quantity}");
+
+                    double physical =
+                        stock?.Quantity ?? 0;
+
+                    double available =
+                        _reservationRepo
+                            .GetAvailableQuantity(
+                                mat.ItemCode,
+                                physical);
 
                     if (available < mat.RequiredQuantity)
-					{
-						shortages.Add(new WorkOrderMaterialShortage
-						{
-							WorkOrderNumber = wo.WorkOrderNumber,
-							ItemCode = mat.ItemCode,
-							ItemName = stock?.Description ?? mat.ItemCode,
-							RequiredQuantity = (decimal)mat.RequiredQuantity,
-							AvailableQuantity = (decimal)available,
-							ShortageQuantity = (decimal)(mat.RequiredQuantity - available)
-						});
-					}
-				}
-			}
+                    {
+                        bool alreadyAdded =
+                            shortages.Any(s =>
+                                s.WorkOrderNumber == wo.WorkOrderNumber &&
+                                s.ItemCode == mat.ItemCode);
 
-			return shortages;
+                        if (!alreadyAdded)
+                        {
+                            shortages.Add(
+                                new WorkOrderMaterialShortage
+                                {
+                                    WorkOrderNumber = wo.WorkOrderNumber,
+                                    ItemCode = mat.ItemCode,
+                                    ItemName =
+                                        stock?.Description
+                                        ?? mat.ItemCode,
+                                    RequiredQuantity =
+                                        (decimal)mat.RequiredQuantity,
+                                    AvailableQuantity =
+                                        (decimal)available,
+                                    ShortageQuantity =
+                                        (decimal)
+                                        (mat.RequiredQuantity
+                                         - available)
+                                });
+
+                            Debug.WriteLine(
+                                $"🔥 SHORTAGE FOUND ON {wo.WorkOrderNumber}");
+                        }
+                    }
+                }
+            }
+
+            Debug.WriteLine(
+					$"TOTAL SHORTAGES = {shortages.Count}");
+
+            foreach (var s in shortages)
+            {
+                Debug.WriteLine(
+                    $"SHORTAGE -> {s.WorkOrderNumber} | {s.ItemCode}");
+            }
+
+            return shortages;
 		}
 
 		// NEW METHOD (used by other intelligence services)

@@ -1,3 +1,7 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using DocumentFormat.OpenXml.Office2010.Excel;
+using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -6,13 +10,10 @@ using System.Diagnostics;
 using System.Linq;
 using System.Timers;
 using System.Windows.Input;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using DocumentFormat.OpenXml.Office2010.Excel;
-using Microsoft.VisualBasic;
 using WeldAdminPro.Core.Analytics.Executive;
 using WeldAdminPro.Core.Analytics.Procurement;
 using WeldAdminPro.Core.Analytics.Production;
+using WeldAdminPro.Core.Events;
 using WeldAdminPro.Core.Execution;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Core.Services.Interfaces;
@@ -20,6 +21,7 @@ using WeldAdminPro.Core.Services.Planning;
 using WeldAdminPro.Core.Services.Risk;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
+using WeldAdminPro.Data.Services.ProductionEngine;
 using WeldAdminPro.UI.ViewModels;
 using WeldAdminPro.UI.ViewModels.Dashboard;
 using static QuestPDF.Helpers.Colors;
@@ -90,15 +92,11 @@ namespace WeldAdminPro.UI.ViewModels
 		public ObservableCollection<ProductionCompletionPrediction> CompletionPredictions { get; set; } = new();
 		public ObservableCollection<ProductionCompletionPrediction> ScenarioPredictions { get; set; } = new();
 		public ObservableCollection<WorkOrderMaterialTrace> SelectedWorkOrderMaterials
-	=> Execution.SelectedWorkOrderMaterials;
-
-		public ObservableCollection<WorkCenter> WorkCenters { get; set; } = new();
+			=> Execution.SelectedWorkOrderMaterials;
 		public int ScenarioLateJobs { get; set; }
 		public int ScenarioTotalDelay { get; set; }
 		public string OptimizedStrategy { get; set; } = "";
 		public ICommand CancelWorkOrderCommand => Execution.CancelWorkOrderCommand;
-
-
 		public HomeViewModel()
 		{
 			ProductionControlTower = new ProductionControlTowerViewModel();
@@ -121,49 +119,54 @@ namespace WeldAdminPro.UI.ViewModels
 			_workOrderStatusService = new WorkOrderStatusService();
 			_trafficLightService = new ProductionTrafficLightService();
 			_schedulingService = new ProductionSchedulingService();
-			_reservationService = new MaterialReservationService();
+            _productionEngine = new ProductionEngineService();
+            _reservationService = new MaterialReservationService();
 			_workOrderRepository = new WorkOrderRepository();
 
 			_globalRiskService = new GlobalRiskService();
 
 			_materialRepo = new WorkOrderMaterialRepository();
 			_stockRepo = new StockRepository();
-			_allStock = _stockRepo.GetAll().ToList();
+			            
+            _allStock = _stockRepo.GetAll().ToList();
 
-			// =========================
-			// 🔥 FIXED EXECUTION SETUP
-			// =========================
+            // =========================
+            // 🔥 FIXED EXECUTION SETUP
+            // =========================
 
-			var workOrderRepo = new WorkOrderRepository();
+            var workOrderRepo = new WorkOrderRepository();
 
-			var materialValidator = new MaterialValidator(
-				_stockRepo,
-				_materialRepo
-			);
+            var materialValidator = new MaterialValidator(
+                _stockRepo,
+                _materialRepo
+            );
 
-			var executionService = new WorkOrderExecutionService(
-				workOrderRepo,
-				_materialRepo,
-				materialValidator,
-				_stockRepo
-			);
+            var executionService = new WorkOrderExecutionService(
+                workOrderRepo,
+                _materialRepo,
+                materialValidator,
+                _stockRepo
+            );
 
-			// ✅ PASS INTO VIEWMODEL
-			Execution = new ProductionExecutionViewModel(executionService);
-			ProductionExecution = Execution;
+            // ✅ PASS INTO VIEWMODEL
+            Execution = new ProductionExecutionViewModel(executionService);
+            ProductionExecution = Execution;
 
-			Execution.RefreshRequested = RefreshProductionSystem;
+            Execution.RefreshRequested = RefreshProductionSystem;
 
-			ProductionControlTower.Load(DeadlineRisks.Count);
+            ProductionControlTower.Load(DeadlineRisks.Count);
 
-			Execution.ControlTower = ProductionControlTower;
-			Execution.Load();
+            Execution.ControlTower = ProductionControlTower;
 
-			// =========================
-			// REMAINDER UNCHANGED
-			// =========================
+            WorkOrderEvents.Changed += RefreshProductionSystem;
 
-			_bottleneckService = new ProductionBottleneckDetectionService();
+            Execution.Load();
+
+            // =========================
+            // REMAINDER UNCHANGED
+            // =========================
+
+            _bottleneckService = new ProductionBottleneckDetectionService();
 			ProductionBottlenecks = _bottleneckService.DetectBottlenecks();
 
 			_throughputService = new ProductionThroughputService();
@@ -172,8 +175,7 @@ namespace WeldAdminPro.UI.ViewModels
 			_efficiencyTrendService = new ProductionEfficiencyTrendService();
 			ProductionEfficiencyTrend = _efficiencyTrendService.GetLast7DaysTrend();
 
-			LoadProductionQueue();
-            Production.Refresh();
+            RefreshProductionSystem();
 
 
             // ===============================
@@ -246,11 +248,12 @@ namespace WeldAdminPro.UI.ViewModels
 				System.Diagnostics.Debug.WriteLine($"{r.WorkOrderNumber} | {r.StartDate:d} → {r.EndDate:d} | Late: {r.IsLate}");
 			}
 
-			// ===============================
-			// 🔥 AI PRODUCTION PLANNER
-			// ===============================
+            // ===============================
+            // 🔥 AI PRODUCTION PLANNER
+            // ===============================
+            
 
-			var planner = new ProductionPlannerService();
+            var planner = new ProductionPlannerService();
 
 			// ✅ MUST BE BEFORE planner
 			var allWorkOrders = _workOrderRepository.GetAll().ToList();
@@ -266,10 +269,24 @@ namespace WeldAdminPro.UI.ViewModels
 							RequiredQuantity = m.RequiredQuantity
 			}),
 
-				GetStock = code => _allStock
-					.FirstOrDefault(s => s.ItemCode == code)?.Quantity ?? 0,
+                GetStock = code =>
+                {
+                    var stock =
+                        _allStock.FirstOrDefault(
+                            s => s.ItemCode == code);
 
-				GetCapacity = wc => 8
+                    if (stock == null)
+                        return 0;
+
+                    var reservationRepo =
+                        new ReservedMaterialRepository();
+
+                    return reservationRepo.GetAvailableQuantity(
+                        code,
+                        stock.Quantity);
+                },
+
+                GetCapacity = wc => 8
 			});
 
 			// ===============================
@@ -375,13 +392,24 @@ namespace WeldAdminPro.UI.ViewModels
 					});
 			};
 
-			Func<string, double> getStock = (code) =>
-			{
-				var stock =_allStock.FirstOrDefault(s => s.ItemCode == code);
-				return stock?.Quantity ?? 0;
-			};
+            Func<string, double> getStock = (code) =>
+            {
+                var stock =
+                    _allStock.FirstOrDefault(
+                        s => s.ItemCode == code);
 
-			LoadProductionBlocks(); // MUST be before risks
+                if (stock == null)
+                    return 0;
+
+                var reservationRepo =
+                    new ReservedMaterialRepository();
+
+                return reservationRepo.GetAvailableQuantity(
+                    code,
+                    stock.Quantity);
+            };
+
+            LoadProductionBlocks(); // MUST be before risks
 
 			var risks = _globalRiskService.GetAllRisks(
 				allWorkOrders,
@@ -453,7 +481,10 @@ namespace WeldAdminPro.UI.ViewModels
 		[ObservableProperty]
 		private ObservableCollection<ProcurementSuggestion> procurementSuggestions = new();
 
-		[ObservableProperty]
+        [ObservableProperty]
+        private ObservableCollection<WorkCenterStatus> workCenters = new();
+
+        [ObservableProperty]
 		private double productionReadinessPercentage;
 
 		[ObservableProperty]
@@ -511,7 +542,7 @@ namespace WeldAdminPro.UI.ViewModels
 			InventoryHealthScore = summary.HealthScore;
 		}
 
-		private void LoadProcurementAlerts()
+        private void LoadProcurementAlerts()
 		{
 			var forecast = _forecastService.GenerateForecast();
 
@@ -559,14 +590,26 @@ namespace WeldAdminPro.UI.ViewModels
 			ExecutiveKpis = new ObservableCollection<ExecutiveKpi>(kpis);
 		}
 
-		private void LoadWorkOrderPlan()
-		{
-			var plan = _planningService.BuildPlan();
+        private void LoadWorkOrderPlan()
+        {
+            var plan = _planningService.BuildPlan();
 
-			WorkOrderMaterialPlans =
-				new ObservableCollection<WorkOrderMaterialPlan>(plan);
-		}
-		private void LoadMaterialShortages()
+            Debug.WriteLine($"PLAN COUNT = {plan.Count}");
+
+            foreach (var p in plan)
+            {
+                Debug.WriteLine(
+                    $"{p.WorkOrderNumber} | " +
+                    $"{p.ItemCode} | " +
+                    $"{p.RequiredQuantity}");
+            }
+
+            WorkOrderMaterialPlans =
+                new ObservableCollection<WorkOrderMaterialPlan>(plan);
+
+            OnPropertyChanged(nameof(WorkOrderMaterialPlans));
+        }
+        private void LoadMaterialShortages()
 		{
 			var shortages = _shortageService.DetectShortages();
 
@@ -603,290 +646,152 @@ namespace WeldAdminPro.UI.ViewModels
 			ProductionBlocks =
 				new ObservableCollection<ProductionBlock>(blocks);
 		}
-		private void LoadWorkOrderStatuses()
-		{
-			var statuses = _workOrderStatusService.GetStatuses();
-
-			WorkOrderStatuses =
-				new ObservableCollection<WorkOrderExecutionStatusModel>(statuses);
-		}
-		private void LoadProductionQueue()
-		{
-			
-			var realWorkOrders = _workOrderRepository.GetAll().ToList();
-
-			var queue = _schedulingService.BuildQueue();
-
-			var engine = new BlockReasonEngine();
-			
-			foreach (var item in queue)
-			{
-				var wo = _workOrderRepository.GetAll()
-					.FirstOrDefault(w => w.WorkOrderNumber == item.WorkOrderNumber);
-
-				if (wo == null)
-					continue;
-
-				var materials = _materialRepo.GetByWorkOrderId(wo.Id);
-
-				wo.MaterialRequirements = materials.Select(m =>
-				{
-					var stock = _allStock.FirstOrDefault(s => s.Id == m.ItemId);
-
-					if (stock == null)
-						stock = _allStock.FirstOrDefault(s => s.ItemCode == m.ItemCode);
-
-					return new MaterialRequirement
-					{
-						ItemCode = m.ItemCode,
-						RequiredQuantity = m.RequiredQuantity,
-					};
-				}).ToList();
-
-				var result = engine.Evaluate(wo);
-
-				item.BlockReason = result.Reason;
-				item.BlockMessage = result.Message;
-			}
-
-			var autoPriority = new AutoPriorityService();
-
-			var reordered = autoPriority.ReorderQueue(
-				queue.ToList(),
-				ProductionBottlenecks.ToList()
-			);
-
-			foreach (var q in reordered)
-			{
-				var real = realWorkOrders.FirstOrDefault(r => r.WorkOrderNumber == q.WorkOrderNumber);
-
-				if (real != null)
-				{
-					Debug.WriteLine($"QUEUE STATUS: {real.Status}");
-
-					q.Status = real.Status switch
-					{
-						WorkOrderStatus.Ready => "Ready",
-						WorkOrderStatus.InProduction => "InProduction",
-						WorkOrderStatus.Completed => "Completed",
-						WorkOrderStatus.Paused => "Paused",
-						_ => "Unknown"
-					}; // ✅ correct
-				}
-			}
-
-			var simulation = new ProductionSimulationService();
-
-			var predictions = simulation.SimulateSchedule(
-				reordered.ToList()
-			);
-
-			CompletionPredictions = new ObservableCollection<ProductionCompletionPrediction>(predictions);
-
-			// 🔥 APPLY AI SCORING
-			var scoring = new ProductionPriorityScoringService();
-			reordered = scoring.Score(reordered, ProductionBottlenecks.ToList());
-
-			// Reset flags
-			foreach (var wo in reordered)
-				wo.IsTopPriority = false;
-
-			// 🔥 APPLY REPLANNING (THIS IS THE NEW ENGINE)
-			var replanned = _replanningService.Replan(reordered);
-
-			// 🔥 SET TOP PRIORITY
-			var top = replanned.FirstOrDefault();
-
-			if (top != null)
-			{
-				top.IsTopPriority = true;
-				TopPriorityWorkOrder = top;
-			}
-
-			// 🔥 APPLY TO UI
-			Production.ProductionQueue = new ObservableCollection<ProductionQueueItem>(replanned);
+        private void LoadWorkOrderStatuses()
+        {
+            var statuses = _workOrderStatusService.GetStatuses();
 
-			OnPropertyChanged(nameof(Production));
-			OnPropertyChanged(nameof(Production.ProductionQueue));
-		}
-		private void LoadReservations()
-		{
-			var reservations = _reservationService.GenerateReservations();
+            WorkOrderStatuses =
+                new ObservableCollection<WorkOrderExecutionStatusModel>(statuses);
+        }
 
-			MaterialReservations =
-				new ObservableCollection<MaterialReservation>(reservations);
-		}
-		public void RefreshProductionSystem()
-		{
-			if (_isRefreshing)
-			{
-				Debug.WriteLine("⚠ REFRESH BLOCKED");
-				return;
-			}
+        private readonly ProductionEngineService _productionEngine;
+        
+        private void LoadReservations()
+        {
+            var reservations = _reservationService.GenerateReservations();
 
-			_isRefreshing = true;
+            MaterialReservations =
+                new ObservableCollection<MaterialReservation>(reservations);
+        }
 
-			try
-			{
-				LoadMaterialShortages();
-				LoadProductionBlocks();
+        private void RefreshProductionDashboard()
+        {
+            ProductionControlTower.Load(DeadlineRisks.Count);
 
-				var allWorkOrders = _workOrderRepository.GetAll();
+            ProductionControlTower.MaterialShortages =
+                MaterialShortages.Count;
 
-				Func<Guid, IEnumerable<MaterialRequirement>> getMaterials = (woId) =>
-				{
-					return _materialRepo.GetByWorkOrderId(woId)
-						.Select(m => new MaterialRequirement
-						{
-							ItemCode = m.ItemCode,
-							RequiredQuantity = m.RequiredQuantity
-						});
-				};
+            ProductionControlTower.DelayedWorkOrders =
+                DeadlineRisks.Count;
 
-				Func<string, double> getStock = (code) =>
-				{
-					var stock = _allStock.FirstOrDefault(s => s.ItemCode == code);
-					return stock?.Quantity ?? 0;
-				};
+            ProductionControlTower.BottleneckCount =
+                ProductionBottlenecks.Count;
 
-				var risks = _globalRiskService.GetAllRisks(
-					allWorkOrders,
-					getMaterials,
-					getStock
-				);
+            ProductionControlTower.ActiveRepairs = 0;
 
-                var deadlineService =
-					new DeadlineRiskDetectionService();
+            ProductionControlTower.OverdueReservations = 0;
 
-							DeadlineRisks =
-							new ObservableCollection<
-                        WeldAdminPro.Core.Models.DeadlineRisk>(
-                            deadlineService
-                                .GetDeadlineRisks(allWorkOrders));
+            ProductionControlTower.CalculateStatus();
 
-                OnPropertyChanged(nameof(DeadlineRisks));
+            LoadProductionTrafficLights();
 
-                Debug.WriteLine($"FINAL RISKS: {DeadlineRisks.Count}");
+            ProductionThroughput =
+                _throughputService.GetThroughput();
 
-                ProductionRisks = new ObservableCollection<ProductionRisk>(risks);
-				OnPropertyChanged(nameof(ProductionRisks));
+            ProductionEfficiencyTrend =
+                _efficiencyTrendService.GetLast7DaysTrend();
 
-				LoadProductionReadiness();
-				LoadProductionQueue();
-                Production.Refresh();
+            OnPropertyChanged(nameof(ProductionThroughput));
+            OnPropertyChanged(nameof(ProductionEfficiencyTrend));
 
-                var runningJobs = Execution.RunningWorkOrders.ToList();
+        }
 
-				foreach (var running in runningJobs)
-				{
-					bool isBlocked = ProductionBlocks.Any(b => b.WorkOrderNumber == running.WorkOrderNumber);
+        private void ApplySnapshot(
+			ProductionSnapshot snapshot)
+        {
 
-					if (isBlocked)
-					{
-						Debug.WriteLine($"[AUTO] STOPPING BLOCKED JOB: {running.WorkOrderNumber}");
-						Execution.PauseWorkOrderCommand.Execute(running.Id);
-					}
-				}
+            WorkCenters = new ObservableCollection<WorkCenterStatus>(
+				snapshot.WorkCenters);
 
-				LoadProductionBlocks();   // 🔥 MUST be before risks
+            InProduction =
+                snapshot.RunningWorkOrders;
 
-		OnPropertyChanged(nameof(ProductionRisks));
+            ReadyWorkOrders =
+                snapshot.ReadyWorkOrders;
 
-				Execution.Load();
+            BlockedWorkOrders =
+                snapshot.BlockedWorkOrders;
 
-				Debug.WriteLine($"FINAL RISKS BEFORE SET: {ProductionRisks.Count}");
+            Completed =
+                snapshot.CompletedWorkOrders;
 
+            OnPropertyChanged(nameof(WorkCenters));
+            OnPropertyChanged(nameof(InProduction));
+            OnPropertyChanged(nameof(ReadyWorkOrders));
+            OnPropertyChanged(nameof(BlockedWorkOrders));
+            OnPropertyChanged(nameof(Completed));
 
-				Debug.WriteLine($"VM INSTANCE: {ProductionControlTower.GetHashCode()}");
+            Production.ProductionQueue =
+                new ObservableCollection<ProductionQueueItem>(
+                    snapshot.Queue);
 
+            CompletionPredictions =
+                new ObservableCollection<ProductionCompletionPrediction>(
+                    snapshot.CompletionPredictions);
 
-                // 🔥 FORCE UI UPDATE
-                ProductionControlTower.Load(DeadlineRisks.Count);
+            TopPriorityWorkOrder =
+                snapshot.TopPriorityWorkOrder;
 
-                ProductionControlTower.MaterialShortages =
-					MaterialShortages.Count;
+            Production.DeadlineRisks =
+                new ObservableCollection<DeadlineRisk>(
+                    snapshot.DeadlineRisks);
 
-                ProductionControlTower.DelayedWorkOrders =
-                    DeadlineRisks.Count;
+            Production.CapacityForecast =
+                new ObservableCollection<ProductionCapacityForecast>(
+                    snapshot.CapacityForecast);
 
-                ProductionControlTower.BottleneckCount =
-                    ProductionBottlenecks.Count;
+            ProductionRecommendations =
+                new ObservableCollection<ProductionRecommendationModel>(
+                    snapshot.Recommendations);
 
-                ProductionControlTower.ActiveRepairs = 0;
-
-                ProductionControlTower.OverdueReservations = 0;
-
-                ProductionControlTower.CalculateStatus();
-
-                // analytics
-                ProductionThroughput = _throughputService.GetThroughput();
-				ProductionEfficiencyTrend = _efficiencyTrendService.GetLast7DaysTrend();
-
-				// AI + replanning (unchanged)
-
-				LoadProductionTrafficLights(); // ✅ LAST
-
-				ProductionThroughput = _throughputService.GetThroughput();
-				ProductionEfficiencyTrend = _efficiencyTrendService.GetLast7DaysTrend();
-
-				OnPropertyChanged(nameof(ProductionThroughput));
-				OnPropertyChanged(nameof(ProductionEfficiencyTrend));
-
-				// 🔥 AI OPTIMIZATION (RESTORED)
-				var optimizer = new ProductionOptimizer();
-
-				var optimized = optimizer.Optimize(
-					Production.ProductionQueue.ToList(),
-					8
-				);
-
-				var topJob = optimized.BestSequence.FirstOrDefault();
-
-				if (topJob != null)
-				{
-					AdvisorResult = new ProductionAdvisorResult
-					{
-						Recommendation = $"Start {topJob.WorkOrderNumber}",
-						Explanation = optimized.Explanation
-					};
-				}
-
-				// 🔥 SMART REPLANNING (RESTORED)
-				var currentQueue = Production.ProductionQueue.ToList();
-
-				bool shouldReplan = ProductionRisks.Any() || ProductionBlocks.Any();
-
-				if (shouldReplan)
-				{
-					var replanned = _replanningService.Replan(currentQueue);
-					RunScenarioSimulation(replanned.ToList());
-
-					Production.ProductionQueue =
-						new ObservableCollection<ProductionQueueItem>(replanned);
-
-					OptimizedStrategy = "Auto-Replanned (AI detected risk)";
-				}
-				else
-				{
-					OptimizedStrategy = "Stable Plan (No risks detected)";
-				}
-
-				OnPropertyChanged(nameof(Production.ProductionQueue));
-				OnPropertyChanged(nameof(OptimizedStrategy));
-
-				var capacity = _capacityEngine.CalculateCapacity(allWorkOrders);
-
-				WorkCenters = new ObservableCollection<WorkCenter>(capacity);
-				OnPropertyChanged(nameof(WorkCenters));
-			}
-
-			finally
-			{
-				_isRefreshing = false;
-			}
-		}
-
-		public void RunScenarioSimulation(List<ProductionQueueItem> customQueue)
+            DelayPredictions =
+                new ObservableCollection<ProductionDelayPrediction>(
+                    snapshot.DelayPredictions);
+
+            OnPropertyChanged(nameof(Production));
+            OnPropertyChanged(nameof(CompletionPredictions));
+            OnPropertyChanged(nameof(TopPriorityWorkOrder));
+            OnPropertyChanged(nameof(ProductionRecommendations));
+            OnPropertyChanged(nameof(DelayPredictions));
+        }        
+        public void RefreshProductionSystem()
+        {
+            if (_isRefreshing)
+                return;
+
+            _isRefreshing = true;
+
+            try
+            {
+                var result =
+					_productionEngine.Refresh();
+
+                if (!result.Success)
+                {
+                    foreach (var msg in result.Messages)
+                    {
+                        Debug.WriteLine(msg);
+                    }
+
+                    return;
+                }
+
+                ApplySnapshot(result.Snapshot);
+                LoadMaterialShortages();
+                LoadProductionBlocks();
+                LoadProductionReadiness();
+
+                Execution.Load();
+
+                RefreshProductionDashboard();
+            }
+            finally
+            {
+                _isRefreshing = false;
+            }
+        }
+
+        public void RunScenarioSimulation(List<ProductionQueueItem> customQueue)
 		{
 			var scenarioService = new ProductionScenarioService();
 
@@ -934,16 +839,11 @@ namespace WeldAdminPro.UI.ViewModels
 
 			System.Diagnostics.Debug.WriteLine($"▶ MANUAL START: {workOrder.WorkOrderNumber}");
 
-			Execution.StartCommand.Execute(id);
+            Execution.StartCommand.Execute(id);
 
-			// 🔥 FORCE HARD RELOAD
-			Execution.Load();
-			LoadProductionQueue();
-			LoadProductionReadiness();
+            RefreshProductionSystem();
 
-			RefreshProductionSystem();
-
-			ProductionChanged?.Invoke();
+            ProductionChanged?.Invoke();
 		}
 
 		[RelayCommand]
@@ -1041,8 +941,16 @@ public void RefreshDashboard()
 	Func<string, double> getStock = (code) =>
 	{
 		var stock = _allStock.FirstOrDefault(s => s.ItemCode == code);
-		return stock?.Quantity ?? 0;
-	};
+        if (stock == null)
+            return 0;
+
+        var reservationRepo =
+            new ReservedMaterialRepository();
+
+        return reservationRepo.GetAvailableQuantity(
+            code,
+            stock.Quantity);
+    };
 
 	var risks = _globalRiskService.GetAllRisks(
 		allWorkOrders,

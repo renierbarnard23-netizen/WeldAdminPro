@@ -10,15 +10,17 @@ namespace WeldAdminPro.Data.Services
 	public class MaterialValidator
 	{
 		private readonly StockRepository _stockRepo;
-		private readonly WorkOrderMaterialRepository _materialRepo;
+        private readonly ReservedMaterialRepository _reservationRepo;
+        private readonly WorkOrderMaterialRepository _materialRepo;
 
-		public MaterialValidator(
-			StockRepository stockRepo,
-			WorkOrderMaterialRepository materialRepo)
-		{
-			_stockRepo = stockRepo;
-			_materialRepo = materialRepo;
-		}
+        public MaterialValidator(
+            StockRepository stockRepo,
+            WorkOrderMaterialRepository materialRepo)
+        {
+            _stockRepo = stockRepo;
+            _materialRepo = materialRepo;
+            _reservationRepo = new ReservedMaterialRepository();
+        }
 
         public bool CanStart(WorkOrder workOrder, out string reason)
         {
@@ -56,16 +58,20 @@ namespace WeldAdminPro.Data.Services
                         continue;
                     }
 
-                    if (stock.Quantity < mat.RequiredQuantity)
+                    var available = _reservationRepo.GetAvailableQuantity(mat.ItemCode, stock.Quantity);
+
+                    if (available < mat.RequiredQuantity)
                     {
                         Console.WriteLine($"⚠ Insufficient stock for {mat.ItemCode} — allowing start");
                         continue;
                     }
 
-                    if (stock.Quantity < 0)
+                    if (available < 0)
                     {
-                        Console.WriteLine($"⚠ Negative stock for {mat.ItemCode} — allowing start");
-                        continue;
+                        reason =
+                            $"Negative available stock for {mat.ItemCode}";
+
+                        return false;
                     }
                 }
 
@@ -74,7 +80,9 @@ namespace WeldAdminPro.Data.Services
             }
             catch (Exception ex)
             {
+                #if DEBUG
                 Console.WriteLine($"⚠ MATERIAL VALIDATION ERROR (IGNORED): {ex.Message}");
+                #endif
 
                 // ✅ ALWAYS allow execution (stability mode)
                 reason = string.Empty;

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace WeldAdminPro.Core.Analytics.Production
 {
-    public class ProductionRecommendationService
+    public class ProductionAdvisorService
     {
         public List<ProductionRecommendation>
             GetRecommendations(

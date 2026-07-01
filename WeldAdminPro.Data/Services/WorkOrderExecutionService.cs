@@ -1,8 +1,9 @@
+using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Microsoft.Data.Sqlite;
+using WeldAdminPro.Core.Events;
 using WeldAdminPro.Core.Execution;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
@@ -118,7 +119,9 @@ namespace WeldAdminPro.Data.Services
 			{
 				_isStarting = false;
 			}
-		}
+
+            WorkOrderEvents.RaiseChanged();
+        }
 
 		private void IssueMaterials(List<WorkOrderMaterial> materials, WorkOrder workOrder)
 		{
@@ -127,10 +130,16 @@ namespace WeldAdminPro.Data.Services
 				var stock = _stockRepo.GetByItemCode(m.ItemCode)
 					?? throw new Exception($"Stock item not found: {m.ItemCode}");
 
-				int jobNumber = 0;
-				int.TryParse(workOrder.WorkOrderNumber, out jobNumber);
+                var digits =
+    new string(
+        workOrder.WorkOrderNumber
+            .Where(char.IsDigit)
+            .ToArray());
 
-				_stockTxService.IssueStock(
+                int.TryParse(digits,
+                             out int jobNumber);
+
+                _stockTxService.IssueStock(
 					new Project
 					{
 						Id = workOrder.ProjectId,
@@ -141,28 +150,48 @@ namespace WeldAdminPro.Data.Services
 					"SYSTEM"
 				);
 			}
-		}
+            WorkOrderEvents.RaiseChanged();
+        }
 
-		public void CompleteWorkOrder(Guid workOrderId)
-		{
-			using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
-			connection.Open();
+        public void CompleteWorkOrder(Guid workOrderId)
+        {
+            using var connection =
+                new SqliteConnection(
+                    $"Data Source={DatabasePath.Get()}");
 
-			using var cmd = connection.CreateCommand();
-			cmd.CommandText = @"
-UPDATE WorkOrders
-SET Status = @Status,
-    ActualEndTime = @EndTime
-WHERE Id = @Id";
+            connection.Open();
 
-			cmd.Parameters.AddWithValue("@Id", workOrderId.ToString());
-			cmd.Parameters.AddWithValue("@EndTime", DateTime.UtcNow.ToString("O"));
-			cmd.Parameters.AddWithValue("@Status", (int)WorkOrderStatus.Completed);
+            using var cmd =
+                connection.CreateCommand();
 
-			cmd.ExecuteNonQuery();
-		}
+            cmd.CommandText = @"
+			UPDATE WorkOrders
+			SET Status = @Status,
+				ActualEndTime = @EndTime,
+				CompletedOn = @EndTime
+				WHERE Id = @Id";
 
-		public void CancelWorkOrder(Guid workOrderId)
+            cmd.Parameters.AddWithValue(
+				"@Id",
+                workOrderId.ToString());
+
+            cmd.Parameters.AddWithValue(
+                "@EndTime",
+                DateTime.UtcNow.ToString("O"));
+
+            cmd.Parameters.AddWithValue(
+                "@Status",
+                (int)WorkOrderStatus.Completed);
+
+            var rows = cmd.ExecuteNonQuery();
+
+            Debug.WriteLine(
+                $"COMPLETE ROWS = {rows}");
+
+            WorkOrderEvents.RaiseChanged();
+        }
+
+        public void CancelWorkOrder(Guid workOrderId)
 		{
 			var workOrder = _repository.GetById(workOrderId)
 				?? throw new Exception("Work order not found");
@@ -183,7 +212,8 @@ WHERE Id = @Id";
 						Reference = workOrder.WorkOrderNumber + "-REV"
 					});
 				}
-			}
+            WorkOrderEvents.RaiseChanged();
+        }
 		public void PauseWorkOrder(Guid workOrderId)
 		{
 			using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
@@ -200,6 +230,8 @@ WHERE Id = @Id";
 			cmd.Parameters.AddWithValue("@Status", (int)WorkOrderStatus.Paused);
 
 			cmd.ExecuteNonQuery();
-		}
+
+            WorkOrderEvents.RaiseChanged();
+        }
 	}
 	}

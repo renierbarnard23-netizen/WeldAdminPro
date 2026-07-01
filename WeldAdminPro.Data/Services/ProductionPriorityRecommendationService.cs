@@ -7,11 +7,12 @@ using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.Data.Services
 {
-	public class ProductionRecommendationService
-	{
+	public class ProductionPriorityRecommendationService
+
+    {
 		private readonly WorkOrderRepository _workOrderRepository;
 
-		public ProductionRecommendationService()
+		public ProductionPriorityRecommendationService()
 		{
 			_workOrderRepository = new WorkOrderRepository();
 		}

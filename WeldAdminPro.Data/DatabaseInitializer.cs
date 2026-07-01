@@ -12,12 +12,13 @@ namespace WeldAdminPro.Data
     {
         public static void Initialize()
         {
-            
             using var connection = 
                 new SqliteConnection(
                     $"Data Source={DatabasePath.Get()}");
 
             connection.Open();
+
+            CreateReservedMaterialsTable(connection);
 
             using var cmd = 
                 connection.CreateCommand();
@@ -1107,6 +1108,26 @@ CREATE TABLE IF NOT EXISTS DocumentVaultFiles
                 });
         }
 
+        private static void CreateReservedMaterialsTable(
+    SqliteConnection connection)
+        {
+            using var cmd =
+                connection.CreateCommand();
+
+            cmd.CommandText =
+            @"
+    CREATE TABLE IF NOT EXISTS ReservedMaterials
+    (
+        Id TEXT PRIMARY KEY,
+        WorkOrderId TEXT NOT NULL,
+        ItemCode TEXT NOT NULL,
+        Quantity REAL NOT NULL,
+        ReservedOn TEXT NOT NULL
+    );
+    ";
+
+            cmd.ExecuteNonQuery();
+        }
 
     }
 }

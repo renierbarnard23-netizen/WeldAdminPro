@@ -222,7 +222,6 @@ namespace WeldAdminPro.UI.ViewModels
             Project = project;
             Project.LastModifiedOn = DateTime.Now;
 
-            new ProjectDocumentService().InitializeProjectDocuments(Project.Id);
 
             Statuses = Enum.GetValues(typeof(ProjectStatus))
                 .Cast<ProjectStatus>()
@@ -437,15 +436,29 @@ namespace WeldAdminPro.UI.ViewModels
 
             ProjectCompletionGuard.ValidateBeforeSave(Project);
 
-
             Project.LastModifiedOn = DateTime.Now;
 
-            var existing = _projectRepository.GetById(Project.Id);
+            if (Project.Id == Guid.Empty)
+            {
+                Project.Id = Guid.NewGuid();
+            }
 
-                if (existing == null)
-                    _projectRepository.Add(Project);
-                else
-                    _projectRepository.Update(Project);
+            var existing =
+                _projectRepository.GetById(Project.Id);
+
+            if (existing == null)
+            {
+                _projectRepository.Add(Project);
+
+                new ProjectDocumentService()
+                    .InitializeProjectDocuments(Project.Id);
+
+                RefreshProjectData();
+            }
+            else
+            {
+                _projectRepository.Update(Project);
+            }
 
             foreach (var doc in ProjectDocuments)
             {
@@ -453,7 +466,8 @@ namespace WeldAdminPro.UI.ViewModels
             }
 
             RequestClose?.Invoke();
-        }
+        }       
+
 
         // ================= RULES =================
 

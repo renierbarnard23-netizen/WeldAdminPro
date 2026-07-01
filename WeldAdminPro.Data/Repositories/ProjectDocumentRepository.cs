@@ -297,6 +297,12 @@ VALUES
                     ? doc.LastModifiedOn.Value.ToString("O")
                     : DBNull.Value);
 
+            cmd.Parameters.AddWithValue(
+                "$category",
+                string.IsNullOrWhiteSpace(doc.Category)
+                    ? ""
+                    : doc.Category);
+
             cmd.ExecuteNonQuery();
         }
 
@@ -373,7 +379,9 @@ WHERE Id = $id;";
 
             cmd.Parameters.AddWithValue(
                 "$category",
-                doc.Category);
+                string.IsNullOrWhiteSpace(doc.Category)
+                    ? ""
+                    : doc.Category);
 
             cmd.ExecuteNonQuery();
         }

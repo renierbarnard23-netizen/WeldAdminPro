@@ -8,7 +8,11 @@ namespace WeldAdminPro.Core.Models
 
 		public string Description { get; set; } = string.Empty;
 
-		public int Quantity { get; set; }
+		public string Name { get; set; } = "";
+		public WorkOrderMaterialTrace() { }
+
+        public int AvailableQuantity { get; set; }
+        public int Quantity { get; set; }
 
 		public decimal UnitCost { get; set; }
 

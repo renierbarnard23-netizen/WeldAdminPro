@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using WeldAdminPro.Core.Execution;
 using WeldAdminPro.Core.Models;
 
@@ -10,9 +11,20 @@ namespace WeldAdminPro.Core.Analytics.Production
 
 		public string WorkOrderNumber { get; set; } = "";
 
-		public int Priority { get; set; }
+        private int _priority;
 
-		public string Status { get; set; } = "";
+        public int Priority
+        {
+            get => _priority;
+            set
+            {
+                _priority = value;
+                Debug.WriteLine(
+                    $"UI PRIORITY SET: {WorkOrderNumber} -> {_priority}");
+            }
+        }
+
+        public string Status { get; set; } = "";
 
 		public string StartDate { get; set; } = "";
 

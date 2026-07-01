@@ -54,8 +54,6 @@ namespace WeldAdminPro.Data.Services
                 return r;
             }
 
-            Console.WriteLine($"{wps.WpsNumber} → {wps.PNumber}");
-
             // =========================
             // CLEAN PRIMARY WPS NUMBER
             // =========================

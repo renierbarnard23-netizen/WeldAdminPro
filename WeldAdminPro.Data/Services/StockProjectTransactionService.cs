@@ -118,6 +118,7 @@ VALUES
 
 				usageCmd.ExecuteNonQuery();
 
+
 				// 4. UPDATE STOCK QUANTITY
 				using var updateStockCmd = connection.CreateCommand();
 				updateStockCmd.Transaction = tx;
@@ -125,8 +126,18 @@ VALUES
 					"UPDATE StockItems SET Quantity = $qty WHERE Id = $id;";
 				updateStockCmd.Parameters.AddWithValue("$qty", newBalance);
 				updateStockCmd.Parameters.AddWithValue("$id", stockItem.Id.ToString());
-				updateStockCmd.ExecuteNonQuery();
 
+                Debug.WriteLine("=================================");
+                Debug.WriteLine($"StockItem Id: {stockItem.Id}");
+                Debug.WriteLine($"Description : {stockItem.Description}");
+                Debug.WriteLine($"Current Qty : {currentQty}");
+                Debug.WriteLine($"New Balance : {newBalance}");
+
+                var rows = updateStockCmd.ExecuteNonQuery();
+
+                Debug.WriteLine($"Rows Updated : {rows}");
+                Debug.WriteLine("=================================");
+               
 				// 5. REBUILD PROJECT COST FROM HISTORY
 				project.ActualCost = RecalculateProjectCost(connection, tx, project.Id);
 				project.LastModifiedOn = DateTime.UtcNow;

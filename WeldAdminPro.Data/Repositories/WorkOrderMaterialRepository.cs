@@ -11,23 +11,27 @@ namespace WeldAdminPro.Data.Repositories
 		private static Dictionary<Guid, List<WorkOrderMaterial>> _cache = new();
 		private readonly string _connectionString;
 
-		public WorkOrderMaterialRepository()
-		{
-			_connectionString = $"Data Source={DatabasePath.Get()}";
+        public WorkOrderMaterialRepository()
+        {
+            var path = DatabasePath.Get();
 
-			EnsureTable();
-		}
-		
-		private static HashSet<Guid> _loggedWorkOrders = new();
+            Debug.WriteLine(
+                $"WorkOrderMaterialRepository: {path}");
 
-		public List<WorkOrderMaterial> GetByWorkOrderId(Guid workOrderId)
-		{
-			if (_cache.ContainsKey(workOrderId))
-				return _cache[workOrderId];
+            _connectionString =
+                $"Data Source={path}";
 
-			var list = new List<WorkOrderMaterial>();
+            EnsureTable();
+        }
 
-			using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
+        private static HashSet<Guid> _loggedWorkOrders = new();
+
+        public List<WorkOrderMaterial>GetByWorkOrderId(Guid workOrderId)
+        {
+            var list =
+                new List<WorkOrderMaterial>();
+
+			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
 			using var cmd = connection.CreateCommand();
@@ -59,30 +63,46 @@ namespace WeldAdminPro.Data.Repositories
 				_loggedWorkOrders.Add(workOrderId);
 			}
 
-			_cache[workOrderId] = list;
-
 			return list;
 		}
-		private void EnsureTable()
-		{
-			using var connection = new SqliteConnection(_connectionString);
-			connection.Open();
+        private void EnsureTable()
+        {
+            try
+            {
+                using var connection =
+                    new SqliteConnection(_connectionString);
 
-			using var cmd = connection.CreateCommand();
+                connection.Open();
 
-			cmd.CommandText = @"
-            CREATE TABLE IF NOT EXISTS WorkOrderMaterials
-            (
-                Id TEXT PRIMARY KEY,
-                WorkOrderId TEXT NOT NULL,
-                ItemCode TEXT NOT NULL,
-                RequiredQuantity REAL NOT NULL
-            );";
+                using var cmd =
+                    connection.CreateCommand();
 
-			cmd.ExecuteNonQuery();
-		}
+                cmd.CommandText =
+                """
+        CREATE TABLE IF NOT EXISTS WorkOrderMaterials
+        (
+            Id TEXT PRIMARY KEY,
+            WorkOrderId TEXT NOT NULL,
+            ItemCode TEXT NOT NULL,
+            RequiredQuantity REAL NOT NULL
+        );
+        """;
 
-		public void Add(WorkOrderMaterial material)
+                cmd.ExecuteNonQuery();
+
+                #if DEBUG
+                Debug.WriteLine(
+                    "✅ WorkOrderMaterials table ensured.");
+                #endif
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(
+                    $"❌ Failed creating WorkOrderMaterials: {ex}");
+            }
+        }
+
+        public void Add(WorkOrderMaterial material)
 		{
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
@@ -103,6 +123,9 @@ namespace WeldAdminPro.Data.Repositories
 			cmd.Parameters.AddWithValue("@RequiredQuantity", material.RequiredQuantity);
 
 			cmd.ExecuteNonQuery();
-		}
+
+            _cache.Remove(
+				material.WorkOrderId);
+        }
 	}
 }

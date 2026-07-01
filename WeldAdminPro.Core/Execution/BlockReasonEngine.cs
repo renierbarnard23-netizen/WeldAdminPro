@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Linq;
 using WeldAdminPro.Core.Models;
 
@@ -40,15 +41,24 @@ namespace WeldAdminPro.Core.Execution
 
 		private BlockResult CheckMaterials(WorkOrder order)
 		{
-			if (order.MaterialRequirements == null || !order.MaterialRequirements.Any())
+
+            Debug.WriteLine(
+				$"WO={order.WorkOrderNumber}");
+
+            Debug.WriteLine(
+                $"Material Count = " +
+                $"{order.MaterialRequirements?.Count ?? 0}");
+
+            if (order.MaterialRequirements == null || !order.MaterialRequirements.Any())
 				return BlockResult.None();
 
 			foreach (var req in order.MaterialRequirements)
 			{
-				// 🔥 TEMP FIX: assume 0 stock until service is wired
-				double availableQty = 0;
+                // 🔥 TEMP FIX: assume 0 stock until service is wired
+                double availableQty = 
+					req.AvailableQuantity;
 
-				if (availableQty <= 0)
+                if (availableQty <= 0)
 				{
 					return BlockResult.Create(
 						BlockReason.NoStock,

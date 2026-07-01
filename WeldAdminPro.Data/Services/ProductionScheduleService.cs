@@ -39,10 +39,17 @@ namespace WeldAdminPro.Data.Services
 
 			foreach (var wo in workOrders)
 			{
-				double hours = wo.EstimatedHours > 0 ? wo.EstimatedHours : 8;
-				double days = Math.Max(1, hours / 8.0);
 
-				var schedule = new ProductionScheduleItem
+                System.Diagnostics.Debug.WriteLine(
+					$"{wo.WorkOrderNumber} | Estimated Hours = {wo.EstimatedHours}");
+
+                double hours = wo.EstimatedHours > 0 ? wo.EstimatedHours : 8;
+                double days =
+					Math.Max(
+						1,
+						Math.Ceiling(hours / 8.0));
+
+                var schedule = new ProductionScheduleItem
 				{
 					WorkOrderNumber = wo.WorkOrderNumber,
 					StartDate = currentStart,

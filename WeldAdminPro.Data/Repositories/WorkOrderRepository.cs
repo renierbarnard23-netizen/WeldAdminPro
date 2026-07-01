@@ -1,6 +1,9 @@
 using Microsoft.Data.Sqlite;
+using Microsoft.VisualBasic;
+using ScottPlot.Statistics;
 using System;
 using System.Collections.Generic;
+using System.Net.NetworkInformation;
 using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Data.Repositories
@@ -8,14 +11,18 @@ namespace WeldAdminPro.Data.Repositories
 	public class WorkOrderRepository
 	{
 		private readonly string _connectionString;
+        private readonly WorkOrderMaterialRepository _materialRepo;
+        public WorkOrderRepository()
+        {
+            _connectionString =
+                $"Data Source={DatabasePath.Get()}";
 
-		public WorkOrderRepository()
-		{
-			_connectionString = $"Data Source={DatabasePath.Get()}";
+            _materialRepo =
+                new WorkOrderMaterialRepository();
 
-			EnsureTable();
-			EnsureColumns();
-		}
+            EnsureTable();
+            EnsureColumns();
+        }        
 
 		public WorkOrder? GetById(Guid id)
 		{
@@ -30,36 +37,83 @@ namespace WeldAdminPro.Data.Repositories
 
             if (reader.Read())
             {
-                return new WorkOrder
-                {
-                    Id = Guid.Parse(reader["Id"].ToString()!),
-                    ProjectId =
-                        Guid.Parse(reader["ProjectId"].ToString()!),
+                var wo =
+                    new WorkOrder
+                    {
+                        Id =
+                            Guid.Parse(
+                                reader["Id"].ToString()!),
 
-                    WorkOrderNumber =
-                        reader["WorkOrderNumber"].ToString() ?? "",
+                        ProjectId =
+                            Guid.Parse(
+                                reader["ProjectId"].ToString()!),
 
-                    Description =
-                        reader["Description"].ToString() ?? "",
+                        WorkOrderNumber =
+                            reader["WorkOrderNumber"].ToString() ?? "",
 
-                    Status =
-                        (WorkOrderStatus)
-                        Convert.ToInt32(reader["Status"]),
+                        Description =
+                            reader["Description"].ToString() ?? "",
 
-                    CreatedOn =
-                        DateTime.Parse(
-                            reader["CreatedOn"].ToString()!),
+                        Status =
+                            (WorkOrderStatus)
+                            Convert.ToInt32(
+                                reader["Status"]),
 
-                    CompletedOn =
-                        reader["CompletedOn"] == DBNull.Value
-                            ? null
-                            : DateTime.Parse(
-                                reader["CompletedOn"].ToString()!)
-                };
+                        CreatedOn =
+                            DateTime.Parse(
+                                reader["CreatedOn"].ToString()!),
+
+                        CompletedOn =
+                            reader["CompletedOn"] == DBNull.Value
+                                ? null
+                                : DateTime.Parse(
+                                    reader["CompletedOn"].ToString()!)
+                    };
+
+                var stockRepo = 
+                    new StockRepository();
+
+                wo.MaterialRequirements =
+                    _materialRepo
+                        .GetByWorkOrderId(wo.Id)
+                        .Select(m =>
+                        {
+                            var stock =
+                                stockRepo.GetByItemCode(
+                                    m.ItemCode);
+
+                            return new MaterialRequirement
+                            {
+                                ItemCode =
+                                    m.ItemCode,
+                                RequiredQuantity =
+                                    m.RequiredQuantity,
+                                AvailableQuantity =
+                                    stock?.Quantity ?? 0
+                            };
+                        })
+                        .ToList();
+
+                wo.MaterialRequirements =
+                    _materialRepo
+                        .GetByWorkOrderId(
+                            wo.Id)
+                        .Select(m =>
+                            new MaterialRequirement
+                            {
+                                ItemCode =
+                                    m.ItemCode,
+
+                                RequiredQuantity =
+                                    m.RequiredQuantity
+                            })
+                        .ToList();
+
+                return wo;
             }
 
             return null;
-		}
+        }
 		
 		private void EnsureTable()
 		{
@@ -281,59 +335,110 @@ WHERE Id = @Id";
 
 			while (reader.Read())
 			{
-				list.Add(new WorkOrder
-				{
-					Id = Guid.Parse(reader["Id"].ToString()!),
-					ProjectId = Guid.Parse(reader["ProjectId"].ToString()!),
+                var wo =
+    new WorkOrder
+    {
+        Id =
+            Guid.Parse(
+                reader["Id"].ToString()!),
 
-					ProjectName = reader["ProjectName"] == DBNull.Value
-					? ""
-					: reader["ProjectName"].ToString()!,
+        ProjectId =
+            Guid.Parse(
+                reader["ProjectId"].ToString()!),
 
-					WorkOrderNumber = reader["WorkOrderNumber"].ToString()!,
-					Description = reader["Description"].ToString()!,
+        ProjectName =
+            reader["ProjectName"] == DBNull.Value
+                ? ""
+                : reader["ProjectName"].ToString()!,
 
-					StartDate = reader["StartDate"] == DBNull.Value
-						? DateTime.Today
-						: DateTime.Parse(reader["StartDate"].ToString()!),
+        WorkOrderNumber =
+            reader["WorkOrderNumber"].ToString()!,
 
-					EstimatedHours = reader["EstimatedHours"] == DBNull.Value
-						? 8
-						: Convert.ToDouble(reader["EstimatedHours"]),
+        Description =
+            reader["Description"].ToString()!,
 
-					DueDate = reader["DueDate"] == DBNull.Value
-						? DateTime.Today.AddDays(3)
-						: DateTime.Parse(reader["DueDate"].ToString()!),
+        StartDate =
+            reader["StartDate"] == DBNull.Value
+                ? DateTime.Today
+                : DateTime.Parse(
+                    reader["StartDate"].ToString()!),
 
-					Priority = reader["Priority"] == DBNull.Value
-						? 1
-						: Convert.ToInt32(reader["Priority"]),
+        EstimatedHours =
+            reader["EstimatedHours"] == DBNull.Value
+                ? 8
+                : Convert.ToDouble(
+                    reader["EstimatedHours"]),
 
-					Status = (WorkOrderStatus)Convert.ToInt32(reader["Status"]),
+        DueDate =
+            reader["DueDate"] == DBNull.Value
+                ? DateTime.Today.AddDays(3)
+                : DateTime.Parse(
+                    reader["DueDate"].ToString()!),
 
-					CreatedOn = DateTime.Parse(reader["CreatedOn"].ToString()!),
+        Priority =
+            reader["Priority"] == DBNull.Value
+                ? 1
+                : Convert.ToInt32(
+                    reader["Priority"]),
 
-					CompletedOn = reader["CompletedOn"] == DBNull.Value
-						? null
-						: DateTime.Parse(reader["CompletedOn"].ToString()!),
+        Status =
+            (WorkOrderStatus)
+            Convert.ToInt32(
+                reader["Status"]),
 
-					ActualStartTime = reader["ActualStartTime"] == DBNull.Value
-						? null
-						: DateTime.Parse(reader["ActualStartTime"].ToString()!),
+        CreatedOn =
+            DateTime.Parse(
+                reader["CreatedOn"].ToString()!),
 
-					ActualEndTime = reader["ActualEndTime"] == DBNull.Value
-						? null
-						: DateTime.Parse(reader["ActualEndTime"].ToString()!),
+        CompletedOn =
+            reader["CompletedOn"] == DBNull.Value
+                ? null
+                : DateTime.Parse(
+                    reader["CompletedOn"].ToString()!),
 
-					ActualHours = reader["ActualHours"] == DBNull.Value
-						? 0
-						: Convert.ToDouble(reader["ActualHours"]),
+        ActualStartTime =
+            reader["ActualStartTime"] == DBNull.Value
+                ? null
+                : DateTime.Parse(
+                    reader["ActualStartTime"].ToString()!),
 
-					IsPaused = reader["IsPaused"] == DBNull.Value
-						? false
-						: Convert.ToInt32(reader["IsPaused"]) == 1,
-				});
-			}
+        ActualEndTime =
+            reader["ActualEndTime"] == DBNull.Value
+                ? null
+                : DateTime.Parse(
+                    reader["ActualEndTime"].ToString()!),
+
+        ActualHours =
+            reader["ActualHours"] == DBNull.Value
+                ? 0
+                : Convert.ToDouble(
+                    reader["ActualHours"]),
+
+        IsPaused =
+            reader["IsPaused"] != DBNull.Value &&
+            Convert.ToInt32(
+                reader["IsPaused"]) == 1
+    };
+                System.Diagnostics.Debug.WriteLine(
+                    $"DB: {wo.WorkOrderNumber} | Priority={wo.Priority}");
+
+                wo.MaterialRequirements =
+                    _materialRepo
+                        .GetByWorkOrderId(
+                            wo.Id)
+                        .Select(m =>
+                            new MaterialRequirement
+                            {
+                                ItemCode =
+                                    m.ItemCode,
+
+                                RequiredQuantity =
+                                    m.RequiredQuantity
+                            })
+                        .ToList();
+
+                list.Add(wo);
+            }
 
 			return list;
 		}
@@ -431,6 +536,12 @@ WHERE Key='NextWorkOrderNumber'";
                     GetNextWorkOrderNumber();
             }
 
+            if (workOrder.Priority <= 0)
+            {
+                workOrder.Priority =
+                    GetAll().Count() + 1;
+            }
+
             if (workOrder.CreatedOn == default)
             {
                 workOrder.CreatedOn =
@@ -439,30 +550,32 @@ WHERE Key='NextWorkOrderNumber'";
 
             using var cmd =
                 connection.CreateCommand();
-
+            
             cmd.CommandText = @"
-INSERT INTO WorkOrders
-(
-    Id,
-    ProjectId,
-    WorkOrderNumber,
-    Description,
-    Status,
-    CreatedOn,
-    DueDate,
-    CompletedOn
-)
-VALUES
-(
-    @Id,
-    @ProjectId,
-    @WorkOrderNumber,
-    @Description,
-    @Status,
-    @CreatedOn,
-    @DueDate,
-    @CompletedOn
-);";
+                INSERT INTO WorkOrders
+                (
+                    Id,
+                    ProjectId,
+                    WorkOrderNumber,
+                    Description,
+                    Status,
+                    CreatedOn,
+                    DueDate,
+                    CompletedOn,
+                    Priority
+                )
+                VALUES
+                (
+                    @Id,
+                    @ProjectId,
+                    @WorkOrderNumber,
+                    @Description,
+                    @Status,
+                    @CreatedOn,
+                    @DueDate,
+                    @CompletedOn,
+                    @Priority
+                )";
 
             cmd.Parameters.AddWithValue(
                 "@Id",
@@ -500,7 +613,33 @@ VALUES
                     ? workOrder.CompletedOn.Value.ToString("O")
                     : DBNull.Value);
 
+            cmd.Parameters.AddWithValue(
+                "@Priority",
+                workOrder.Priority);
+
             cmd.ExecuteNonQuery();
+        }
+
+        public void RepairPriorities()
+        {
+            var orders =
+                GetAll()
+                .OrderBy(x => x.CreatedOn)
+                .ToList();
+
+            int priority = 1;
+
+            foreach (var wo in orders)
+            {
+                UpdatePriority(
+                    wo.WorkOrderNumber,
+                    priority);
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"FIXED {wo.WorkOrderNumber} -> {priority}");
+
+                priority++;
+            }
         }
 
         private bool Exists(string workOrderNumber)

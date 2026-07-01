@@ -22,7 +22,10 @@ namespace WeldAdminPro.Data.Services
 			var stockRepo = new StockRepository();
 			var stockItems = stockRepo.GetAll();
 
-			var blocks = shortages
+            var reservationRepo =
+				new ReservedMaterialRepository();
+
+            var blocks = shortages
 				.GroupBy(s => s.WorkOrderNumber)
 				.Select(g =>
 				{

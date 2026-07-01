@@ -108,11 +108,13 @@ namespace WeldAdminPro.Data.Services
 
         public void InitializeProjectDocuments(Guid projectId)
         {
+            if (projectId == Guid.Empty)
+                return;
+
             var existing = _repo.GetByProject(projectId);
 
             if (existing.Any())
                 return;
-
 
             foreach (var doc in _defaultDocs)
             {

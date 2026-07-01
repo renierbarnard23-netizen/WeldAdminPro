@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Input;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Data.Services;
 
 namespace WeldAdminPro.UI.Views
 {
@@ -81,23 +82,25 @@ namespace WeldAdminPro.UI.Views
 				return;
 			}
 
-			var tx = new StockTransaction
-			{
-				Id = Guid.NewGuid(),
-				StockItemId = item.Id,
-				ProjectId = workOrder.ProjectId,
-				TransactionDate = DateTime.Now,
-				Quantity = qty,
-				Type = "OUT",
-				UnitCost = item.AverageUnitCost,
-				Reference = workOrder.WorkOrderNumber
-			};
+            var projectRepo = new ProjectRepository();
+            var project = projectRepo.GetById(workOrder.ProjectId);
 
-			_stockRepository.AddTransaction(tx);
+            if (project == null)
+            {
+                MessageBox.Show("Project not found.");
+                return;
+            }
 
-			MessageBox.Show("Material issued successfully.");
+            var stockService = new StockProjectTransactionService();
 
-			this.Close();
+            stockService.IssueStock(
+                project,
+                item,
+                qty,
+                Environment.UserName);
+
+            MessageBox.Show("Material issued successfully.");
+            Close();
 		}
 		private void QuantityBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
 		{

@@ -62,9 +62,12 @@ namespace WeldAdminPro.UI.ViewModels.Dashboard
                     .GetAll()
                     .ToList();
 
-            ProductionQueue =
-                new ObservableCollection<ProductionQueueItem>(
-                    _schedulingService.BuildQueue());
+            if (ProductionQueue == null || ProductionQueue.Count == 0)
+            {
+                ProductionQueue =
+                    new ObservableCollection<ProductionQueueItem>(
+                        _schedulingService.BuildQueue());
+            }
 
             CapacityForecast =
                 new ObservableCollection<ProductionCapacityForecast>(

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using WeldAdminPro.Core.Analytics.Production;
 using WeldAdminPro.Core.Enums;
@@ -12,12 +13,19 @@ namespace WeldAdminPro.Data.Services
 	{
 		private readonly WorkOrderRepository _workOrderRepository;
 		private readonly ProductionBlockService _blockService;
+        private readonly ProductionAlertService _alertService;
 
-		public ProductionControlTowerService()
-		{
-			_workOrderRepository = new WorkOrderRepository();
-			_blockService = new ProductionBlockService();
-		}
+        public ProductionControlTowerService()
+        {
+            _workOrderRepository =
+                new WorkOrderRepository();
+
+            _blockService =
+                new ProductionBlockService();
+
+            _alertService =
+                new ProductionAlertService();
+        }
 
         public ProductionControlTowerModel GetControlTower()
         {
@@ -55,13 +63,12 @@ namespace WeldAdminPro.Data.Services
 
             model.CompletedToday =
                 workOrders.Count(x =>
-                    x.Status ==
-                    WorkOrderStatus.Completed
+                    x.Status == WorkOrderStatus.Completed
                     &&
-                    x.CompletedOn.HasValue
+                        x.ActualEndTime.HasValue
                     &&
-                    x.CompletedOn.Value.Date ==
-                    DateTime.Today);
+                        x.ActualEndTime.Value.Date ==
+                        DateTime.Today);
 
             model.ReadyOrders =
                 Math.Max(
@@ -99,10 +106,11 @@ namespace WeldAdminPro.Data.Services
 
             model.CompletedThisWeek =
                 workOrders.Count(w =>
-                    w.Status ==
-                        WorkOrderStatus.Completed &&
-                    w.CompletedOn.HasValue &&
-                    w.CompletedOn.Value >= startOfWeek);
+                    w.Status == WorkOrderStatus.Completed
+                    &&
+                        w.ActualEndTime.HasValue
+                    &&
+                        w.ActualEndTime.Value >= startOfWeek);
 
             model.ProductionEfficiency =
                 model.TotalWorkOrders == 0
@@ -126,7 +134,16 @@ namespace WeldAdminPro.Data.Services
                             $"{model.MaterialShortages} material shortages detected."
                     });
             }
-            
+
+            foreach (var wo in workOrders)
+            {
+                Debug.WriteLine(
+                    $"{wo.WorkOrderNumber} | " +
+                    $"{wo.Status} | " +
+                    $"CompletedOn={wo.CompletedOn} | " +
+                    $"ActualEnd={wo.ActualEndTime}");
+            }
+
             //--------------------------------------------------
             // Capacity
             //--------------------------------------------------

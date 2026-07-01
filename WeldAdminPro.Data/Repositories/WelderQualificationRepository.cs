@@ -254,8 +254,9 @@ WHERE Process = $process;";
                     && NormalizeProcess(q.Process)
                         == normalizedProcess)
                 .ToList();
-
-            Console.WriteLine($"Repository returned {qualifications.Count} qualifications");
+            #if DEBUG
+            Console.WriteLine($"Repository returned {qualifications.Count} qualifications for welder {welderNumber}");
+            #endif
 
             foreach (var q in qualifications)
             {

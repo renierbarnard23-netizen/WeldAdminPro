@@ -33,15 +33,6 @@ namespace WeldAdminPro.Data.Services
 
                 var pqr = _pqrRepo.GetById(wps.PqrId.Value);
 
-                Console.WriteLine(
-                    $"PQR Number = {pqr?.PqrNumber}");
-
-                Console.WriteLine(
-                    $"MaterialGroup = [{pqr?.MaterialGroup}]");
-
-                Console.WriteLine(
-                    $"PNumber = [{pqr?.PNumber}]");
-
                 if (pqr == null)
                 {
                     result.Issues.Add($"WPS {wps.WpsNumber}: Invalid PQR reference");

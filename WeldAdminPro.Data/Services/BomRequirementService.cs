@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using WeldAdminPro.Core.Analytics.Production;
 using WeldAdminPro.Data.Repositories;
@@ -21,7 +22,15 @@ namespace WeldAdminPro.Data.Services
 			var stock = _stockRepository.GetAll();
 			var boms = _bomRepository.GetAll();
 
-			var plans = new List<WorkOrderMaterialPlan>();
+            var planningService = 
+				new WorkOrderMaterialPlanningService();
+
+            var plan =
+                planningService.BuildPlan();
+
+            Debug.WriteLine($"PLAN COUNT = {plan.Count}");
+
+            var plans = new List<WorkOrderMaterialPlan>();
 
 			foreach (var bom in boms)
 			{

@@ -13,7 +13,9 @@ namespace WeldAdminPro.Core.Quality.Services
 
         public void SaveWps(Wps wps)
         {
+            #if DEBUG
             Console.WriteLine($"SAVING WPS: {wps.WpsNumber}");
+            #endif
 
             var existing = _repo.GetByWpsNumber(wps.WpsNumber);
 

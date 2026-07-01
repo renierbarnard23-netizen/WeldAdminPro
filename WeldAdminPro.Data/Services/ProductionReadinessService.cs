@@ -1,5 +1,8 @@
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using WeldAdminPro.Core.Analytics.Production;
+using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.Data.Services
@@ -47,5 +50,75 @@ namespace WeldAdminPro.Data.Services
 				BlockedWorkOrderNumbers = blockedWorkOrders
 			};
 		}
-	}
+
+        public List<WorkOrderReadiness> GetWorkOrderReadiness()
+        {
+            var result =
+                new List<WorkOrderReadiness>();
+
+            var workOrders =
+                _workOrderRepository
+                    .GetAll()
+                    .ToList();
+
+            var shortages =
+                _shortageService
+                    .GetShortages();
+
+            Debug.WriteLine("===== READINESS =====");
+
+            foreach (var shortage in shortages)
+            {
+                Debug.WriteLine(
+                    $"SHORTAGE WO={shortage.WorkOrderNumber}");
+            }
+
+            foreach (var wo in workOrders)
+            {
+                Debug.WriteLine(
+                    $"CHECKING {wo.WorkOrderNumber}");
+
+                var readiness =
+                    new WorkOrderReadiness
+                    {
+                        WorkOrderId = wo.Id,
+                        WorkOrderNumber = wo.WorkOrderNumber,
+                        MaterialsReady = true,
+                        DependenciesReady = true,
+                        Reason = "Ready"
+                    };
+
+                var woShortages =
+                    shortages
+                        .Where(s =>
+                            s.WorkOrderNumber ==
+                            wo.WorkOrderNumber)
+                        .ToList();
+
+                Debug.WriteLine(
+                    $"{wo.WorkOrderNumber} shortages = {woShortages.Count}");
+
+                if (woShortages.Any())
+                {
+                    readiness.MaterialsReady = false;
+
+                    readiness.Reason =
+                        $"{woShortages.First().ItemCode} short by " +
+                        $"{woShortages.First().ShortageQuantity}";
+
+                    Debug.WriteLine(
+                        $"{wo.WorkOrderNumber} BLOCKED");
+                }
+                else
+                {
+                    Debug.WriteLine(
+                        $"{wo.WorkOrderNumber} READY");
+                }
+
+                result.Add(readiness);
+            }
+
+            return result;
+        }
+    }
 }

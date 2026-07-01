@@ -371,21 +371,21 @@
                                         <DockPanel>
 
                                             <TextBlock Text="{Binding Name}"
-                                           FontWeight="SemiBold"
-                                           FontSize="14"
-                                           DockPanel.Dock="Left"/>
+                                                FontWeight="SemiBold"
+                                                FontSize="14"
+                                                DockPanel.Dock="Left"/>
 
-                                            <TextBlock Text="{Binding LoadPercentage,
-                                                          StringFormat={}{0:F0}%}"
-                                           FontWeight="Bold"
-                                           HorizontalAlignment="Right"/>
+                                            <TextBlock Text="{Binding LoadPercentage, 
+                                                              StringFormat={}{0:F0}%}"
+                                                FontWeight="Bold"
+                                                HorizontalAlignment="Right"/>
 
                                         </DockPanel>
 
-                                        <ProgressBar Height="20"
+                                        <ProgressBar Height="24"
                                          Margin="0,8,0,0"
                                          Maximum="100"
-                                         Value="{Binding LoadPercentage}" />
+                                         Value="{Binding LoadPercentage, Mode=OneWay}" />
 
                                     </StackPanel>
 
@@ -1481,7 +1481,7 @@
 
 										</Border.Style>
 
-										<TextBlock Text="{Binding LoadPercentage, StringFormat={}{0:F0}%}"
+										<TextBlock Text="{Binding LoadPercentage, Mode=OneWay, StringFormat={}{0:F0}%}"
                                        FontWeight="Bold"
                                        HorizontalAlignment="Center"/>
 

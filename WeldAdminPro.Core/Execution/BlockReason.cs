@@ -4,7 +4,8 @@ namespace WeldAdminPro.Core.Execution
 	{
 		None,
 		NoStock,
-		InsufficientStock,
+        MaterialShortage,
+        InsufficientStock,
 		DependencyNotMet,
 		NotScheduled,
 		CapacityOverload,

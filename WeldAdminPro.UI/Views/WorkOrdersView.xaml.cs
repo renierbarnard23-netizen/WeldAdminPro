@@ -3,23 +3,37 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using WeldAdminPro.Core.Enums;
+using WeldAdminPro.Core.Execution;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Core.Services;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
+using WeldAdminPro.Core.Events;
 
 namespace WeldAdminPro.UI.Views
 {
 	public partial class WorkOrdersView : UserControl
 	{
 		private readonly WorkOrderRepository _repository = new WorkOrderRepository();
+        private readonly WorkOrderExecutionService _executionService;
 
-		public WorkOrdersView()
-		{
+        public WorkOrdersView()
+        {
             InitializeComponent();
 
-            ApplySecurity();
+            var stockRepo = new StockRepository();
+            var materialRepo = new WorkOrderMaterialRepository();
 
+            _executionService =
+                new WorkOrderExecutionService(
+                    new WorkOrderRepository(),
+                    materialRepo,
+                    new MaterialValidator(
+                        stockRepo,
+                        materialRepo),
+                    stockRepo);
+
+            ApplySecurity();
             LoadWorkOrders();
         }
 
@@ -130,9 +144,44 @@ namespace WeldAdminPro.UI.Views
                 _repository
                     .GetAll()
                     .Where(w =>
-                        w.Status !=
-                        WorkOrderStatus.Completed)
+                        w.Status != WorkOrderStatus.Completed)
                     .ToList();
+
+            var readinessService =
+                new ProductionReadinessService(
+                    new WorkOrderRepository(),
+                    new WorkOrderShortageDetectionService());
+
+            var readiness =
+                readinessService
+                    .GetWorkOrderReadiness();
+
+            foreach (var wo in workOrders)
+            {
+                var state =
+                    readiness.FirstOrDefault(
+                        r => r.WorkOrderId == wo.Id);
+
+                if (state == null)
+                    continue;
+
+                if (state.IsReady)
+                {
+                    wo.BlockReason =
+                        BlockReason.None;
+
+                    wo.BlockMessage =
+                        "Ready";
+                }
+                else
+                {
+                    wo.BlockReason =
+                        BlockReason.MaterialShortage;
+
+                    wo.BlockMessage =
+                        state.Reason;
+                }
+            }
 
             WorkOrdersGrid.ItemsSource =
                 workOrders;
@@ -216,6 +265,75 @@ namespace WeldAdminPro.UI.Views
 
                 LoadWorkOrders();
             }
+        }
+
+        private void StartWorkOrder_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (WorkOrdersGrid.SelectedItem is not WorkOrder wo)
+            {
+                MessageBox.Show(
+                    "Please select a work order.");
+                return;
+            }
+
+            try
+            {
+                _executionService.StartWorkOrder(wo.Id);
+
+
+                LoadWorkOrders();
+
+                AuditService.Log(
+                    "START WORK ORDER",
+                    "Production",
+                    wo.WorkOrderNumber);
+
+                LoadWorkOrders();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        private void PauseWorkOrder_Click(
+    object sender,
+    RoutedEventArgs e)
+        {
+            if (WorkOrdersGrid.SelectedItem is not WorkOrder wo)
+                return;
+
+            _executionService.PauseWorkOrder(wo.Id);
+
+
+            LoadWorkOrders();
+        }
+
+        private void CompleteWorkOrder_Click(
+    object sender,
+    RoutedEventArgs e)
+        {
+            if (WorkOrdersGrid.SelectedItem is not WorkOrder wo)
+                return;
+
+            _executionService.CompleteWorkOrder(wo.Id);
+
+
+            LoadWorkOrders();
+        }
+
+        private void CancelWorkOrder_Click(
+    object sender,
+    RoutedEventArgs e)
+        {
+            if (WorkOrdersGrid.SelectedItem is not WorkOrder wo)
+                return;
+
+            _executionService.CancelWorkOrder(wo.Id);
+
+            LoadWorkOrders();
         }
     }
 }

@@ -1,7 +1,8 @@
 using System;
 using System.Windows;
-using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Core.Models;
+using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Data.Services;
 
 namespace WeldAdminPro.UI.Views
 {
@@ -50,11 +51,20 @@ namespace WeldAdminPro.UI.Views
 				RequiredQuantity = qty
 			};
 
-			_repository.Add(material);
+            _repository.Add(material);
 
-			MessageBox.Show("Material added to work order.");
+            // Create/refresh reservations
+            var reservationService =
+                new PersistentReservationService();
 
-			Close();
-		}
+            reservationService.Reserve(
+                _workOrderId);
+
+            MessageBox.Show(
+                "Material added and reserved.");
+
+            DialogResult = true;
+            Close();
+        }
 	}
 }

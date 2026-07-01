@@ -98,6 +98,7 @@ ORDER BY ItemCode;";
 			return list;
 		}
 
+
 		public void Add(StockItem item)
 		{
 			using var connection = new SqliteConnection(_connectionString);

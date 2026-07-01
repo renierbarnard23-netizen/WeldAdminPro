@@ -43,8 +43,12 @@ namespace WeldAdminPro.Core.Services
             }
 
             System.Diagnostics.Debug.WriteLine("");
+
+            #if DEBUG
             System.Diagnostics.Debug.WriteLine("===== WPS =====");
             System.Diagnostics.Debug.WriteLine($"WPS No: {wps.WpsNumber}");
+            #endif
+
             System.Diagnostics.Debug.WriteLine($"Process: {wps.Process}");
             System.Diagnostics.Debug.WriteLine($"PNumber: {wps.PNumber}");
             System.Diagnostics.Debug.WriteLine($"FNumber: {wps.FNumber}");
