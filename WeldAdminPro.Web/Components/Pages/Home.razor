@@ -1,0 +1,65 @@
+﻿@page "/"
+
+@inject WeldAdminPro.Data.Services.ProductionEngine.ProductionEngineService ProductionEngine
+
+<PageTitle>WeldAdmin Pro Enterprise</PageTitle>
+
+<h1>WeldAdmin Pro Enterprise</h1>
+
+<h4>Engineering Manufacturing Intelligence</h4>
+
+<hr />
+
+@if (_snapshot == null)
+{
+    <p><em>Loading Production Engine...</em></p>
+}
+else
+{
+    <div class="card p-3 mb-3">
+
+        <h3>Factory Status</h3>
+
+        <p>
+            <strong>Status:</strong>
+            @_snapshot.FactoryStatus
+        </p>
+
+        <p>
+            <strong>Health Score:</strong>
+            @_snapshot.HealthScore
+        </p>
+
+        <p>
+            <strong>Capacity Load:</strong>
+            @_snapshot.CapacityLoad %
+        </p>
+
+        <p>
+            <strong>Completed Today:</strong>
+            @_snapshot.CompletedToday
+        </p>
+
+        <p>
+            <strong>Completed This Week:</strong>
+            @_snapshot.CompletedThisWeek
+        </p>
+
+    </div>
+}
+
+@code
+{
+    private WeldAdminPro.Data.Services.ProductionEngine.ProductionSnapshot?
+        _snapshot;
+
+    protected override void OnInitialized()
+    {
+        var result = ProductionEngine.Refresh();
+
+        if (result.Success)
+        {
+            _snapshot = result.Snapshot;
+        }
+    }
+}
