@@ -70,11 +70,11 @@ namespace WeldAdminPro.Data.Services.ProductionEngine
 
                 _summaryEngine.Evaluate(snapshot);
 
+                _capacityEngine.Evaluate(snapshot);
+
                 snapshot.WorkCenters =
                     _workCenterStatusService.Build();
 
-                _capacityEngine.Evaluate(snapshot);
-                _schedulingEngine.Build(snapshot);
                 _timelineEngine.Evaluate(snapshot);
 
                 result.Snapshot = snapshot;
