@@ -1,7 +1,9 @@
-using WeldAdminPro.Web.Components;
-
-using WeldAdminPro.Data.Services.ProductionEngine;
+using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
+using WeldAdminPro.Data.Services.Production;
+using WeldAdminPro.Data.Services.ProductionEngine;
+using WeldAdminPro.Web.Components;
+using WeldAdminPro.Web.Services.Dashboard;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,22 +16,31 @@ builder.Services
     .AddInteractiveServerComponents();
 
 // --------------------------------------------------
-// Enterprise Services
+// WeldAdmin Pro Services
 // --------------------------------------------------
 
 builder.Services.AddSingleton<ProductionEngineService>();
+
+builder.Services.AddScoped<DashboardService>();
+
+builder.Services.AddScoped<ProductionApplicationService>();
+
+builder.Services.AddScoped<WorkOrderRepository>();
+
+builder.Services.AddScoped<WorkOrderShortageDetectionService>();
+
+builder.Services.AddScoped<ProductionReadinessService>();
 
 // --------------------------------------------------
 
 var app = builder.Build();
 
 // --------------------------------------------------
-// Configure HTTP Pipeline
-// --------------------------------------------------
 
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseExceptionHandler("/Error",
+        createScopeForErrors: true);
 
     app.UseHsts();
 }

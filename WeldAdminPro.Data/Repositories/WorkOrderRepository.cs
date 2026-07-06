@@ -78,35 +78,15 @@ namespace WeldAdminPro.Data.Repositories
                         .GetByWorkOrderId(wo.Id)
                         .Select(m =>
                         {
-                            var stock =
-                                stockRepo.GetByItemCode(
-                                    m.ItemCode);
-
+                            var stock = stockRepo.GetByItemCode(m.ItemCode);
+                            
                             return new MaterialRequirement
                             {
-                                ItemCode =
-                                    m.ItemCode,
-                                RequiredQuantity =
-                                    m.RequiredQuantity,
-                                AvailableQuantity =
-                                    stock?.Quantity ?? 0
+                                ItemCode = m.ItemCode,
+                                RequiredQuantity = m.RequiredQuantity,
+                                AvailableQuantity = stock?.Quantity ?? 0
                             };
                         })
-                        .ToList();
-
-                wo.MaterialRequirements =
-                    _materialRepo
-                        .GetByWorkOrderId(
-                            wo.Id)
-                        .Select(m =>
-                            new MaterialRequirement
-                            {
-                                ItemCode =
-                                    m.ItemCode,
-
-                                RequiredQuantity =
-                                    m.RequiredQuantity
-                            })
                         .ToList();
 
                 return wo;
@@ -422,19 +402,22 @@ WHERE Id = @Id";
                 System.Diagnostics.Debug.WriteLine(
                     $"DB: {wo.WorkOrderNumber} | Priority={wo.Priority}");
 
+                var stockRepo = new StockRepository();
+
                 wo.MaterialRequirements =
                     _materialRepo
-                        .GetByWorkOrderId(
-                            wo.Id)
+                        .GetByWorkOrderId(wo.Id)
                         .Select(m =>
-                            new MaterialRequirement
-                            {
-                                ItemCode =
-                                    m.ItemCode,
+                        {
+                            var stock = stockRepo.GetByItemCode(m.ItemCode);
 
-                                RequiredQuantity =
-                                    m.RequiredQuantity
-                            })
+                            return new MaterialRequirement
+                            {
+                                ItemCode = m.ItemCode,
+                                RequiredQuantity = m.RequiredQuantity,
+                                AvailableQuantity = stock?.Quantity ?? 0
+                            };
+                        })
                         .ToList();
 
                 list.Add(wo);

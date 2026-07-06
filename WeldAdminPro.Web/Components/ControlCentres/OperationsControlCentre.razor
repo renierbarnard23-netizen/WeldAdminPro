@@ -1,0 +1,99 @@
+@using WeldAdminPro.Data.Services.ProductionEngine
+@using WeldAdminPro.Web.Components.Dashboard
+
+@if (Snapshot == null)
+{
+    <p><em>Loading Operations Control Centre...</em></p>
+}
+else
+{
+    <!-- Executive Summary -->
+
+    <div class="row mb-4">
+
+        <div class="col-md-4">
+
+            <KpiCard Title="Factory Status"
+                     Value="@Snapshot.FactoryStatus"
+                     Subtitle="Current Status" />
+
+        </div>
+
+        <div class="col-md-4">
+
+            <KpiCard Title="Health Score"
+                     Value="@Snapshot.HealthScore.ToString()"
+                     Subtitle="Overall Factory Health" />
+
+        </div>
+
+        <div class="col-md-4">
+
+            <KpiCard Title="Capacity"
+                     Value="@($"{Snapshot.CapacityLoad:F0}%")"
+                     Subtitle="Current Load" />
+
+        </div>
+
+    </div>
+
+    <!-- Health + Alerts -->
+
+    <div class="row mb-4">
+
+        <div class="col-lg-4">
+
+            <FactoryHealthCard Snapshot="Snapshot" />
+
+        </div>
+
+        <div class="col-lg-8">
+
+            <FactoryAlerts Alerts="Snapshot.Alerts" />
+
+        </div>
+
+    </div>
+
+    <!-- Operations -->
+
+    <div class="row mb-4">
+
+        <div class="col-lg-6">
+
+            <ControlTowerCard ControlTower="Snapshot.ControlTower" />
+
+        </div>
+
+        <div class="col-lg-6">
+
+            <WorkCenterStatus Snapshot="Snapshot" />
+
+        </div>
+
+    </div>
+
+    <!-- Planning -->
+
+    <div class="row mb-4">
+
+        <div class="col-lg-6">
+
+            <ProductionQueue Snapshot="Snapshot" />
+
+        </div>
+
+        <div class="col-lg-6">
+
+            <RecommendationPanel Snapshot="Snapshot" />
+
+        </div>
+
+    </div>
+}
+
+@code
+{
+    [Parameter]
+    public ProductionSnapshot? Snapshot { get; set; }
+}

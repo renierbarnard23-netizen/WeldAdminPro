@@ -1,0 +1,100 @@
+@using WeldAdminPro.Data.Services.ProductionEngine
+
+@if (Snapshot == null)
+{
+    <div class="card shadow-sm">
+        <div class="card-body">
+            Loading work centres...
+        </div>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm">
+
+        <div class="card-header">
+
+            <strong>Work Centre Status</strong>
+
+        </div>
+
+        <div class="card-body">
+
+            @if (!Snapshot.WorkCenters.Any())
+            {
+                <p>No work centres available.</p>
+            }
+            else
+            {
+                @foreach (var centre in Snapshot.WorkCenters)
+                {
+                    <div class="mb-4">
+
+                        <div class="d-flex justify-content-between">
+
+                            <strong>@centre.Name</strong>
+
+                            <strong>@centre.UtilizationPercent %</strong>
+
+                        </div>
+
+                        <div class="progress mb-2" style="height:22px;">
+
+                            <div class="progress-bar"
+                                 role="progressbar"
+                                 style="width:@($"{centre.UtilizationPercent}%"); background-color:@centre.StatusColor">
+                            </div>
+
+                        </div>
+
+                        <div class="row">
+
+                            <div class="col">
+
+                                <small>
+
+                                    Work Order:
+                                    <strong>@centre.CurrentWorkOrder</strong>
+
+                                </small>
+
+                            </div>
+
+                            <div class="col text-end">
+
+                                <small>
+
+                                    Queue:
+                                    <strong>@centre.QueueLength</strong>
+
+                                </small>
+
+                            </div>
+
+                        </div>
+
+                        <div>
+
+                            <small>
+
+                                Hours Remaining:
+                                <strong>@centre.HoursRemaining</strong>
+
+                            </small>
+
+                        </div>
+
+                    </div>
+                }
+            }
+
+        </div>
+
+    </div>
+}
+
+@code
+{
+    [Parameter]
+    public ProductionSnapshot? Snapshot { get; set; }
+}

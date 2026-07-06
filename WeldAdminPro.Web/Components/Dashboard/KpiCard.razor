@@ -1,0 +1,44 @@
+<div class="card shadow-sm border-@BorderColor h-100">
+
+    <div class="card-body text-center">
+
+        <h6 class="text-muted">
+
+            @Title
+
+        </h6>
+
+        <h2>
+
+            @Value
+
+        </h2>
+
+        @if (!string.IsNullOrWhiteSpace(SubTitle))
+        {
+            <small class="text-muted">
+
+                @SubTitle
+
+            </small>
+        }
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string Value { get; set; } = "";
+
+    [Parameter]
+    public string SubTitle { get; set; } = "";
+
+    [Parameter]
+    public string BorderColor { get; set; } = "primary";
+
+}

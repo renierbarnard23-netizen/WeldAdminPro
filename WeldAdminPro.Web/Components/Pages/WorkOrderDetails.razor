@@ -1,0 +1,581 @@
+@page "/production/workorder/{Id:guid}"
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Production
+@using WeldAdminPro.Core.Analytics.Production
+
+@inject ProductionApplicationService ProductionService
+
+<PageTitle>Work Order</PageTitle>
+
+@if (_workOrder == null)
+{
+    <h3>Work Order not found</h3>
+}
+else
+{
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-body">
+
+            <div class="row">
+
+                <div class="col-lg-8">
+
+                    <h2 class="mb-1">
+
+                        @_workOrder.WorkOrderNumber
+
+                    </h2>
+
+                    <h5 class="text-muted">
+
+                        @_workOrder.ProjectName
+
+                    </h5>
+
+                    <p>
+
+                        @_workOrder.Description
+
+                    </p>
+
+                </div>
+
+                <div class="col-lg-4 text-end">
+                    <p>
+                        <strong>Status</strong>
+                        <br />
+                        <span class="badge bg-primary fs-6">
+                            @_workOrder.Status
+                        </span>
+                    </p>
+                    <p>
+
+                        <strong>Priority</strong>
+
+                        <br />
+
+                        @_workOrder.Priority
+
+                    </p>
+
+                    <p>
+
+                        <strong>Work Centre</strong>
+
+                        <br />
+
+                        @_workOrder.WorkCenter
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="row mb-4">
+
+            <div class="col-md-3">
+
+                <div class="card border-primary shadow-sm">
+
+                    <div class="card-body text-center">
+
+                        <h6 class="text-muted">Progress</h6>
+
+                            <h3>
+                                @(_workOrder.Status switch
+                                {
+                                    WorkOrderStatus.Ready => "0%",
+                                    WorkOrderStatus.InProduction => "50%",
+                                    WorkOrderStatus.Paused => "50%",
+                                    WorkOrderStatus.Completed => "100%",
+                                    WorkOrderStatus.Cancelled => "-",
+                                    _ => "0%"
+                                })
+                            </h3>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="card border-success shadow-sm">
+
+                    <div class="card-body text-center">
+
+                        <h6 class="text-muted">Hours</h6>
+
+                        <h3>
+                            @_workOrder.ActualHours.ToString("N1")
+                            /
+                            @_workOrder.EstimatedHours
+                        </h3>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="card border-warning shadow-sm">
+
+                    <div class="card-body text-center">
+
+                        <h6 class="text-muted">Materials</h6>
+
+                        <h3>
+                            @if (_readiness?.MaterialsReady == true)
+                            {
+                                <span class="badge bg-success fs-6">
+                                    Ready
+                                    </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger fs-6">
+                                    Shortages
+                                    </span>
+                            }
+
+                        </h3>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="card border-info shadow-sm">
+
+                    <div class="card-body text-center">
+
+                        <h6 class="text-muted">Due Date</h6>
+
+                        <h3>
+
+                            @(_workOrder.DueDate?.ToShortDateString() ?? "-")
+
+                        </h3>
+
+                    </div>
+
+                </div>
+
+            </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+
+        <div class="card shadow-sm mb-3">
+
+            <div class="card-header bg-primary text-white">
+
+                <strong>Production Information</strong>
+
+            </div>
+
+            <div class="card-body">
+
+                <div class="row">
+
+                    <div class="col-md-6">
+
+                        <p>
+                            <strong>Planned Start</strong><br />
+                            @(_workOrder.PlannedStartDate?.ToShortDateString() ?? "-")
+                        </p>
+
+                        <p>
+                            <strong>Actual Start</strong><br />
+                            @(_workOrder.ActualStartTime?.ToString("g") ?? "-")
+                        </p>
+
+                        <p>
+                            <strong>Due Date</strong><br />
+                            @(_workOrder.DueDate?.ToShortDateString() ?? "-")
+                        </p>
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <p>
+                            <strong>Estimated Hours</strong><br />
+                            @_workOrder.EstimatedHours
+                        </p>
+
+                        <p>
+                            <strong>Actual Hours</strong><br />
+                            @_workOrder.ActualHours.ToString("N1")
+                        </p>
+
+                        
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="card shadow-sm mb-3">
+
+            <div class="card-header bg-success text-white">
+
+                <strong>Material Requirements</strong>
+
+            </div>
+
+            <div class="card-body">
+
+                    @if (_workOrder.MaterialRequirements.Count == 0)
+                    {
+                        <p class="text-muted">
+                            No materials assigned.
+                        </p>
+                    }
+                    else
+                    {
+                        <table class="table table-hover table-sm">
+
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th class="text-end">Required</th>
+                                    <th class="text-end">Available</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                @foreach (var material in _workOrder.MaterialRequirements)
+                                {
+                                    <tr class="@(material.AvailableQuantity >= material.RequiredQuantity
+                                                            ? "table-success"
+                                                            : "table-danger")">
+
+                                        <td>@material.ItemCode</td>
+
+                                        <td class="text-end">
+                                            @material.RequiredQuantity
+                                        </td>
+
+                                        <td class="text-end">
+                                            @material.AvailableQuantity
+                                        </td>
+
+                                    </tr>
+                                }
+
+                            </tbody>
+
+                        </table>
+                    }
+
+            </div>
+
+        </div>
+
+        <div class="card shadow-sm mb-3">
+
+            <div class="card-header bg-info text-white">
+
+                <strong>Production Readiness</strong>
+
+            </div>
+
+            <div class="card-body">
+
+                <table class="table table-borderless">
+
+                    <tr>
+
+                        <td>Materials</td>
+
+                        <td>
+
+                                @if (_readiness?.MaterialsReady == true)
+                                {
+                                    <span class="badge bg-success">
+                                        Ready
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">
+                                        Shortages
+                                    </span>
+                                }
+
+                        </td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>Production Block</td>
+
+                        <td>
+
+                                @if (_readiness?.IsReady == true)
+                                {
+                                    <span class="badge bg-success">
+                                        READY TO START
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning">
+                                        ACTION REQUIRED
+                                    </span>
+                                }
+
+                        </td>
+
+                    </tr>
+
+                        <tr>
+                            <td>Reason</td>
+
+                            <td>
+
+                                @_readiness?.Reason
+
+                            </td>
+
+                        </tr>
+
+                    <tr>
+
+                        <td>Overall</td>
+
+                        <td>
+
+                                @if (_readiness?.IsReady == true)
+                                {
+                                    <span class="badge bg-success">
+                                        READY TO START
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning">
+                                        ACTION REQUIRED
+                                    </span>
+                                }
+
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+        </div>
+
+        </div>
+
+        <div class="card shadow-sm mb-3">
+
+            <div class="card-header bg-dark text-white">
+
+                <strong>🤖 AI Production Recommendation</strong>
+
+            </div>
+
+            <div class="card-body">
+
+                @if (_recommendation == null)
+                {
+                    <p class="text-muted">
+
+                        No recommendation available.
+
+                    </p>
+                }
+                else
+                {
+                    <table class="table table-borderless">
+
+                        <tr>
+
+                            <td width="180">
+
+                                <strong>Recommendation</strong>
+
+                            </td>
+
+                            <td>
+
+                                @_recommendation.Recommendation
+
+                            </td>
+
+                        </tr>
+
+                        <tr>
+
+                            <td>
+
+                                <strong>Priority Score</strong>
+
+                            </td>
+
+                            <td>
+
+                                @_recommendation.PriorityScore
+
+                            </td>
+
+                        </tr>
+
+                        <tr>
+
+                            <td>
+
+                                <strong>Materials</strong>
+
+                            </td>
+
+                            <td>
+
+                                @_recommendation.Materials
+
+                            </td>
+
+                        </tr>
+
+                        <tr>
+
+                            <td>
+
+                                <strong>Due</strong>
+
+                            </td>
+
+                            <td>
+
+                                @_recommendation.Due
+
+                            </td>
+
+                        </tr>
+
+                        <tr>
+
+                            <td>
+
+                                <strong>Explanation</strong>
+
+                            </td>
+
+                            <td>
+
+                                @_recommendation.Explanation
+
+                            </td>
+
+                        </tr>
+
+                    </table>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="card shadow-sm mt-4">
+
+        <div class="card-header">
+
+            <strong>Production Actions</strong>
+
+        </div>
+
+        <div class="card-body">
+
+            <button class="btn btn-success me-2"
+                    @onclick="Start">
+                ▶ Start Production
+            </button>
+
+            <button class="btn btn-warning me-2"
+                    @onclick="Pause">
+                ⏸ Pause Production
+            </button>
+
+            <button class="btn btn-primary"
+                    @onclick="Complete">
+                ✔ Complete Production
+            </button>
+
+        </div>
+
+    </div>
+        
+}
+
+@code {
+
+    [Parameter]
+
+    public Guid Id { get; set; }
+
+    private WeldAdminPro.Core.Models.WorkOrder? _workOrder;
+
+    private WorkOrderReadiness? _readiness;
+
+    private AIProductionRecommendation? _recommendation;
+
+    protected override void OnInitialized()
+    {
+        Load();
+    }
+
+    private void Load()
+    {
+        _workOrder =
+            ProductionService.GetWorkOrder(Id);
+
+        _readiness =
+            ProductionService.GetWorkOrderReadiness(Id);
+
+        _recommendation =
+            ProductionService.GetWorkOrderRecommendation(Id);
+    }
+
+    private void Start()
+    {
+        ProductionService.StartWorkOrder(Id);
+
+        Load();
+    }
+
+    private void Pause()
+    {
+        ProductionService.PauseWorkOrder(Id);
+
+        Load();
+    }
+
+    private void Complete()
+    {
+        ProductionService.CompleteWorkOrder(Id);
+
+        Load();
+    }
+
+}

@@ -1,0 +1,102 @@
+@using WeldAdminPro.Data.Services.ProductionEngine
+
+@if (Snapshot == null)
+{
+    <div class="card shadow-sm">
+
+        <div class="card-body">
+
+            Loading production queue...
+
+        </div>
+
+    </div>
+}
+else
+{
+    <div class="card shadow-sm">
+
+        <div class="card-header">
+
+            <strong>Production Queue</strong>
+
+        </div>
+
+        <div class="card-body p-0">
+
+            <table class="table table-striped table-hover mb-0">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Priority</th>
+
+                        <th>Work Order</th>
+
+                        <th>Status</th>
+
+                        <th>Can Start</th>
+
+                        <th>Late</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @foreach (var item in Snapshot.Queue.OrderByDescending(x => x.Priority))
+                    {
+                        <tr>
+
+                            <td>
+
+                                @item.Priority
+
+                            </td>
+
+                            <td>
+
+                                <a href="/production/workorder/@item.Id">
+                                    @item.WorkOrderNumber
+                                </a>
+
+                            </td>
+
+                            <td>
+
+                                @item.Status
+
+                            </td>
+
+                            <td>
+
+                                @(item.CanStart ? "✅" : "❌")
+
+                            </td>
+
+                            <td>
+
+                                @(item.IsLate ? "🔴" : "🟢")
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+}
+
+@code
+{
+    [Parameter]
+
+    public ProductionSnapshot? Snapshot { get; set; }
+}

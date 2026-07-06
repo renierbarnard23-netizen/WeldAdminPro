@@ -1,0 +1,35 @@
+<DashboardCard Title="@Title">
+
+    <div class="text-center">
+
+        <h2>
+
+            @Value
+
+        </h2>
+
+        <small>
+
+            @Subtitle
+
+        </small>
+
+    </div>
+
+</DashboardCard>
+
+@code {
+
+    [Parameter]
+
+    public string Title { get; set; } = "";
+
+    [Parameter]
+
+    public string Value { get; set; } = "";
+
+    [Parameter]
+
+    public string Subtitle { get; set; } = "";
+
+}

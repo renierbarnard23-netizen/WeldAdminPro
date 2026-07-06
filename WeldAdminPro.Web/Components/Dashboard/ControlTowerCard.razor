@@ -1,0 +1,99 @@
+@using WeldAdminPro.Core.Analytics.Production
+
+<div class="card shadow-sm mb-3">
+
+    <div class="card-header bg-primary text-white">
+
+        Production Control Tower
+
+    </div>
+
+    <div class="card-body">
+
+        @if (ControlTower == null)
+        {
+            <p>Loading...</p>
+        }
+        else
+        {
+            <div class="row">
+
+                <div class="col-4">
+
+                    <strong>Running</strong>
+
+                    <br />
+
+                    @ControlTower.RunningOrders
+
+                </div>
+
+                <div class="col-4">
+
+                    <strong>Ready</strong>
+
+                    <br />
+
+                    @ControlTower.ReadyOrders
+
+                </div>
+
+                <div class="col-4">
+
+                    <strong>Blocked</strong>
+
+                    <br />
+
+                    @ControlTower.BlockedOrders
+
+                </div>
+
+            </div>
+
+            <hr />
+
+            <div class="row">
+
+                <div class="col-6">
+
+                    Efficiency
+
+                </div>
+
+                <div class="col-6 text-end">
+
+                    @ControlTower.ProductionEfficiency %
+
+                </div>
+
+            </div>
+
+            <div class="row">
+
+                <div class="col-6">
+
+                    Health Score
+
+                </div>
+
+                <div class="col-6 text-end">
+
+                    @ControlTower.HealthScore
+
+                </div>
+
+            </div>
+
+        }
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+
+    public ProductionControlTowerModel? ControlTower { get; set; }
+
+}

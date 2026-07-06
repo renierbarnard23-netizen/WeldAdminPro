@@ -1,0 +1,104 @@
+@using WeldAdminPro.Data.Services.ProductionEngine
+
+<DashboardCard
+    Title="Factory Health"
+    HeaderCss="bg-success text-white">
+
+    @if (Snapshot == null)
+    {
+        <p>Loading...</p>
+    }
+    else
+    {
+        <div class="row">
+
+            <div class="col">
+
+                <small class="text-muted">Status</small>
+
+                <h5>@Snapshot.FactoryStatus</h5>
+
+            </div>
+
+            <div class="col text-end">
+
+                <small class="text-muted">Health Score</small>
+
+                <h4>@Snapshot.HealthScore%</h4>
+
+            </div>
+
+        </div>
+
+        <hr />
+
+        <div class="row text-center">
+
+            <div class="col">
+
+                <strong>@Snapshot.RunningWorkOrders</strong>
+
+                <br />
+
+                <small>Running</small>
+
+            </div>
+
+            <div class="col">
+
+                <strong>@Snapshot.ReadyWorkOrders</strong>
+
+                <br />
+
+                <small>Ready</small>
+
+            </div>
+
+            <div class="col">
+
+                <strong>@Snapshot.BlockedWorkOrders</strong>
+
+                <br />
+
+                <small>Blocked</small>
+
+            </div>
+
+        </div>
+
+        <hr />
+
+        <div class="row">
+
+            <div class="col-6">
+
+                Capacity
+
+            </div>
+
+            <div class="col-6 text-end">
+
+                @($"{Snapshot.CapacityLoad:F0}%")
+
+            </div>
+
+        </div>
+
+        <div class="progress mt-2">
+
+            <div class="progress-bar"
+                 role="progressbar"
+                 style="width:@($"{Snapshot.CapacityLoad}%")">
+
+            </div>
+
+        </div>
+    }
+
+</DashboardCard>
+
+@code
+{
+    [Parameter]
+    public ProductionSnapshot? Snapshot { get; set; }
+}

@@ -1,0 +1,78 @@
+@using WeldAdminPro.Core.Analytics.Production
+
+@if (Alerts == null || !Alerts.Any())
+{
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-success text-white">
+            Factory Alerts
+        </div>
+
+        <div class="card-body">
+
+            <p class="text-success mb-0">
+
+                No active alerts.
+
+            </p>
+
+        </div>
+
+    </div>
+}
+else
+{
+    <div class="card shadow-sm mb-3">
+
+        <div class="card-header bg-danger text-white">
+
+            Factory Alerts
+
+        </div>
+
+        <div class="card-body">
+
+            @foreach (var alert in Alerts)
+            {
+                <div class="border-bottom mb-2 pb-2">
+
+                    <strong>
+
+                        @alert.Severity
+
+                    </strong>
+
+                    <br />
+
+                    <strong>
+
+                        @alert.Title
+
+                    </strong>
+
+                    <br />
+
+                    @alert.Message
+
+                    <br />
+
+                    <small class="text-muted">
+
+                        @alert.RecommendedAction
+
+                    </small>
+
+                </div>
+            }
+
+        </div>
+
+    </div>
+}
+
+@code {
+
+    [Parameter]
+
+    public IEnumerable<ProductionAlert>? Alerts { get; set; }
+
+}

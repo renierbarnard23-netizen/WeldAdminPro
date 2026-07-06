@@ -1,0 +1,58 @@
+@page "/production"
+
+@inject WeldAdminPro.Web.Services.Dashboard.DashboardService DashboardService
+
+@using WeldAdminPro.Data.Services.ProductionEngine
+@using WeldAdminPro.Web.Components.Dashboard
+
+<PageTitle>Production</PageTitle>
+
+<h1>Production Control Centre</h1>
+
+<p class="text-muted">
+    Live production management powered by the Production Engine.
+</p>
+
+@if (_snapshot == null)
+{
+    <p><em>Loading production...</em></p>
+}
+else
+{
+    <div class="row">
+
+        <div class="col-lg-8 mb-4">
+
+            <ProductionQueue Snapshot="_snapshot" />
+
+        </div>
+
+        <div class="col-lg-4 mb-4">
+
+            <WorkCenterStatus Snapshot="_snapshot" />
+
+        </div>
+
+    </div>
+
+    <div class="row">
+
+        <div class="col-12">
+
+            <RecommendationPanel Snapshot="_snapshot" />
+
+        </div>
+
+    </div>
+
+}
+
+@code
+{
+    private ProductionSnapshot? _snapshot;
+
+    protected override void OnInitialized()
+    {
+        _snapshot = DashboardService.GetDashboard();
+    }
+}

@@ -1,5 +1,6 @@
 using System.Linq;
 using WeldAdminPro.Core.Analytics.Production;
+using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.Data.Services
 {
@@ -7,12 +8,14 @@ namespace WeldAdminPro.Data.Services
 	{
 		private readonly ProductionAIPlannerService _planner;
 		private readonly ProductionBottleneckDetectionService _bottlenecks;
+        private readonly WorkOrderRepository _workOrderRepository;
 
-		public ProductionAdvisorService()
+        public ProductionAdvisorService()
 		{
 			_planner = new ProductionAIPlannerService();
 			_bottlenecks = new ProductionBottleneckDetectionService();
-		}
+            _workOrderRepository = new WorkOrderRepository();
+        }
 
 		public ProductionAdvisorResult GetNextBestAction()
 		{

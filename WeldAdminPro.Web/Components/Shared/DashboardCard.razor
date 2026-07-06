@@ -1,0 +1,53 @@
+<div class="card shadow-sm border-0 mb-3">
+
+    <div class="card-header @HeaderCss">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <strong>@Title</strong>
+
+            @if (!string.IsNullOrWhiteSpace(Icon))
+            {
+                <i class="@Icon"></i>
+            }
+
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        @ChildContent
+
+    </div>
+
+    @if (Footer != null)
+    {
+        <div class="card-footer">
+
+            @Footer
+
+        </div>
+    }
+
+</div>
+
+@code {
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string HeaderCss { get; set; }
+        = "bg-primary text-white";
+
+    [Parameter]
+    public string Icon { get; set; } = "";
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? Footer { get; set; }
+
+}

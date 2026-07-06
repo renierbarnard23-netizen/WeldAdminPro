@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Linq;
 using WeldAdminPro.Core.Analytics.Production;
 using WeldAdminPro.Core.Execution;
@@ -29,6 +30,8 @@ namespace WeldAdminPro.Data.Services.ProductionEngine
         private readonly RecommendationEngine _recommendationEngine;
         private readonly SummaryEngine _summaryEngine;
         private readonly TimelineEngine _timelineEngine;
+        private readonly ProductionAlertService _alertService;
+        private readonly ProductionControlTowerService _controlTowerService;
 
         public ProductionEngineService()
         {
@@ -41,6 +44,8 @@ namespace WeldAdminPro.Data.Services.ProductionEngine
             _summaryEngine = new SummaryEngine();
             _recommendationEngine = new RecommendationEngine();
             _timelineEngine = new TimelineEngine();
+            _alertService = new ProductionAlertService();
+            _controlTowerService = new ProductionControlTowerService();
         }
 
         public ProductionRefreshResult Refresh()
@@ -76,6 +81,13 @@ namespace WeldAdminPro.Data.Services.ProductionEngine
                     _workCenterStatusService.Build();
 
                 _timelineEngine.Evaluate(snapshot);
+
+                snapshot.Alerts =
+                    new ObservableCollection<ProductionAlert>(
+                        _alertService.GetAlerts());
+
+                snapshot.ControlTower =
+                    _controlTowerService.GetControlTower();
 
                 result.Snapshot = snapshot;
 

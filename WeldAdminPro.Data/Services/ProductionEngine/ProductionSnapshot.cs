@@ -102,5 +102,12 @@ namespace WeldAdminPro.Data.Services.ProductionEngine
             = new();
 
         public int CompletedWorkOrders { get; set; }
+
+        // ===========================
+        // Factory Alerts
+        // ===========================
+
+        public ObservableCollection<ProductionAlert> Alerts { get; set; }
+            = new();
     }
 }

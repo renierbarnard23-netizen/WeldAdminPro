@@ -1,0 +1,93 @@
+@using WeldAdminPro.Data.Services.ProductionEngine
+
+@if (Snapshot == null)
+{
+    <div class="card shadow-sm">
+        <div class="card-body">
+            Loading recommendations...
+        </div>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm">
+
+        <div class="card-header">
+
+            <strong>AI Production Recommendations</strong>
+
+        </div>
+
+        <div class="card-body">
+
+            @if (Snapshot.Recommendations.Count == 0)
+            {
+                <p class="text-success mb-0">
+
+                    ✔ No recommendations at this time.
+
+                </p>
+            }
+            else
+            {
+                <table class="table table-sm table-hover">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Score</th>
+
+                            <th>Work Order</th>
+
+                            <th>Recommendation</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var recommendation
+                            in Snapshot.Recommendations
+                                .OrderByDescending(x => x.Score))
+                        {
+                            <tr>
+
+                                <td>
+
+                                    @recommendation.Score
+
+                                </td>
+
+                                <td>
+
+                                    @recommendation.WorkOrderNumber
+
+                                </td>
+
+                                <td>
+
+                                    @recommendation.Recommendation
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+            }
+
+        </div>
+
+    </div>
+}
+
+@code
+{
+    [Parameter]
+
+    public ProductionSnapshot? Snapshot { get; set; }
+}
