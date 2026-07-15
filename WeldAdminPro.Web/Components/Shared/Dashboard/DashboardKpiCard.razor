@@ -1,0 +1,42 @@
+
+<div class="card shadow-sm h-100">
+
+    <div class="card-body text-center">
+
+        <div class="text-muted small">
+
+            @Title
+
+        </div>
+
+        <h2 class="mt-2 mb-0">
+
+            @Value
+
+        </h2>
+
+        @if (!string.IsNullOrWhiteSpace(SubTitle))
+        {
+            <small class="text-muted">
+
+                @SubTitle
+
+            </small>
+        }
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string Value { get; set; } = "";
+
+    [Parameter]
+    public string? SubTitle { get; set; }
+
+}

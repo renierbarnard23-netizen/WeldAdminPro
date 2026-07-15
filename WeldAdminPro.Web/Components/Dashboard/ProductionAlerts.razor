@@ -1,0 +1,76 @@
+@using WeldAdminPro.Core.Analytics.Production
+@using WeldAdminPro.Data.Services.ProductionEngine
+@using MudBlazor
+
+@if (Snapshot != null)
+{
+    @if (Snapshot.Alerts.Any())
+    {
+        <MudStack Spacing="2">
+
+            @foreach (var alert in Snapshot.Alerts)
+            {
+                <MudAlert Severity="@GetSeverity(alert.Severity)"
+                          Dense="true"
+                          Variant="Variant.Filled">
+
+                    <MudText Typo="Typo.subtitle2">
+
+                        @alert.Message
+
+                    </MudText>
+
+                    <MudChip T="string"
+                             Size="Size.Small"
+                             Color="@GetAlertColor(alert.Severity)"
+                             Class="mt-2">
+
+                        @alert.Severity
+
+                    </MudChip>
+
+                </MudAlert>
+            }
+
+        </MudStack>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Success"
+                  Variant="Variant.Filled">
+
+            No active factory alerts.
+
+        </MudAlert>
+    }
+}
+
+@code
+{
+    [Parameter]
+    public ProductionSnapshot? Snapshot { get; set; }
+
+    private Color GetAlertColor(string severity)
+    {
+        return severity.ToLower() switch
+        {
+            "critical" => Color.Error,
+            "warning" => Color.Warning,
+            "info" => Color.Info,
+            "success" => Color.Success,
+            _ => Color.Default
+        };
+    }
+
+    private Severity GetSeverity(string severity)
+    {
+        return severity.ToLower() switch
+        {
+            "critical" => Severity.Error,
+            "warning" => Severity.Warning,
+            "info" => Severity.Info,
+            "success" => Severity.Success,
+            _ => Severity.Normal
+        };
+    }
+}

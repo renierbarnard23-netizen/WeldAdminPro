@@ -1,0 +1,51 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Web.Components.Shared.Production
+
+<MudGrid>
+
+    <MudItem xs="12" md="3">
+        <EnterpriseKpiCard Title="Critical"
+                           Value="@CriticalCount.ToString()"
+                           Icon="@Icons.Material.Filled.Error"
+                           IconColor="Color.Error" />
+    </MudItem>
+
+    <MudItem xs="12" md="3">
+        <EnterpriseKpiCard Title="Reorder Required"
+                           Value="@ReorderCount.ToString()"
+                           Icon="@Icons.Material.Filled.Warning"
+                           IconColor="Color.Warning" />
+    </MudItem>
+
+    <MudItem xs="12" md="3">
+        <EnterpriseKpiCard Title="Items"
+                           Value="@Items.Count().ToString()"
+                           Icon="@Icons.Material.Filled.Inventory2"
+                           IconColor="Color.Info" />
+    </MudItem>
+
+    <MudItem xs="12" md="3">
+        <EnterpriseKpiCard Title="Stock Risk"
+                           Value="@TotalRisk.ToString("C")"
+                           Icon="@Icons.Material.Filled.AttachMoney"
+                           IconColor="Color.Success" />
+    </MudItem>
+
+</MudGrid>
+
+@code
+{
+    [Parameter]
+    public IEnumerable<StockItem> Items { get; set; }
+        = Enumerable.Empty<StockItem>();
+
+    private int CriticalCount =>
+        Items.Count(i => i.SmartStatus == SmartStockStatus.Critical);
+
+    private int ReorderCount =>
+        Items.Count(i => i.SmartStatus == SmartStockStatus.ReorderRequired);
+
+    private decimal TotalRisk =>
+        Items.Sum(i => i.StockValueRisk);
+}

@@ -1,0 +1,64 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+
+@if (!Drivers.Any())
+{
+    <MudAlert Severity="Severity.Info">
+        No material cost data available.
+    </MudAlert>
+}
+else
+{
+    <MudTable T="MaterialCostDriver"
+              Items="Drivers"
+              Dense="true"
+              Hover="true"
+              Striped="true"
+              Bordered="true"
+              Breakpoint="Breakpoint.Sm"
+              Elevation="0">
+
+        <HeaderContent>
+            <MudTh>#</MudTh>
+            <MudTh>Item Code</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh Class="text-end">Units</MudTh>
+            <MudTh Class="text-end">Avg Cost</MudTh>
+            <MudTh Class="text-end">Total Cost</MudTh>
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>
+                @(Drivers.ToList().IndexOf(context) + 1)
+            </MudTd>
+
+            <MudTd>@context.ItemCode</MudTd>
+
+            <MudTd>@context.Description</MudTd>
+
+            <MudTd Class="text-end">
+                @context.UnitsConsumed
+            </MudTd>
+
+            <MudTd Class="text-end">
+                @(context.UnitsConsumed == 0
+                    ? "-"
+                    : (context.TotalCost / context.UnitsConsumed).ToString("C"))
+            </MudTd>
+
+            <MudTd Class="text-end">
+                @context.TotalCost.ToString("C")
+            </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+}
+
+@code
+{
+    [Parameter]
+    public IEnumerable<MaterialCostDriver> Drivers { get; set; }
+        = Enumerable.Empty<MaterialCostDriver>();
+}

@@ -1,95 +1,140 @@
+@using MudBlazor
 @using WeldAdminPro.Data.Services.ProductionEngine
 @using WeldAdminPro.Web.Components.Dashboard
+@using WeldAdminPro.Web.Components.Shared.Production
 
 @if (Snapshot == null)
 {
-    <p><em>Loading Operations Control Centre...</em></p>
+    <MudPaper Class="pa-8 my-6">
+
+        <MudStack AlignItems="AlignItems.Center"
+                  Justify="Justify.Center"
+                  Spacing="2">
+
+            <MudProgressCircular Indeterminate="true"
+                                 Color="Color.Primary" />
+
+            <MudText Typo="Typo.subtitle1">
+                Loading Operations Control Centre...
+            </MudText>
+
+        </MudStack>
+
+    </MudPaper>
 }
 else
 {
-    <!-- Executive Summary -->
+    @* ==========================================================
+       Executive Summary
+    ========================================================== *@
 
-    <div class="row mb-4">
+    <DashboardSection Title="Executive Summary"
+                      Icon="@Icons.Material.Filled.Dashboard">
 
-        <div class="col-md-4">
+        <MudGrid>
 
-            <KpiCard Title="Factory Status"
-                     Value="@Snapshot.FactoryStatus"
-                     Subtitle="Current Status" />
+            <MudItem xs="12" md="4">
 
-        </div>
+                <KpiCard Title="Factory Status"
+                         Value="@Snapshot.FactoryStatus"
+                         Subtitle="Current Status" />
 
-        <div class="col-md-4">
+            </MudItem>
 
-            <KpiCard Title="Health Score"
-                     Value="@Snapshot.HealthScore.ToString()"
-                     Subtitle="Overall Factory Health" />
+            <MudItem xs="12" md="4">
 
-        </div>
+                <KpiCard Title="Health Score"
+                         Value="@Snapshot.HealthScore.ToString()"
+                         Subtitle="Overall Factory Health" />
 
-        <div class="col-md-4">
+            </MudItem>
 
-            <KpiCard Title="Capacity"
-                     Value="@($"{Snapshot.CapacityLoad:F0}%")"
-                     Subtitle="Current Load" />
+            <MudItem xs="12" md="4">
 
-        </div>
+                <KpiCard Title="Capacity"
+                         Value="@($"{Snapshot.CapacityLoad:F0}%")"
+                         Subtitle="Current Load" />
 
-    </div>
+            </MudItem>
 
-    <!-- Health + Alerts -->
+        </MudGrid>
 
-    <div class="row mb-4">
+    </DashboardSection>
 
-        <div class="col-lg-4">
+    @* ==========================================================
+       Factory Health & Alerts
+    ========================================================== *@
 
-            <FactoryHealthCard Snapshot="Snapshot" />
+    <DashboardSection Title="Factory Health & Alerts"
+                      Icon="@Icons.Material.Filled.HealthAndSafety">
 
-        </div>
+        <MudGrid>
 
-        <div class="col-lg-8">
+            <MudItem xs="12" lg="4">
 
-            <FactoryAlerts Alerts="Snapshot.Alerts" />
+                <FactoryHealthCard Snapshot="Snapshot" />
 
-        </div>
+            </MudItem>
 
-    </div>
+            <MudItem xs="12" lg="8">
 
-    <!-- Operations -->
+                <FactoryAlerts Alerts="Snapshot.Alerts" />
 
-    <div class="row mb-4">
+            </MudItem>
 
-        <div class="col-lg-6">
+        </MudGrid>
 
-            <ControlTowerCard ControlTower="Snapshot.ControlTower" />
+    </DashboardSection>
 
-        </div>
+    @* ==========================================================
+       Operations
+    ========================================================== *@
 
-        <div class="col-lg-6">
+    <DashboardSection Title="Operations"
+                      Icon="@Icons.Material.Filled.Factory">
 
-            <WorkCenterStatus Snapshot="Snapshot" />
+        <MudGrid>
 
-        </div>
+            <MudItem xs="12" lg="6">
 
-    </div>
+                <ControlTowerCard ControlTower="Snapshot.ControlTower" />
 
-    <!-- Planning -->
+            </MudItem>
 
-    <div class="row mb-4">
+            <MudItem xs="12" lg="6">
 
-        <div class="col-lg-6">
+                <WorkCenterStatus Snapshot="Snapshot" />
 
-            <ProductionQueue Snapshot="Snapshot" />
+            </MudItem>
 
-        </div>
+        </MudGrid>
 
-        <div class="col-lg-6">
+    </DashboardSection>
 
-            <RecommendationPanel Snapshot="Snapshot" />
+    @* ==========================================================
+       Production Planning
+    ========================================================== *@
 
-        </div>
+    <DashboardSection Title="Production Planning"
+                      Icon="@Icons.Material.Filled.Timeline">
 
-    </div>
+        <MudGrid>
+
+            <MudItem xs="12" lg="6">
+
+                <ProductionQueue Snapshot="Snapshot" />
+
+            </MudItem>
+
+            <MudItem xs="12" lg="6">
+
+                <RecommendationPanel Snapshot="Snapshot" />
+
+            </MudItem>
+
+        </MudGrid>
+
+    </DashboardSection>
 }
 
 @code

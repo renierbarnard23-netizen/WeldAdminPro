@@ -1,0 +1,80 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+
+@if (!Items.Any())
+{
+    <MudAlert Severity="Severity.Info">
+        No items require reordering.
+    </MudAlert>
+}
+else
+{
+    <MudTable T="StockItem"
+              Items="Items"
+              Dense="true"
+              Hover="true"
+              Striped="true">
+
+        <HeaderContent>
+
+            <MudTh>Item Code</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Current</MudTh>
+            <MudTh>Min</MudTh>
+            <MudTh>Max</MudTh>
+            <MudTh>Suggested</MudTh>
+            <MudTh>Risk Value</MudTh>
+            <MudTh>Status</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.ItemCode</MudTd>
+
+            <MudTd>@context.Description</MudTd>
+
+            <MudTd>@context.Quantity</MudTd>
+
+            <MudTd>@context.MinLevel</MudTd>
+
+            <MudTd>@context.MaxLevel</MudTd>
+
+            <MudTd>@context.SuggestedReorderQuantity</MudTd>
+
+            <MudTd>@context.StockValueRisk.ToString("C")</MudTd>
+
+            <MudTd>
+
+                @if (context.SmartStatus == SmartStockStatus.Critical)
+                {
+                    <MudChip T="string"
+                             Color="Color.Error">
+
+                        Critical
+
+                    </MudChip>
+                }
+                else
+                {
+                    <MudChip T="string"
+                             Color="Color.Warning">
+
+                        Reorder Required
+
+                    </MudChip>
+                }
+
+            </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+}
+
+@code
+{
+    [Parameter]
+    public IEnumerable<StockItem> Items { get; set; }
+        = Enumerable.Empty<StockItem>();
+}

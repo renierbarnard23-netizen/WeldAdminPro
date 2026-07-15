@@ -1,0 +1,287 @@
+@page "/inventory/stockout"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Inventory
+@using WeldAdminPro.Data.Services.Projects
+@using System.Threading.Tasks;
+
+@inject StockApplicationService StockService
+@inject ProjectApplicationService ProjectService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Issue Stock</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False"
+              Class="pa-6">
+
+        <MudPaper Elevation="4"
+                  Class="pa-6 rounded-lg">
+
+            <MudText Typo="Typo.h4"
+                     GutterBottom="true">
+
+                Issue Stock
+
+            </MudText>
+
+            <MudText Typo="Typo.body2"
+                     Color="Color.Secondary"
+                     Class="mb-6">
+
+                Issue material from inventory to a project or work order.
+
+            </MudText>
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <MudAlert Severity="Severity.Error"
+                      Dense="true"
+                      Class="mb-4">
+
+                @_error
+
+            </MudAlert>
+        }
+
+        <MudGrid Spacing="3">
+
+            <MudItem xs="12">
+
+                <MudSelect T="Guid"
+                           Label="Stock Item"
+                           FullWidth="true"
+                           Value="_selectedItemId"
+                           ValueChanged="OnStockItemChanged">
+
+                    @foreach (var item in _items)
+                    {
+                        <MudSelectItem Value="@item.Id">
+                            @item.ItemCode - @item.Description
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+
+            </MudItem>
+
+            <MudItem xs="12">
+
+                <MudSelect T="Guid?"
+                           Label="Project (Optional)"
+                           FullWidth="true"
+                           @bind-Value="_selectedProjectId">
+
+                    <MudSelectItem T="Guid?" Value="@((Guid?)null)">
+                        Warehouse Stock
+                    </MudSelectItem>
+
+                    @foreach (var project in _projects)
+                    {
+                        <MudSelectItem T="Guid?" Value="@project.Id">
+                            @project.ProjectName
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+
+                <MudNumericField T="int"
+                                 Label="Quantity"
+                                     FullWidth="true"
+                                 Min="1"
+                                 @bind-Value="_quantity" />
+
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+
+                <MudNumericField T="decimal"
+                                 Label="Unit Cost"
+                                     FullWidth="true"
+                                 @bind-Value="_unitCost" />
+
+            </MudItem>
+
+            <MudItem xs="12">
+
+                <MudTextField Label="Reference"
+                                  FullWidth="true"
+                              @bind-Value="_reference" />
+
+            </MudItem>
+
+            <MudItem xs="12">
+
+                <MudTextField T="DateTime"
+                              Label="Transaction Date"
+                                  FullWidth="true"
+                              @bind-Value="_transactionDate"
+                              ReadOnly="true" />
+
+            </MudItem>
+
+        </MudGrid>
+
+        <MudDivider Class="my-6" />
+
+        <MudStack Row="true"
+                  Justify="Justify.FlexEnd"
+                  Spacing="2">
+
+            <MudButton Variant="Variant.Text"
+                Color="Color.Default"
+                OnClick="Cancel">
+
+                Cancel
+
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                Color="Color.Warning"
+                Size="Size.Large"
+                OnClick="Save">
+
+                Issue Stock
+
+            </MudButton>
+
+        </MudStack>
+
+    </MudPaper>
+
+</MudContainer>
+
+@code
+{
+    private List<StockItem> _items = new();
+
+    private List<Project> _projects = new();
+
+    private Guid _selectedItemId;
+
+    private Guid? _selectedProjectId;
+
+    private int _quantity = 1;
+
+    private decimal _unitCost;
+
+    private string _reference = "";
+
+    private DateTime _transactionDate = DateTime.Now;
+
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        _items = StockService.GetStockItems();
+        _projects = ProjectService.GetProjects();
+    }
+
+    private async Task Save()
+    {
+        _error = null;
+
+        if (_selectedItemId == Guid.Empty)
+        {
+            _error = "Please select a stock item.";
+            return;
+        }
+
+        if (_quantity <= 0)
+        {
+            _error = "Quantity must be greater than zero.";
+            return;
+        }
+
+        if (_unitCost <= 0)
+        {
+            _error = "Unit Cost must be greater than zero.";
+            return;
+        }
+
+        var item = _items.FirstOrDefault(x => x.Id == _selectedItemId);
+
+        if (item == null)
+        {
+            _error = "Stock item not found.";
+            return;
+        }
+
+        if (_quantity > item.Quantity)
+        {
+            _error = $"Only {item.Quantity} units are available.";
+            return;
+        }
+
+        var transaction = new StockTransaction
+        {
+            Id = Guid.NewGuid(),
+            StockItemId = _selectedItemId,
+            ProjectId = _selectedProjectId,
+            Quantity = _quantity,
+            UnitCost = _unitCost,
+            Reference = _reference,
+            TransactionDate = _transactionDate,
+            Type = "OUT"
+        };
+
+        Console.WriteLine("========== TRANSACTION ==========");
+        Console.WriteLine($"StockItemId : {transaction.StockItemId}");
+        Console.WriteLine($"ProjectId   : {transaction.ProjectId}");
+        Console.WriteLine($"Reference   : {transaction.Reference}");
+        Console.WriteLine($"Quantity    : {transaction.Quantity}");
+        Console.WriteLine($"Type        : {transaction.Type}");
+        Console.WriteLine("=================================");
+
+        StockService.IssueStock(transaction);
+        
+            _selectedItemId = Guid.Empty;
+            _selectedProjectId = null;
+            _quantity = 1;
+            _unitCost = 0;
+            _reference = "";
+            _transactionDate = DateTime.Now;
+
+        _error = null;
+
+        Snackbar.Add(
+            "Stock issued successfully.",
+            Severity.Success);
+
+        Navigation.NavigateTo("/inventory");
+    }
+
+    private Task OnStockItemChanged(Guid id)
+    {
+        _selectedItemId = id;
+
+        var item = _items.FirstOrDefault(x => x.Id == id);
+
+        if (item != null)
+        {
+            _unitCost = item.AverageUnitCost;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void StockItemChanged()
+    {
+        var item = _items.FirstOrDefault(x => x.Id == _selectedItemId);
+
+        if (item != null)
+        {
+            _unitCost = item.AverageUnitCost;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/inventory");
+    }
+}

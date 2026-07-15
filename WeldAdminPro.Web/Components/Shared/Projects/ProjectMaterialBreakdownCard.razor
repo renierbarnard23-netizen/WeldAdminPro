@@ -1,0 +1,91 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+
+<MudPaper Class="pa-4 mt-4" Elevation="2">
+
+    <MudText Typo="Typo.h5" GutterBottom="true">
+        Material Cost Breakdown
+    </MudText>
+
+    @if (Items.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">
+            No material has been issued to this project.
+        </MudAlert>
+    }
+    else
+    {
+        <MudTable Items="Items"
+                  Dense="true"
+                  Hover="true"
+                  Striped="true">
+
+            <HeaderContent>
+
+                <MudTh>Item Code</MudTh>
+
+                <MudTh>Description</MudTh>
+
+                <MudTh Class="text-end">
+                    Qty Used
+                </MudTh>
+
+                <MudTh Class="text-end">
+                    Material Cost
+                </MudTh>
+
+            </HeaderContent>
+
+            <RowTemplate>
+
+                <MudTd>
+                    <strong>@context.ItemCode</strong>
+                </MudTd>
+
+                <MudTd>
+                    @context.Description
+                </MudTd>
+
+                <MudTd Class="text-end">
+                    @context.QuantityUsed
+                </MudTd>
+
+                <MudTd Class="text-end">
+
+                    <strong>
+                        @context.MaterialCost.ToString("C")
+                    </strong>
+
+                </MudTd>
+
+            </RowTemplate>
+
+            <FooterContent>
+
+                <MudTd colspan="3">
+
+                    <strong>Total</strong>
+
+                </MudTd>
+
+                <MudTd Class="text-end">
+
+                    <strong>
+                        @Items.Sum(x => x.MaterialCost).ToString("C")
+                    </strong>
+
+                </MudTd>
+
+            </FooterContent>
+
+        </MudTable>
+    }
+
+</MudPaper>
+
+@code {
+
+    [Parameter]
+    public List<ProjectMaterialBreakdown> Items { get; set; } = new();
+
+}

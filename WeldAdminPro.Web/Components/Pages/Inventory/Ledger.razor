@@ -1,0 +1,118 @@
+@page "/inventory/ledger"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Inventory
+@using WeldAdminPro.Web.Components.Shared.Enterprise
+@using WeldAdminPro.Web.Components.Shared.Inventory
+
+@inject StockApplicationService StockService
+
+<PageTitle>Inventory Ledger</PageTitle>
+
+<EnterprisePageHeader Title="Inventory Ledger"
+                      Subtitle="Stock movement, ledger integrity and inventory intelligence."
+                      Icon="@Icons.Material.Filled.AccountBalance">
+
+    <Actions>
+
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="Reload">
+
+            Refresh
+
+        </MudButton>
+
+    </Actions>
+
+</EnterprisePageHeader>
+
+<LedgerExecutiveCards Transactions="@_transactions.Count"
+                      LedgerHealthy="@_ledgerHealthy"
+                      LedgerErrors="@_ledgerErrors"
+                      InventoryValue="@_inventoryValue" />
+
+<LedgerToolbar OnValidate="ValidateLedger"
+               OnRepair="RepairLedger"
+               OnRecalculate="RecalculateLedger"
+               OnFilter="FilterChanged" />
+
+<LedgerIntegrityBanner IsHealthy="@_ledgerHealthy"
+                       ErrorCount="@_ledgerErrors" />
+
+<LedgerGroup Transactions="@FilteredTransactions" />
+
+@code
+{
+    private List<StockTransaction> _transactions = new();
+
+    private bool _ledgerHealthy = true;
+
+    private int _ledgerErrors;
+
+    private decimal _inventoryValue;
+
+    private DateTime? _start;
+
+    private DateTime? _end;
+
+    protected override void OnInitialized()
+    {
+        Reload();
+    }
+
+    private void Reload()
+    {
+        _transactions =
+            StockService.GetTransactions();
+
+        var result =
+            StockService.ValidateLedger();
+
+        _ledgerHealthy = result.IsValid;
+
+        _ledgerErrors = result.ErrorCount;
+
+        _inventoryValue = 0;
+    }
+
+    private IEnumerable<StockTransaction> FilteredTransactions =>
+        _transactions
+            .Where(t =>
+                (!_start.HasValue || t.TransactionDate >= _start)
+             && (!_end.HasValue || t.TransactionDate <= _end));
+
+    private void ValidateLedger()
+    {
+        var result =
+            StockService.ValidateLedger();
+
+        _ledgerHealthy = result.IsValid;
+
+        _ledgerErrors = result.ErrorCount;
+    }
+
+    private void RepairLedger()
+    {
+        StockService.RepairLedger();
+
+        ValidateLedger();
+
+        Reload();
+    }
+
+    private void RecalculateLedger()
+    {
+        StockService.RecalculateLedger();
+
+        Reload();
+    }
+
+    private void FilterChanged((DateTime? Start, DateTime? End) filter)
+    {
+        _start = filter.Start;
+        _end = filter.End;
+    }
+}

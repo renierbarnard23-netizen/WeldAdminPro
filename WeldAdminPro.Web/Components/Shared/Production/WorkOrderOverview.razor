@@ -1,0 +1,293 @@
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Analytics.Production
+@using MudBlazor
+
+<MudGrid>
+
+    <MudItem xs="12" lg="6">
+
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+
+            <MudText Typo="Typo.h6">
+
+                Production Information
+
+            </MudText>
+
+        <MudDivider Class="mb-3"/>
+
+
+            <div class="row">
+
+                <div class="col-md-6">
+
+                    <p>
+                        <strong>Planned Start</strong><br />
+                        @(WorkOrder?.PlannedStartDate?.ToShortDateString() ?? "-")
+                    </p>
+
+                    <p>
+                        <strong>Actual Start</strong><br />
+                        @(WorkOrder?.ActualStartTime?.ToString("g") ?? "-")
+                    </p>
+
+                    <p>
+                        <strong>Due Date</strong><br />
+                        @(WorkOrder?.DueDate?.ToShortDateString() ?? "-")
+                    </p>
+
+                </div>
+
+                <div class="col-md-6">
+
+                    <p>
+                        <strong>Estimated Hours</strong><br />
+                        @WorkOrder?.EstimatedHours
+                    </p>
+
+                    <p>
+                        <strong>Actual Hours</strong><br />
+                        @WorkOrder?.ActualHours.ToString("N1")
+                    </p>
+
+                </div>
+
+            </div>
+
+
+        </MudPaper>
+
+    </MudItem>
+
+        <MudItem xs="12" lg="6">
+
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+
+                <MudText Typo="Typo.h6">
+    
+                    Production Readiness
+
+                </MudText>
+
+        <MudDivider Class="mb-3"/>
+
+
+            <table class="table table-borderless">
+
+                <tr>
+
+                    <td>Materials</td>
+
+                    <td>
+
+                        @if (Readiness?.MaterialsReady == true)
+                        {
+                            <span class="badge bg-success">
+                                Ready
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">
+                                Shortages
+                            </span>
+                        }
+
+                    </td>
+
+                </tr>
+
+                <tr>
+
+                    <td>Production Block</td>
+
+                    <td>
+
+                        @if (Readiness?.IsReady == true)
+                        {
+                            <span class="badge bg-success">
+                                READY TO START
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning">
+                                ACTION REQUIRED
+                            </span>
+                        }
+
+                    </td>
+
+                </tr>
+
+                <tr>
+
+                    <td>Reason</td>
+
+                    <td>
+
+                        @Readiness?.Reason
+
+                    </td>
+
+                </tr>
+
+                <tr>
+
+                    <td>Overall</td>
+
+                    <td>
+
+                        @if (Readiness?.IsReady == true)
+                        {
+                            <span class="badge bg-success">
+                                READY TO START
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning">
+                                ACTION REQUIRED
+                            </span>
+                        }
+
+                    </td>
+
+                </tr>
+
+            </table>
+
+
+            </MudPaper>
+        </MudItem>
+
+
+        <MudItem xs="12">
+
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+
+                <MudText Typo="Typo.h6">
+
+                    🤖 AI Production Recommendation
+
+                </MudText>
+
+        <MudDivider Class="mb-3"/>
+
+
+            @if (Recommendation == null)
+            {
+                <p class="text-muted">
+                    No recommendation available.
+                </p>
+            }
+            else
+            {
+                <table class="table table-borderless">
+
+                    <tr>
+                        <td width="180">
+                            <strong>Recommendation</strong>
+                        </td>
+                        <td>
+                            @Recommendation.Recommendation
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>
+                            <strong>Priority Score</strong>
+                        </td>
+                        <td>
+                            @Recommendation.PriorityScore
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>
+                            <strong>Materials</strong>
+                        </td>
+                        <td>
+                            @Recommendation.Materials
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>
+                            <strong>Due</strong>
+                        </td>
+                        <td>
+                            @Recommendation.Due
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>
+                            <strong>Explanation</strong>
+                        </td>
+                        <td>
+                            @Recommendation.Explanation
+                        </td>
+                    </tr>
+
+                </table>
+            }
+
+
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12">
+
+        <MudPaper Class="pa-4" Elevation="2">
+
+            <MudText Typo="Typo.h6">
+
+                Production Actions
+
+            </MudText>
+
+        <MudDivider Class="mb-3"/>
+
+
+            <button class="btn btn-success me-2"
+                    @onclick="OnStart">
+                ▶ Start Production
+            </button>
+
+            <button class="btn btn-warning me-2"
+                    @onclick="OnPause">
+                ⏸ Pause Production
+            </button>
+
+            <button class="btn btn-primary"
+                    @onclick="OnComplete">
+                ✔ Complete Production
+            </button>
+        </MudPaper>
+
+    </MudItem>
+
+</MudGrid>
+
+@code {
+
+    [Parameter]
+    public WorkOrder? WorkOrder { get; set; }
+
+    [Parameter]
+    public WorkOrderReadiness? Readiness { get; set; }
+
+    [Parameter]
+    public AIProductionRecommendation? Recommendation { get; set; }
+
+    [Parameter]
+    public EventCallback OnStart { get; set; }
+
+    [Parameter]
+    public EventCallback OnPause { get; set; }
+
+    [Parameter]
+    public EventCallback OnComplete { get; set; }
+
+}

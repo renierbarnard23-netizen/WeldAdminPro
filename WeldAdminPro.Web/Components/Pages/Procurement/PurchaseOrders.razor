@@ -1,0 +1,42 @@
+@page "/procurement/purchase-orders"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Procurement
+@using WeldAdminPro.Web.Components.Shared.Enterprise
+@using WeldAdminPro.Web.Components.Shared.Procurement
+
+@inject PurchaseOrderApplicationService PurchaseOrderService
+
+<PageTitle>Purchase Orders</PageTitle>
+
+<EnterprisePageHeader
+    Title="Purchase Orders"
+    Subtitle="Review and manage all purchase orders."
+    Icon="@Icons.Material.Filled.ShoppingCart" />
+
+<MudPaper Class="pa-4 mt-4">
+
+    <MudText Typo="Typo.h6">
+        Purchase Orders
+    </MudText>
+
+    <MudDivider Class="mb-3 mt-2"/>
+
+    <PurchaseOrderKpiCards Orders="_orders"/>
+
+    <MudDivider Class="my-4"/>
+
+    <PurchaseOrderGrid Orders="_orders"/>
+
+</MudPaper>
+
+@code
+{
+    private List<PurchaseOrder> _orders = new();
+
+    protected override void OnInitialized()
+    {
+        _orders = PurchaseOrderService.GetAll();
+    }
+}

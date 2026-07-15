@@ -1,0 +1,85 @@
+@page "/projects/costs"
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services
+
+<PageTitle>Project Material Cost Dashboard</PageTitle>
+
+@inject ProjectCostingService CostService
+@inject NavigationManager Navigation
+
+<MudPaper Class="pa-4">
+
+    <MudText Typo="Typo.h4" Class="mb-4">
+        Project Material Cost Dashboard
+    </MudText>
+
+    <MudTable Items="_projects"
+              Hover="true"
+              Dense="true"
+              Striped="true">
+
+        <HeaderContent>
+
+            <MudTh>Project</MudTh>
+
+            <MudTh class="text-end">
+                Units Consumed
+            </MudTh>
+
+            <MudTh class="text-end">
+                Material Cost
+            </MudTh>
+
+            <MudTh></MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>
+                @context.ProjectName
+            </MudTd>
+
+            <MudTd class="text-end">
+                @context.TotalUnitsConsumed
+            </MudTd>
+
+            <MudTd class="text-end">
+                @context.TotalMaterialCost.ToString("C")
+            </MudTd>
+
+            <MudTd>
+
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Outlined"
+                           Size="Size.Small"
+                           OnClick="@(() => Open(context.ProjectId))">
+
+                    Open
+
+                </MudButton>
+
+            </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+
+</MudPaper>
+
+@code {
+
+    private List<ProjectCostSummary> _projects = new();
+
+    protected override void OnInitialized()
+    {
+        _projects = CostService.GetProjectCostSummary();
+    }
+
+    private void Open(Guid id)
+    {
+        Navigation.NavigateTo($"/projects/{id}");
+    }
+
+}

@@ -1,0 +1,107 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+
+@if (WorkOrder != null)
+{
+    <DashboardSection
+    Title="Production Progress"
+    Icon="@Icons.Material.Filled.Timeline"
+    IconColor="Color.Primary">
+
+        <MudText Typo="Typo.h6">
+            Production Progress
+        </MudText>
+
+        <MudText Typo="Typo.h3"
+                 Align="Align.Center">
+
+            @Progress%
+
+        </MudText>
+
+        <MudProgressLinear Rounded="true"
+                           Size="Size.Large"
+                           Color="Color.Success"
+                           Value="@Progress"
+                           Class="mb-4" />
+
+        <MudDivider Class="my-3" />
+
+        <MudGrid>
+
+            <MudItem xs="6">
+
+                <MudText Typo="Typo.caption">
+                    Started
+                </MudText>
+
+                <MudText>
+                    @(WorkOrder.PlannedStartDate?.ToShortDateString() ?? "-")
+                </MudText>
+
+            </MudItem>
+
+            <MudItem xs="6">
+
+                <MudText Typo="Typo.caption">
+                    Due
+                </MudText>
+
+                <MudText>
+                    @(WorkOrder.DueDate?.ToShortDateString() ?? "-")
+                </MudText>
+
+            </MudItem>
+
+            <MudItem xs="6">
+
+                <MudText Typo="Typo.caption">
+                    Estimated Hours
+                </MudText>
+
+                <MudText>
+                    @WorkOrder.EstimatedHours
+                </MudText>
+
+            </MudItem>
+
+            <MudItem xs="6">
+
+                <MudText Typo="Typo.caption">
+                    Status
+                </MudText>
+
+                <MudChip T="string"
+                         Color="@StatusColor">
+
+                    @WorkOrder.Status
+
+                </MudChip>
+
+            </MudItem>
+
+        </MudGrid>
+
+    </DashboardSection>
+}
+
+@code {
+
+    [Parameter]
+    public WorkOrder? WorkOrder { get; set; }
+
+    [Parameter]
+    public int Progress { get; set; }
+
+    private Color StatusColor =>
+    WorkOrder?.Status switch
+    {
+        WorkOrderStatus.Ready => Color.Info,
+        WorkOrderStatus.InProduction => Color.Success,
+        WorkOrderStatus.Paused => Color.Warning,
+        WorkOrderStatus.Completed => Color.Primary,
+        WorkOrderStatus.Cancelled => Color.Error,
+        _ => Color.Default
+    };
+
+}

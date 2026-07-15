@@ -1,0 +1,54 @@
+@using MudBlazor
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+
+    <MudText Typo="Typo.h6">
+
+        Production Actions
+
+    </MudText>
+
+    <MudDivider Class="mb-3" />
+
+    <MudStack Row="true" Spacing="2">
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Success"
+                   OnClick="Start">
+
+            ▶ Start
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Warning"
+                   OnClick="Pause">
+
+            ⏸ Pause
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Complete">
+
+            ✔ Complete
+
+        </MudButton>
+
+    </MudStack>
+
+</MudPaper>
+
+@code {
+
+    [Parameter]
+    public EventCallback Start { get; set; }
+
+    [Parameter]
+    public EventCallback Pause { get; set; }
+
+    [Parameter]
+    public EventCallback Complete { get; set; }
+
+}

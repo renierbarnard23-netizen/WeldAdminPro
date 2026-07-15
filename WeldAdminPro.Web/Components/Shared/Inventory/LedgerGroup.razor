@@ -1,0 +1,321 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+
+@if (!Transactions.Any())
+{
+    <MudAlert Severity="Severity.Info">
+
+        No ledger transactions found.
+
+    </MudAlert>
+}
+else
+{
+    <MudExpansionPanels MultiExpansion="true">
+
+        @foreach (var group in Groups)
+        {
+            <MudExpansionPanel>
+
+                <TitleContent>
+
+                    <MudStack Row="true"
+                              Justify="Justify.SpaceBetween"
+                              AlignItems="AlignItems.Center"
+                              Style="width:100%;">
+
+                        <MudStack Style="width:100%;">
+
+                            <MudText Typo="Typo.h6">
+
+                                @group.ItemCode
+
+                            </MudText>
+
+                            <MudText Typo="Typo.body2"
+                                     Color="Color.Secondary">
+
+                                @group.Description
+
+                            </MudText>
+
+                            <MudGrid Class="mt-2">
+
+                                <MudItem xs="6" md="2">
+
+                                    <MudText Typo="Typo.caption">
+
+                                        Balance
+
+                                    </MudText>
+
+                                    <MudText Typo="Typo.subtitle2">
+
+                                        @group.Balance
+
+                                    </MudText>
+
+                                </MudItem>
+
+                                <MudItem xs="6" md="2">
+
+                                    <MudText Typo="Typo.caption">
+
+                                        Qty In
+
+                                    </MudText>
+
+                                    <MudText Typo="Typo.subtitle2">
+
+                                        @group.QtyIn
+
+                                    </MudText>
+
+                                </MudItem>
+
+                                <MudItem xs="6" md="2">
+
+                                    <MudText Typo="Typo.caption">
+
+                                        Qty Out
+
+                                    </MudText>
+
+                                    <MudText Typo="Typo.subtitle2">
+
+                                        @group.QtyOut
+
+                                    </MudText>
+
+                                </MudItem>
+
+                                <MudItem xs="6" md="3">
+
+                                    <MudText Typo="Typo.caption">
+
+                                        Movement Value
+
+                                    </MudText>
+
+                                    <MudText Typo="Typo.subtitle2">
+
+                                        @group.Value.ToString("C")
+
+                                    </MudText>
+
+                                </MudItem>
+
+                                <MudItem xs="6" md="3">
+
+                                    <MudChip T="string"
+                                             Color="Color.Info">
+
+                                        @group.TransactionCount Transactions
+
+                                    </MudChip>
+
+                                </MudItem>
+
+                            </MudGrid>
+
+                        </MudStack>
+
+                    </MudStack>
+
+                </TitleContent>
+
+                <ChildContent>
+
+                    <MudTable T="StockTransaction"
+                              Items="group.Transactions"
+                              Dense="true"
+                              Hover="true"
+                              Striped="true">
+
+                        <HeaderContent>
+
+                            <MudTh>Date</MudTh>
+
+                            <MudTh>Movement</MudTh>
+
+                            <MudTh>Project</MudTh>
+
+                            <MudTh>Reference</MudTh>
+
+                            <MudTh class="text-end">Qty In</MudTh>
+
+                            <MudTh class="text-end">Qty Out</MudTh>
+
+                            <MudTh class="text-end">Unit Cost</MudTh>
+
+                            <MudTh class="text-end">Value</MudTh>
+
+                            <MudTh class="text-end">Balance</MudTh>
+
+                            <MudTh>Status</MudTh>
+
+                        </HeaderContent>
+
+                        <RowTemplate>
+
+                            <MudTd>
+                                @context.TransactionDate.ToShortDateString()
+                            </MudTd>
+
+                            <MudTd>
+
+                                @if (context.Type == "IN")
+                                {
+                                    <MudChip T="string"
+                                             Color="Color.Success"
+                                             Variant="Variant.Filled">
+
+                                        IN
+
+                                    </MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string"
+                                             Color="Color.Warning"
+                                             Variant="Variant.Filled">
+
+                                        OUT
+
+                                    </MudChip>
+                                }
+
+                            </MudTd>
+
+                            <MudTd>
+
+                                @(string.IsNullOrWhiteSpace(context.ProjectName)
+                                    ? "-"
+                                    : context.ProjectName)
+
+                            </MudTd>
+
+                            <MudTd>
+
+                                @(string.IsNullOrWhiteSpace(context.Reference)
+                                    ? "-"
+                                    : context.Reference)
+
+                            </MudTd>
+
+                            <MudTd Class="text-end">
+
+                                @context.QtyIn
+
+                            </MudTd>
+
+                            <MudTd Class="text-end">
+
+                                @context.QtyOut
+
+                            </MudTd>
+
+                            <MudTd Class="text-end">
+
+                                @context.UnitCost.ToString("C")
+
+                            </MudTd>
+
+                            <MudTd Class="text-end">
+
+                                @context.TransactionValue.ToString("C")
+
+                            </MudTd>
+
+                            <MudTd Class="text-end">
+
+                                @context.BalanceAfter
+
+                            </MudTd>
+
+                            <MudTd>
+
+                                @if (context.IsNegativeDrift)
+                                {
+                                    <MudChip T="string"
+                                             Color="Color.Error">
+
+                                        Negative Drift
+
+                                    </MudChip>
+                                }
+                                else if (context.IsBalanceMismatch)
+                                {
+                                    <MudChip T="string"
+                                             Color="Color.Warning">
+
+                                        Balance Mismatch
+
+                                    </MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string"
+                                             Color="Color.Success">
+
+                                        Verified
+
+                                    </MudChip>
+                                }
+
+                            </MudTd>
+
+                        </RowTemplate>
+
+                    </MudTable>
+
+                </ChildContent>
+
+            </MudExpansionPanel>
+        }
+
+    </MudExpansionPanels>
+}
+
+@code {
+
+    [Parameter]
+
+    public IEnumerable<StockTransaction> Transactions { get; set; }
+        = Enumerable.Empty<StockTransaction>();
+        
+    private sealed class LedgerGroupSummary
+    {
+        public string ItemCode { get; set; } = "";
+
+        public string Description { get; set; } = "";
+
+        public int Balance { get; set; }
+
+        public int QtyIn { get; set; }
+
+        public int QtyOut { get; set; }
+
+        public decimal Value { get; set; }
+
+        public int TransactionCount { get; set; }
+
+        public IEnumerable<StockTransaction> Transactions { get; set; }
+            = Enumerable.Empty<StockTransaction>();
+    }
+
+    private IEnumerable<LedgerGroupSummary> Groups =>
+        Transactions
+        .GroupBy(t => t.ItemCode)
+        .Select(g => new LedgerGroupSummary
+        {
+            ItemCode = g.Key,
+            Description = g.First().ItemDescription,
+            Balance = g.Last().BalanceAfter,
+            QtyIn = g.Sum(x => x.QtyIn),
+            QtyOut = g.Sum(x => x.QtyOut),
+            Value = g.Sum(x => x.TransactionValue),
+            TransactionCount = g.Count(),
+            Transactions = g
+        });
+}

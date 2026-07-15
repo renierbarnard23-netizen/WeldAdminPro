@@ -1,0 +1,144 @@
+@using WeldAdminPro.Core.Models
+@using MudBlazor
+
+<table class="table table-hover table-striped align-middle">
+
+    <thead class="table-dark">
+
+        <tr>
+            <th>Item Code</th>
+            <th>Description</th>
+            <th>Category</th>
+
+            <th class="text-end">Qty</th>
+
+            <th>Unit</th>
+
+            <th class="text-end">Avg Cost</th>
+
+            <th class="text-end">Inventory Value</th>
+
+            <th>Status</th>
+
+            <th class="text-center">Actions</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+        @foreach (var item in Items)
+        {
+            <tr>
+
+                <td>
+                    <strong>@item.ItemCode</strong>
+                </td>
+
+                <td>@item.Description</td>
+
+                <td>@item.Category</td>
+
+                <td class="text-end">
+
+                    @item.Quantity.ToString("N2")
+
+                </td>
+
+                <td>@item.Unit</td>
+
+                <td class="text-end">
+
+                    @item.AverageUnitCost.ToString("C")
+
+                </td>
+
+                <td class="text-end">
+
+                    <strong>
+                        @item.TotalStockValue.ToString("C")
+                    </strong>
+
+                </td>
+
+                <td>
+
+                    @switch (item.SmartStatus)
+                    {
+                        case SmartStockStatus.Critical:
+
+                            <MudChip T="string"
+                                     Color="Color.Error"
+                                     Variant="Variant.Filled"
+                                     Size="Size.Small">
+
+                                Critical
+
+                            </MudChip>
+
+                            break;
+
+                        case SmartStockStatus.ReorderRequired:
+
+                            <MudChip T="string"
+                                     Color="Color.Warning"
+                                     Variant="Variant.Filled"
+                                     Size="Size.Small">
+
+                                Reorder
+
+                            </MudChip>
+
+                            break;
+
+                        default:
+
+                            <MudChip T="string"
+                                     Color="Color.Success"
+                                     Variant="Variant.Filled"
+                                     Size="Size.Small">
+
+                                Healthy
+
+                            </MudChip>
+
+                            break;
+                    }
+
+                </td>
+
+                <td class="text-center">
+
+                    <MudButton Size="Size.Small"
+                               Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               OnClick="() => Open(item.Id)">
+
+                        Open
+
+                    </MudButton>
+
+                </td>
+
+            </tr>
+        }
+
+    </tbody>
+
+</table>
+
+@code {
+
+    [Parameter]
+    public List<StockItem> Items { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<Guid> OnOpen { get; set; }
+
+    private async Task Open(Guid id)
+    {
+        await OnOpen.InvokeAsync(id);
+    }
+
+}

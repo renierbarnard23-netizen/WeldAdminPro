@@ -1,0 +1,123 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Analytics.Executive
+
+@if (!Projects.Any())
+{
+    <MudAlert Severity="Severity.Info">
+        No project risk information available.
+    </MudAlert>
+}
+else
+{
+    <MudTable T="ProjectRiskModel"
+              Items="Projects"
+              Dense="true"
+              Hover="true"
+              Striped="true"
+              Bordered="true"
+              Breakpoint="Breakpoint.Sm"
+              Elevation="0">
+
+        <HeaderContent>
+
+            <MudTh>#</MudTh>
+
+            <MudTh>Project</MudTh>
+
+            <MudTh Class="text-end">
+                Budget
+            </MudTh>
+
+            <MudTh Class="text-end">
+                Material Cost
+            </MudTh>
+
+            <MudTh Class="text-end">
+                Budget Used %
+            </MudTh>
+
+            <MudTh>
+                Risk
+            </MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>
+                @(ProjectList.IndexOf(context) + 1)
+            </MudTd>
+
+            <MudTd>
+                @context.ProjectName
+            </MudTd>
+
+            <MudTd Class="text-end">
+                @context.Budget.ToString("C")
+            </MudTd>
+
+            <MudTd Class="text-end">
+                @context.MaterialCost.ToString("C")
+            </MudTd>
+
+            <MudTd Class="text-end">
+                @context.BudgetUsedPercent.ToString("N2")%
+            </MudTd>
+
+            <MudTd>
+
+                @switch (context.RiskLevel)
+                {
+                    case "Critical":
+                        <MudChip T="string"
+                                 Color="Color.Error"
+                                 Variant="Variant.Filled"
+                                 Icon="@Icons.Material.Filled.Error">
+                            Critical
+                        </MudChip>
+                        break;
+
+                    case "High":
+                        <MudChip T="string"
+                                 Color="Color.Warning"
+                                 Variant="Variant.Filled"
+                                 Icon="@Icons.Material.Filled.Warning">
+                            High
+                        </MudChip>
+                        break;
+
+                    case "Medium":
+                        <MudChip T="string"
+                                 Color="Color.Info"
+                                 Variant="Variant.Outlined"
+                                 Icon="@Icons.Material.Filled.Info">
+                            Medium
+                        </MudChip>
+                        break;
+
+                    default:
+                        <MudChip T="string"
+                                 Color="Color.Success"
+                                 Variant="Variant.Outlined"
+                                 Icon="@Icons.Material.Filled.CheckCircle">
+                            Low
+                        </MudChip>
+                        break;
+                }
+
+            </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+}
+
+@code
+{
+    [Parameter]
+    public IEnumerable<ProjectRiskModel> Projects { get; set; }
+        = Enumerable.Empty<ProjectRiskModel>();
+
+    private List<ProjectRiskModel> ProjectList =>
+    Projects.ToList();
+}

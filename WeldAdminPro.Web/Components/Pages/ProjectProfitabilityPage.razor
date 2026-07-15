@@ -1,0 +1,108 @@
+@page "/projects/profitability"
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services
+
+@inject ProjectProfitabilityService ProfitabilityService
+@inject NavigationManager Navigation
+
+<PageTitle>Project Profitability</PageTitle>
+
+<MudPaper Class="pa-4">
+
+    <MudText Typo="Typo.h4" Class="mb-4">
+        Project Profitability Dashboard
+    </MudText>
+
+    <MudTable Items="_projects"
+              Hover="true"
+              Dense="true"
+              Striped="true">
+
+        <HeaderContent>
+
+            <MudTh>Project</MudTh>
+
+            <MudTh class="text-end">Revenue</MudTh>
+
+            <MudTh class="text-end">Material Cost</MudTh>
+
+            <MudTh class="text-end">Labour Cost</MudTh>
+
+            <MudTh class="text-end">Profit</MudTh>
+
+            <MudTh></MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>
+
+                @context.ProjectName
+
+            </MudTd>
+
+            <MudTd class="text-end">
+
+                @context.Revenue.ToString("C")
+
+            </MudTd>
+
+            <MudTd class="text-end">
+
+                @context.MaterialCost.ToString("C")
+
+            </MudTd>
+
+            <MudTd class="text-end">
+
+                @context.LabourCost.ToString("C")
+
+            </MudTd>
+
+            <MudTd class="text-end">
+
+                <strong>
+
+                    @context.Profit.ToString("C")
+
+                </strong>
+
+            </MudTd>
+
+            <MudTd>
+
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Outlined"
+                           Size="Size.Small"
+                           OnClick="@(() => Open(context.ProjectId))">
+
+                    Open
+
+                </MudButton>
+
+            </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+
+</MudPaper>
+
+@code {
+
+    private List<ProjectProfitability> _projects = new();
+
+    protected override void OnInitialized()
+    {
+        _projects =
+            ProfitabilityService.GetProjectProfitability();
+    }
+
+    private void Open(Guid id)
+    {
+        Navigation.NavigateTo($"/projects/{id}");
+    }
+
+}

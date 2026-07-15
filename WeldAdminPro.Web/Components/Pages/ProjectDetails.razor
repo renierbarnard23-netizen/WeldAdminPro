@@ -1,0 +1,225 @@
+@page "/projects/{Id:guid}"
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Projects
+@using WeldAdminPro.Web.Components.Shared.Projects
+@using WeldAdminPro.Data.Services
+
+@inject ProjectApplicationService ProjectService
+
+<PageTitle>Project Details</PageTitle>
+
+<ProjectDetailsKpiCards Project="_project"
+                        MaterialQuantity="@_materialSummary.Sum(x => x.NetQuantity)"
+                        DocumentCount="@_documents.Count"
+                        TransactionCount="@_transactions.Count"
+                        CompliancePercent="@CalculateCompliance()" />
+
+@if (_project == null)
+{
+    <div class="alert alert-danger">
+
+        Project not found.
+
+    </div>
+}
+else
+{
+
+    <ProjectHeader Project="_project" />
+    <ProjectFinancialDashboard Project="_project" />
+
+    <div class="row">
+
+        <div class="col-lg-6">
+
+            <ProjectEditor Project="_project"
+                           OnSave="SaveProject" />
+
+        </div>
+
+    </div>
+
+    <div class="row">
+
+        <div class="col-12">
+
+            <ProjectMaterialCard Summary="_materialSummary" />
+            <ProjectMaterialBreakdownCard Items="_materialBreakdown" />
+            <ProjectDocumentsCard Documents="_documents" />
+            <ProjectComplianceCard Documents="_documents" />
+            <ProjectStockHistoryCard Transactions="_transactions" />
+
+        </div>
+
+    </div>
+
+}
+
+@code {
+
+    [Parameter]
+
+    public Guid Id { get; set; }
+
+    private Project? _project;
+
+    private List<ProjectStockSummary> _materialSummary = new();
+
+    private List<WeldAdminPro.Core.Quality.ProjectDocument> _documents = new();
+
+    private List<ProjectStockUsage> _transactions = new();
+
+    private List<StockItem> _stockItems = new();
+
+    private List<ReturnableItemDto> _returnableItems = new();
+
+    private List<ProjectMaterialBreakdown> _materialBreakdown = new();
+
+    private void SaveProject()
+    {
+        if (_project == null)
+            return;
+
+        ProjectService.SaveProject(_project);
+
+        var updatedProject = ProjectService.GetProject(_project.Id);
+
+        if (updatedProject != null)
+        {
+            _project = updatedProject;
+            _materialSummary = ProjectService.GetMaterialSummary(updatedProject.Id);
+            _transactions = ProjectService.GetStockUsage(Id);
+            _stockItems = ProjectService.GetStockItems();
+            _returnableItems = ProjectService.GetReturnableItems(Id);
+            _materialSummary = ProjectService.GetMaterialSummary(updatedProject.Id);
+                        
+        }
+
+
+
+        StateHasChanged();
+    }
+
+    private void IssueMaterial((Guid StockId, decimal Quantity) args)
+    {
+        if (_project == null)
+            return;
+
+        var stock = _stockItems.FirstOrDefault(x => x.Id == args.StockId);
+
+        if (stock == null)
+            return;
+
+        ProjectService.IssueMaterial(
+            _project,
+            stock,
+            args.Quantity,
+            "Web User");
+
+        _materialSummary =
+            ProjectService.GetMaterialSummary(_project.Id);
+
+        _transactions =
+            ProjectService.GetStockUsage(_project.Id);
+
+        _documents =
+            ProjectService.GetDocuments(_project.Id);
+
+        _materialSummary =
+            ProjectService.GetMaterialSummary(_project.Id);
+
+        StateHasChanged();
+    }
+
+    private void ReturnMaterial((Guid StockId, decimal Quantity) args)
+    {
+        if (_project == null)
+            return;
+
+        var item =
+            _returnableItems.FirstOrDefault(x => x.StockItemId == args.StockId);
+
+        if (item == null)
+            return;
+
+        var stock =
+            _stockItems.FirstOrDefault(x => x.Id == item.StockItemId);
+
+        if (stock == null)
+            return;
+
+        ProjectService.ReturnMaterial(
+            _project,
+            stock,
+            args.Quantity,
+            item.UnitCost,
+            "Web User");
+
+        RefreshProject();
+    }
+
+    private void RefreshProject()
+    {
+        if (_project == null)
+            return;
+
+        var projectId = _project.Id;
+
+        _project = ProjectService.GetProject(projectId);
+
+        if (_project == null)
+            return;
+
+        _materialSummary =
+            ProjectService.GetMaterialSummary(projectId);
+
+        _transactions =
+            ProjectService.GetStockUsage(projectId);
+
+        _documents =
+            ProjectService.GetDocuments(projectId);
+
+        _returnableItems =
+            ProjectService.GetReturnableItems(projectId);
+
+        _materialSummary =
+            ProjectService.GetMaterialSummary(projectId);
+
+        StateHasChanged();
+    }
+
+    protected override void OnInitialized()
+    {
+        _project = ProjectService.GetProject(Id);
+
+        _materialSummary = ProjectService.GetMaterialSummary(Id);
+
+        _documents = ProjectService.GetDocuments(Id);
+
+        _transactions = ProjectService.GetStockUsage(Id);
+
+        _stockItems = ProjectService.GetStockItems();
+
+        _returnableItems = ProjectService.GetReturnableItems(Id);
+
+        _materialSummary = ProjectService.GetMaterialSummary(Id);
+
+        var costing = new ProjectCostingService();
+
+        _materialBreakdown =
+            costing.GetProjectMaterialBreakdown(Id);
+    }
+
+    private double CalculateCompliance()
+    {
+        if (_documents.Count == 0)
+            return 0;
+
+        var approved =
+            _documents.Count(d => d.IsApproved);
+
+        return approved * 100.0 / _documents.Count;
+    }
+
+}

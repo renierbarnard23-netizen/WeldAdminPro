@@ -1,0 +1,100 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Web.Components.Shared
+
+<MudTable Items="@Items"
+          Hover="true"
+          Dense="true"
+          Striped="true"
+          Bordered="true"
+          Elevation="1">
+
+    <HeaderContent>
+
+        <MudTh>WPS No.</MudTh>
+        <MudTh>Rev</MudTh>
+        <MudTh>Process</MudTh>
+        <MudTh>Material</MudTh>
+        <MudTh>Thickness</MudTh>
+        <MudTh>PQR</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Compliance</MudTh>
+
+    </HeaderContent>
+
+    <RowTemplate>
+
+        <MudTd DataLabel="WPS">
+            @context.WpsNumber
+        </MudTd>
+
+        <MudTd DataLabel="Revision">
+            @context.Revision
+        </MudTd>
+
+        <MudTd DataLabel="Process">
+            @context.Process
+        </MudTd>
+
+        <MudTd DataLabel="Material">
+            @context.MaterialGroup
+        </MudTd>
+
+        <MudTd DataLabel="Thickness">
+            @($"{context.ThicknessMin} - {context.ThicknessMax} mm")
+        </MudTd>
+
+        <MudTd DataLabel="PQR">
+            @(string.IsNullOrWhiteSpace(context.LinkedPqrNumber)
+                ? "-"
+                : context.LinkedPqrNumber)
+        </MudTd>
+
+        <MudTd DataLabel="Status">
+
+            @if (context.IsActive)
+            {
+                <StatusBadge Text="Active"
+                             BadgeCss="bg-success"/>
+
+
+            }
+            else
+            {
+                <StatusBadge Text="Inactive"
+                             BadgeCss="bg-error"/>
+            }
+
+        </MudTd>
+
+        <MudTd DataLabel="Compliance">      
+                         Size="Size.Small">
+
+            }
+
+        </MudTd>
+
+        <MudTd DataLabel="Compliance">
+
+            @if (context.IsCompliant)
+            {
+                <StatusBadge Text="Compliant"
+                             BadgeCss="bg-success" />
+            }
+            else
+            {
+                <StatusBadge Text="@context.ValidationStatus"
+                             BadgeCss="bg-warning text-dark" />
+            }
+
+        </MudTd>
+
+    </RowTemplate>
+
+</MudTable>
+
+@code
+{
+    [Parameter]
+    public List<Wps> Items { get; set; } = new();
+}

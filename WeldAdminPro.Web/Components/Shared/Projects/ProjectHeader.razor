@@ -1,0 +1,50 @@
+@using WeldAdminPro.Core.Models
+
+<div class="card shadow-sm">
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-lg-8">
+
+                <h2>
+
+                    @Project.JobNumber
+
+                    -
+
+                    @Project.ProjectName
+
+                </h2>
+
+                <div class="text-muted">
+
+                    @Project.Client
+
+                </div>
+
+            </div>
+
+            <div class="col-lg-4 text-end">
+
+                <span class="badge bg-primary fs-6">
+
+                    @Project.Status
+
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code
+{
+    [Parameter]
+
+    public Project Project { get; set; } = default!;
+}

@@ -1,0 +1,80 @@
+@using WeldAdminPro.Core.Models
+
+<div class="card shadow-sm mb-3">
+
+    <div class="card-header bg-primary text-white">
+
+        <strong>Project Overview</strong>
+
+    </div>
+
+    <div class="card-body">
+
+        @if (Project == null)
+        {
+            <p class="text-muted">
+                No project loaded.
+            </p>
+        }
+        else
+        {
+            <table class="table table-borderless">
+
+                <tr>
+                    <td width="220"><strong>Job Number</strong></td>
+                    <td>@Project.JobNumber</td>
+                </tr>
+
+                <tr>
+                    <td><strong>Project</strong></td>
+                    <td>@Project.ProjectName</td>
+                </tr>
+
+                <tr>
+                    <td><strong>Client</strong></td>
+                    <td>@Project.Client</td>
+                </tr>
+
+                <tr>
+                    <td><strong>Representative</strong></td>
+                    <td>@Project.ClientRepresentative</td>
+                </tr>
+
+                <tr>
+                    <td><strong>Status</strong></td>
+                    <td>
+                        <span class="badge bg-primary">
+                            @Project.Status
+                        </span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td><strong>Assigned To</strong></td>
+                    <td>@Project.AssignedTo</td>
+                </tr>
+
+                <tr>
+                    <td><strong>Material</strong></td>
+                    <td>@Project.Material</td>
+                </tr>
+
+                <tr>
+                    <td><strong>Contract Value</strong></td>
+                    <td>@Project.Amount.ToString("C")</td>
+                </tr>
+
+            </table>
+        }
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+
+    public Project? Project { get; set; }
+
+}

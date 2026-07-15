@@ -1,0 +1,107 @@
+@using WeldAdminPro.Core.Models
+
+<div class="card shadow-sm mb-3">
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-4">
+
+                <label class="form-label">
+
+                    Category
+
+                </label>
+
+                <select class="form-select"
+                        @bind="SelectedCategoryId">
+
+                    <option value="">
+
+                        All Categories
+
+                    </option>
+
+                    @foreach (var category in Categories)
+                    {
+                        <option value="@category.Id">
+
+                            @category.Name
+
+                        </option>
+                    }
+
+                </select>
+
+            </div>
+
+            <div class="col-md-8 d-flex align-items-end">
+
+                <button class="btn btn-primary me-2"
+                        @onclick="() => ChangeStatus(Filter.All)">
+
+                    All
+
+                </button>
+
+                <button class="btn btn-warning me-2"
+                        @onclick="() => ChangeStatus(Filter.LowStock)">
+
+                    Low Stock
+
+                </button>
+
+                <button class="btn btn-danger"
+                        @onclick="() => ChangeStatus(Filter.Critical)">
+
+                    Critical
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+
+    public enum Filter
+    {
+        All,
+        LowStock,
+        Critical
+    }
+
+    [Parameter]
+
+    public List<Category> Categories { get; set; } = new();
+
+    [Parameter]
+
+    public EventCallback<Guid?> CategoryChanged { get; set; }
+
+    [Parameter]
+
+    public EventCallback<Filter> StatusChanged { get; set; }
+
+    private Guid? SelectedCategoryId;
+
+    private async Task ChangeStatus(Filter status)
+    {
+        await StatusChanged.InvokeAsync(status);
+    }
+
+    private async Task OnCategoryChanged(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out var id))
+            SelectedCategoryId = id;
+        else
+            SelectedCategoryId = null;
+
+        await CategoryChanged.InvokeAsync(SelectedCategoryId);
+    }
+}

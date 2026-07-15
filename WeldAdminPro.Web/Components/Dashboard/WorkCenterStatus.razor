@@ -1,22 +1,25 @@
+@using MudBlazor
 @using WeldAdminPro.Data.Services.ProductionEngine
 
 @if (Snapshot == null)
 {
-    <div class="card shadow-sm">
+    <MudPaper Class="pa-4">
         <div class="card-body">
             Loading work centres...
         </div>
-    </div>
+    </MudPaper>
 }
 else
 {
-    <div class="card shadow-sm">
+    <MudPaper Class="pa-4">
 
-        <div class="card-header">
+        <MudText Typo="Typo.h6">
 
-            <strong>Work Centre Status</strong>
+            Work Centre Status
 
-        </div>
+        </MudText>
+
+        <MudDivider Class="mb-4" />
 
         <div class="card-body">
 
@@ -28,69 +31,95 @@ else
             {
                 @foreach (var centre in Snapshot.WorkCenters)
                 {
-                    <div class="mb-4">
+                    <MudPaper Class="pa-3 mb-4" Elevation="1">
 
-                        <div class="d-flex justify-content-between">
+                        <MudStack Row="true"
+                                  Justify="Justify.SpaceBetween"
+                                  AlignItems="AlignItems.Center">
 
-                            <strong>@centre.Name</strong>
+                            <MudText Typo="Typo.subtitle1">
 
-                            <strong>@centre.UtilizationPercent %</strong>
+                                @centre.Name
 
-                        </div>
+                            </MudText>
 
-                        <div class="progress mb-2" style="height:22px;">
+                            <MudChip T="string"
+                                     Color="@(centre.UtilizationPercent >= 90 ? Color.Error :
+                                                          centre.UtilizationPercent >= 75 ? Color.Warning :
+                                                          Color.Success)">
 
-                            <div class="progress-bar"
-                                 role="progressbar"
-                                 style="width:@($"{centre.UtilizationPercent}%"); background-color:@centre.StatusColor">
-                            </div>
+                                @centre.UtilizationPercent %
 
-                        </div>
+                            </MudChip>
 
-                        <div class="row">
+                        </MudStack>
 
-                            <div class="col">
+                        <MudProgressLinear Value="@centre.UtilizationPercent"
+                                           Color="@(centre.UtilizationPercent >= 90 ? Color.Error :
+                                                                      centre.UtilizationPercent >= 75 ? Color.Warning :
+                                                                      Color.Success)"
+                                           Rounded="true"
+                                           Class="my-2" />
 
-                                <small>
+                        <MudGrid Class="mt-3">
 
-                                    Work Order:
-                                    <strong>@centre.CurrentWorkOrder</strong>
+                            <MudItem xs="12" sm="4">
 
-                                </small>
+                                <MudText Typo="Typo.caption">
 
-                            </div>
+                                    Work Order
 
-                            <div class="col text-end">
+                                </MudText>
 
-                                <small>
+                                <MudText Typo="Typo.subtitle2">
 
-                                    Queue:
-                                    <strong>@centre.QueueLength</strong>
+                                    @centre.CurrentWorkOrder
 
-                                </small>
+                                </MudText>
 
-                            </div>
+                            </MudItem>
 
-                        </div>
+                            <MudItem xs="12" sm="4">
 
-                        <div>
+                                <MudText Typo="Typo.caption">
 
-                            <small>
+                                    Queue
 
-                                Hours Remaining:
-                                <strong>@centre.HoursRemaining</strong>
+                                </MudText>
 
-                            </small>
+                                <MudText Typo="Typo.subtitle2">
 
-                        </div>
+                                    @centre.QueueLength
 
-                    </div>
+                                </MudText>
+
+                            </MudItem>
+
+                            <MudItem xs="12" sm="4">
+
+                                <MudText Typo="Typo.caption">
+
+                                    Hours Remaining
+
+                                </MudText>
+
+                                <MudText Typo="Typo.subtitle2">
+
+                                    @centre.HoursRemaining
+
+                                </MudText>
+
+                            </MudItem>
+
+                        </MudGrid>
+
+                    </MudPaper>
                 }
             }
 
         </div>
 
-    </div>
+    </MudPaper>
 }
 
 @code

@@ -1,0 +1,72 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+
+    <MudText Typo="Typo.h6">
+        Production Information
+    </MudText>
+
+    <MudDivider Class="mb-3" />
+
+    @if (WorkOrder == null)
+    {
+        <MudAlert Severity="Severity.Info">
+            No work order loaded.
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid>
+
+            <MudItem xs="6">
+                <MudText Typo="Typo.caption">Project</MudText>
+                <MudText>@WorkOrder.ProjectName</MudText>
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudText Typo="Typo.caption">Work Order</MudText>
+                <MudText>@WorkOrder.WorkOrderNumber</MudText>
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudText Typo="Typo.caption">Description</MudText>
+                <MudText>@WorkOrder.Description</MudText>
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudText Typo="Typo.caption">Work Centre</MudText>
+                <MudText>@WorkOrder.WorkCenter</MudText>
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudText Typo="Typo.caption">Planned Start</MudText>
+                <MudText>@WorkOrder.PlannedStartDate?.ToShortDateString()</MudText>
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudText Typo="Typo.caption">Due Date</MudText>
+                <MudText>@WorkOrder.DueDate?.ToShortDateString()</MudText>
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudText Typo="Typo.caption">Estimated Hours</MudText>
+                <MudText>@WorkOrder.EstimatedHours</MudText>
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudText Typo="Typo.caption">Actual Hours</MudText>
+                <MudText>@WorkOrder.ActualHours</MudText>
+            </MudItem>
+
+        </MudGrid>
+    }
+
+</MudPaper>
+
+@code {
+
+    [Parameter]
+    public WorkOrder? WorkOrder { get; set; }
+
+}

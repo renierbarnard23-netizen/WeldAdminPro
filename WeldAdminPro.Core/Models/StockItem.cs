@@ -208,6 +208,32 @@ namespace WeldAdminPro.Core.Models
 			OnPropertyChanged(nameof(NeedsReorder));
 			OnPropertyChanged(nameof(TotalStockValue));
 			OnPropertyChanged(nameof(StockValueRisk));
-		}
-	}
+            OnPropertyChanged(nameof(ReservedQuantity));
+            OnPropertyChanged(nameof(AvailableQuantity));
+        }
+
+        // =========================
+        // RESERVED STOCK
+        // =========================
+        private double _reservedQuantity;
+
+        public double ReservedQuantity
+        {
+            get => _reservedQuantity;
+            set
+            {
+                if (_reservedQuantity != value)
+                {
+                    _reservedQuantity = value;
+                    RaiseAllStockSignals();
+                }
+            }
+        }
+
+        // =========================
+        // AVAILABLE STOCK
+        // =========================
+        public double AvailableQuantity =>
+            Quantity - ReservedQuantity;
+    }
 }

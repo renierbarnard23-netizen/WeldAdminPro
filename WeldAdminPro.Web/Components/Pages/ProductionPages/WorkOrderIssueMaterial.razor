@@ -1,0 +1,308 @@
+@page "/production/workorders/issue/{Id:guid}"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Repositories
+@using WeldAdminPro.Data.Services
+
+@inject NavigationManager Navigation
+
+@inject WorkOrderRepository WorkOrderRepository
+@inject ProjectRepository ProjectRepository
+@inject StockRepository StockRepository
+@inject StockProjectTransactionService StockService
+
+@inject ISnackbar Snackbar
+
+<PageTitle>Issue Material</PageTitle>
+
+<EnterprisePageHeader
+    Title="Issue Material"
+    Subtitle="Issue inventory to the selected production work order."
+    Icon="@Icons.Material.Filled.Publish">
+</EnterprisePageHeader>
+
+<MudPaper Class="pa-5 mx-auto mt-4"
+          Style="max-width:900px;"
+          Elevation="2">
+
+    <DashboardSection
+        Title="Material Issue"
+        Icon="@Icons.Material.Filled.Inventory2">
+
+            @if (_loading)
+            {
+                <MudPaper Class="pa-8 my-6">
+                    
+                    <MudStack AlignItems="AlignItems.Center"
+                          Justify="Justify.Center"
+                          Spacing="2">
+                          
+                          <MudProgressCircular Indeterminate="true"
+                                         Color="Color.Primary" />
+
+                    <MudText>
+
+                        Loading work order...
+
+                    </MudText>
+
+                </MudStack>
+
+            </MudPaper>
+            }
+            else if (_workOrder == null)
+            {
+                <MudAlert Severity="Severity.Error">
+                    
+                    Work Order not found.
+                    
+                </MudAlert>
+            }
+            else
+            {
+                <MudGrid>
+                    
+                    <MudItem xs="12">
+                        
+                        <MudText Typo="Typo.h6">
+                            
+                            @_workOrder.WorkOrderNumber
+                            
+                        </MudText>
+                        
+                        <MudText Color="Color.Secondary">
+                            
+                            @_project?.ProjectName
+                            
+                        </MudText>
+                        
+                    </MudItem>
+                           
+
+            <MudItem xs="12">
+
+                <MudSelect T="StockItem"
+                           Label="Material"
+                           @bind-Value="_selectedItem"
+                           Required="true"
+                           RequiredError="Please select a material.">
+
+                    @foreach (var item in _stockItems)
+                    {
+                        <MudSelectItem Value="@item">
+
+                            @item.ItemCode - @item.Description
+
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+
+            </MudItem>
+
+            @if (_selectedItem != null)
+            {
+                <MudItem xs="12">
+
+                    <MudPaper Class="pa-3">
+
+                        <MudGrid>
+
+                            <MudItem xs="6">
+
+                                <MudText Typo="Typo.caption">
+
+                                    Available Stock
+
+                                </MudText>
+
+                                <MudText Typo="Typo.h5">
+
+                                    @_selectedItem.Quantity
+
+                                </MudText>
+
+                            </MudItem>
+
+                            <MudItem xs="6">
+
+                                <MudText Typo="Typo.caption">
+
+                                    Item Code
+
+                                </MudText>
+
+                                <MudText Typo="Typo.h6">
+
+                                    @_selectedItem.ItemCode
+
+                                </MudText>
+
+                            </MudItem>
+
+                        </MudGrid>
+
+                    </MudPaper>
+
+                </MudItem>
+            }
+
+            <MudItem xs="12">
+
+                <MudNumericField T="decimal"
+                                 Label="Issue Quantity"
+                                 @bind-Value="_quantity"
+                                 Immediate="true"
+                                 Min="1" />
+
+            </MudItem>
+                       
+
+        </MudGrid>
+    }    
+    </DashboardSection>
+
+    <MudDivider Class="my-4" />
+
+    <MudStack Row="true"
+              Justify="Justify.FlexEnd"
+              Spacing="2">
+
+        <MudButton Color="Color.Success"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Filled.Publish"
+                   OnClick="IssueMaterial">
+
+            Issue Material
+
+        </MudButton>
+
+        <MudButton Color="Color.Secondary"
+                   Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.ArrowBack"
+                   OnClick="Back">
+
+            Cancel
+
+        </MudButton>
+
+    </MudStack>
+
+</MudPaper>
+
+@code {
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private bool _loading = true;
+
+    private WorkOrder? _workOrder;
+    private Project? _project;
+
+    private List<StockItem> _stockItems = new();
+
+    private StockItem? _selectedItem;
+
+    private decimal _quantity = 1;
+
+    protected override void OnInitialized()
+    {
+        Load();
+    }
+
+    private void Load()
+    {
+        _loading = true;
+
+        _workOrder = WorkOrderRepository.GetById(Id);
+
+        if (_workOrder == null)
+        {
+            _loading = false;
+            return;
+        }
+
+        _project =
+            ProjectRepository.GetById(
+                _workOrder.ProjectId);
+
+        _stockItems =
+            StockRepository
+                .GetAll()
+                .OrderBy(x => x.ItemCode)
+                .ToList();
+
+        _loading = false;
+    }
+
+    private void IssueMaterial()
+    {
+        if (_workOrder == null)
+        {
+            Snackbar.Add(
+                "Work Order not found.",
+                Severity.Error);
+
+            return;
+        }
+
+        if (_project == null)
+        {
+            Snackbar.Add(
+                "Project not found.",
+                Severity.Error);
+
+            return;
+        }
+
+        if (_selectedItem == null)
+        {
+            Snackbar.Add(
+                "Please select a material.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (_quantity <= 0)
+        {
+            Snackbar.Add(
+                "Quantity must be greater than zero.",
+                Severity.Warning);
+
+            return;
+        }
+
+        try
+        {
+            StockService.IssueStock(
+                _project,
+                _selectedItem,
+                (int)_quantity,
+                Environment.UserName);
+
+            Snackbar.Add(
+                "Material issued successfully.",
+                Severity.Success);
+
+            Navigation.NavigateTo(
+                "/production/workorders",
+                forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+    }
+
+    private void Back()
+    {
+        Navigation.NavigateTo(
+            "/production/workorders");
+    }
+
+}

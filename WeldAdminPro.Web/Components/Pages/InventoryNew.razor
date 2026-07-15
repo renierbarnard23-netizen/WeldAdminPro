@@ -1,0 +1,36 @@
+@page "/inventory/new"
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Inventory
+@using WeldAdminPro.Web.Components.Shared.Inventory
+
+@inject StockApplicationService StockService
+@inject NavigationManager Navigation
+
+<PageTitle>New Stock Item</PageTitle>
+
+<h2 class="mb-4">
+
+    New Stock Item
+
+</h2>
+
+<InventoryEditor Item="_item"
+                 OnSave="Save" />
+
+@code
+{
+    private StockItem _item = new();
+
+    protected override void OnInitialized()
+    {
+        _item = StockService.CreateNewStockItem();
+    }
+
+    private void Save()
+    {
+        StockService.SaveStockItem(_item);
+
+        Navigation.NavigateTo("/inventory");
+    }
+}

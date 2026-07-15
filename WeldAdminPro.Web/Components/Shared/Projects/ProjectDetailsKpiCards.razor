@@ -1,0 +1,151 @@
+@using WeldAdminPro.Core.Models
+
+@if (Project != null)
+{
+    <div class="row mb-4">
+
+        <div class="col-md-2">
+
+            <div class="card shadow-sm border-primary">
+
+                <div class="card-body text-center">
+
+                    <div class="text-muted small">
+                        Contract Value
+                    </div>
+
+                    <h5 class="mb-0">
+                        @Project.Amount.ToString("C")
+                    </h5>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-2">
+
+            <div class="card shadow-sm border-success">
+
+                <div class="card-body text-center">
+
+                    <div class="text-muted small">
+                        Material Quantity
+                    </div>
+
+                    <h5 class="mb-0">
+                        @MaterialQuantity.ToString("N2")
+                    </h5>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-2">
+
+            <div class="card shadow-sm border-info">
+
+                <div class="card-body text-center">
+
+                    <div class="text-muted small">
+                        Documents
+                    </div>
+
+                    <h5 class="mb-0">
+                        @DocumentCount
+                    </h5>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-2">
+
+            <div class="card shadow-sm border-warning">
+
+                <div class="card-body text-center">
+
+                    <div class="text-muted small">
+                        Stock Transactions
+                    </div>
+
+                    <h5 class="mb-0">
+                        @TransactionCount
+                    </h5>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-2">
+
+            <div class="card shadow-sm border-danger">
+
+                <div class="card-body text-center">
+
+                    <div class="text-muted small">
+                        Compliance
+                    </div>
+
+                    <h5 class="mb-0">
+
+                        @(CompliancePercent.ToString("N0"))%
+
+                    </h5>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-2">
+
+            <div class="card shadow-sm border-secondary">
+
+                <div class="card-body text-center">
+
+                    <div class="text-muted small">
+                        Status
+                    </div>
+
+                    <h5 class="mb-0">
+
+                        @Project.Status
+
+                    </h5>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public Project? Project { get; set; }
+
+    [Parameter]
+    public decimal MaterialQuantity { get; set; }
+
+    [Parameter]
+    public int DocumentCount { get; set; }
+
+    [Parameter]
+    public int TransactionCount { get; set; }
+
+    [Parameter]
+    public double CompliancePercent { get; set; }
+
+}

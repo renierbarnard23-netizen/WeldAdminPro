@@ -1,0 +1,108 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Analytics.Production
+
+<DashboardSection Title="Production Timeline"
+                  Icon="@Icons.Material.Filled.Timeline"
+                  IconColor="Color.Primary">
+
+    @if (Timeline == null || Timeline.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">
+
+            No production schedule available.
+
+        </MudAlert>
+    }
+    else
+    {
+        @foreach (var item in Timeline)
+        {
+            <MudPaper Class="pa-3 mb-3" Elevation="0">
+
+                <MudGrid>
+
+                    <MudItem xs="12" md="3">
+
+                        <MudText Typo="Typo.subtitle2">
+
+                            @item.WorkOrderNumber
+
+                        </MudText>
+
+                    </MudItem>
+
+                    <MudItem xs="12" md="9">
+
+                        <MudChip T="string"
+                                 Color="@GetMudColor(item.Status)"
+                                 Size="Size.Small">
+
+                            @item.Status
+
+                        </MudChip>
+
+                        <div class="timeline-row">
+
+                            <div class="timeline-bar"
+                                 style="
+                                margin-left:@($"{item.StartOffset}px");
+                                width:@($"{Math.Max(item.Duration * 8, 30)}px");
+                                background:@GetStatusColour(item.Status);">
+                            </div>
+
+                        </div>
+
+                        <MudText Typo="Typo.caption"
+                                 Class="mt-1">
+
+                            @item.StartDate.ToShortDateString()
+
+                            -
+
+                            @item.DueDate.ToShortDateString()
+
+                        </MudText>
+
+                    </MudItem>
+
+                </MudGrid>
+
+            </MudPaper>
+        }
+    }
+
+</DashboardSection>
+
+@code {
+
+    [Parameter]
+
+    public List<ProductionGanttItem> Timeline { get; set; } = new();
+
+    private string GetStatusColour(string status)
+    {
+        return status switch
+        {
+            "Completed" => "#4CAF50",
+            "InProduction" => "#2196F3",
+            "Paused" => "#FFC107",
+            "Ready" => "#00BCD4",
+            "Cancelled" => "#F44336",
+            _ => "#9E9E9E"
+        };
+    }
+
+    private Color GetMudColor(string status)
+    {
+        return status switch
+        {
+            "Completed" => Color.Success,
+            "InProduction" => Color.Info,
+            "Paused" => Color.Warning,
+            "Ready" => Color.Primary,
+            "Cancelled" => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+}

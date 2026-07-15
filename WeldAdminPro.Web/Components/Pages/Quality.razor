@@ -1,0 +1,100 @@
+@page "/quality"
+
+@using MudBlazor
+@using WeldAdminPro.Web.Components.Shared.Quality
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Web.Services.Dashboard
+
+@inject QualityDashboardService DashboardService
+
+<PageTitle>Quality</PageTitle>
+
+<EnterprisePageHeader Title="Quality Control Centre"
+                      Subtitle="Quality assurance, welding compliance and inspection management."
+                      Icon="@Icons.Material.Filled.Verified">
+
+    <Actions>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="RefreshDashboard">
+
+            Refresh
+
+        </MudButton>
+
+    </Actions>
+
+</EnterprisePageHeader>
+
+<QualityKpiCards Snapshot="_snapshot" />
+
+<DashboardSection Title="Quality Modules"
+                  Icon="@Icons.Material.Filled.Dashboard">
+
+    <QualityQuickActions />
+
+</DashboardSection>
+
+<DashboardSection Title="Quality Alerts"
+                  Icon="@Icons.Material.Filled.Warning">
+
+    <QualityAlerts Snapshot="_snapshot" />
+
+</DashboardSection>
+
+<MudGrid>
+
+    <MudItem xs="12" lg="8">
+
+        <DashboardSection Title="Quality Control Tower"
+                          Icon="@Icons.Material.Filled.VerifiedUser">
+
+            <QualityControlTower Snapshot="_snapshot" />
+
+        </DashboardSection>
+
+    </MudItem>
+
+    <MudItem xs="12" lg="4">
+
+        <DashboardSection Title="Recent Activity"
+                          Icon="@Icons.Material.Filled.History">
+
+            <QualityActivity Snapshot="_snapshot" />
+
+        </DashboardSection>
+
+    </MudItem>
+
+</MudGrid>
+
+<DashboardSection Title="Inspection Status"
+                  Icon="@Icons.Material.Filled.FactCheck">
+
+    <QualityInspectionStatus Snapshot="_snapshot" />
+
+</DashboardSection>
+
+<DashboardSection Title="AI Quality Advisor"
+                  Icon="@Icons.Material.Filled.Psychology">
+
+    <QualityRecommendationPanel Snapshot="_snapshot" />
+
+</DashboardSection>
+
+@code
+{
+    private QualitySnapshot? _snapshot;
+
+        protected override void OnInitialized()
+        {
+            _snapshot = DashboardService.GetDashboard();
+        }
+
+        private void RefreshDashboard()
+        {
+            _snapshot = DashboardService.GetDashboard();
+        }
+}

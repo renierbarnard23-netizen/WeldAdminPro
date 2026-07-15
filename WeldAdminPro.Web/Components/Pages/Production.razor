@@ -1,50 +1,153 @@
 @page "/production"
 
-@inject WeldAdminPro.Web.Services.Dashboard.DashboardService DashboardService
-
+@using MudBlazor
 @using WeldAdminPro.Data.Services.ProductionEngine
 @using WeldAdminPro.Web.Components.Dashboard
+@using WeldAdminPro.Web.Components.Shared.Production
+@inject WeldAdminPro.Web.Services.Dashboard.DashboardService DashboardService
 
 <PageTitle>Production</PageTitle>
 
-<h1>Production Control Centre</h1>
+<EnterprisePageHeader
+    Title="Production Control Centre"
+    Subtitle="Live production management powered by the Production Engine."
+    Icon="@Icons.Material.Filled.Factory">
 
-<p class="text-muted">
-    Live production management powered by the Production Engine.
-</p>
+    <Actions>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="RefreshDashboard">
+
+            Refresh
+
+        </MudButton>
+
+    </Actions>
+
+</EnterprisePageHeader>
 
 @if (_snapshot == null)
 {
-    <p><em>Loading production...</em></p>
+    <MudPaper Class="pa-8 my-6">
+
+        <MudStack AlignItems="AlignItems.Center"
+                  Justify="Justify.Center"
+                  Spacing="2">
+
+            <MudProgressCircular Indeterminate="true"
+                                 Color="Color.Primary" />
+
+            <MudText>
+                Loading production dashboard...
+            </MudText>
+
+        </MudStack>
+
+    </MudPaper>
 }
 else
 {
-    <div class="row">
+    @*  ======================================================
+                Production Overview
+        ====================================================== *@
 
-        <div class="col-lg-8 mb-4">
+    <ProductionKpiCards Snapshot="_snapshot" />
 
-            <ProductionQueue Snapshot="_snapshot" />
+    <MudGrid Class="mt-4">
 
-        </div>
+        <MudItem xs="12" lg="6">
 
-        <div class="col-lg-4 mb-4">
+            <DashboardSection Title="Factory Alerts"
+                              Icon="@Icons.Material.Filled.Warning">
 
-            <WorkCenterStatus Snapshot="_snapshot" />
+                <ProductionAlerts Snapshot="_snapshot" />
 
-        </div>
+            </DashboardSection>
 
-    </div>
+        </MudItem>
 
-    <div class="row">
+        <MudItem xs="12" lg="6">
 
-        <div class="col-12">
+            <DashboardSection Title="AI Production Advisor"
+                              Icon="@Icons.Material.Filled.Psychology">
 
-            <RecommendationPanel Snapshot="_snapshot" />
+                <RecommendationPanel Snapshot="_snapshot" />
 
-        </div>
+            </DashboardSection>
 
-    </div>
+        </MudItem>
 
+    </MudGrid>
+
+    @* ======================================================
+                Factory Status
+       ====================================================== *@
+
+    <DashboardSection
+        Title="Factory Control Tower"
+                      Icon="@Icons.Material.Filled.Speed">
+
+        <ProductionControlTower Snapshot="_snapshot" />
+
+    </DashboardSection>
+
+    @* ======================================================
+                Operations
+       ====================================================== *@
+
+    <MudGrid>
+
+        <MudItem xs="12" lg="8">
+
+            <DashboardSection
+                Title="Production Queue"
+                Icon="@Icons.Material.Filled.ViewList">
+
+                <ProductionQueue Snapshot="_snapshot" />
+
+            </DashboardSection>
+
+        </MudItem>
+
+        <MudItem xs="12" lg="4">
+
+            <DashboardSection
+                Title="Work Centres"
+                Icon="@Icons.Material.Filled.Factory">
+
+                <WorkCenterStatus Snapshot="_snapshot" />
+
+            </DashboardSection>
+
+        </MudItem>
+
+    </MudGrid>
+
+    @* ======================================================
+                    Planning
+       ====================================================== *@
+
+    <DashboardSection
+        Title="Production Timeline"
+        Icon="@Icons.Material.Filled.Timeline">
+
+        <ProductionTimeline Snapshot="_snapshot" />
+
+    </DashboardSection>
+
+    @* ======================================================
+                    Decision Support
+       ====================================================== *@
+
+    <DashboardSection
+        Title="AI Production Advisor"
+        Icon="@Icons.Material.Filled.Psychology">
+
+        <RecommendationPanel Snapshot="_snapshot" />
+
+    </DashboardSection>
 }
 
 @code
@@ -52,6 +155,11 @@ else
     private ProductionSnapshot? _snapshot;
 
     protected override void OnInitialized()
+    {
+        _snapshot = DashboardService.GetDashboard();
+    }
+
+    private void RefreshDashboard()
     {
         _snapshot = DashboardService.GetDashboard();
     }

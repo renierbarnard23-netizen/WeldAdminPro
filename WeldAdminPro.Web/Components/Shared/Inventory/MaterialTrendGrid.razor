@@ -1,0 +1,125 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Analytics.Executive
+@using System.Linq
+
+@if (!Materials.Any())
+{
+    <MudAlert Severity="Severity.Info">
+        No material trend information available.
+    </MudAlert>
+}
+else
+{
+    <MudTable T="MaterialTrendModel"
+              Items="Materials"
+              Dense="true"
+              Hover="true"
+              Striped="true"
+              Bordered="true"
+              Breakpoint="Breakpoint.Sm"
+              Elevation="0">
+
+        <HeaderContent>
+
+            <MudTh>#</MudTh>
+
+            <MudTh>Item Code</MudTh>
+
+            <MudTh>Description</MudTh>
+
+            <MudTh Class="text-end">
+                Last Month
+            </MudTh>
+
+            <MudTh Class="text-end">
+                This Month
+            </MudTh>
+
+            <MudTh Class="text-end">
+                Change %
+            </MudTh>
+
+            <MudTh>
+                Trend
+            </MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>
+                @(MaterialList.IndexOf(context) + 1)
+            </MudTd>
+
+            <MudTd>
+                @context.ItemCode
+            </MudTd>
+
+            <MudTd>
+                @context.Description
+            </MudTd>
+
+            <MudTd Class="text-end">
+                @context.LastMonthCost.ToString("C")
+            </MudTd>
+
+            <MudTd Class="text-end">
+                @context.ThisMonthCost.ToString("C")
+            </MudTd>
+
+            <MudTd Class="text-end">
+                @($"{context.PercentChange:N1}%")
+            </MudTd>
+
+            <MudTd>
+
+                @if (context.PercentChange > 0)
+                {
+                    <MudChip T="string"
+                             Color="Color.Error"
+                             Variant="Variant.Filled"
+                             Icon="@Icons.Material.Filled.TrendingUp">
+
+                        Increased
+
+                    </MudChip>
+                }
+                else if (context.PercentChange < 0)
+                {
+                    <MudChip T="string"
+                             Color="Color.Success"
+                             Variant="Variant.Filled"
+                             Icon="@Icons.Material.Filled.TrendingDown">
+
+                        Decreased
+
+                    </MudChip>
+                }
+                else
+                {
+                    <MudChip T="string"
+                             Color="Color.Info"
+                             Variant="Variant.Outlined"
+                             Icon="@Icons.Material.Filled.Remove">
+
+                        Stable
+
+                    </MudChip>
+                }
+
+            </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+}
+
+@code
+{
+    [Parameter]
+    public IEnumerable<MaterialTrendModel> Materials { get; set; }
+        = Enumerable.Empty<MaterialTrendModel>();
+
+    private List<MaterialTrendModel> MaterialList =>
+    Materials.ToList();
+}

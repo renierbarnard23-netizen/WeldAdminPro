@@ -1,0 +1,173 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services
+
+@if (Project != null)
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+
+        <MudText Typo="Typo.h5" GutterBottom="true">
+            Financial Dashboard
+        </MudText>
+
+        <MudGrid>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-3 text-center">
+                    <MudText Typo="Typo.caption">Budget</MudText>
+                    <MudText Typo="Typo.h5">
+                        @Project.Budget.ToString("C")
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-3 text-center">
+                    <MudText Typo="Typo.caption">Actual Cost</MudText>
+                    <MudText Typo="Typo.h5">
+                        @_actualCost.ToString("C")
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-3 text-center">
+                    <MudText Typo="Typo.caption">Variance</MudText>
+                    <MudText Typo="Typo.h5">
+                        @_variance.ToString("C")
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-3 text-center">
+                    <MudText Typo="Typo.caption">Margin %</MudText>
+                    <MudText Typo="Typo.h5">
+                        @_margin.ToString("N2")%
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+
+        </MudGrid>
+
+        <MudDivider Class="my-4" />
+
+        <MudGrid>
+
+            <MudItem xs="12" md="6">
+
+                <MudTable Dense="true"
+                          Hover="true"
+                          Items="_costSummary">
+
+                    <HeaderContent>
+
+                        <MudTh>Project</MudTh>
+                        <MudTh class="text-end">Units</MudTh>
+                        <MudTh class="text-end">Material Cost</MudTh>
+
+                    </HeaderContent>
+
+                    <RowTemplate>
+
+                        <MudTd>@context.ProjectName</MudTd>
+
+                        <MudTd Class="text-end">
+                            @context.TotalUnitsConsumed
+                        </MudTd>
+
+                        <MudTd Class="text-end">
+                            @context.TotalMaterialCost.ToString("C")
+                        </MudTd>
+
+                    </RowTemplate>
+
+                </MudTable>
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudTable Dense="true"
+                          Hover="true"
+                          Items="_profitability">
+
+                    <HeaderContent>
+
+                        <MudTh>Revenue</MudTh>
+                        <MudTh>Material</MudTh>
+                        <MudTh>Profit</MudTh>
+
+                    </HeaderContent>
+
+                    <RowTemplate>
+
+                        <MudTd>
+                            @context.Revenue.ToString("C")
+                        </MudTd>
+
+                        <MudTd>
+                            @context.MaterialCost.ToString("C")
+                        </MudTd>
+
+                        <MudTd>
+                            @context.Profit.ToString("C")
+                        </MudTd>
+
+                    </RowTemplate>
+
+                </MudTable>
+
+            </MudItem>
+
+        </MudGrid>
+
+    </MudPaper>
+}
+
+@code
+{
+    [Parameter]
+    public Project? Project { get; set; }
+
+    private readonly FinancialService _financial = new();
+    private readonly ProjectCostingService _costService = new();
+    private readonly ProjectProfitabilityService _profitService = new();
+
+    private decimal _actualCost;
+    private decimal _variance;
+    private decimal _margin;
+
+    private List<ProjectCostSummary> _costSummary = new();
+
+    private List<ProjectProfitability> _profitability = new();
+
+    protected override void OnParametersSet()
+    {
+        if (Project == null)
+            return;
+
+        _actualCost =
+            _financial.CalculateProjectActualCost(Project.Id);
+
+        Project.ActualCost = _actualCost;
+
+        _variance =
+            _financial.CalculateVariance(Project);
+
+        _margin =
+            _financial.CalculateMarginPercentage(Project);
+
+        _costSummary =
+            _costService
+                .GetProjectCostSummary()
+                .Where(x => x.ProjectId == Project.Id)
+                .ToList();
+
+        _profitability =
+            _profitService
+                .GetProjectProfitability()
+                .Where(x => x.ProjectId == Project.Id)
+                .ToList();
+    }
+}

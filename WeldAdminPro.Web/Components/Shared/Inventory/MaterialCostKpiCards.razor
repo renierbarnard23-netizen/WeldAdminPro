@@ -1,0 +1,52 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Web.Components.Shared.Production
+
+<MudGrid>
+
+    <MudItem xs="12" md="3">
+        <EnterpriseKpiCard Title="Materials"
+                           Value="@Drivers.Count().ToString()"
+                           Icon="@Icons.Material.Filled.Inventory2"
+                           IconColor="Color.Primary" />
+    </MudItem>
+
+    <MudItem xs="12" md="3">
+        <EnterpriseKpiCard Title="Units Consumed"
+                           Value="@TotalUnits.ToString("N0")"
+                           Icon="@Icons.Material.Filled.Scale"
+                           IconColor="Color.Info" />
+    </MudItem>
+
+    <MudItem xs="12" md="3">
+        <EnterpriseKpiCard Title="Material Cost"
+                           Value="@TotalCost.ToString("C")"
+                           Icon="@Icons.Material.Filled.AttachMoney"
+                           IconColor="Color.Success" />
+    </MudItem>
+
+    <MudItem xs="12" md="3">
+        <EnterpriseKpiCard Title="Top Cost Driver"
+                           Value="@TopItem"
+                           Icon="@Icons.Material.Filled.TrendingUp"
+                           IconColor="Color.Warning" />
+    </MudItem>
+
+</MudGrid>
+
+@code
+{
+    [Parameter]
+    public IEnumerable<MaterialCostDriver> Drivers { get; set; }
+        = Enumerable.Empty<MaterialCostDriver>();
+
+    private int TotalUnits =>
+        Drivers.Sum(x => x.UnitsConsumed);
+
+    private decimal TotalCost =>
+        Drivers.Sum(x => x.TotalCost);
+
+    private string TopItem =>
+        Drivers.OrderByDescending(x => x.TotalCost)
+               .FirstOrDefault()?.ItemCode ?? "-";
+}

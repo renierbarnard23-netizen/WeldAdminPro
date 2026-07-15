@@ -1,0 +1,117 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+
+@if (!Orders.Any())
+{
+    <MudAlert Severity="Severity.Info">
+        No purchase orders available.
+    </MudAlert>
+}
+else
+{
+    <MudTable T="PurchaseOrder"
+              Items="Orders"
+              Dense="true"
+              Hover="true"
+              Striped="true"
+              Bordered="true"
+              Breakpoint="Breakpoint.Sm"
+              Elevation="0">
+
+        <HeaderContent>
+
+            <MudTh>#</MudTh>
+
+            <MudTh>PO Number</MudTh>
+
+            <MudTh>Job</MudTh>
+
+            <MudTh>Supplier</MudTh>
+
+            <MudTh>Date</MudTh>
+
+            <MudTh>Status</MudTh>
+
+            <MudTh Class="text-end">
+                Total
+            </MudTh>
+
+            <MudTh Class="text-end">
+                Lines
+            </MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>
+                @(OrderList.IndexOf(context) + 1)
+            </MudTd>
+
+            <MudTd>
+                @context.PONumber
+            </MudTd>
+
+            <MudTd>
+                @context.JobNumber
+            </MudTd>
+
+            <MudTd>
+                @context.SupplierName
+            </MudTd>
+
+            <MudTd>
+                @context.CreatedDate.ToShortDateString()
+            </MudTd>
+
+            <MudTd>
+
+                @if (context.Status == "Approved")
+                {
+                    <MudChip T="string"
+                             Color="Color.Success"
+                             Variant="Variant.Filled">
+                        Approved
+                    </MudChip>
+                }
+                else if (context.Status == "Pending")
+                {
+                    <MudChip T="string"
+                             Color="Color.Warning"
+                             Variant="Variant.Filled">
+                        Pending
+                    </MudChip>
+                }
+                else
+                {
+                    <MudChip T="string"
+                             Color="Color.Info"
+                             Variant="Variant.Outlined">
+                        @context.Status
+                    </MudChip>
+                }
+
+            </MudTd>
+
+            <MudTd Class="text-end">
+                @context.TotalAmount.ToString("C")
+            </MudTd>
+
+            <MudTd Class="text-end">
+                @context.Lines.Count
+            </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+}
+
+@code
+{
+    [Parameter]
+    public IEnumerable<PurchaseOrder> Orders { get; set; }
+        = Enumerable.Empty<PurchaseOrder>();
+
+    private List<PurchaseOrder> OrderList =>
+        Orders.ToList();
+}

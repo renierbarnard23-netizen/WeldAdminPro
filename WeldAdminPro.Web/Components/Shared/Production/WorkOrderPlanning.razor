@@ -1,0 +1,376 @@
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Analytics.Production
+@using WeldAdminPro.Web.Components.Shared.Dashboard
+
+<div class="card shadow-sm h-100">
+
+    <div class="card-body text-center">
+
+        <div class="text-muted small">
+
+            @Title
+
+        </div>
+
+        <h2 class="mt-2 mb-0">
+
+            @Value
+
+        </h2>
+
+        @if (!string.IsNullOrWhiteSpace(SubTitle))
+        {
+            <small class="text-muted">
+
+                @SubTitle
+
+            </small>
+        }
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string Value { get; set; } = "";
+
+    [Parameter]
+    public string? SubTitle { get; set; }
+
+}
+
+<div class="card shadow-sm mt-3">
+
+    <div class="card-header bg-secondary text-white">
+
+        <strong>Production Planning</strong>
+
+    </div>
+
+    <div class="card-body">
+
+    <div class="row mb-4">
+
+        <div class="col-md-3">
+
+            <DashboardKpiCard
+                Title="Scheduled Orders"
+                Value="@Schedule.Count.ToString()"
+                SubTitle="Current Schedule" />
+
+        </div>
+
+        <div class="col-md-3">
+
+            <DashboardKpiCard
+                Title="Capacity Days"
+                Value="@Capacity.Count.ToString()"
+                SubTitle="Forecast Days" />
+
+        </div>
+
+        <div class="col-md-3">
+
+            <DashboardKpiCard
+                Title="Delay Risks"
+                Value="@Delays.Count.ToString()"
+                SubTitle="Predicted Delays" />
+
+        </div>
+
+        <div class="col-md-3">
+
+            <DashboardKpiCard
+                Title="Timeline Items"
+                Value="@Timeline.Count.ToString()"
+                SubTitle="Production Tasks" />
+
+        </div>
+
+    </div>
+
+    <!-- Schedule -->
+
+        <!-- Schedule -->
+        <h5 class="mb-3">
+            Production Schedule
+        </h5>
+
+        @if (Schedule.Count == 0)
+        {
+            <p class="text-muted">
+                No scheduled work orders.
+            </p>
+        }
+        else
+        {
+            <table class="table table-sm table-hover">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Work Order</th>
+
+                        <th>Start</th>
+
+                        <th>Finish</th>
+
+                        <th class="text-end">
+                            Days
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @foreach (var item in Schedule)
+                    {
+                        <tr>
+
+                            <td>@item.WorkOrderNumber</td>
+
+                            <td>@item.StartDate.ToShortDateString()</td>
+
+                            <td>@item.EndDate.ToShortDateString()</td>
+
+                            <td class="text-end">
+                                @item.DurationDays
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+        }
+
+        <!-- Capacity -->
+        <hr />
+
+        <h5 class="mb-3">
+            Capacity Forecast
+        </h5>
+
+        @if (Capacity.Count == 0)
+        {
+            <p class="text-muted">
+                No capacity forecast.
+            </p>
+        }
+        else
+        {
+            <table class="table table-sm">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Date</th>
+
+                        <th class="text-end">
+                            Capacity
+                        </th>
+
+                        <th class="text-end">
+                            Scheduled
+                        </th>
+
+                        <th class="text-end">
+                            Load
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @foreach (var day in Capacity)
+                    {
+                        <tr>
+
+                            <td>@day.Date.ToShortDateString()</td>
+
+                            <td class="text-end">
+                                @day.CapacityHours
+                            </td>
+
+                            <td class="text-end">
+                                @day.ScheduledHours
+                            </td>
+
+                            <td class="text-end">
+                                @day.LoadPercentage %
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+        }
+
+        <!-- Delay Risks -->
+        <hr />
+
+        <h5 class="mb-3">
+            Delay Risks
+        </h5>
+
+        @if (Delays.Count == 0)
+        {
+            <p class="text-muted">
+                No predicted delays.
+            </p>
+        }
+        else
+        {
+            <table class="table table-sm table-hover">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Work Order</th>
+
+                        <th>Due Date</th>
+
+                        <th>Scheduled End</th>
+
+                        <th class="text-end">Days Late</th>
+
+                        <th>Risk</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @foreach (var delay in Delays)
+                    {
+                        <tr>
+
+                            <td>@delay.WorkOrderNumber</td>
+
+                            <td>@delay.DueDate.ToShortDateString()</td>
+
+                            <td>@delay.ScheduledEnd.ToShortDateString()</td>
+
+                            <td class="text-end">
+                                @delay.DaysLate
+                            </td>
+
+                            <td>
+
+                                @if (delay.RiskLevel == "Critical")
+                                {
+                                    <span class="badge bg-danger">
+                                        Critical
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning">
+                                        Warning
+                                    </span>
+                                }
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+        }
+
+        <!-- Timeline -->
+        <hr />
+
+        <h5 class="mb-3">
+            Production Timeline
+        </h5>
+
+        @if (Timeline.Count == 0)
+        {
+            <p class="text-muted">
+                No production timeline available.
+            </p>
+        }
+        else
+        {
+            <table class="table table-sm table-striped">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Work Order</th>
+
+                        <th>Start</th>
+
+                        <th>Finish</th>
+
+                        <th>Status</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @foreach (var item in Timeline)
+                    {
+                        <tr>
+
+                            <td>@item.WorkOrderNumber</td>
+
+                            <td>@item.StartDate.ToShortDateString()</td>
+
+                            <td>@item.DueDate.ToShortDateString()</td>
+
+                            <td>@item.Status</td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+        }
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public List<ProductionScheduleItem> Schedule { get; set; }
+        = new();
+
+    [Parameter]
+    public List<ProductionCapacityForecast> Capacity { get; set; }
+        = new();
+
+    [Parameter]
+    public List<ProductionDelayPrediction> Delays { get; set; }
+        = new();
+
+    [Parameter]
+    public List<ProductionGanttItem> Timeline { get; set; }
+        = new();
+
+}

@@ -1,0 +1,214 @@
+@page "/inventory"
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Inventory
+@using WeldAdminPro.Web.Components.Shared.Inventory
+
+@inject StockApplicationService StockService
+@inject NavigationManager Navigation
+
+<PageTitle>Inventory</PageTitle>
+
+<h2 class="mb-4">Inventory</h2>
+
+<div class="mb-3">
+
+    <button class="btn btn-success"
+            @onclick="NewItem">
+
+        + New Stock Item
+
+    </button>
+
+    <div class="mb-3">
+
+        <MudStack Row="true"
+                  Spacing="2">
+
+            <MudButton Color="Color.Success"
+                       Variant="Variant.Filled"
+                       Href="/inventory/stockin">
+
+                Receive Stock
+
+            </MudButton>
+
+            <MudButton Color="Color.Warning"
+                       Variant="Variant.Filled"
+                       Href="/inventory/stockout">
+
+                Issue Stock
+
+            </MudButton>
+
+            <MudButton Color="Color.Info"
+                       Variant="Variant.Outlined"
+                       Href="/inventory/transactions">
+
+                Transactions
+
+            </MudButton>
+
+            <MudButton Color="Color.Default"
+                       Variant="Variant.Outlined"
+                       Href="/inventory/ledger">
+
+                Ledger
+
+            </MudButton>
+
+        </MudStack>
+
+    </div>
+
+</div>
+
+<div class="row mb-3">
+
+    <div class="col-md-5">
+
+        <input class="form-control"
+               placeholder="Search stock..."
+               @bind="_search" />
+
+    </div>
+
+</div>
+
+<InventoryKpiCards TotalValue="@TotalInventoryValue"
+                   TotalUnits="@TotalUnits"
+                   LowStock="@LowStock"
+                   Critical="@Critical" />
+
+<InventoryToolbar Categories="_categories"
+                  CategoryChanged="CategoryChanged"
+                  StatusChanged="StatusChanged" />
+
+<InventoryGrid Items="FilteredItems.ToList()"
+               OnOpen="OpenItem" />
+
+@code {
+
+    private List<StockItem> _items = new();
+
+    private List<Category> _categories = new();
+
+    private Guid? _selectedCategory;
+
+    private void NewItem()
+    {
+        Navigation.NavigateTo("/inventory/new");
+    }
+
+    private InventoryToolbar.Filter _statusFilter =
+    InventoryToolbar.Filter.All;
+
+    protected override void OnInitialized()
+    {
+        _items = StockService.GetStockItems();
+        _categories =
+            StockService.GetCategories();
+    }
+
+    private IEnumerable<StockItem> FilteredItems =>
+    _items.Where(i =>
+
+        // Search
+        (
+            string.IsNullOrWhiteSpace(_search)
+
+            ||
+
+            i.ItemCode.Contains(
+                _search,
+                StringComparison.OrdinalIgnoreCase)
+
+            ||
+
+            i.Description.Contains(
+                _search,
+                StringComparison.OrdinalIgnoreCase)
+
+            ||
+
+            i.Category.Contains(
+                _search,
+                StringComparison.OrdinalIgnoreCase)
+        )
+
+
+        // Category
+        &&
+
+        (
+            !_selectedCategory.HasValue
+
+            ||
+
+            _selectedCategory == Guid.Empty
+
+            ||
+
+            _categories.FirstOrDefault(c => c.Id == _selectedCategory)?.Name
+                == i.Category
+        )
+
+        // Status
+        &&
+
+        (
+            _statusFilter == InventoryToolbar.Filter.All
+
+            ||
+
+            (_statusFilter ==
+                InventoryToolbar.Filter.LowStock
+                &&
+                i.SmartStatus ==
+                SmartStockStatus.ReorderRequired)
+
+            ||
+
+            (_statusFilter ==
+                InventoryToolbar.Filter.Critical
+                &&
+                i.SmartStatus ==
+                SmartStockStatus.Critical)
+        )
+
+    );
+
+    private decimal TotalInventoryValue =>
+        FilteredItems.Sum(x => x.TotalStockValue);
+
+    private int TotalUnits =>
+        (int)FilteredItems.Sum(x => x.Quantity);
+
+    private int LowStock =>
+        FilteredItems.Count(x =>
+            x.SmartStatus ==
+            SmartStockStatus.ReorderRequired);
+
+    private int Critical =>
+        FilteredItems.Count(x =>
+            x.SmartStatus ==
+            SmartStockStatus.Critical);
+
+    private void OpenItem(Guid id)
+    {
+        Navigation.NavigateTo($"/inventory/{id}");
+    }
+
+    private string _search = "";
+
+    private void CategoryChanged(Guid? categoryId)
+    {
+        _selectedCategory = categoryId;
+    }
+
+    private void StatusChanged(InventoryToolbar.Filter filter)
+    {
+        _statusFilter = filter;
+    }
+
+}

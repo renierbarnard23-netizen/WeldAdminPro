@@ -1,531 +1,189 @@
 @page "/production/workorder/{Id:guid}"
 
+@using MudBlazor
 @using WeldAdminPro.Core.Models
-@using WeldAdminPro.Data.Services.Production
 @using WeldAdminPro.Core.Analytics.Production
+@using WeldAdminPro.Data.Services.Production
+
+@using WeldAdminPro.Web.Components.Shared.Enterprise
+@using WeldAdminPro.Web.Components.Shared.Production
 
 @inject ProductionApplicationService ProductionService
 
 <PageTitle>Work Order</PageTitle>
 
+<EnterprisePageHeader
+    Title="@($"Work Order {(_workOrder?.WorkOrderNumber ?? "")}")"
+    Subtitle="@(_workOrder?.ProjectName ?? "Production Work Order")"
+    Icon="@Icons.Material.Filled.Assignment">
+
+    <Actions>
+
+        <MudButton
+            Variant="Variant.Filled"
+            Color="Color.Primary"
+            StartIcon="@Icons.Material.Filled.Refresh"
+            OnClick="Load">
+
+            Refresh
+
+        </MudButton>
+
+    </Actions>
+
+</EnterprisePageHeader>
+
+<MudGrid Class="mb-4">
+
+    <MudItem xs="12" sm="6" lg="3">
+
+        <EnterpriseKpiCard Title="Progress"
+                           Value="@($"{GetProgress()}%")"
+                           Status="@(_workOrder?.Status.ToString() ?? "")"
+                           ChipColor="@GetStatusColor()"
+                           Icon="@Icons.Material.Filled.Timeline"
+                           IconColor="Color.Info" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" lg="3">
+
+        <EnterpriseKpiCard Title="Readiness"
+                           Value="@(_readiness?.IsReady == true ? "Ready" : "Blocked")"
+                           Status="@(_readiness?.Reason ?? "")"
+                           ChipColor="@(_readiness?.IsReady == true ? Color.Success : Color.Warning)"
+                           Icon="@Icons.Material.Filled.FactCheck"
+                           IconColor="@(_readiness?.IsReady == true ? Color.Success : Color.Warning)" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" lg="3">
+
+        <EnterpriseKpiCard Title="Priority"
+                           Value="@(_workOrder?.Priority.ToString() ?? "-")"
+                           Status="AI Priority"
+                           ChipColor="Color.Info"
+                           Icon="@Icons.Material.Filled.PriorityHigh"
+                           IconColor="Color.Info" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" lg="3">
+
+        <EnterpriseKpiCard Title="Health"
+                           Value="@($"{GetHealth()}%")"
+                           Status="Excellent"
+                           ChipColor="Color.Success"
+                           Icon="@Icons.Material.Filled.Favorite"
+                           IconColor="Color.Success" />
+
+    </MudItem>
+
+</MudGrid>
+
 @if (_workOrder == null)
 {
-    <h3>Work Order not found</h3>
+    <MudPaper Class="pa-8 my-6">
+
+        <MudStack AlignItems="AlignItems.Center"
+        Justify="Justify.Center"
+        Spacing="2">
+
+            <MudProgressCircular Indeterminate="true"
+            Color="Color.Primary" />
+
+            <MudText>
+
+                Loading work order...
+
+            </MudText>
+
+        </MudStack>
+
+    </MudPaper>
 }
 else
 {
-    <div class="card shadow-sm mb-4">
 
-        <div class="card-body">
+    <DashboardSection
+        Title="Overview"
+        Icon="@Icons.Material.Filled.Info">
 
-            <div class="row">
+        <WorkOrderHeader 
+            WorkOrder="_workOrder"
+            ProjectName="@(_workOrder?.ProjectName ?? "")"
+            Health="@GetHealth()" />
 
-                <div class="col-lg-8">
+        <WorkOrderProgress WorkOrder="_workOrder"
+                           Health="@GetProgress()" />
 
-                    <h2 class="mb-1">
+    </DashboardSection>
 
-                        @_workOrder.WorkOrderNumber
+    <DashboardSection
+            Title="Actions"
+            Icon="@Icons.Material.Filled.PlayCircle">
 
-                    </h2>
+        <WorkOrderActions Start="Start"
+                      Pause="Pause"
+                      Complete="Complete" />
 
-                    <h5 class="text-muted">
+    </DashboardSection>
 
-                        @_workOrder.ProjectName
+    <DashboardSection
+    Title="Production Readiness"
+    Icon="@Icons.Material.Filled.FactCheck">
 
-                    </h5>
+    <MudGrid>
 
-                    <p>
+        <MudItem xs="12" lg="6">
 
-                        @_workOrder.Description
+            <WorkOrderInformation WorkOrder="_workOrder" />
 
-                    </p>
+        </MudItem>
 
-                </div>
+        <MudItem xs="12" lg="6">
 
-                <div class="col-lg-4 text-end">
-                    <p>
-                        <strong>Status</strong>
-                        <br />
-                        <span class="badge bg-primary fs-6">
-                            @_workOrder.Status
-                        </span>
-                    </p>
-                    <p>
+            <WorkOrderReadinessCard Readiness="_readiness" />
 
-                        <strong>Priority</strong>
+        </MudItem>
 
-                        <br />
+    </MudGrid>
 
-                        @_workOrder.Priority
+    </DashboardSection>
 
-                    </p>
+    <DashboardSection
+    Title="Materials"
+    Icon="@Icons.Material.Filled.Inventory2">
 
-                    <p>
+    <WorkOrderMaterials WorkOrder="_workOrder" />
 
-                        <strong>Work Centre</strong>
+    </DashboardSection>
 
-                        <br />
+    <DashboardSection
+    Title="AI Recommendation"
+    Icon="@Icons.Material.Filled.Psychology">
 
-                        @_workOrder.WorkCenter
+    <WorkOrderRecommendation Recommendation="_recommendation" />
 
-                    </p>
+    </DashboardSection>
 
-                </div>
+    <DashboardSection
+    Title="Production Planning"
+    Icon="@Icons.Material.Filled.Event">
 
-            </div>
+    <WorkOrderPlanning Schedule="_schedule"
+                       Capacity="_capacity"
+                       Delays="_delays"
+                       Timeline="_timeline" />
+    </DashboardSection>
 
-        </div>
+    <DashboardSection
+    Title="Timeline"
+    Icon="@Icons.Material.Filled.Timeline">
 
-    </div>
+    <WorkOrderTimeline Timeline="_timeline" />
 
-    <div class="row mb-4">
-
-            <div class="col-md-3">
-
-                <div class="card border-primary shadow-sm">
-
-                    <div class="card-body text-center">
-
-                        <h6 class="text-muted">Progress</h6>
-
-                            <h3>
-                                @(_workOrder.Status switch
-                                {
-                                    WorkOrderStatus.Ready => "0%",
-                                    WorkOrderStatus.InProduction => "50%",
-                                    WorkOrderStatus.Paused => "50%",
-                                    WorkOrderStatus.Completed => "100%",
-                                    WorkOrderStatus.Cancelled => "-",
-                                    _ => "0%"
-                                })
-                            </h3>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            <div class="col-md-3">
-
-                <div class="card border-success shadow-sm">
-
-                    <div class="card-body text-center">
-
-                        <h6 class="text-muted">Hours</h6>
-
-                        <h3>
-                            @_workOrder.ActualHours.ToString("N1")
-                            /
-                            @_workOrder.EstimatedHours
-                        </h3>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            <div class="col-md-3">
-
-                <div class="card border-warning shadow-sm">
-
-                    <div class="card-body text-center">
-
-                        <h6 class="text-muted">Materials</h6>
-
-                        <h3>
-                            @if (_readiness?.MaterialsReady == true)
-                            {
-                                <span class="badge bg-success fs-6">
-                                    Ready
-                                    </span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-danger fs-6">
-                                    Shortages
-                                    </span>
-                            }
-
-                        </h3>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            <div class="col-md-3">
-
-                <div class="card border-info shadow-sm">
-
-                    <div class="card-body text-center">
-
-                        <h6 class="text-muted">Due Date</h6>
-
-                        <h3>
-
-                            @(_workOrder.DueDate?.ToShortDateString() ?? "-")
-
-                        </h3>
-
-                    </div>
-
-                </div>
-
-            </div>
-    </div>
-
-    <div class="row">
-        <div class="col-12">
-
-        <div class="card shadow-sm mb-3">
-
-            <div class="card-header bg-primary text-white">
-
-                <strong>Production Information</strong>
-
-            </div>
-
-            <div class="card-body">
-
-                <div class="row">
-
-                    <div class="col-md-6">
-
-                        <p>
-                            <strong>Planned Start</strong><br />
-                            @(_workOrder.PlannedStartDate?.ToShortDateString() ?? "-")
-                        </p>
-
-                        <p>
-                            <strong>Actual Start</strong><br />
-                            @(_workOrder.ActualStartTime?.ToString("g") ?? "-")
-                        </p>
-
-                        <p>
-                            <strong>Due Date</strong><br />
-                            @(_workOrder.DueDate?.ToShortDateString() ?? "-")
-                        </p>
-
-                    </div>
-
-                    <div class="col-md-6">
-
-                        <p>
-                            <strong>Estimated Hours</strong><br />
-                            @_workOrder.EstimatedHours
-                        </p>
-
-                        <p>
-                            <strong>Actual Hours</strong><br />
-                            @_workOrder.ActualHours.ToString("N1")
-                        </p>
-
-                        
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <div class="card shadow-sm mb-3">
-
-            <div class="card-header bg-success text-white">
-
-                <strong>Material Requirements</strong>
-
-            </div>
-
-            <div class="card-body">
-
-                    @if (_workOrder.MaterialRequirements.Count == 0)
-                    {
-                        <p class="text-muted">
-                            No materials assigned.
-                        </p>
-                    }
-                    else
-                    {
-                        <table class="table table-hover table-sm">
-
-                            <thead>
-                                <tr>
-                                    <th>Item</th>
-                                    <th class="text-end">Required</th>
-                                    <th class="text-end">Available</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-
-                                @foreach (var material in _workOrder.MaterialRequirements)
-                                {
-                                    <tr class="@(material.AvailableQuantity >= material.RequiredQuantity
-                                                            ? "table-success"
-                                                            : "table-danger")">
-
-                                        <td>@material.ItemCode</td>
-
-                                        <td class="text-end">
-                                            @material.RequiredQuantity
-                                        </td>
-
-                                        <td class="text-end">
-                                            @material.AvailableQuantity
-                                        </td>
-
-                                    </tr>
-                                }
-
-                            </tbody>
-
-                        </table>
-                    }
-
-            </div>
-
-        </div>
-
-        <div class="card shadow-sm mb-3">
-
-            <div class="card-header bg-info text-white">
-
-                <strong>Production Readiness</strong>
-
-            </div>
-
-            <div class="card-body">
-
-                <table class="table table-borderless">
-
-                    <tr>
-
-                        <td>Materials</td>
-
-                        <td>
-
-                                @if (_readiness?.MaterialsReady == true)
-                                {
-                                    <span class="badge bg-success">
-                                        Ready
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-danger">
-                                        Shortages
-                                    </span>
-                                }
-
-                        </td>
-
-                    </tr>
-
-                    <tr>
-
-                        <td>Production Block</td>
-
-                        <td>
-
-                                @if (_readiness?.IsReady == true)
-                                {
-                                    <span class="badge bg-success">
-                                        READY TO START
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-warning">
-                                        ACTION REQUIRED
-                                    </span>
-                                }
-
-                        </td>
-
-                    </tr>
-
-                        <tr>
-                            <td>Reason</td>
-
-                            <td>
-
-                                @_readiness?.Reason
-
-                            </td>
-
-                        </tr>
-
-                    <tr>
-
-                        <td>Overall</td>
-
-                        <td>
-
-                                @if (_readiness?.IsReady == true)
-                                {
-                                    <span class="badge bg-success">
-                                        READY TO START
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-warning">
-                                        ACTION REQUIRED
-                                    </span>
-                                }
-
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-        </div>
-
-        </div>
-
-        <div class="card shadow-sm mb-3">
-
-            <div class="card-header bg-dark text-white">
-
-                <strong>🤖 AI Production Recommendation</strong>
-
-            </div>
-
-            <div class="card-body">
-
-                @if (_recommendation == null)
-                {
-                    <p class="text-muted">
-
-                        No recommendation available.
-
-                    </p>
-                }
-                else
-                {
-                    <table class="table table-borderless">
-
-                        <tr>
-
-                            <td width="180">
-
-                                <strong>Recommendation</strong>
-
-                            </td>
-
-                            <td>
-
-                                @_recommendation.Recommendation
-
-                            </td>
-
-                        </tr>
-
-                        <tr>
-
-                            <td>
-
-                                <strong>Priority Score</strong>
-
-                            </td>
-
-                            <td>
-
-                                @_recommendation.PriorityScore
-
-                            </td>
-
-                        </tr>
-
-                        <tr>
-
-                            <td>
-
-                                <strong>Materials</strong>
-
-                            </td>
-
-                            <td>
-
-                                @_recommendation.Materials
-
-                            </td>
-
-                        </tr>
-
-                        <tr>
-
-                            <td>
-
-                                <strong>Due</strong>
-
-                            </td>
-
-                            <td>
-
-                                @_recommendation.Due
-
-                            </td>
-
-                        </tr>
-
-                        <tr>
-
-                            <td>
-
-                                <strong>Explanation</strong>
-
-                            </td>
-
-                            <td>
-
-                                @_recommendation.Explanation
-
-                            </td>
-
-                        </tr>
-
-                    </table>
-                }
-
-            </div>
-
-        </div>
-
-    </div>
-
-    <div class="card shadow-sm mt-4">
-
-        <div class="card-header">
-
-            <strong>Production Actions</strong>
-
-        </div>
-
-        <div class="card-body">
-
-            <button class="btn btn-success me-2"
-                    @onclick="Start">
-                ▶ Start Production
-            </button>
-
-            <button class="btn btn-warning me-2"
-                    @onclick="Pause">
-                ⏸ Pause Production
-            </button>
-
-            <button class="btn btn-primary"
-                    @onclick="Complete">
-                ✔ Complete Production
-            </button>
-
-        </div>
-
-    </div>
-        
+    </DashboardSection>
 }
 
 @code {
@@ -539,6 +197,14 @@ else
     private WorkOrderReadiness? _readiness;
 
     private AIProductionRecommendation? _recommendation;
+
+    private List<ProductionScheduleItem> _schedule = new();
+
+    private List<ProductionCapacityForecast> _capacity = new();
+
+    private List<ProductionDelayPrediction> _delays = new();
+
+    private List<ProductionGanttItem> _timeline = new();
 
     protected override void OnInitialized()
     {
@@ -555,6 +221,18 @@ else
 
         _recommendation =
             ProductionService.GetWorkOrderRecommendation(Id);
+
+        _schedule =
+            ProductionService.GetSchedule();
+
+        _capacity =
+            ProductionService.GetCapacityForecast();
+
+        _delays =
+            ProductionService.GetDelayPredictions();
+
+        _timeline =
+            ProductionService.GetTimeline();
     }
 
     private void Start()
@@ -576,6 +254,65 @@ else
         ProductionService.CompleteWorkOrder(Id);
 
         Load();
+    }
+
+    private Color GetStatusColor()
+    {
+        if (_workOrder == null)
+            return Color.Default;
+
+        return _workOrder.Status switch
+        {
+            WorkOrderStatus.Ready => Color.Success,
+
+            WorkOrderStatus.InProduction => Color.Info,
+
+            WorkOrderStatus.Paused => Color.Warning,
+
+            WorkOrderStatus.Completed => Color.Success,
+
+            WorkOrderStatus.Cancelled => Color.Error,
+
+            _ => Color.Default
+        };
+    }
+
+    private int GetProgress()
+    {
+        if (_workOrder == null)
+            return 0;
+
+        return _workOrder.Status switch
+        {
+            WorkOrderStatus.Ready => 0,
+
+            WorkOrderStatus.InProduction => 50,
+
+            WorkOrderStatus.Paused => 50,
+
+            WorkOrderStatus.Completed => 100,
+
+            _ => 0
+        };
+    }
+
+    private int GetHealth()
+    {
+        if (_workOrder == null)
+            return 0;
+
+        int score = 100;
+
+        if (_readiness != null && !_readiness.IsReady)
+            score -= 30;
+
+        if (_delays.Any())
+            score -= 20;
+
+        if (_workOrder.Status == WorkOrderStatus.Paused)
+            score -= 10;
+
+        return Math.Max(score, 0);
     }
 
 }

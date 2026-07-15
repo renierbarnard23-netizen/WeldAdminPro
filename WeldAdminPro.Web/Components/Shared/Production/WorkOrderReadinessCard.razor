@@ -1,0 +1,97 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Analytics.Production
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+
+    <MudText Typo="Typo.h6">
+
+        Production Readiness
+
+    </MudText>
+
+    <MudDivider Class="mb-3"/>
+
+    @if (Readiness == null)
+    {
+        <MudAlert Severity="Severity.Info">
+
+            No readiness information available.
+
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid>
+
+            <MudItem xs="12">
+
+                <MudAlert Severity="@(Readiness.MaterialsReady
+                                      ? Severity.Success
+                                      : Severity.Warning)">
+
+                    @(Readiness.MaterialsReady
+                        ? "✓ Materials Ready"
+                        : "⚠ Materials Missing")
+
+                </MudAlert>
+
+            </MudItem>
+
+            <MudItem xs="12">
+
+                <MudAlert Severity="@(Readiness.DependenciesReady
+                                      ? Severity.Success
+                                      : Severity.Warning)">
+
+                    @(Readiness.DependenciesReady
+                        ? "✓ Dependencies Ready"
+                        : "⚠ Dependencies Outstanding")
+
+                </MudAlert>
+
+            </MudItem>
+
+            <MudItem xs="12">
+
+                <MudAlert Severity="@(Readiness.IsReady
+                                      ? Severity.Success
+                                      : Severity.Error)">
+
+                    @(Readiness.IsReady
+                        ? "READY FOR PRODUCTION"
+                        : Readiness.Reason)
+
+                </MudAlert>
+
+            </MudItem>
+
+        </MudGrid>        
+
+    }
+
+</MudPaper>
+
+@code {
+
+    [Parameter]
+    public WorkOrderReadiness? Readiness { get; set; }
+
+    private int ReadinessPercent
+    {
+        get
+        {
+            if (Readiness == null)
+                return 0;
+
+            if (Readiness.IsReady)
+                return 100;
+
+            if (Readiness.MaterialsReady ||
+                Readiness.DependenciesReady)
+                return 50;
+
+            return 0;
+        }
+    }
+
+}

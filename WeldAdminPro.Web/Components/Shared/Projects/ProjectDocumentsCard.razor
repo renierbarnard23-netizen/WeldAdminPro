@@ -1,0 +1,243 @@
+@inject ProjectApplicationService ProjectService
+
+@using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Data.Services.Projects
+
+<div class="card shadow-sm mt-4">
+
+    <div class="card-header bg-primary text-white">
+
+        <strong>Project Documents</strong>
+
+    </div>
+
+    <div class="card-body">
+
+        @if (Documents.Any(x => x.IsRequired && !x.IsUploaded))
+        {
+            <div class="alert alert-warning">
+
+                <strong>Project is NOT document compliant.</strong>
+
+                Required documents are still outstanding.
+
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-success">
+                
+                <strong>Project document compliance complete.</strong>
+                
+            </div>
+        }
+            <table class="table table-hover align-middle">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Document</th>
+
+                        <th>Category</th>
+
+                        <th class="text-center">Required</th>
+
+                        <th class="text-center">Uploaded</th>
+
+                        <th class="text-center">Approved</th>
+
+                        <th>Uploaded On</th>
+
+                        <th></th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @foreach (var doc in Documents)
+                    {
+                        <tr>
+
+                            <td>
+
+                                <strong>@doc.DocumentName</strong>
+
+                            </td>
+
+                            <td>
+
+                                @doc.Category
+
+                            </td>
+
+                            <td class="text-center">
+
+                                @if (doc.IsRequired)
+                                {
+                                    <span class="badge bg-primary">
+                                        Required
+                                    </span>
+                                }
+
+                            </td>
+
+                            <td class="text-center">
+
+                                @if (doc.IsUploaded)
+                                {
+                                    <span class="badge bg-success">
+                                        Uploaded
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">
+                                        Missing
+                                    </span>
+                                }
+
+                            </td>
+
+                            <td class="text-center">
+
+                                @if (doc.IsApproved)
+                                {
+                                    <span class="badge bg-success">
+                                        Approved
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">
+                                        Pending
+                                    </span>
+                                }
+
+                            </td>
+
+                            <td>
+
+                                @(doc.UploadedDate?.ToShortDateString() ?? "-")
+
+                            </td>
+
+                            <td class="text-end">
+
+                            <button class="btn btn-sm btn-primary"
+                                    @onclick="() => Toggle(doc)">
+
+                                Details
+
+                            </button>
+
+                            </td>
+
+                        </tr>
+
+                        @if (_expandedDocument == doc.Id)
+                        {
+                            <tr>
+                                
+                                <td colspan="7">
+                                    
+                                    <ProjectDocumentFiles
+                                        Files="_files" />
+                                    
+                                    </td>
+                                    
+                            </tr>
+                        }
+                    }
+
+                </tbody>
+
+            </table>
+
+            <hr />
+
+            <div class="row text-center">
+
+                <div class="col-md-3">
+
+                    <h4>
+
+                        @Documents.Count
+
+                    </h4>
+
+                    <small>Total Documents</small>
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <h4>
+
+                        @Documents.Count(x => x.IsUploaded)
+
+                    </h4>
+
+                    <small>Uploaded</small>
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <h4>
+
+                        @Documents.Count(x => x.IsApproved)
+
+                    </h4>
+
+                    <small>Approved</small>
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <h4>
+
+                        @Documents.Count(x => x.IsRequired && !x.IsUploaded)
+
+                    </h4>
+
+                    <small>Outstanding</small>
+
+                </div>
+
+            </div>
+        }
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+
+    public List<ProjectDocument> Documents { get; set; } = new();
+
+    private Guid? _expandedDocument;
+
+    private List<ProjectDocumentFile> _files = new();
+
+    private void Toggle(ProjectDocument document)
+    {
+        if (_expandedDocument == document.Id)
+        {
+            _expandedDocument = null;
+            _files.Clear();
+            return;
+        }
+
+        _expandedDocument = document.Id;
+
+        _files =
+            ProjectService.GetDocumentFiles(document.Id);
+    }
+
+}

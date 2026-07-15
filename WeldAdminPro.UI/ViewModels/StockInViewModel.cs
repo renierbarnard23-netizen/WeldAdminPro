@@ -4,13 +4,14 @@ using System;
 using System.Collections.ObjectModel;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Data.Services.Inventory;
 
 namespace WeldAdminPro.UI.ViewModels
 {
 	public partial class StockInViewModel : ObservableObject
 	{
-		private readonly StockRepository _repository;
-		private readonly ProjectRepository _projectRepository;
+        private readonly StockApplicationService _stockService;
+        private readonly ProjectRepository _projectRepository;
 
 		public ObservableCollection<StockItem> StockItems { get; }
 		public ObservableCollection<Project> Projects { get; }
@@ -42,10 +43,10 @@ namespace WeldAdminPro.UI.ViewModels
 
 		public StockInViewModel()
 		{
-			_repository = new StockRepository();
+			_stockService = new StockApplicationService();
 			_projectRepository = new ProjectRepository();
 
-			StockItems = new ObservableCollection<StockItem>(_repository.GetAll());
+			StockItems = new ObservableCollection<StockItem>(_stockService.GetStockItems());
 			Projects = new ObservableCollection<Project>(_projectRepository.GetAll());
 		}
 
@@ -77,7 +78,7 @@ namespace WeldAdminPro.UI.ViewModels
 				Reference = Reference
 			};
 
-			_repository.AddTransaction(tx);
+			_stockService.ReceiveStock(tx);
 
 			RequestClose?.Invoke();
 		}

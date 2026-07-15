@@ -1,0 +1,93 @@
+@using WeldAdminPro.Core.Models
+
+<div class="card shadow-sm mt-4">
+
+    <div class="card-header bg-primary text-white">
+
+        <strong>Issue Material</strong>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+                    Stock Item
+                </label>
+
+                <select class="form-select"
+                        @bind="SelectedStockId">
+
+                    <option value="">-- Select Material --</option>
+
+                    @foreach (var item in StockItems)
+                    {
+                        <option value="@item.Id">
+
+                            @item.ItemCode - @item.Description
+
+                        </option>
+                    }
+
+                </select>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <label class="form-label">
+                    Quantity
+                </label>
+
+                <input class="form-control"
+                       type="number"
+                       @bind="Quantity" />
+
+            </div>
+
+            <div class="col-md-3 d-flex align-items-end">
+
+                <button class="btn btn-success w-100"
+                        @onclick="Issue">
+
+                    Issue Material
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public List<StockItem> StockItems { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<(Guid StockId, decimal Quantity)> OnIssue { get; set; }
+
+    private Guid SelectedStockId;
+
+    private decimal Quantity = 1;
+
+    private async Task Issue()
+    {
+        if (SelectedStockId == Guid.Empty)
+            return;
+
+        if (Quantity <= 0)
+            return;
+
+        await OnIssue.InvokeAsync((SelectedStockId, Quantity));
+
+        Quantity = 1;
+    }
+
+}

@@ -1,0 +1,222 @@
+@page "/procurement/purchase-orders/{Id:guid}"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Procurement
+@using WeldAdminPro.Web.Components.Shared.Enterprise
+@inject NavigationManager Navigation
+
+@inject PurchaseOrderApplicationService PurchaseOrderService
+
+<PageTitle>Purchase Order Review</PageTitle>
+
+<EnterprisePageHeader Title="Purchase Order Review"
+                      Subtitle="Review purchase order before saving."
+                      Icon="@Icons.Material.Filled.ReceiptLong" />
+
+@if (_purchaseOrder == null)
+{
+    <MudAlert Severity="Severity.Error">
+
+        Purchase Order not found.
+
+    </MudAlert>
+}
+else
+{
+    <MudPaper Class="pa-4 mt-4">
+
+        <MudGrid>
+
+            <MudItem xs="12" md="6">
+
+                <MudText Typo="Typo.subtitle2">
+                    PO Number
+                </MudText>
+
+                <MudText Typo="Typo.h6">
+                    @_purchaseOrder.PONumber
+                </MudText>
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudText Typo="Typo.subtitle2">
+                    Supplier
+                </MudText>
+
+                <MudText Typo="Typo.h6">
+                    @_purchaseOrder.SupplierName
+                </MudText>
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudText Typo="Typo.subtitle2">
+                    Status
+                </MudText>
+
+                <MudChip T="string"
+                         Color="Color.Primary">
+
+                    @_purchaseOrder.Status
+
+                </MudChip>
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudText Typo="Typo.subtitle2">
+                    Total
+                </MudText>
+
+                <MudText Typo="Typo.h6">
+
+                    @_purchaseOrder.TotalAmount.ToString("C")
+
+                </MudText>
+
+            </MudItem>
+
+        </MudGrid>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.h6" Class="mb-3">
+
+            Purchase Order Lines
+
+        </MudText>
+
+        @if (!_purchaseOrder.Lines.Any())
+        {
+            <MudAlert Severity="Severity.Info">
+
+                No purchase order lines found.
+
+            </MudAlert>
+        }
+        else
+        {
+            <MudTable T="PurchaseOrderLine"
+                      Items="_purchaseOrder.Lines"
+                      Dense="true"
+                      Hover="true"
+                      Striped="true"
+                      Bordered="true"
+                      Breakpoint="Breakpoint.Sm"
+                      Elevation="0">
+
+                <HeaderContent>
+
+                    <MudTh>#</MudTh>
+
+                    <MudTh>Item Code</MudTh>
+
+                    <MudTh>Description</MudTh>
+
+                    <MudTh Class="text-end">
+                        Qty
+                    </MudTh>
+
+                    <MudTh Class="text-end">
+                        Unit Cost
+                    </MudTh>
+
+                    <MudTh Class="text-end">
+                        Line Total
+                    </MudTh>
+
+                </HeaderContent>
+
+                <RowTemplate>
+
+                    <MudTd>
+                        @(_purchaseOrder.Lines.IndexOf(context) + 1)
+                    </MudTd>
+
+                    <MudTd>
+                        @context.ItemCode
+                    </MudTd>
+
+                    <MudTd>
+                        @context.Description
+                    </MudTd>
+
+                    <MudTd Class="text-end">
+                        @context.Quantity
+                    </MudTd>
+
+                    <MudTd Class="text-end">
+                        @context.UnitCost.ToString("C")
+                    </MudTd>
+
+                    <MudTd Class="text-end">
+                        @context.LineTotal.ToString("C")
+                    </MudTd>
+
+                </RowTemplate>
+
+            </MudTable>
+        }
+
+        <MudDivider Class="my-4" />
+
+        <MudStack Row="true"
+                  Justify="Justify.FlexEnd"
+                  Spacing="2">
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       StartIcon="@Icons.Material.Filled.ArrowBack"
+                       OnClick="Back">
+
+                Back
+
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="Save">
+
+                Save Purchase Order
+
+            </MudButton>
+
+        </MudStack>
+
+    </MudPaper>
+}
+
+@code
+{
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private PurchaseOrder? _purchaseOrder;
+
+    protected override void OnInitialized()
+    {
+        _purchaseOrder = PurchaseOrderService.GetById(Id);
+    }
+
+    private void Back()
+    {
+        Navigation.NavigateTo("/procurement/purchase-orders");
+    }
+
+    private void Save()
+    {
+        if (_purchaseOrder is null)
+            return;
+
+        PurchaseOrderService.Save(_purchaseOrder);
+
+        Navigation.NavigateTo("/procurement/purchase-orders");
+    }
+
+}

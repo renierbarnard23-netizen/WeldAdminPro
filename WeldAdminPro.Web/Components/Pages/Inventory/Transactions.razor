@@ -1,0 +1,76 @@
+@page "/inventory/transactions"
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Repositories
+
+@inject NavigationManager Navigation
+
+<PageTitle>Stock Transactions</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+
+    <MudText Typo="Typo.h4">
+        Stock Transaction History
+    </MudText>
+
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        Complete stock movement history.
+    </MudText>
+
+    <MudDivider Class="my-4" />
+
+    <MudTable Items="_transactions"
+              Hover="true"
+              Dense="true"
+              Striped="true">
+
+        <HeaderContent>
+
+            <MudTh>Date</MudTh>
+            <MudTh>Item</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Project</MudTh>
+            <MudTh>Qty</MudTh>
+            <MudTh>Balance</MudTh>
+            <MudTh>Reference</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.TransactionDate.ToString("yyyy-MM-dd")</MudTd>
+
+            <MudTd>@context.ItemCode</MudTd>
+
+            <MudTd>@context.ItemDescription</MudTd>
+
+            <MudTd>@context.Type</MudTd>
+
+            <MudTd>@context.ProjectName</MudTd>
+
+            <MudTd>@context.Quantity</MudTd>
+
+            <MudTd>@context.BalanceAfter</MudTd>
+
+            <MudTd>@context.Reference</MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+
+</MudContainer>
+
+@code
+{
+    private List<StockTransaction> _transactions = new();
+
+    protected override void OnInitialized()
+    {
+        var repo = new StockRepository();
+
+        _transactions = repo.GetAllTransactions()
+                            .OrderByDescending(t => t.TransactionDate)
+                            .ToList();
+    }
+}

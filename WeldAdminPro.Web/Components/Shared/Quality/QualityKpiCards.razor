@@ -1,0 +1,20 @@
+@using WeldAdminPro.Core.Quality.Models
+@using MudBlazor
+
+<MudPaper Class="pa-4">
+
+    <MudText Typo="Typo.h6">
+        Quality KPI Cards
+    </MudText>
+
+    <MudText Color="Color.Secondary">
+        Compliance: @Snapshot?.ComplianceScore %
+    </MudText>
+
+</MudPaper>
+
+@code
+{
+    [Parameter]
+    public QualitySnapshot? Snapshot { get; set; }
+}

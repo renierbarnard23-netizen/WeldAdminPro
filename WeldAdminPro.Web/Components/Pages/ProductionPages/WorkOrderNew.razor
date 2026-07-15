@@ -1,0 +1,218 @@
+@page "/production/workorders/new"
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Repositories
+@using MudBlazor
+
+@inject ProjectRepository ProjectRepository
+@inject WorkOrderRepository WorkOrderRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>New Work Order</PageTitle>
+
+<EnterprisePageHeader Title="New Work Order"
+                      Subtitle="Create a production work order for an existing project."
+                      Icon="@Icons.Material.Filled.AddTask">
+</EnterprisePageHeader>
+
+<MudPaper Class="pa-5 mx-auto mt-4"
+          Style="max-width:900px;"
+          Elevation="2">
+
+<DashboardSection
+    Title="Work Order Information"
+    Icon="@Icons.Material.Filled.Assignment">
+
+    <MudGrid>
+
+            <MudItem xs="12" md="6">
+
+                <MudSelect T="Project"
+                           Label="Project"
+                           @bind-Value="_selectedProject"
+                           Required="true"
+                           RequiredError="Project is required.">
+
+                    @foreach (var project in _projects)
+                    {
+                        <MudSelectItem Value="@project">
+                            @project.ProjectName
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudSelect T="WorkOrderStatus"
+                           Label="Status"
+                           @bind-Value="_status">
+
+                    @foreach (var value in Enum.GetValues<WorkOrderStatus>())
+                    {
+                        <MudSelectItem Value="@value">
+                            @value
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+
+            </MudItem>
+
+            <MudItem xs="12">
+
+                <MudTextField Label="Description"
+                              @bind-Value="_description"
+                              Required="true"
+                              RequiredError="Description is required."
+                              Lines="3" />
+
+            </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudNumericField T="double"
+                             Label="Estimated Hours"
+                             @bind-Value="_estimatedHours" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudDatePicker Label="Due Date"
+                           @bind-Date="_dueDate" />
+
+        </MudItem>
+
+        <!--
+            Included only for WPF feature parity.
+            Repository ignores this value exactly like WPF.
+        -->
+
+        <MudItem xs="12">
+
+            <MudSelect T="WorkOrderStatus"
+                       Label="Status"
+                       @bind-Value="_status">
+
+                @foreach (var value in Enum.GetValues<WorkOrderStatus>())
+                {
+                    <MudSelectItem Value="@value">
+                        @value
+                    </MudSelectItem>
+                }
+
+            </MudSelect>
+
+        </MudItem>
+
+    </MudGrid>
+
+    </DashboardSection>
+
+    <MudDivider Class="my-4" />
+
+    <MudStack Row="true"
+              Justify="Justify.FlexEnd"
+              Spacing="2">
+
+        <MudButton Variant="Variant.Text"
+                   OnClick="Cancel">
+
+            Cancel
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.AddTask"
+                   OnClick="Create">
+
+            Create
+
+        </MudButton>
+
+    </MudStack>
+
+</MudPaper>
+
+@code
+{
+    private List<Project> _projects = new();
+
+    private Project? _selectedProject;
+
+    private string _description = "";
+
+    private double _estimatedHours = 8;
+
+    private DateTime? _dueDate =
+        DateTime.Today.AddDays(7);
+
+    private WorkOrderStatus _status =
+        WorkOrderStatus.Ready;
+
+    protected override void OnInitialized()
+    {
+        _projects =
+            ProjectRepository
+                .GetAll()
+                .ToList();
+    }
+
+    private void Create()
+    {
+        if (_selectedProject == null)
+        {
+            Snackbar.Add(
+                "Please select a project.",
+                Severity.Warning);
+
+            return;
+        }
+
+        try
+        {
+            var workOrder = new WorkOrder
+            {
+                Id = Guid.NewGuid(),
+
+                ProjectId = _selectedProject.Id,
+
+                Description = _description,
+
+                EstimatedHours = _estimatedHours,
+
+                Status = WorkOrderStatus.Ready,
+
+                CreatedOn = DateTime.Now,
+
+                DueDate = _dueDate
+            };
+
+            WorkOrderRepository.Add(workOrder);
+
+            Snackbar.Add(
+                "Work Order created successfully.",
+                Severity.Success);
+
+            Navigation.NavigateTo(
+                "/production/workorders");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo(
+            "/production/workorders");
+    }
+}

@@ -1,0 +1,76 @@
+@using MudBlazor
+@inject NavigationManager Nav
+
+<MudGrid>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudButton FullWidth="true"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Description"
+                   OnClick="@(() => Nav.NavigateTo("/quality/wps"))">
+            WPS
+        </MudButton>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudButton FullWidth="true"
+                   Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   StartIcon="@Icons.Material.Filled.Assignment"
+                   OnClick="@(() => Nav.NavigateTo("/quality/pqr"))">
+            PQR
+        </MudButton>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudButton FullWidth="true"
+                   Variant="Variant.Filled"
+                   Color="Color.Info"
+                   StartIcon="@Icons.Material.Filled.VerifiedUser"
+                   OnClick="@(() => Nav.NavigateTo("/quality/wpqr"))">
+            WPQR
+        </MudButton>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudButton FullWidth="true"
+                   Variant="Variant.Filled"
+                   Color="Color.Success"
+                   StartIcon="@Icons.Material.Filled.Groups"
+                   OnClick="@(() => Nav.NavigateTo("/quality/welderqualifications"))">
+            Welders
+        </MudButton>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudButton FullWidth="true"
+                   Variant="Variant.Filled"
+                   Color="Color.Warning"
+                   StartIcon="@Icons.Material.Filled.FactCheck"
+                   OnClick="@(() => Nav.NavigateTo("/quality/ndt"))">
+            NDT
+        </MudButton>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudButton FullWidth="true"
+                   Variant="Variant.Filled"
+                   Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Build"
+                   OnClick="@(() => Nav.NavigateTo("/quality/repairs"))">
+            Repairs
+        </MudButton>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudButton FullWidth="true"
+                   Variant="Variant.Filled"
+                   Color="Color.Dark"
+                   StartIcon="@Icons.Material.Filled.Folder"
+                   OnClick="@(() => Nav.NavigateTo("/quality/documents"))">
+            Documents
+        </MudButton>
+    </MudItem>
+
+</MudGrid>

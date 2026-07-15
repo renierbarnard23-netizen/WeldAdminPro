@@ -15,6 +15,44 @@ namespace WeldAdminPro.Data.Repositories
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
+            Console.WriteLine("Database = " + connection.DataSource);
+
+            var check = connection.CreateCommand();
+            check.CommandText = @"
+SELECT COUNT(*)
+FROM StockItems
+WHERE Id = $id;";
+
+            check.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
+
+            Console.WriteLine("Stock Item Exists = " + check.ExecuteScalar());
+
+            var check2 = connection.CreateCommand();
+            check2.CommandText = @"
+SELECT Id
+FROM StockItems
+WHERE Id = $id;";
+
+            check2.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
+
+            Console.WriteLine("Returned Id = " + (check2.ExecuteScalar() ?? "NULL"));
+
+            var dump = connection.CreateCommand();
+            dump.CommandText = @"
+SELECT Id
+FROM StockItems;";
+
+            using var reader = dump.ExecuteReader();
+
+            Console.WriteLine("===== STOCK IDS IN DATABASE =====");
+
+            while (reader.Read())
+            {
+                Console.WriteLine("[" + reader.GetString(0) + "]");
+            }
+
+            Console.WriteLine("=================================");
+
             var cmd = connection.CreateCommand();
             cmd.CommandText = @"
 INSERT INTO StockTransactions 
@@ -23,14 +61,31 @@ VALUES
 ($id, $stockItemId, $projectId, $date, $qty, $type, $cost, $ref, $balance);";
 
             cmd.Parameters.AddWithValue("$id", tx.Id.ToString());
-            cmd.Parameters.AddWithValue("$stockItemId", tx.StockItemId.ToString());
-            cmd.Parameters.AddWithValue("$projectId", (object?)tx.ProjectId?.ToString() ?? DBNull.Value);
+            cmd.Parameters.AddWithValue(
+                "$stockItemId",
+                    tx.StockItemId.ToString("D").ToLowerInvariant());
+            cmd.Parameters.AddWithValue(
+                "$projectId",
+                    tx.ProjectId?.ToString("D").ToLowerInvariant()
+                        ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("$date", tx.TransactionDate.ToString("o"));
             cmd.Parameters.AddWithValue("$qty", tx.Quantity);
             cmd.Parameters.AddWithValue("$type", tx.Type);
             cmd.Parameters.AddWithValue("$cost", (double)tx.UnitCost);
             cmd.Parameters.AddWithValue("$ref", tx.Reference ?? "");
             cmd.Parameters.AddWithValue("$balance", tx.BalanceAfter);
+
+            Console.WriteLine("===== SQLITE PARAMETERS =====");
+            Console.WriteLine($"Id          : {tx.Id}");
+            Console.WriteLine($"StockItemId : {tx.StockItemId}");
+            Console.WriteLine($"ProjectId   : {(tx.ProjectId.HasValue ? tx.ProjectId.ToString() : "NULL")}");
+            Console.WriteLine($"Date        : {tx.TransactionDate:o}");
+            Console.WriteLine($"Quantity    : {tx.Quantity}");
+            Console.WriteLine($"Type        : {tx.Type}");
+            Console.WriteLine($"UnitCost    : {tx.UnitCost}");
+            Console.WriteLine($"Reference   : {tx.Reference}");
+            Console.WriteLine($"Balance     : {tx.BalanceAfter}");
+            Console.WriteLine("=============================");
 
             cmd.ExecuteNonQuery();
         }

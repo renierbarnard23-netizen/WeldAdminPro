@@ -192,29 +192,54 @@ namespace WeldAdminPro.Data.Services
         }
 
         public void CancelWorkOrder(Guid workOrderId)
-		{
-			var workOrder = _repository.GetById(workOrderId)
-				?? throw new Exception("Work order not found");
+        {
+            var workOrder = _repository.GetById(workOrderId)
+                ?? throw new Exception("Work order not found");
 
-			var issued = _stockRepo.GetIssuedMaterials(workOrder.ProjectId);
+            // Return issued materials
+            var issued = _stockRepo.GetIssuedMaterials(workOrder.ProjectId);
 
-			foreach (var tx in issued)
-				{
-					_stockRepo.AddTransaction(new StockTransaction
-					{
-						Id = Guid.NewGuid(),
-						StockItemId = tx.StockItemId,
-						ItemCode = tx.ItemCode,
-						Quantity = tx.Quantity, // ✅ FIXED
-						Type = "RET",
-						TransactionDate = DateTime.UtcNow,
-						ProjectId = workOrder.ProjectId,
-						Reference = workOrder.WorkOrderNumber + "-REV"
-					});
-				}
+            foreach (var tx in issued)
+            {
+                _stockRepo.AddTransaction(new StockTransaction
+                {
+                    Id = Guid.NewGuid(),
+                    StockItemId = tx.StockItemId,
+                    ItemCode = tx.ItemCode,
+                    Quantity = tx.Quantity,
+                    Type = "RET",
+                    TransactionDate = DateTime.UtcNow,
+                    ProjectId = workOrder.ProjectId,
+                    Reference = workOrder.WorkOrderNumber + "-REV"
+                });
+            }
+
+            // Mark work order as cancelled
+            using var connection =
+                new SqliteConnection($"Data Source={DatabasePath.Get()}");
+
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+
+            cmd.CommandText = @"
+UPDATE WorkOrders
+SET Status = @Status
+WHERE Id = @Id";
+
+            cmd.Parameters.AddWithValue(
+                "@Id",
+                workOrderId.ToString());
+
+            cmd.Parameters.AddWithValue(
+                "@Status",
+                (int)WorkOrderStatus.Cancelled);
+
+            cmd.ExecuteNonQuery();
+
             WorkOrderEvents.RaiseChanged();
         }
-		public void PauseWorkOrder(Guid workOrderId)
+        public void PauseWorkOrder(Guid workOrderId)
 		{
 			using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
 			connection.Open();

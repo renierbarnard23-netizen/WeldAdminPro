@@ -1,0 +1,98 @@
+@using WeldAdminPro.Core.Quality
+
+<div class="card shadow-sm mt-4">
+
+    <div class="card-header bg-success text-white">
+
+        <strong>Project Compliance</strong>
+
+    </div>
+
+    <div class="card-body">
+
+        @{
+            var required = Documents.Count(d => d.IsRequired);
+            var uploaded = Documents.Count(d => d.IsRequired && d.IsUploaded);
+            var approved = Documents.Count(d => d.IsRequired && d.IsApproved);
+
+            var compliance =
+                required == 0
+                    ? 100
+                    : approved * 100 / required;
+        }
+
+        <div class="progress mb-3" style="height:30px;">
+
+            <div class="progress-bar bg-success"
+                 role="progressbar"
+                 style="width:@compliance%">
+
+                @compliance %
+
+            </div>
+
+        </div>
+
+        <table class="table table-sm">
+
+            <tr>
+
+                <td>Required Documents</td>
+
+                <td class="text-end">
+
+                    @required
+
+                </td>
+
+            </tr>
+
+            <tr>
+
+                <td>Uploaded</td>
+
+                <td class="text-end">
+
+                    @uploaded
+
+                </td>
+
+            </tr>
+
+            <tr>
+
+                <td>Approved</td>
+
+                <td class="text-end">
+
+                    @approved
+
+                </td>
+
+            </tr>
+
+            <tr class="table-light">
+
+                <th>Overall Compliance</th>
+
+                <th class="text-end">
+
+                    @compliance %
+
+                </th>
+
+            </tr>
+
+        </table>
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+
+    public List<ProjectDocument> Documents { get; set; } = new();
+
+}

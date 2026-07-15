@@ -1,0 +1,66 @@
+@page "/inventory/material-trends"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Analytics.Executive
+@using WeldAdminPro.Data.Services.Inventory
+@using WeldAdminPro.Web.Components.Shared.Enterprise
+@using WeldAdminPro.Web.Components.Shared.Inventory
+
+@inject StockApplicationService StockService
+
+<PageTitle>Material Consumption Trends</PageTitle>
+
+<EnterprisePageHeader Title="Material Consumption Trends"
+                      Subtitle="Compare monthly material consumption and identify significant changes."
+                      Icon="@Icons.Material.Filled.TrendingUp" />
+
+<div class="mb-4">
+
+    <MaterialTrendKpiCards Materials="_materials" />
+
+</div>
+
+<MudPaper Class="pa-4 mt-4" Elevation="2">
+
+    <MudStack Row="true"
+              Justify="Justify.SpaceBetween"
+              AlignItems="AlignItems.Center"
+              Class="mb-3">
+
+        <MudText Typo="Typo.h6">
+            Material Trend Analysis
+        </MudText>
+
+        <MudText Color="Color.Secondary">
+            @_materials.Count Materials
+        </MudText>
+
+    </MudStack>
+
+    <MudDivider Class="mb-3" />
+
+    <MudText Color="Color.Secondary">
+
+        Showing the largest monthly consumption changes across
+        @_materials.Count tracked materials.
+
+    </MudText>
+
+    <MudDivider Class="mt-3 mb-3" />
+
+    <MaterialTrendGrid Materials="_materials" />
+
+</MudPaper>
+
+@code
+{
+    private List<MaterialTrendModel> _materials = new();
+
+    protected override void OnInitialized()
+    {
+        _materials = StockService
+        .GetMaterialTrends()
+        .OrderByDescending(x => Math.Abs(x.PercentChange))
+        .ToList();
+    }
+}

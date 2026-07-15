@@ -1,0 +1,105 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Analytics.Executive
+@using WeldAdminPro.Web.Components.Shared.Production
+
+<MudTable T="StockForecastModel"
+          Items="ForecastItems"
+          Dense="true"
+          Hover="true"
+          Striped="true">
+
+    <HeaderContent>
+
+        <MudTh>Item Code</MudTh>
+
+        <MudTh>Description</MudTh>
+
+        <MudTh Class="text-end">Current Stock</MudTh>
+
+        <MudTh Class="text-end">Avg Monthly Use</MudTh>
+
+        <MudTh Class="text-end">Days Remaining</MudTh>
+
+        <MudTh>Status</MudTh>
+
+    </HeaderContent>
+
+    <RowTemplate>
+
+        <MudTd>@context.ItemCode</MudTd>
+
+        <MudTd>@context.Description</MudTd>
+
+        <MudTd Class="text-end">
+            @context.CurrentStock
+        </MudTd>
+
+        <MudTd Class="text-end">
+            @context.AvgMonthlyUse
+        </MudTd>
+
+        <MudTd Class="text-end">
+            @context.DaysRemaining.ToString("N0")
+        </MudTd>
+
+        <MudTd>
+
+            @switch (context.Status)
+            {
+                case "Critical":
+
+                    <MudChip T="string"
+                             Color="Color.Error">
+
+                        Critical
+
+                    </MudChip>
+
+                    break;
+
+                case "Low":
+
+                    <MudChip T="string"
+                             Color="Color.Warning">
+
+                        Low
+
+                    </MudChip>
+
+                    break;
+
+                case "Watch":
+
+                    <MudChip T="string"
+                             Color="Color.Info">
+
+                        Watch
+
+                    </MudChip>
+
+                    break;
+
+                default:
+
+                    <MudChip T="string"
+                             Color="Color.Success">
+
+                        Safe
+
+                    </MudChip>
+
+                    break;
+            }
+
+        </MudTd>
+
+    </RowTemplate>
+
+</MudTable>
+
+@code
+{
+    [Parameter]
+    public IEnumerable<StockForecastModel> ForecastItems { get; set; }
+        = Enumerable.Empty<StockForecastModel>();
+}

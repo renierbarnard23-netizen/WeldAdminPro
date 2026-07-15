@@ -163,7 +163,95 @@ ORDER BY CreatedDate DESC;";
 			return list;
 		}
 
-		private List<PurchaseOrderLine> GetLines(Guid poId)
+        public List<PurchaseOrder> GetAll()
+        {
+            var list = new List<PurchaseOrder>();
+
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+
+            cmd.CommandText = @"
+SELECT
+    Id,
+    ProjectId,
+    JobNumber,
+    PONumber,
+    SupplierName,
+    CreatedDate,
+    Status,
+    TotalAmount
+FROM PurchaseOrders
+ORDER BY CreatedDate DESC;";
+
+            using var reader = cmd.ExecuteReader();
+
+            while (reader.Read())
+            {
+                var id = Guid.Parse(reader.GetString(0));
+
+                list.Add(new PurchaseOrder
+                {
+                    Id = id,
+                    ProjectId = Guid.Parse(reader.GetString(1)),
+                    JobNumber = reader.GetInt32(2),
+                    PONumber = reader.GetString(3),
+                    SupplierName = reader.IsDBNull(4) ? "" : reader.GetString(4),
+                    CreatedDate = DateTime.Parse(reader.GetString(5)),
+                    Status = reader.GetString(6),
+                    TotalAmount = reader.GetDecimal(7),
+                    Lines = GetLines(id)
+                });
+            }
+
+            return list;
+        }
+
+        public PurchaseOrder? GetById(Guid id)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            using var cmd = connection.CreateCommand();
+
+            cmd.CommandText = @"
+SELECT Id,
+       ProjectId,
+       JobNumber,
+       PONumber,
+       SupplierName,
+       CreatedDate,
+       Status,
+       TotalAmount
+FROM PurchaseOrders
+WHERE Id = $id;";
+
+            cmd.Parameters.AddWithValue("$id", id.ToString());
+
+            using var reader = cmd.ExecuteReader();
+
+            if (!reader.Read())
+                return null;
+
+            var po = new PurchaseOrder
+            {
+                Id = Guid.Parse(reader.GetString(0)),
+                ProjectId = Guid.Parse(reader.GetString(1)),
+                JobNumber = reader.GetInt32(2),
+                PONumber = reader.GetString(3),
+                SupplierName = reader.IsDBNull(4) ? "" : reader.GetString(4),
+                CreatedDate = DateTime.Parse(reader.GetString(5)),
+                Status = reader.GetString(6),
+                TotalAmount = reader.GetDecimal(7)
+            };
+
+            po.Lines = GetLines(po.Id);
+
+            return po;
+        }
+
+        private List<PurchaseOrderLine> GetLines(Guid poId)
 		{
 			var lines = new List<PurchaseOrderLine>();
 

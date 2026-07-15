@@ -1,0 +1,120 @@
+@using WeldAdminPro.Core.Models
+
+<div class="card shadow-sm mb-3">
+
+    <div class="card-header bg-success text-white">
+
+        <strong>Financial Summary</strong>
+
+    </div>
+
+    <div class="card-body">
+
+        @if (Project == null)
+        {
+            <div class="alert alert-secondary mb-0">
+
+                No project selected.
+
+            </div>
+        }
+        else
+        {
+
+            <table class="table table-borderless">
+
+                <tr>
+
+                    <td width="220">
+
+                        <strong>Contract Value</strong>
+
+                    </td>
+
+                    <td>
+
+                        @Project.Amount.ToString("C")
+
+                    </td>
+
+                </tr>
+
+                <tr>
+
+                    <td>
+
+                        <strong>Budget</strong>
+
+                    </td>
+
+                    <td>
+
+                        @Project.Budget.ToString("C")
+
+                    </td>
+
+                </tr>
+
+                <tr>
+
+                    <td>
+
+                        <strong>Actual Cost</strong>
+
+                    </td>
+
+                    <td>
+
+                        @Project.ActualCost.ToString("C")
+
+                    </td>
+
+                </tr>
+
+                <tr>
+
+                    <td>
+
+                        <strong>Committed Cost</strong>
+
+                    </td>
+
+                    <td>
+
+                        @Project.CommittedCost.ToString("C")
+
+                    </td>
+
+                </tr>
+
+                <tr>
+
+                    <td>
+
+                        <strong>Estimated Profit</strong>
+
+                    </td>
+
+                    <td>
+
+                        @((Project.Amount - Project.ActualCost).ToString("C"))
+
+                    </td>
+
+                </tr>
+
+            </table>
+
+        }
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+
+    public Project? Project { get; set; }
+
+}

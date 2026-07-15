@@ -1,0 +1,170 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+
+@if (WorkOrder != null)
+{
+    <MudPaper Class="pa-5 mb-4" Elevation="3">
+
+        <MudGrid>
+
+            <!-- LEFT SIDE -->
+            <MudItem xs="12" lg="8">
+
+                <MudText Typo="Typo.h3">
+                    @WorkOrder.WorkOrderNumber
+                </MudText>
+
+                <MudText Typo="Typo.h5"
+                         Color="Color.Secondary"
+                         Class="mb-4">
+
+                    @WorkOrder.Description
+
+                </MudText>
+
+                <MudStack Row="true"
+                          Wrap="Wrap.Wrap"
+                          Spacing="2">
+
+                    <MudChip T="string"
+                             Color="@StatusColor"
+                             Variant="Variant.Filled">
+
+                        @WorkOrder.Status
+
+                    </MudChip>
+
+                    <MudChip T="string"
+                             Variant="Variant.Outlined">
+
+                        Project:
+                        @ProjectName
+
+                    </MudChip>
+
+                    <MudChip T="string"
+                             Variant="Variant.Outlined">
+
+                        Due:
+                        @WorkOrder.DueDate?.ToShortDateString()
+
+                    </MudChip>
+
+                    <MudChip T="string"
+                             Variant="Variant.Outlined">
+
+                        Priority:
+                        @WorkOrder.Priority
+
+                    </MudChip>
+
+                    <MudChip T="string"
+                             Variant="Variant.Outlined">
+
+                        Work Centre:
+                        @WorkOrder.WorkCenter
+
+                    </MudChip>
+
+                </MudStack>
+
+            </MudItem>
+
+            <!-- RIGHT SIDE -->
+            <MudItem xs="12" lg="4">
+
+                <MudPaper Class="pa-4"
+                          Elevation="0"
+                          Style="background:#f7f9fc;">
+
+                    <MudText Typo="Typo.subtitle1">
+
+                        Production Health
+
+                    </MudText>
+
+                    <MudProgressLinear Rounded="true"
+                                       Value="@Health"
+                                       Color="Color.Success"
+                                       Size="Size.Large"
+                                       Class="mt-3" />
+
+                    <MudText Typo="Typo.h4"
+                             Align="Align.Center"
+                             Class="mt-3">
+
+                        @Health%
+
+                    </MudText>
+
+                    <MudDivider Class="my-3" />
+
+                    <MudGrid>
+
+                        <MudItem xs="6">
+
+                            <MudText Typo="Typo.caption">
+
+                                Estimated
+
+                            </MudText>
+
+                            <MudText Typo="Typo.h6">
+
+                                @WorkOrder.EstimatedHours h
+
+                            </MudText>
+
+                        </MudItem>
+
+                        <MudItem xs="6">
+
+                            <MudText Typo="Typo.caption">
+
+                                Actual
+
+                            </MudText>
+
+                            <MudText Typo="Typo.h6">
+
+                                @WorkOrder.ActualHours h
+
+                            </MudText>
+
+                        </MudItem>
+
+                    </MudGrid>
+
+                </MudPaper>
+
+            </MudItem>
+        </MudGrid>
+
+    </MudPaper>
+}
+
+@code
+{
+    [Parameter]
+    public WorkOrder? WorkOrder { get; set; }
+
+    [Parameter]
+    public string ProjectName { get; set; } = "";
+
+    [Parameter]
+    public int Progress { get; set; }
+
+    [Parameter]
+    public int Health { get; set; } = 100;
+
+    private Color StatusColor =>
+        WorkOrder?.Status switch
+        {
+            WorkOrderStatus.Ready => Color.Info,
+            WorkOrderStatus.InProduction => Color.Success,
+            WorkOrderStatus.Paused => Color.Warning,
+            WorkOrderStatus.Completed => Color.Primary,
+            WorkOrderStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+}

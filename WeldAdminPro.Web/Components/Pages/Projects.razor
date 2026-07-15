@@ -1,0 +1,162 @@
+@page "/projects"
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Projects
+
+@inject ProjectApplicationService ProjectService
+@inject NavigationManager Navigation
+
+<PageTitle>Projects</PageTitle>
+
+<h2 class="mb-4">Projects</h2>
+
+<div class="card shadow-sm">
+
+    <div class="card-body">
+
+        <div class="row mb-3">
+
+            <div class="col-md-4">
+
+                <input class="form-control"
+                       placeholder="Search..."
+                       @bind="_search" />
+
+            </div>
+
+            <div class="col-md-2">
+
+                <button class="btn btn-outline-secondary"
+                        @onclick="Load">
+
+                    Refresh
+
+                </button>
+
+            </div>
+
+        </div>
+
+        <table class="table table-hover align-middle">
+
+            <thead>
+
+                <tr>
+
+                    <th>Job #</th>
+                    <th>Status</th>
+                    <th>Project</th>
+                    <th>Client</th>
+                    <th>Quote</th>
+                    <th>Order</th>
+                    <th>Assigned</th>
+                    <th>Amount</th>
+                    <th></th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                @foreach (var project in FilteredProjects)
+                {
+                    <tr>
+
+                        <td>@project.JobNumber</td>
+
+                        <td>
+
+                            <span class="badge bg-primary">
+
+                                @project.Status
+
+                            </span>
+
+                        </td>
+
+                        <td>@project.ProjectName</td>
+
+                        <td>@project.Client</td>
+
+                        <td>@project.QuoteNumber</td>
+
+                        <td>@project.OrderNumber</td>
+
+                        <td>@project.AssignedTo</td>
+
+                        <td>
+
+                            @project.Amount.ToString("C")
+
+                        </td>
+
+                        <td>
+
+                            <small>@project.Id</small>
+
+                            <br />
+
+                            <button class="btn btn-sm btn-primary"
+                                    @onclick="() => Open(project.Id)">
+                                Open
+                            </button>
+
+                        </td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+@code {
+
+    private List<Project> _projects = new();
+
+    private string _search = "";
+
+    protected override void OnInitialized()
+    {
+        Load();
+    }
+
+    private void Load()
+    {
+        _projects = ProjectService.GetProjects();
+    }
+
+    private IEnumerable<Project> FilteredProjects =>
+        _projects.Where(p =>
+
+            string.IsNullOrWhiteSpace(_search)
+
+            ||
+
+            p.ProjectName.Contains(_search,
+                StringComparison.OrdinalIgnoreCase)
+
+            ||
+
+            p.Client.Contains(_search,
+                StringComparison.OrdinalIgnoreCase)
+
+            ||
+
+            p.JobNumber.ToString().Contains(_search)
+
+        );
+
+    private void Open(Guid id)
+    {
+        Console.WriteLine($"Opening Project: {id}");
+
+        Navigation.NavigateTo($"/projects/{id}");
+    }
+
+}

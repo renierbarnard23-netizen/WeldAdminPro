@@ -1,0 +1,79 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Analytics.Executive
+@using WeldAdminPro.Web.Components.Shared.Production
+@using WeldAdminPro.Core.Models
+
+
+<MudGrid>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Increasing"
+                           Value="@Increasing.ToString()"
+                           Status="Higher Consumption"
+                           ChipColor="Color.Error"
+                           Icon="@Icons.Material.Filled.TrendingUp"
+                           IconColor="Color.Error" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Decreasing"
+                           Value="@Decreasing.ToString()"
+                           Status="Lower Consumption"
+                           ChipColor="Color.Success"
+                           Icon="@Icons.Material.Filled.TrendingDown"
+                           IconColor="Color.Success" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Stable"
+                           Value="@Stable.ToString()"
+                           Status="Minimal Change"
+                           ChipColor="Color.Info"
+                           Icon="@Icons.Material.Filled.Remove"
+                           IconColor="Color.Info" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Largest Increase"
+                           Value="@LargestIncreaseDisplay"
+                           Status="Highest Monthly Growth"
+                           ChipColor="Color.Warning"
+                           Icon="@Icons.Material.Filled.ShowChart"
+                           IconColor="Color.Warning" />
+
+    </MudItem>
+
+</MudGrid>
+
+@code
+{
+    [Parameter]
+    public IEnumerable<MaterialTrendModel> Materials { get; set; }
+        = Enumerable.Empty<MaterialTrendModel>();
+
+    private int Increasing =>
+        Materials.Count(x => x.PercentChange > 0);
+
+    private int Decreasing =>
+        Materials.Count(x => x.PercentChange < 0);
+
+    private int Stable =>
+        Materials.Count(x => x.PercentChange == 0);
+
+    private decimal LargestIncrease =>
+        Materials.Any()
+            ? Materials.Max(x => x.PercentChange)
+            : 0;
+
+    private string LargestIncreaseDisplay =>
+        $"{LargestIncrease:N1}%";
+
+
+}

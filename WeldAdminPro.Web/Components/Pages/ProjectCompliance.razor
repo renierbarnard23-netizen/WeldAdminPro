@@ -1,0 +1,150 @@
+@page "/projects/compliance"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Analytics.Executive
+@using WeldAdminPro.Data.Repositories
+@using WeldAdminPro.Data.Services
+
+@inject NavigationManager Navigation
+
+<MudPaper>
+
+    <MudTable Items="_projects"
+          Hover="true"
+          Dense="true"
+          Striped="true">
+
+    <HeaderContent>
+
+        <MudTh>Job #</MudTh>
+        <MudTh>Project</MudTh>
+        <MudTh>Client</MudTh>
+        <MudTh>Risk</MudTh>
+        <MudTh>WPS %</MudTh>
+        <MudTh>Documents %</MudTh>
+        <MudTh>Issues</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh></MudTh>
+
+    </HeaderContent>
+
+    <RowTemplate>
+
+        <MudTd>@context.JobNumber</MudTd>
+
+        <MudTd>@context.ProjectName</MudTd>
+
+        <MudTd>@context.Client</MudTd>
+
+        <MudTd>
+
+                <MudChip T="string"
+                         Color="@(
+                         context.RiskLevel == "LOW"
+                             ? Color.Success
+                             : context.RiskLevel == "MEDIUM"
+                                 ? Color.Warning
+                                 : Color.Error)">
+
+                @context.RiskDisplay
+
+            </MudChip>
+
+        </MudTd>
+
+        <MudTd>
+
+            <MudProgressLinear Value="@context.WpsPercent"
+                               Color="Color.Primary" />
+
+            @context.WpsPercent.ToString("N0")%
+
+        </MudTd>
+
+        <MudTd>
+
+            <MudProgressLinear Value="@context.DocPercent"
+                               Color="Color.Info" />
+
+            @context.DocPercent.ToString("N0")%
+
+        </MudTd>
+
+        <MudTd>
+
+            @context.IssueCount
+
+        </MudTd>
+
+        <MudTd>
+
+                <MudChip T="string"
+                         Color="@(context.IsCompliant ? Color.Success : Color.Error)">
+
+                @context.StatusText
+
+            </MudChip>
+
+        </MudTd>
+
+        <MudTd>
+
+            <MudButton Color="Color.Primary"
+                       Variant="Variant.Outlined"
+                       Size="Size.Small">
+
+                Open
+
+            </MudButton>
+
+        </MudTd>
+
+    </RowTemplate>
+
+</MudTable>
+
+</MudPaper>
+
+@code
+{
+    private readonly ProjectRepository _projectRepo = new();
+
+    private readonly ProjectComplianceService _compliance = new();
+
+    private readonly UnifiedRiskService _risk = new();
+
+    private List<ProjectComplianceDisplay> _projects = new();
+
+    protected override void OnInitialized()
+    {
+        foreach (var project in _projectRepo.GetAll())
+        {
+            var compliance =
+                _compliance.Evaluate(project.Id);
+
+            var unified =
+                _risk.Evaluate(compliance, project.Id);
+
+            _projects.Add(new ProjectComplianceDisplay
+            {
+                JobNumber = project.JobNumber,
+                ProjectName = project.ProjectName,
+                Client = project.Client,
+
+                ComplianceScore = unified.ComplianceScore,
+                FinancialScore = unified.FinancialScore,
+
+                WpsPercent = compliance.WpsCompliancePercentage,
+                DocPercent = compliance.DocumentCompliancePercent,
+
+                IsCompliant = compliance.IsCompliant,
+
+                IssueCount = compliance.Issues.Count,
+
+                RiskScore = unified.Score,
+                RiskLevel = unified.Level,
+                RiskColor = unified.Color
+            });
+        }
+    }
+}

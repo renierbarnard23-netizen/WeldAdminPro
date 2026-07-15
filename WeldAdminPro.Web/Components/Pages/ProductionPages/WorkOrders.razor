@@ -1,0 +1,569 @@
+@page "/production/workorders"
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Repositories
+@using MudBlazor
+@using WeldAdminPro.Data.Services
+@using WeldAdminPro.Core.Execution
+
+@inject WorkOrderRepository WorkOrderRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject ProductionReadinessService ProductionReadinessService
+@inject WorkOrderExecutionService ExecutionService
+
+<PageTitle>Work Orders</PageTitle>
+
+<EnterprisePageHeader
+    Title="Work Orders"
+    Subtitle="Manage production work orders, execution and material readiness."
+    Icon="@Icons.Material.Filled.Assignment">
+
+    <Actions>
+    
+        <MudStack Row="true" Spacing="2">
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="NewWorkOrder">
+            New Work Order
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Info"
+                   StartIcon="@Icons.Material.Filled.Inventory2"
+                   Disabled="@(_selected == null)"
+                   OnClick="AddMaterial">
+            Add Material
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Info"
+                   StartIcon="@Icons.Material.Filled.Publish"
+                   Disabled="@(_selected == null)"
+                   OnClick="IssueMaterial">
+            Issue Material
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   StartIcon="@Icons.Material.Filled.Edit"
+                   Disabled="@(_selected == null)"
+                   OnClick="EditWorkOrder">
+            Edit
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Success"
+                   Disabled="@(_selected == null)"
+                   OnClick="StartWorkOrder">
+            Start
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Warning"
+                   Disabled="@(_selected == null)"
+                   OnClick="PauseWorkOrder">
+            Pause
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Success"
+                   Disabled="@(_selected == null)"
+                   OnClick="CompleteWorkOrder">
+            Complete
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Error"
+                   Disabled="@(_selected == null)"
+                   OnClick="CancelWorkOrder">
+            Cancel
+        </MudButton>
+
+        </MudStack>
+
+    </Actions>
+    
+</EnterprisePageHeader>
+
+<MudGrid Class="mb-4">
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Running"
+                           Value="@_workOrders.Count(x => x.Status == WorkOrderStatus.InProduction).ToString()"
+                           Status="Currently Running"
+                           ChipColor="Color.Success" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Ready"
+                           Value="@_workOrders.Count(x => x.Status == WorkOrderStatus.Ready).ToString()"
+                           Status="Ready to Start"
+                           ChipColor="Color.Info" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Paused"
+                           Value="@_workOrders.Count(x => x.Status == WorkOrderStatus.Paused).ToString()"
+                           Status="Paused Orders"
+                           ChipColor="Color.Warning" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Blocked"
+                           Value="@_workOrders.Count(x => x.BlockReason != BlockReason.None).ToString()"
+                           Status="Requires Attention"
+                           ChipColor="Color.Error" />
+
+    </MudItem>
+
+</MudGrid>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+
+    <MudGrid>
+
+        <MudItem xs="12" md="4">
+
+            <MudTextField T="string"
+                          @bind-Value="_search"
+                          Label="Search Work Orders"
+                          Placeholder="Work Order, Project, Description..."
+                          Immediate="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="3">
+
+            <MudSelect T="WorkOrderStatus?"
+                       Label="Status"
+                       @bind-Value="_statusFilter">
+
+                <MudSelectItem Value="@((WorkOrderStatus?)null)">
+                    All
+                </MudSelectItem>
+
+                <MudSelectItem Value="@WorkOrderStatus.Ready">
+                    Ready
+                </MudSelectItem>
+
+                <MudSelectItem Value="@WorkOrderStatus.InProduction">
+                    In Production
+                </MudSelectItem>
+
+                <MudSelectItem Value="@WorkOrderStatus.Paused">
+                    Paused
+                </MudSelectItem>
+
+            </MudSelect>
+
+        </MudItem>
+
+        <MudItem xs="12" md="2">
+
+            <MudCheckBox T="bool"
+                         @bind-Value="_readyOnly"
+                         Label="Ready Only" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="3">
+
+            <MudCheckBox T="bool"
+                         @bind-Value="_blockedOnly"
+                         Label="Blocked Only" />
+
+        </MudItem>
+
+    </MudGrid>
+
+</MudPaper>
+
+    <MudTable T="WorkOrder"
+              Items="FilteredWorkOrders"
+              Hover="true"
+              Dense="true"
+              Bordered="true"
+              Striped="true"
+              Loading="_loading"
+              SelectOnRowClick="true"
+              @bind-SelectedItem="_selected">
+
+        <HeaderContent>
+
+            <MudTh>Project</MudTh>
+            <MudTh>Work Order</MudTh>
+            <MudTh>Priority</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Created</MudTh>
+            <MudTh>Start</MudTh>
+            <MudTh>Due</MudTh>
+            <MudTh>Completed</MudTh>
+            <MudTh>Readiness</MudTh>
+            <MudTh>Block</MudTh>
+            <MudTh Class="text-center">
+                Actions
+            </MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>        
+
+            <MudTd>@context.ProjectName</MudTd>
+
+        <MudTd>
+
+            <MudLink Href="@($"/production/workorder/{context.Id}")">
+
+                <b>@context.WorkOrderNumber</b>
+
+            </MudLink>
+
+        </MudTd>
+
+        <MudTd>
+
+            <MudTd>
+
+                <MudChip T="string"
+                         Color="@GetPriorityColor(context.Priority)"
+                         Variant="Variant.Filled">
+
+                    P@context.Priority
+
+                </MudChip>
+
+            </MudTd>
+
+        </MudTd>
+
+            <MudTd>@context.Description</MudTd>
+
+            <MudTd>
+
+                <MudChip T="string"
+                    Color="@GetStatusColor(context.Status)">
+
+                    @context.Status
+
+                </MudChip>
+
+            </MudTd>
+
+            <MudTd>@context.CreatedOn.ToShortDateString()</MudTd>
+
+            <MudTd>@context.PlannedStartDate?.ToShortDateString()</MudTd>
+
+        <MudTd>
+
+            @if (context.DueDate.HasValue)
+            {
+                if (context.DueDate.Value.Date < DateTime.Today &&
+                    context.Status != WorkOrderStatus.Completed)
+                {
+                    <MudChip T="string"
+                             Color="Color.Error"
+                             Variant="Variant.Filled">
+
+                        @context.DueDate.Value.ToShortDateString()
+
+                    </MudChip>
+                }
+                else
+                {
+                    @context.DueDate.Value.ToShortDateString()
+                }
+            }
+
+        </MudTd>
+
+            <MudTd>@context.CompletedOn?.ToShortDateString()</MudTd>
+
+        <MudTd>
+
+            @if (context.BlockReason == BlockReason.None)
+            {
+                <MudChip T="string"
+                         Color="Color.Success"
+                         Variant="Variant.Filled">
+
+                    READY
+
+                </MudChip>
+            }
+            else
+            {
+                <MudChip T="string"
+                         Color="Color.Error"
+                         Variant="Variant.Filled">
+
+                    BLOCKED
+
+                </MudChip>
+            }
+
+        </MudTd>
+
+        <MudTd>
+
+            @if (context.BlockReason == BlockReason.None)
+            {
+                <MudText Color="Color.Success">
+
+                    —
+
+                </MudText>
+            }
+            else
+            {
+                <MudText Color="Color.Error">
+
+                    @context.BlockReason
+
+                </MudText>
+            }
+
+            </MudTd>
+
+        <MudTd Class="text-center">
+
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           OnClick="@(() => OpenWorkOrder(context.Id))" />
+
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Color="Color.Info"
+                           Size="Size.Small"
+                           OnClick="@(() => EditWorkOrder(context.Id))" />
+
+        </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+
+@code {
+
+    private List<WorkOrder> _workOrders = new();
+
+    private WorkOrder? _selected;
+
+    private bool _loading;
+
+    protected override void OnInitialized()
+    {
+        Load();
+    }
+
+    private void Load()
+    {
+        _loading = true;
+
+        _workOrders = WorkOrderRepository
+            .GetAll()
+            .Where(x =>
+        x.Status != WorkOrderStatus.Completed &&
+        x.Status != WorkOrderStatus.Cancelled)
+            .ToList();
+
+        var readiness =
+            ProductionReadinessService
+                .GetWorkOrderReadiness();
+
+        foreach (var wo in _workOrders)
+        {
+            var state =
+                readiness.FirstOrDefault(
+                    r => r.WorkOrderId == wo.Id);
+
+            if (state == null)
+                continue;
+
+            if (state.IsReady)
+            {
+                wo.BlockReason = BlockReason.None;
+                wo.BlockMessage = "Ready";
+            }
+            else
+            {
+                wo.BlockReason =
+                    BlockReason.MaterialShortage;
+
+                wo.BlockMessage =
+                    state.Reason;
+            }
+        }
+
+        _loading = false;
+    }
+
+    private void StartWorkOrder()
+    {
+        if (_selected is null)
+            return;
+
+        ExecutionService.StartWorkOrder(_selected.Id);
+
+        Snackbar.Add(
+            "Work Order Started.",
+            Severity.Success);
+
+        Load();
+    }
+
+    private void PauseWorkOrder()
+    {
+        if (_selected is null)
+            return;
+
+        ExecutionService.PauseWorkOrder(_selected.Id);
+
+        Snackbar.Add(
+            "Work Order Paused.",
+            Severity.Warning);
+
+        Load();
+    }
+
+    private void CompleteWorkOrder()
+{
+    if (_selected is null)
+        return;
+
+    ExecutionService.CompleteWorkOrder(_selected.Id);
+
+    Snackbar.Add(
+        "Work Order Completed.",
+        Severity.Success);
+
+    Load();
+}
+    
+    private void CancelWorkOrder()
+    {
+        if (_selected is null)
+            return;
+
+        ExecutionService.CancelWorkOrder(_selected.Id);
+
+        Snackbar.Add(
+            "Work Order Cancelled.",
+            Severity.Info);
+
+        Load();
+    }
+
+
+
+    private Color GetStatusColor(WorkOrderStatus status)
+    {
+        return status switch
+        {
+            WorkOrderStatus.Ready => Color.Info,
+            WorkOrderStatus.InProduction => Color.Success,
+            WorkOrderStatus.Paused => Color.Warning,
+            WorkOrderStatus.Completed => Color.Primary,
+            WorkOrderStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetPriorityColor(int priority)
+    {
+        if (priority >= 90)
+            return Color.Error;
+
+        if (priority >= 70)
+            return Color.Warning;
+
+        if (priority >= 40)
+            return Color.Info;
+
+        return Color.Success;
+    }
+
+    void NewWorkOrder()
+        => Navigation.NavigateTo("/production/workorders/new");
+
+    void OpenWorkOrder(Guid id)
+    {
+        Navigation.NavigateTo($"/production/workorder/{id}");
+    }
+
+    private void EditWorkOrder(Guid id)
+    {
+        Navigation.NavigateTo($"/production/workorders/edit/{id}");
+    }
+
+    void EditWorkOrder()
+        => Navigation.NavigateTo($"/production/workorders/edit/{_selected!.Id}");
+
+    void AddMaterial()
+        => Navigation.NavigateTo($"/production/workorders/materials/{_selected!.Id}");
+
+    void IssueMaterial()
+    {
+        if (_selected == null)
+            return;
+
+        Navigation.NavigateTo(
+            $"/production/workorders/issue/{_selected.Id}");
+    }
+
+    private string _search = "";
+
+    private WorkOrderStatus? _statusFilter;
+
+    private bool _readyOnly;
+
+    private bool _blockedOnly;
+
+    private IEnumerable<WorkOrder> FilteredWorkOrders =>
+        _workOrders.Where(wo =>
+        {
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                if (!(
+
+                    (wo.WorkOrderNumber ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+
+                    (wo.ProjectName ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+
+                    (wo.Description ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase)
+
+                ))
+                {
+                    return false;
+                }
+            }
+
+            if (_statusFilter != null &&
+                wo.Status != _statusFilter)
+                return false;
+
+            if (_readyOnly &&
+                wo.BlockReason != BlockReason.None)
+                return false;
+
+            if (_blockedOnly &&
+                wo.BlockReason == BlockReason.None)
+                return false;
+
+            return true;
+        });
+
+
+}

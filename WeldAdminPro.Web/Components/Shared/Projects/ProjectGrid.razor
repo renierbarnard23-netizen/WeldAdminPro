@@ -1,0 +1,107 @@
+@using WeldAdminPro.Core.Models
+
+@if (Projects.Count == 0)
+{
+    <div class="alert alert-info">
+
+        No projects found.
+
+    </div>
+}
+else
+{
+    <table class="table table-hover align-middle">
+
+        <thead>
+
+            <tr>
+
+                <th>Job</th>
+
+                <th>Status</th>
+
+                <th>Project</th>
+
+                <th>Client</th>
+
+                <th>Assigned</th>
+
+                <th class="text-end">
+
+                    Budget
+
+                </th>
+
+                <th></th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            @foreach (var project in Projects.OrderBy(p => p.JobNumber))
+            {
+                <tr>
+
+                    <td>
+
+                        @project.JobNumber
+
+                    </td>
+
+                    <td>
+
+                        @project.Status
+
+                    </td>
+
+                    <td>
+
+                        @project.ProjectName
+
+                    </td>
+
+                    <td>
+
+                        @project.Client
+
+                    </td>
+
+                    <td>
+
+                        @project.AssignedTo
+
+                    </td>
+
+                    <td class="text-end">
+
+                        @project.Budget.ToString("N2")
+
+                    </td>
+
+                    <td class="text-end">
+
+                        <a class="btn btn-sm btn-primary"
+                           href="/projects/@project.Id">
+
+                            Open
+
+                        </a>
+
+                    </td>
+
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+}
+
+@code
+{
+    [Parameter]
+
+    public List<Project> Projects { get; set; } = new();
+}

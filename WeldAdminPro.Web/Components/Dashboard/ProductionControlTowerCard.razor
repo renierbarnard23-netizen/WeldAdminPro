@@ -1,0 +1,242 @@
+@using MudBlazor
+@using WeldAdminPro.Data.Services.ProductionEngine
+
+<MudPaper Class="pa-4" Elevation="2">
+
+    <MudText Typo="Typo.h5" Class="mb-4">
+
+        Production Control Tower
+
+    </MudText>
+
+    @if (Snapshot == null)
+    {
+        <MudText>Loading...</MudText>
+    }
+    else
+    {
+        <MudAlert Severity="@GetSeverity()" Dense="true" Class="mb-4">
+
+            <MudText Typo="Typo.h6">
+
+                @Snapshot.ControlTower.SystemStatus
+
+            </MudText>
+
+        </MudAlert>
+
+        <MudGrid>
+
+            <MudItem xs="12" md="4">
+
+                <MudPaper Class="pa-3">
+
+                    <MudText Typo="Typo.caption">
+
+                        Ready Orders
+
+                    </MudText>
+
+                    <MudText Typo="Typo.h4">
+
+                        @Snapshot.ControlTower.ReadyOrders
+
+                    </MudText>
+
+                </MudPaper>
+
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+
+                <MudPaper Class="pa-3">
+
+                    <MudText Typo="Typo.caption">
+
+                        Running Orders
+
+                    </MudText>
+
+                    <MudText Typo="Typo.h4">
+
+                        @Snapshot.ControlTower.RunningOrders
+
+                    </MudText>
+
+                </MudPaper>
+
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+
+                <MudPaper Class="pa-3">
+
+                    <MudText Typo="Typo.caption">
+
+                        Blocked Orders
+
+                    </MudText>
+
+                    <MudText Typo="Typo.h4">
+
+                        @Snapshot.ControlTower.BlockedOrders
+
+                    </MudText>
+
+                </MudPaper>
+
+            </MudItem>
+
+        </MudGrid>
+
+        <MudGrid Class="mt-2">
+
+            <MudItem xs="12" md="4">
+
+                <MudPaper Class="pa-3">
+
+                    <MudText Typo="Typo.caption">
+
+                        Deadline Risks
+
+                    </MudText>
+
+                    <MudText Typo="Typo.h4">
+
+                        @Snapshot.ControlTower.DeadlineRisks
+
+                    </MudText>
+
+                </MudPaper>
+
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+
+                <MudPaper Class="pa-3">
+
+                    <MudText Typo="Typo.caption">
+
+                        Material Shortages
+
+                    </MudText>
+
+                    <MudText Typo="Typo.h4">
+
+                        @Snapshot.ControlTower.MaterialShortages
+
+                    </MudText>
+
+                </MudPaper>
+
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+
+                <MudPaper Class="pa-3">
+
+                    <MudText Typo="Typo.caption">
+
+                        Capacity Load
+
+                    </MudText>
+
+                    <MudText Typo="Typo.h4">
+
+                        @Snapshot.ControlTower.CapacityLoad.ToString("N0")%
+
+                    </MudText>
+
+                </MudPaper>
+
+            </MudItem>
+
+        </MudGrid>
+
+        <MudGrid Class="mt-2">
+
+            <MudItem xs="12" md="4">
+
+                <MudPaper Class="pa-3">
+
+                    <MudText Typo="Typo.caption">
+
+                        Delayed Work Orders
+
+                    </MudText>
+
+                    <MudText Typo="Typo.h4">
+
+                        @Snapshot.ControlTower.DelayedWorkOrders
+
+                    </MudText>
+
+                </MudPaper>
+
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+
+                <MudPaper Class="pa-3">
+
+                    <MudText Typo="Typo.caption">
+
+                        Active Repairs
+
+                    </MudText>
+
+                    <MudText Typo="Typo.h4">
+
+                        @Snapshot.ControlTower.ActiveRepairs
+
+                    </MudText>
+
+                </MudPaper>
+
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+
+                <MudPaper Class="pa-3">
+
+                    <MudText Typo="Typo.caption">
+
+                        Bottlenecks
+
+                    </MudText>
+
+                    <MudText Typo="Typo.h4">
+
+                        @Snapshot.ControlTower.BottleneckCount
+
+                    </MudText>
+
+                </MudPaper>
+
+            </MudItem>
+
+        </MudGrid>
+
+    }
+
+</MudPaper>
+
+@code
+{
+    [Parameter]
+    public ProductionSnapshot? Snapshot { get; set; }
+
+    private Severity GetSeverity()
+    {
+        if (Snapshot == null)
+            return Severity.Normal;
+
+        return Snapshot.ControlTower.SystemStatus switch
+        {
+            "Healthy" => Severity.Success,
+            "Warning" => Severity.Warning,
+            "Critical" => Severity.Error,
+            _ => Severity.Info
+        };
+    }
+}

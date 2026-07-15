@@ -1,0 +1,67 @@
+@using WeldAdminPro.Web.Components.Shared.Production
+
+@using MudBlazor
+
+<MudGrid Class="mb-4">
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard
+            Title="Transactions"
+            Value="@Transactions.ToString("N0")"
+            Status="Ledger Entries"
+            ChipColor="Color.Info"
+            Icon="@Icons.Material.Filled.ReceiptLong" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard
+            Title="Inventory Value"
+            Value="@InventoryValue.ToString("C")"
+            Status="Current Stock"
+            ChipColor="Color.Success"
+            Icon="@Icons.Material.Filled.Payments" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard
+            Title="Ledger Health"
+            Value="@(LedgerHealthy ? "Healthy" : "Errors")"
+            Status="@(LedgerHealthy ? "Verified" : "Attention Required")"
+            ChipColor="@(LedgerHealthy ? Color.Success : Color.Warning)"
+            Icon="@Icons.Material.Filled.Verified" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard
+            Title="Ledger Errors"
+            Value="@LedgerErrors.ToString()"
+            Status="Integrity Check"
+            ChipColor="@(LedgerErrors == 0 ? Color.Success : Color.Error)"
+            Icon="@Icons.Material.Filled.Warning" />
+
+    </MudItem>
+
+</MudGrid>
+
+@code {
+
+    [Parameter]
+    public int Transactions { get; set; }
+
+    [Parameter]
+    public decimal InventoryValue { get; set; }
+
+    [Parameter]
+    public bool LedgerHealthy { get; set; }
+
+    [Parameter]
+    public int LedgerErrors { get; set; }
+
+}

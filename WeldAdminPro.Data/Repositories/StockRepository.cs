@@ -1,8 +1,9 @@
-﻿using System;
+﻿using Microsoft.Data.Sqlite;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
-using Microsoft.Data.Sqlite;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Services;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
@@ -70,7 +71,13 @@ WHERE Id = $id;";
 			using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
-			using var cmd = connection.CreateCommand();
+            var countCmd = connection.CreateCommand();
+            countCmd.CommandText = "SELECT COUNT(*) FROM StockItems;";
+            Console.WriteLine("StockItems Count = " + countCmd.ExecuteScalar());
+
+            Console.WriteLine("StockRepository DB = " + connection.DataSource);
+
+            using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
 SELECT Id, ItemCode, Description, Quantity, Unit,
        MinLevel, MaxLevel, Category, AverageUnitCost
@@ -101,10 +108,19 @@ ORDER BY ItemCode;";
 
 		public void Add(StockItem item)
 		{
-			using var connection = new SqliteConnection(_connectionString);
+
+            if (item.Id == Guid.Empty)
+            {
+                item.Id = Guid.NewGuid();
+            }
+            using var connection = new SqliteConnection(_connectionString);
 			connection.Open();
 
-			using var cmd = connection.CreateCommand();
+            var countCmd = connection.CreateCommand();
+            countCmd.CommandText = "SELECT COUNT(*) FROM StockItems;";
+            Console.WriteLine("StockItems Count = " + countCmd.ExecuteScalar());
+
+            using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
 INSERT INTO StockItems
 (Id, ItemCode, Description, Quantity, Unit, MinLevel, MaxLevel, Category, AverageUnitCost)
@@ -222,16 +238,57 @@ WHERE Id = $id;";
 			return _transactionRepo.GetAllTransactions();
 		}
 
-		public void AddTransaction(StockTransaction tx)
-		{
-			_transactionRepo.AddTransaction(tx);
+        public void AddTransaction(StockTransaction tx)
+        {
+            // Load stock item
+            var item = GetById(tx.StockItemId);
 
-			// Auto production reschedule
-			var rescheduler = new ProductionReschedulerService();
-			rescheduler.RecalculateProduction();
-		}
+            if (item == null)
+                throw new Exception("Stock item not found.");
 
-		public List<StockTransaction> GetAuditLog()
+            // Apply quantity movement
+            if (tx.Type == "IN")
+            {
+                decimal oldQty = (decimal)item.Quantity;
+                decimal receivedQty = (decimal)tx.Quantity;
+                decimal newQty = oldQty + receivedQty;
+
+                if (newQty > 0)
+                {
+                    item.AverageUnitCost =
+                        ((oldQty * item.AverageUnitCost) +
+                         (receivedQty * tx.UnitCost))
+                        / newQty;
+                }
+
+                item.Quantity = (double)newQty;
+            }
+            else if (tx.Type == "OUT")
+            {
+                item.Quantity -= (int)tx.Quantity;
+
+                if (item.Quantity < 0)
+                    throw new Exception("Insufficient stock.");
+            }
+
+            // Running balance
+            tx.BalanceAfter = (int)Math.Round(item.Quantity);
+
+            // Update stock master
+            Update(item);
+
+            // Save transaction history
+            _transactionRepo.AddTransaction(tx);
+
+            // Keep ledger consistent
+            RecalculateAllBalances();
+
+            // Auto production reschedule
+            // var rescheduler = new ProductionReschedulerService();
+            // rescheduler.RecalculateProduction();
+        }
+
+        public List<StockTransaction> GetAuditLog()
 		{
 			return _transactionRepo
 				.GetAllTransactions()

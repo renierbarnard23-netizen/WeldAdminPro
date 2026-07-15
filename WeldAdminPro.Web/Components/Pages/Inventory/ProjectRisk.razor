@@ -1,0 +1,85 @@
+@page "/inventory/projectrisk"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Analytics.Executive
+@using WeldAdminPro.Data.Services.Inventory
+@using WeldAdminPro.Web.Components.Shared.Enterprise
+@using WeldAdminPro.Web.Components.Shared.Inventory
+
+@inject StockApplicationService StockService
+
+<PageTitle>Project Risk Dashboard</PageTitle>
+
+<EnterprisePageHeader
+    Title="Project Risk Dashboard"
+    Subtitle="Project budget utilisation and material cost exposure."
+    Icon="@Icons.Material.Filled.Warning" />
+
+<ProjectRiskKpiCards Projects="_projects" />
+
+<MudPaper Class="pa-4 mt-4" Elevation="2">
+
+    <MudStack Row="true"
+              Justify="Justify.SpaceBetween"
+              AlignItems="AlignItems.Center"
+              Class="mb-3">
+
+        <MudStack Row="true"
+                  Justify="Justify.SpaceBetween"
+                  AlignItems="AlignItems.Center"
+                  Class="mb-3">
+
+            <MudText Typo="Typo.h6">
+                Project Risk Analysis
+            </MudText>
+
+            <MudText Color="Color.Secondary">
+                @_projects.Count Projects
+            </MudText>
+
+        </MudStack>
+
+        <MudDivider Class="mb-3" />
+
+        <MudText Color="Color.Secondary">
+
+            Projects are ranked according to
+            material spend versus available budget.
+
+        </MudText>
+
+        <MudDivider Class="mt-3 mb-3" />
+
+        <ProjectRiskGrid Projects="_projects" />
+
+        <MudText Color="Color.Secondary">
+            @_projects.Count Projects
+        </MudText>
+
+    </MudStack>
+
+    <MudDivider Class="mb-3" />
+
+    <MudText Color="Color.Secondary">
+
+        Projects are ranked according to material expenditure
+        versus available budget.
+
+    </MudText>
+
+    <MudDivider Class="mt-3 mb-3" />
+
+</MudPaper>
+
+@code
+{
+    private List<ProjectRiskModel> _projects = new();
+
+    protected override void OnInitialized()
+    {
+        _projects = StockService
+        .GetProjectRiskSummary()
+        .OrderByDescending(x => x.BudgetUsedPercent)
+        .ToList();
+    }
+}

@@ -1,0 +1,32 @@
+@using MudBlazor
+
+@if (IsHealthy)
+{
+    <MudAlert Severity="Severity.Success"
+              Dense="true"
+              Class="mb-4">
+
+        Ledger integrity verified successfully.
+
+    </MudAlert>
+}
+else
+{
+    <MudAlert Severity="Severity.Warning"
+              Dense="true"
+              Class="mb-4">
+
+        Ledger contains @ErrorCount integrity error(s).
+
+    </MudAlert>
+}
+
+@code {
+
+    [Parameter]
+    public bool IsHealthy { get; set; }
+
+    [Parameter]
+    public int ErrorCount { get; set; }
+
+}

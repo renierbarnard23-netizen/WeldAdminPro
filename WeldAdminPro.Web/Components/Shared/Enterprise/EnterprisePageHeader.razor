@@ -1,0 +1,80 @@
+
+@using MudBlazor
+
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+
+    <MudGrid>
+
+        <MudItem xs="12" md="8">
+
+            <MudStack Row="true"
+                      AlignItems="AlignItems.Center"
+                      Spacing="2">
+
+                <MudAvatar Size="Size.Large"
+                           Color="@IconColor"
+                           Variant="Variant.Filled">
+
+                    <MudIcon Icon="@Icon" />
+
+                </MudAvatar>
+
+                <MudStack Spacing="0">
+
+                    <MudText Typo="Typo.h4">
+
+                        @Title
+
+                    </MudText>
+
+                    @if (!string.IsNullOrWhiteSpace(Subtitle))
+                    {
+                        <MudText Typo="Typo.subtitle2"
+                                 Color="Color.Secondary">
+
+                            @Subtitle
+
+                        </MudText>
+                    }
+
+                </MudStack>
+
+            </MudStack>
+
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+
+            <MudStack Row="true"
+                      Justify="Justify.FlexEnd"
+                      AlignItems="AlignItems.Center">
+
+                @Actions
+
+            </MudStack>
+
+        </MudItem>
+
+    </MudGrid>
+
+</MudPaper>
+
+@code
+{
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string Subtitle { get; set; } = "";
+
+    [Parameter]
+    public string Icon { get; set; }
+        = Icons.Material.Filled.Dashboard;
+
+    [Parameter]
+    public Color IconColor { get; set; }
+        = Color.Primary;
+
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
+}

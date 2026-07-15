@@ -1,0 +1,42 @@
+@page "/inventory/forecast"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Analytics.Executive
+@using WeldAdminPro.Data.Services.Inventory
+@using WeldAdminPro.Web.Components.Shared.Enterprise
+@using WeldAdminPro.Web.Components.Shared.Inventory
+@using WeldAdminPro.Web.Components.Shared.Production
+
+@inject StockApplicationService StockService
+
+<PageTitle>Executive Stock Forecast</PageTitle>
+
+<EnterprisePageHeader Title="Executive Stock Forecast"
+                      Subtitle="Projected stock depletion based on the last 90 days of usage."
+                      Icon="@Icons.Material.Filled.TrendingUp" />
+
+<ForecastKpiCards ForecastItems="_forecast" />
+
+<MudPaper Class="pa-4 mt-4"
+          Elevation="2">
+
+    <MudText Typo="Typo.h6"
+             Class="mb-4">
+
+        Stock Forecast
+
+    </MudText>
+
+    <ForecastGrid ForecastItems="_forecast" />
+
+</MudPaper>
+
+@code
+{
+    private List<StockForecastModel> _forecast = new();
+
+    protected override void OnInitialized()
+    {
+        _forecast = StockService.GetStockForecast();
+    }
+}

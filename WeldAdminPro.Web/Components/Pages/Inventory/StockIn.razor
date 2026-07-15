@@ -1,0 +1,225 @@
+@page "/inventory/stockin"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Inventory
+@using WeldAdminPro.Data.Services.Projects
+
+@inject ProjectApplicationService ProjectService
+
+@inject StockApplicationService StockService
+@inject NavigationManager Navigation
+
+<PageTitle>Receive Stock</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium">
+
+    <MudPaper Class="pa-6">
+
+        <MudText Typo="Typo.h4" GutterBottom="true">
+            Receive Stock
+        </MudText>
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <MudAlert Severity="Severity.Error"
+                      Dense="true"
+                      Class="mb-4">
+
+                @_error
+
+            </MudAlert>
+        }                
+            <MudGrid Spacing="3">
+
+                <MudItem xs="12">
+
+                    <MudSelect T="Guid"
+                               Label="Stock Item"
+                               FullWidth="true"
+                               @bind-Value="_selectedItemId">
+
+                        @foreach (var item in _items)
+                        {
+                            <MudSelectItem Value="@item.Id">
+                                @item.ItemCode - @item.Description
+                            </MudSelectItem>
+                        }
+
+                    </MudSelect>
+
+                </MudItem>
+
+                <MudItem xs="12">
+
+                    <MudSelect T="Guid?"
+                               Label="Project (Optional)"
+                               FullWidth="true"
+                               @bind-Value="_selectedProjectId">
+
+                        <MudSelectItem T="Guid?" Value="@((Guid?)null)">
+                            Warehouse Stock
+                        </MudSelectItem>
+
+                        @foreach (var project in _projects)
+                        {
+                            <MudSelectItem T="Guid?" Value="@project.Id">
+                                @project.ProjectName
+                            </MudSelectItem>
+                        }
+
+                    </MudSelect>
+
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+
+                    <MudNumericField T="int"
+                                     Label="Quantity"
+                                     FullWidth="true"
+                                     Min="1"
+                                     @bind-Value="_quantity" />
+
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+
+                    <MudNumericField T="decimal"
+                                     Label="Unit Cost"
+                                     FullWidth="true"
+                                     @bind-Value="_unitCost" />
+
+                </MudItem>
+
+                <MudItem xs="12">
+
+                    <MudTextField Label="Reference"
+                                  FullWidth="true"
+                                  @bind-Value="_reference" />
+
+                </MudItem>
+
+                <MudItem xs="12">
+
+                    <MudTextField T="DateTime"
+                                  Label="Transaction Date"
+                                  FullWidth="true"
+                                  ReadOnly="true"
+                                  @bind-Value="_transactionDate" />
+
+                </MudItem>
+
+            </MudGrid>
+
+        <MudDivider Class="my-4" />
+
+        <MudStack Row="true"
+                  Justify="Justify.FlexEnd"
+                  Spacing="2">
+
+            <MudButton Variant="Variant.Outlined"
+                       OnClick="Cancel">
+
+                Cancel
+
+            </MudButton>
+
+            <MudButton Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       OnClick="Save">
+
+                Receive Stock
+
+            </MudButton>
+
+        </MudStack>
+
+    </MudPaper>
+
+</MudContainer>
+
+@code
+{
+    private List<StockItem> _items = new();
+
+    private List<Project> _projects = new();
+
+    private Guid _selectedItemId;
+
+    private Guid? _selectedProjectId;
+
+    private int _quantity = 1;
+
+    private decimal _unitCost;
+
+    private string _reference = "";
+
+    private DateTime _transactionDate = DateTime.Now;
+
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        _items = StockService.GetStockItems();
+        _projects = ProjectService.GetProjects();
+
+        foreach (var item in _items)
+        {
+            Console.WriteLine($"{item.ItemCode} -> {item.Id}");
+        }
+    }
+
+    private void Save()
+    {
+        _error = null;
+
+        if (_selectedItemId == Guid.Empty)
+        {
+            _error = "Please select a stock item.";
+            return;
+        }
+
+        if (_quantity <= 0)
+        {
+            _error = "Quantity must be greater than zero.";
+            return;
+        }
+
+        if (_unitCost <= 0)
+        {
+            _error = "Unit Cost must be greater than zero.";
+            return;
+        }
+
+        var transaction = new StockTransaction
+        {
+            Id = Guid.NewGuid(),
+            StockItemId = _selectedItemId,
+            ProjectId = _selectedProjectId,
+            Quantity = _quantity,
+            UnitCost = _unitCost,
+            Reference = _reference,
+            TransactionDate = _transactionDate,
+            Type = "IN"
+        };
+
+        Console.WriteLine("========== TRANSACTION ==========");
+        Console.WriteLine($"StockItemId : {transaction.StockItemId}");
+        Console.WriteLine($"ProjectId   : {transaction.ProjectId}");
+        Console.WriteLine($"Reference   : {transaction.Reference}");
+        Console.WriteLine($"Quantity    : {transaction.Quantity}");
+        Console.WriteLine($"Type        : {transaction.Type}");
+        Console.WriteLine("=================================");
+
+        StockService.ReceiveStock(transaction);
+
+        _error = null;
+
+        Navigation.NavigateTo("/inventory");
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/inventory");
+    }
+}

@@ -1,0 +1,162 @@
+@page "/production/workorders/materials/{WorkOrderId:guid}"
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Repositories
+@using WeldAdminPro.Data.Services
+@using MudBlazor
+
+@inject StockRepository StockRepository
+@inject WorkOrderMaterialRepository WorkOrderMaterialRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Add Work Order Material</PageTitle>
+
+<EnterprisePageHeader
+    Title="Add Work Order Material"
+    Subtitle="Assign stock items to the selected work order."
+    Icon="@Icons.Material.Filled.Inventory2">
+</EnterprisePageHeader>
+
+<MudPaper Class="pa-5 mx-auto mt-4"
+          Style="max-width:900px;"
+          Elevation="2">
+
+    <DashboardSection
+        Title="Material Assignment"
+        Icon="@Icons.Material.Filled.Inventory2">
+
+    <MudText Typo="Typo.h4" Class="mb-4">
+        Add Work Order Material
+    </MudText>
+
+        <MudGrid>
+
+            <MudItem xs="12">
+
+                <MudSelect T="StockItem"
+                           Label="Material"
+                           @bind-Value="_selectedMaterial"
+                           Required="true"
+                           RequiredError="Material is required.">
+
+                    @foreach (var stock in _materials)
+                    {
+                        <MudSelectItem Value="@stock">
+                            @($"{stock.ItemCode} - {stock.Description}")
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudNumericField T="double"
+                                 Label="Required Quantity"
+                                 @bind-Value="_requiredQuantity" />
+
+            </MudItem>
+
+        </MudGrid>
+
+    <MudDivider Class="my-4" />
+
+    </DashboardSection>
+
+    <MudStack Row="true"
+              Justify="Justify.FlexEnd"
+              Spacing="2">
+
+        <MudButton Variant="Variant.Text"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.AddShoppingCart"
+                   OnClick="AddMaterial">
+
+            Assign Material
+
+        </MudButton>
+
+    </MudStack>
+
+</MudPaper>
+
+@code {
+
+    [Parameter]
+    public Guid WorkOrderId { get; set; }
+
+    private List<StockItem> _materials = new();
+
+    private StockItem? _selectedMaterial;
+
+    private double _requiredQuantity = 1;
+
+    protected override void OnInitialized()
+    {
+        _materials =
+            StockRepository
+                .GetAll()
+                .ToList();
+    }
+
+    private void AddMaterial()
+    {
+        if (_selectedMaterial is null)
+        {
+            Snackbar.Add(
+                "Please select a material.",
+                Severity.Warning);
+
+            return;
+        }
+
+        try
+        {
+            var material =
+                new WorkOrderMaterial
+                {
+                    Id = Guid.NewGuid(),
+
+                    WorkOrderId = WorkOrderId,
+
+                    ItemCode = _selectedMaterial.ItemCode,
+
+                    RequiredQuantity = _requiredQuantity
+                };
+
+            WorkOrderMaterialRepository.Add(material);
+
+            var reservation =
+                new PersistentReservationService();
+
+            reservation.Reserve(WorkOrderId);
+
+            Snackbar.Add(
+                "Material added successfully.",
+                Severity.Success);
+
+            Navigation.NavigateTo(
+                "/production/workorders");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo(
+            "/production/workorders");
+    }
+
+}

@@ -1,0 +1,102 @@
+@using WeldAdminPro.Core.Models
+
+<div class="card shadow-sm mt-4">
+
+    <div class="card-header bg-warning">
+
+        <strong>Return Material</strong>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-7">
+
+                <label class="form-label">
+
+                    Issued Material
+
+                </label>
+
+                <select class="form-select"
+                        @bind="SelectedStockId">
+
+                    <option value="">-- Select Material --</option>
+
+                    @foreach (var item in Items)
+                    {
+                        <option value="@item.StockItemId">
+
+                            @item.ItemCode
+                            -
+                            @item.Description
+                            (@item.Quantity)
+
+                        </option>
+                    }
+
+                </select>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <label class="form-label">
+
+                    Quantity
+
+                </label>
+
+                <input class="form-control"
+                       type="number"
+                       @bind="Quantity" />
+
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end">
+
+                <button class="btn btn-warning w-100"
+                        @onclick="ReturnMaterial">
+
+                    Return
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+
+    public List<ReturnableItemDto> Items { get; set; } = new();
+
+    [Parameter]
+
+    public EventCallback<(Guid StockId, decimal Quantity)> OnReturn { get; set; }
+
+    private Guid SelectedStockId;
+
+    private decimal Quantity = 1;
+
+    private async Task ReturnMaterial()
+    {
+        if (SelectedStockId == Guid.Empty)
+            return;
+
+        if (Quantity <= 0)
+            return;
+
+        await OnReturn.InvokeAsync((SelectedStockId, Quantity));
+
+        Quantity = 1;
+    }
+
+}

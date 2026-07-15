@@ -1,0 +1,81 @@
+@using WeldAdminPro.Core.Models
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-3">
+
+        <div class="card shadow-sm">
+
+            <div class="card-body">
+
+                <h6>Total Inventory Value</h6>
+
+                <h3>@TotalValue.ToString("C")</h3>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <div class="card shadow-sm">
+
+            <div class="card-body">
+
+                <h6>Total Units</h6>
+
+                <h3>@TotalUnits</h3>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <div class="card border-warning shadow-sm">
+
+            <div class="card-body">
+
+                <h6>Low Stock</h6>
+
+                <h3>@LowStock</h3>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <div class="card border-danger shadow-sm">
+
+            <div class="card-body">
+
+                <h6>Critical</h6>
+
+                <h3>@Critical</h3>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter] public decimal TotalValue { get; set; }
+
+    [Parameter] public int TotalUnits { get; set; }
+
+    [Parameter] public int LowStock { get; set; }
+
+    [Parameter] public int Critical { get; set; }
+
+}

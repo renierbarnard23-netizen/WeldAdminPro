@@ -1,0 +1,169 @@
+@page "/production/workorders/edit/{Id:guid}"
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Repositories
+@using MudBlazor
+
+@inject WorkOrderRepository WorkOrderRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Edit Work Order</PageTitle>
+
+@if (_loading)
+{
+    <MudPaper Class="pa-8 my-6">
+
+        <MudStack AlignItems="AlignItems.Center"
+                  Justify="Justify.Center"
+                  Spacing="2">
+
+            <MudProgressCircular Indeterminate="true"
+                                 Color="Color.Primary" />
+
+            <MudText>
+
+                Loading work order...
+
+            </MudText>
+
+        </MudStack>
+
+    </MudPaper>
+}
+else if (_workOrder is null)
+{
+    <MudPaper Class="pa-8">
+
+        <MudAlert Severity="Severity.Error">
+
+            Work Order not found.
+
+        </MudAlert>
+
+    </MudPaper>
+}
+else
+{
+    <EnterprisePageHeader
+    Title="Edit Work Order"
+    Subtitle="Update the work order details."
+    Icon="@Icons.Material.Filled.EditNote">
+    </EnterprisePageHeader>
+
+    <MudPaper Class="pa-5 mx-auto mt-4"
+          Style="max-width:900px;"
+          Elevation="2">
+
+        <DashboardSection
+            Title="Work Order Information"
+            Icon="@Icons.Material.Filled.Assignment">
+
+            <MudGrid>
+
+                <MudItem xs="12">
+
+                    <MudTextField Label="Description"
+                                  @bind-Value="_workOrder.Description"
+                                  Required="true"
+                                  RequiredError="Description is required."
+                                  Lines="3" />
+
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+
+                    <MudNumericField T="double"
+                                     Label="Estimated Hours"
+                                     @bind-Value="_workOrder.EstimatedHours" />
+
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+
+                    <MudDatePicker Label="Due Date"
+                                   @bind-Date="_workOrder.DueDate" />
+
+                </MudItem>
+
+        </MudGrid>
+
+        </DashboardSection>
+
+        <MudDivider Class="my-4" />
+
+        <MudStack Row="true"
+                  Justify="Justify.FlexEnd"
+                  Spacing="2">
+
+            <MudButton Variant="Variant.Text"
+                       OnClick="Cancel">
+
+                Cancel
+
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.EditNote"
+                       OnClick="Save">
+
+                Save
+
+            </MudButton>
+
+        </MudStack>
+
+    </MudPaper>
+}
+
+@code {
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private WorkOrder? _workOrder;
+
+    private bool _loading;
+
+    protected override void OnInitialized()
+    {
+        _loading = true;
+
+        _workOrder =
+            WorkOrderRepository.GetById(Id);
+
+        _loading = false;
+    }
+
+    private void Save()
+    {
+        if (_workOrder is null)
+            return;
+
+        try
+        {
+            WorkOrderRepository.Update(_workOrder);
+
+            Snackbar.Add(
+                "Work Order updated.",
+                Severity.Success);
+
+            Navigation.NavigateTo(
+                "/production/workorders");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo(
+            "/production/workorders");
+    }
+
+}

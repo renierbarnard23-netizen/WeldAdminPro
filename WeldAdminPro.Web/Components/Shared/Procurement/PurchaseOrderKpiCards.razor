@@ -1,0 +1,67 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Web.Components.Shared.Production
+
+<MudGrid>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Purchase Orders"
+                           Value="@Orders.Count().ToString()"
+                           Status="Total Created"
+                           ChipColor="Color.Primary"
+                           Icon="@Icons.Material.Filled.ShoppingCart"
+                           IconColor="Color.Primary" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Total Value"
+                           Value="@TotalValue.ToString("C")"
+                           Status="All Purchase Orders"
+                           ChipColor="Color.Success"
+                           Icon="@Icons.Material.Filled.AttachMoney"
+                           IconColor="Color.Success" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Pending"
+                           Value="@PendingCount.ToString()"
+                           Status="Awaiting Approval"
+                           ChipColor="Color.Warning"
+                           Icon="@Icons.Material.Filled.Pending"
+                           IconColor="Color.Warning" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Approved"
+                           Value="@ApprovedCount.ToString()"
+                           Status="Ready to Order"
+                           ChipColor="Color.Info"
+                           Icon="@Icons.Material.Filled.Verified"
+                           IconColor="Color.Info" />
+
+    </MudItem>
+
+</MudGrid>
+
+@code
+{
+    [Parameter]
+    public IEnumerable<PurchaseOrder> Orders { get; set; }
+        = Enumerable.Empty<PurchaseOrder>();
+
+    private decimal TotalValue =>
+        Orders.Sum(x => x.TotalAmount);
+
+    private int PendingCount =>
+        Orders.Count(x => x.Status == "Pending");
+
+    private int ApprovedCount =>
+        Orders.Count(x => x.Status == "Approved");
+}

@@ -1,0 +1,56 @@
+@page "/quality/wps"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Web.Services.Quality
+@using WeldAdminPro.Web.Components.Shared.Quality
+
+@inject WpsApplicationService WpsService
+
+<PageTitle>WPS Management</PageTitle>
+
+<EnterprisePageHeader Title="Welding Procedure Specifications"
+                      Subtitle="Manage WPS documents, revisions and approvals."
+                      Icon="@Icons.Material.Filled.Description">
+
+    <Actions>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add">
+
+            New WPS
+
+        </MudButton>
+
+    </Actions>
+
+</EnterprisePageHeader>
+
+<WpsGrid Items="_items" />
+
+<MudPaper Class="pa-6">
+
+    <MudText Typo="Typo.h5">
+
+        WPS Module
+
+    </MudText>
+
+    <MudText Color="Color.Secondary">
+
+        Under construction...
+
+    </MudText>
+
+</MudPaper>
+
+@code
+{
+    private List<Wps> _items = new();
+
+    protected override void OnInitialized()
+    {
+        _items = WpsService.GetAll();
+    }
+}

@@ -1,0 +1,83 @@
+@using MudBlazor
+@using WeldAdminPro.Data.Services.ProductionEngine
+@using WeldAdminPro.Web.Components.Shared.Production
+
+@if (Snapshot != null)
+{
+    <MudGrid Class="mb-4">
+
+        <MudItem xs="12" sm="6" md="3" lg="3">
+            <EnterpriseKpiCard Title="Running"
+                               Value="@Snapshot.RunningWorkOrders.ToString()"
+                               Status="Active"
+                               ChipColor="Color.Success" />
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3" lg="3">
+            <EnterpriseKpiCard Title="Ready"
+                               Value="@Snapshot.ReadyWorkOrders.ToString()"
+                               Status="Ready to Start"
+                               ChipColor="Color.Info" />
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3" lg="3">
+            <EnterpriseKpiCard Title="Blocked"
+                               Value="@Snapshot.BlockedWorkOrders.ToString()"
+                               Status="Requires Attention"
+                               ChipColor="Color.Error" />
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3" lg="3">
+            <EnterpriseKpiCard Title="Completed Today"
+                               Value="@Snapshot.CompletedToday.ToString()"
+                               Status="Today's Output"
+                               ChipColor="Color.Success" />
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3" lg="3">
+            <EnterpriseKpiCard Title="Completed Week"
+                               Value="@Snapshot.CompletedThisWeek.ToString()"
+                               Status="Weekly Output"
+                               ChipColor="Color.Primary" />
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3" lg="3">
+            <EnterpriseKpiCard Title="Capacity"
+                               Value="@($"{Snapshot.CapacityLoad:F0}%")"
+                               Status="Factory Load"
+                               ChipColor="Color.Warning" />
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3" lg="3">
+            <EnterpriseKpiCard Title="Health"
+                               Value="@($"{Snapshot.HealthScore}%")"
+                               Status="Factory Health"
+                               ChipColor="Color.Success" />
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3" lg="3">
+            <EnterpriseKpiCard Title="Factory"
+                               Value="@Snapshot.FactoryStatus"
+                               Status="Overall Status"
+                               ChipColor="@GetSystemColor()" />
+        </MudItem>
+
+    </MudGrid>
+}
+
+@code
+{
+    [Parameter]
+    public ProductionSnapshot? Snapshot { get; set; }
+
+    private Color GetSystemColor()
+    {
+        return Snapshot?.FactoryStatus switch
+        {
+            "Healthy" => Color.Success,
+            "Warning" => Color.Warning,
+            "Critical" => Color.Error,
+            _ => Color.Default
+        };
+    }
+}

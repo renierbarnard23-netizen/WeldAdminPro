@@ -1,0 +1,51 @@
+@page "/inventory/material-cost-drivers"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Inventory
+@using WeldAdminPro.Web.Components.Shared.Enterprise
+@using WeldAdminPro.Web.Components.Shared.Inventory
+
+@inject StockApplicationService StockService
+
+<PageTitle>Material Cost Drivers</PageTitle>
+
+<EnterprisePageHeader Title="Material Cost Drivers"
+                      Subtitle="Top material cost contributors."
+                      Icon="@Icons.Material.Filled.AttachMoney" />
+
+<MaterialCostKpiCards Drivers="_drivers" />
+
+<MudPaper Class="pa-4 mt-4" Elevation="2">
+
+    <MudStack Row="true"
+              Justify="Justify.SpaceBetween"
+              AlignItems="AlignItems.Center"
+              Class="mb-3">
+
+        <MudText Typo="Typo.h6">
+            Top Material Cost Drivers
+        </MudText>
+
+        <MudText Color="Color.Secondary">
+            @_drivers.Count Materials
+        </MudText>
+
+    </MudStack>
+
+    <MaterialCostGrid Drivers="_drivers" />
+
+</MudPaper>
+
+@code
+{
+    private List<MaterialCostDriver> _drivers = new();
+
+    protected override void OnInitialized()
+    {
+        _drivers = StockService
+        .GetMaterialCostDrivers()
+        .OrderByDescending(x => x.TotalCost)
+        .ToList();
+    }
+}

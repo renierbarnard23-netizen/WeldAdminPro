@@ -1,0 +1,99 @@
+@using WeldAdminPro.Core.Models
+
+@if (Projects.Count > 0)
+{
+    <div class="row mb-4">
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body text-center">
+
+                    <div class="text-muted">
+                        Projects
+                    </div>
+
+                    <h2>@Projects.Count</h2>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body text-center">
+
+                    <div class="text-muted">
+                        Active
+                    </div>
+
+                    <h2>
+
+                        @Projects.Count(p => p.Status == ProjectStatus.Active)
+
+                    </h2>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body text-center">
+
+                    <div class="text-muted">
+                        Completed
+                    </div>
+
+                    <h2>
+
+                        @Projects.Count(p => p.Status == ProjectStatus.Completed)
+
+                    </h2>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body text-center">
+
+                    <div class="text-muted">
+                        Contract Value
+                    </div>
+
+                    <h2>
+
+                        @Projects.Sum(p => p.Budget).ToString("N0")
+
+                    </h2>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+@code
+{
+    [Parameter]
+
+    public List<Project> Projects { get; set; } = new();
+}

@@ -1,0 +1,86 @@
+@using WeldAdminPro.Data.Services.ProductionEngine
+@using WeldAdminPro.Web.Components.Shared
+@using MudBlazor
+
+@if (Snapshot != null)
+{
+    <MudPaper Class="pa-4 mb-4">
+
+        <MudText Typo="Typo.h5">
+
+            Production Control Tower
+
+        </MudText>
+
+        <MudDivider Class="mb-4" />
+
+        <MudGrid>
+
+            <MudItem xs="12" sm="6" md="3">
+                <EnterpriseKpiCard Title="Ready"
+                                   Value="@Snapshot.ReadyWorkOrders.ToString()"
+                                   Status="Ready for Production"
+                                   ChipColor="Color.Success" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <EnterpriseKpiCard Title="Running"
+                                   Value="@Snapshot.RunningWorkOrders.ToString()"
+                                   Status="Currently Running"
+                                   ChipColor="Color.Info" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <EnterpriseKpiCard Title="Blocked"
+                                   Value="@Snapshot.BlockedWorkOrders.ToString()"
+                                   Status="Requires Attention"
+                                   ChipColor="Color.Warning" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <EnterpriseKpiCard Title="Completed"
+                                   Value="@Snapshot.CompletedToday.ToString()"
+                                   Status="Completed Today"
+                                   ChipColor="Color.Success" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <EnterpriseKpiCard Title="Deadline Risks"
+                                   Value="@Snapshot.DeadlineRisks.Count.ToString()"
+                                   Status="Projects at Risk"
+                                   ChipColor="Color.Warning" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <EnterpriseKpiCard Title="Material Shortages"
+                                   Value="@Snapshot.MaterialShortages.Count.ToString()"
+                                   Status="Procurement Required"
+                                   ChipColor="Color.Error" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <EnterpriseKpiCard Title="Delays"
+                                   Value="@Snapshot.DelayPredictions.Count.ToString()"
+                                   Status="Predicted Delays"
+                                   ChipColor="Color.Info" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <EnterpriseKpiCard Title="Bottlenecks"
+                                   Value="@Snapshot.Bottlenecks.Count.ToString()"
+                                   Status="Capacity Constraints"
+                                   ChipColor="Color.Primary" />
+            </MudItem>
+
+        </MudGrid>
+
+    </MudPaper>
+}
+
+@code {
+
+    [Parameter]
+
+    public ProductionSnapshot? Snapshot { get; set; }
+
+}

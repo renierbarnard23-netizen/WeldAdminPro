@@ -1,0 +1,82 @@
+@using WeldAdminPro.Core.Models
+
+<div class="card shadow-sm h-100">
+
+    <div class="card-header">
+
+        General Information
+
+    </div>
+
+    <div class="card-body">
+
+        <table class="table table-borderless">
+
+            <tr>
+
+                <td>Client Representative</td>
+
+                <td>@Project.ClientRepresentative</td>
+
+            </tr>
+
+            <tr>
+
+                <td>Assigned To</td>
+
+                <td>@Project.AssignedTo</td>
+
+            </tr>
+
+            <tr>
+
+                <td>Material</td>
+
+                <td>@Project.Material</td>
+
+            </tr>
+
+            <tr>
+
+                <td>Quote</td>
+
+                <td>@Project.QuoteNumber</td>
+
+            </tr>
+
+            <tr>
+
+                <td>Order</td>
+
+                <td>@Project.OrderNumber</td>
+
+            </tr>
+
+            <tr>
+
+                <td>Start</td>
+
+                <td>@Project.StartDate?.ToShortDateString()</td>
+
+            </tr>
+
+            <tr>
+
+                <td>End</td>
+
+                <td>@Project.EndDate?.ToShortDateString()</td>
+
+            </tr>
+
+        </table>
+
+    </div>
+
+</div>
+
+@code
+{
+    [Parameter]
+
+    public Project Project { get; set; } = default!;
+}

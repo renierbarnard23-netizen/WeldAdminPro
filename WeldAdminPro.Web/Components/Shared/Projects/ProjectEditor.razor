@@ -1,0 +1,121 @@
+@using WeldAdminPro.Core.Models
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header bg-primary text-white">
+        Project Information
+    </div>
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            <div class="col-md-6">
+                <label class="form-label">Project Name</label>
+                <input class="form-control"
+                       @bind="Project.ProjectName" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Client</label>
+                <input class="form-control"
+                       @bind="Project.Client" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Representative</label>
+                <input class="form-control"
+                       @bind="Project.ClientRepresentative" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Quote Number</label>
+                <input class="form-control"
+                       @bind="Project.QuoteNumber" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Order Number</label>
+                <input class="form-control"
+                       @bind="Project.OrderNumber" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Budget</label>
+                <input class="form-control"
+                       type="number"
+                       @bind="Project.Budget" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Material</label>
+                <input class="form-control"
+                       @bind="Project.Material" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Assigned To</label>
+                <input class="form-control"
+                       @bind="Project.AssignedTo" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Start Date</label>
+                <InputDate class="form-control"
+                           @bind-Value="Project.StartDate" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">End Date</label>
+                <InputDate class="form-control"
+                           @bind-Value="Project.EndDate" />
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-check mt-4">
+
+                    <InputCheckbox class="form-check-input"
+                                   @bind-Value="Project.IsInvoiced" />
+
+                    <label class="form-check-label">
+                        Invoiced
+                    </label>
+
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Invoice Number</label>
+                <input class="form-control"
+                       @bind="Project.InvoiceNumber" />
+            </div>
+
+        </div>
+
+        <hr />
+
+        <button class="btn btn-success"
+                @onclick="Save">
+
+            Save Project
+
+        </button>
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public Project Project { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    private async Task Save()
+    {
+        await OnSave.InvokeAsync();
+    }
+
+}

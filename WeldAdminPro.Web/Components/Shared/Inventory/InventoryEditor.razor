@@ -1,0 +1,97 @@
+@using WeldAdminPro.Core.Models
+
+<div class="card shadow-sm">
+
+    <div class="card-header bg-primary text-white">
+
+        <strong>Stock Item</strong>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-6">
+
+                <label>Item Code</label>
+
+                <input class="form-control"
+                       @bind="Item.ItemCode" />
+
+            </div>
+
+            <div class="col-md-6">
+
+                <label>Description</label>
+
+                <input class="form-control"
+                       @bind="Item.Description" />
+
+            </div>
+
+        </div>
+
+        <div class="row mt-3">
+
+            <div class="col-md-4">
+
+                <label>Category</label>
+
+                <input class="form-control"
+                       @bind="Item.Category" />
+
+            </div>
+
+            <div class="col-md-4">
+
+                <label>Unit</label>
+
+                <input class="form-control"
+                       @bind="Item.Unit" />
+
+            </div>
+
+            <div class="col-md-4">
+
+                <label>Quantity</label>
+
+                <input type="number"
+                       class="form-control"
+                       @bind="Item.Quantity" />
+
+            </div>
+
+        </div>
+
+        <div class="mt-4">
+
+            <button class="btn btn-success"
+                    @onclick="Save">
+
+                Save
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+
+    public StockItem Item { get; set; } = new();
+
+    [Parameter]
+
+    public EventCallback OnSave { get; set; }
+
+    private async Task Save()
+    {
+        await OnSave.InvokeAsync();
+    }
+
+}

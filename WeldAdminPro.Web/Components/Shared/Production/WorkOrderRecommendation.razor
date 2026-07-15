@@ -1,0 +1,86 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Analytics.Production
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+
+    <MudText Typo="Typo.h6">
+
+        🤖 AI Production Recommendation
+
+    </MudText>
+
+    <MudDivider Class="mb-3" />
+
+    @if (Recommendation == null)
+    {
+        <MudAlert Severity="Severity.Info">
+
+            No recommendation available.
+
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid>
+
+            <MudItem xs="6">
+
+                <MudText Typo="Typo.caption">
+
+                    Recommendation
+
+                </MudText>
+
+                <MudText Typo="Typo.body1">
+
+                    @Recommendation.Recommendation
+
+                </MudText>
+
+            </MudItem>
+
+            <MudItem xs="6">
+
+                <MudText Typo="Typo.caption">
+
+                    Priority Score
+
+                </MudText>
+
+                <MudChip T="string"
+                         Color="Color.Success">
+
+                    @($"{Recommendation.PriorityScore:0}%")
+
+                </MudChip>
+
+            </MudItem>
+
+            <MudItem xs="12">
+
+                <MudText Typo="Typo.caption">
+
+                    Explanation
+
+                </MudText>
+
+                <MudText>
+
+                    @Recommendation.Explanation
+
+                </MudText>
+
+            </MudItem>
+
+        </MudGrid>
+
+    }
+
+</MudPaper>
+
+@code {
+
+    [Parameter]
+    public AIProductionRecommendation? Recommendation { get; set; }
+
+}

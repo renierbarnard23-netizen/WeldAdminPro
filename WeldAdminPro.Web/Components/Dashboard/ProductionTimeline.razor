@@ -1,0 +1,81 @@
+@using WeldAdminPro.Data.Services.ProductionEngine
+@using MudBlazor
+
+@if (Snapshot == null || !Snapshot.Timeline.Any())
+{
+    <MudPaper Class="pa-4">
+
+        <MudText Typo="Typo.h6">
+            Production Timeline
+        </MudText>
+
+        <MudText Color="Color.Secondary">
+            No production schedule available.
+        </MudText>
+
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="pa-4">
+
+        <MudText Typo="Typo.h6" Class="mb-4">
+            Production Timeline
+        </MudText>
+
+        @foreach (var item in Snapshot.Timeline)
+        {
+            <div class="mb-4">
+
+                <div class="d-flex justify-content-between">
+
+                    <strong>@item.WorkOrderNumber</strong>
+
+                    <span>
+                        @item.StartDate.ToShortDateString()
+                        -
+                        @item.DueDate.ToShortDateString()
+                    </span>
+
+                </div>
+
+                <div style="
+                    position:relative;
+                    height:28px;
+                    background:#eeeeee;
+                    border-radius:5px;">
+
+                    <div style="
+                        position:absolute;
+                        left:@($"{item.StartOffset}px");
+                        width:@($"{item.Duration}px");
+                        height:100%;
+                        background:@GetColor(item.Status);
+                        border-radius:5px;">
+                    </div>
+
+                </div>
+
+            </div>
+        }
+
+    </MudPaper>
+}
+
+@code
+{
+    [Parameter]
+    public ProductionSnapshot? Snapshot { get; set; }
+
+    private string GetColor(string status)
+    {
+        return status.ToLower() switch
+        {
+            "running" => "#4CAF50",
+            "blocked" => "#F44336",
+            "completed" => "#9E9E9E",
+            "ready" => "#2196F3",
+            _ => "#607D8B"
+        };
+    }
+}

@@ -1,97 +1,213 @@
 @using WeldAdminPro.Data.Services.ProductionEngine
+@using MudBlazor
+@using WeldAdminPro.Core.Analytics.Production
+@using WeldAdminPro.Core.Execution
+
+
+@inject NavigationManager Navigation
 
 @if (Snapshot == null)
 {
-    <div class="card shadow-sm">
+    <MudPaper Class="pa-8">
 
-        <div class="card-body">
+        <MudStack AlignItems="AlignItems.Center"
+                  Justify="Justify.Center"
+                  Spacing="2">
 
-            Loading production queue...
+            <MudProgressCircular Indeterminate="true"
+                                 Color="Color.Primary" />
 
-        </div>
+            <MudText>
 
-    </div>
+                Loading production queue...
+
+            </MudText>
+
+        </MudStack>
+
+    </MudPaper>
 }
 else
 {
-    <div class="card shadow-sm">
+    <MudPaper Class="pa-4"
+              Elevation="2">
 
-        <div class="card-header">
+        <MudStack Row="true"
+                  Justify="Justify.SpaceBetween"
+                  AlignItems="AlignItems.Center"
+                  Class="mb-4">
 
-            <strong>Production Queue</strong>
+            <MudText Typo="Typo.h5">
 
-        </div>
+                Production Queue
 
-        <div class="card-body p-0">
+            </MudText>
 
-            <table class="table table-striped table-hover mb-0">
+            <MudChip T="string"
+                     Color="Color.Primary"
+                     Variant="Variant.Outlined">
 
-                <thead>
+                @Snapshot.Queue.Count Work Orders
 
-                    <tr>
+            </MudChip>
 
-                        <th>Priority</th>
+        </MudStack>
 
-                        <th>Work Order</th>
+        <MudTable T="ProductionQueueItem"
+                  Items="Snapshot.Queue.OrderByDescending(x => x.Priority)"
+                  Dense="true"
+                  Hover="true"
+                  Striped="true">
 
-                        <th>Status</th>
+        <HeaderContent>
 
-                        <th>Can Start</th>
+                <MudTh>Priority</MudTh>
 
-                        <th>Late</th>
+                <MudTh>Work Order</MudTh>
 
-                    </tr>
+                <MudTh>Status</MudTh>
 
-                </thead>
+                <MudTh>Deadline</MudTh>
 
-                <tbody>
+                <MudTh>Hours</MudTh>
 
-                    @foreach (var item in Snapshot.Queue.OrderByDescending(x => x.Priority))
+                <MudTh>Resource</MudTh>
+
+                <MudTh>Block</MudTh>
+
+                <MudTh></MudTh>
+
+        </HeaderContent>
+
+            <RowTemplate Context="context">
+
+                <MudTd Style="min-width:180px;">
+
+                    <MudProgressLinear Value="@context.Priority"
+                                       Max="100"
+                                       Color="@GetPriorityColor(context.Priority)"
+                                       Rounded="true" />
+
+                    <MudText Typo="Typo.caption">
+
+                        Priority: <b>@context.Priority</b>
+
+                    </MudText>
+
+                </MudTd>
+
+                <MudTd>
+
+                    <MudText Typo="Typo.body1">
+
+                        <b>@context.WorkOrderNumber</b>
+
+                    </MudText>
+
+                    @if (context.IsTopPriority)
                     {
-                        <tr>
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="Color.Error"
+                                 Icon="@Icons.Material.Filled.PriorityHigh">
 
-                            <td>
+                            🔥TOP PRIORITY
 
-                                @item.Priority
-
-                            </td>
-
-                            <td>
-
-                                <a href="/production/workorder/@item.Id">
-                                    @item.WorkOrderNumber
-                                </a>
-
-                            </td>
-
-                            <td>
-
-                                @item.Status
-
-                            </td>
-
-                            <td>
-
-                                @(item.CanStart ? "✅" : "❌")
-
-                            </td>
-
-                            <td>
-
-                                @(item.IsLate ? "🔴" : "🟢")
-
-                            </td>
-
-                        </tr>
+                        </MudChip>
                     }
 
-                </tbody>
+                </MudTd>
 
-            </table>
+                <MudTd>
 
-        </div>
+                    <MudChip T="string"
+                             Color="@GetStatusColor(context.Status)">
 
-    </div>
+                        @context.Status
+
+                    </MudChip>
+
+                </MudTd>
+
+                <MudTd>
+
+                    @context.Deadline.ToShortDateString()
+
+                    <br />
+
+                    <MudText Typo="Typo.caption"
+                             Color="@(context.IsLate ? Color.Error : Color.Default)">
+
+                        @GetDeadlineText(context)
+
+                    </MudText>
+
+                </MudTd>
+
+                <MudTd>
+
+                    @context.EstimatedHours h
+
+                </MudTd>
+
+                <MudTd>
+
+                    <MudChip T="string"
+                             Variant="Variant.Outlined"
+                             Color="Color.Primary">
+
+                        @context.RequiredResource
+
+                    </MudChip>
+
+                </MudTd>
+
+                <MudTd>
+
+                    @if (context.BlockReason == BlockReason.None)
+                    {
+                        <MudChip T="string"
+                                 Color="Color.Success">
+
+                            Ready
+
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudTooltip Text="@context.BlockMessage">
+
+                        <MudChip T="string"
+                                 Color="Color.Error"
+                                 Variant="Variant.Filled"
+                                 Icon="@Icons.Material.Filled.Block">
+
+                                🚫 @context.BlockReason
+
+                        </MudChip>
+
+                        </MudTooltip>
+                    }
+
+                </MudTd>
+
+                <MudTd>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Href="@($"/production/workorder/{context.Id}")">
+
+                        Open
+
+                    </MudButton>
+
+                </MudTd>
+
+            </RowTemplate>
+
+    </MudTable>
+
+</MudPaper>
 }
 
 @code
@@ -99,4 +215,68 @@ else
     [Parameter]
 
     public ProductionSnapshot? Snapshot { get; set; }
+
+    private Color GetPriorityColor(int priority)
+    {
+        if (priority >= 90)
+            return Color.Error;
+
+        if (priority >= 70)
+            return Color.Warning;
+
+        if (priority >= 40)
+            return Color.Info;
+
+        return Color.Default;
+    }
+
+    private Color GetStatusColor(string status)
+    {
+        return status.ToLower() switch
+        {
+            "ready" => Color.Success,
+
+            "running" => Color.Info,
+
+            "paused" => Color.Warning,
+
+            "blocked" => Color.Error,
+
+            "waiting" => Color.Secondary,
+
+            "completed" => Color.Success,
+
+            _ => Color.Default
+        };
+    }
+
+    private Color GetRowColor(ProductionQueueItem item)
+    {
+        if (item.IsLate)
+            return Color.Error;
+
+        if (!item.CanStart)
+            return Color.Warning;
+
+        if (item.Status.Equals("Running", StringComparison.OrdinalIgnoreCase))
+            return Color.Primary;
+
+        if (item.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+            return Color.Success;
+
+        return Color.Default;
+    }
+
+    private string GetDeadlineText(ProductionQueueItem item)
+    {
+        var days = (item.Deadline.Date - DateTime.Today).Days;
+
+        if (days < 0)
+            return $"{Math.Abs(days)} days overdue";
+
+        if (days == 0)
+            return "Due today";
+
+        return $"{days} days left";
+    }
 }

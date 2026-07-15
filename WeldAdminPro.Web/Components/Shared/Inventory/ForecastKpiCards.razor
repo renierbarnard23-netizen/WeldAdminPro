@@ -1,0 +1,70 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Analytics.Executive
+@using WeldAdminPro.Web.Components.Shared.Production
+
+<MudGrid>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Critical"
+                           Value="@Critical.ToString()"
+                           Status="Immediate Action"
+                           ChipColor="Color.Error"
+                           Icon="@Icons.Material.Filled.Warning"
+                           IconColor="Color.Error" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Low"
+                           Value="@Low.ToString()"
+                           Status="Reorder Soon"
+                           ChipColor="Color.Warning"
+                           Icon="@Icons.Material.Filled.Inventory2"
+                           IconColor="Color.Warning" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Watch"
+                           Value="@Watch.ToString()"
+                           Status="Monitor"
+                           ChipColor="Color.Info"
+                           Icon="@Icons.Material.Filled.Visibility"
+                           IconColor="Color.Info" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Safe"
+                           Value="@Safe.ToString()"
+                           Status="Healthy"
+                           ChipColor="Color.Success"
+                           Icon="@Icons.Material.Filled.CheckCircle"
+                           IconColor="Color.Success" />
+
+    </MudItem>
+
+</MudGrid>
+
+@code
+{
+    [Parameter]
+    public IEnumerable<StockForecastModel> ForecastItems { get; set; }
+        = Enumerable.Empty<StockForecastModel>();
+
+    private int Critical =>
+        ForecastItems.Count(x => x.Status == "Critical");
+
+    private int Low =>
+        ForecastItems.Count(x => x.Status == "Low");
+
+    private int Watch =>
+        ForecastItems.Count(x => x.Status == "Watch");
+
+    private int Safe =>
+        ForecastItems.Count(x => x.Status == "Safe");
+}

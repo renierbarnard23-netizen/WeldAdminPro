@@ -1,0 +1,30 @@
+@page "/inventory/smart-reorder"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Inventory
+@using WeldAdminPro.Web.Components.Shared.Enterprise
+@using WeldAdminPro.Web.Components.Shared.Inventory
+
+@inject StockApplicationService StockService
+
+<PageTitle>Smart Reorder Planner</PageTitle>
+
+<EnterprisePageHeader
+    Title="Smart Reorder Planner"
+    Subtitle="Items requiring replenishment based on Smart Stock Intelligence."
+    Icon="@Icons.Material.Filled.Inventory2" />
+
+<SmartReorderKpiCards Items="@_items" />
+
+<SmartReorderGrid Items="@_items" />
+
+@code
+{
+    private List<StockItem> _items = new();
+
+    protected override void OnInitialized()
+    {
+        _items = StockService.GetSmartReorderItems();
+    }
+}

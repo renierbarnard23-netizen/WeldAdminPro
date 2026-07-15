@@ -1,0 +1,71 @@
+@using MudBlazor
+@using WeldAdminPro.Web.Components.Shared.Production
+
+<MudPaper Elevation="2"
+          Class="pa-4"
+          Style="min-height:140px; border-left:6px solid var(--mud-palette-primary);">
+
+    <MudStack Spacing="2">
+
+        <MudStack Row="true"
+                  AlignItems="AlignItems.Center"
+                  Spacing="2">
+
+            <MudIcon Icon="@Icon"
+                     Color="@IconColor"
+                     Size="Size.Large" />
+
+            <MudText Typo="Typo.caption"
+                     Color="Color.Secondary">
+
+                @Title
+
+            </MudText>
+
+        </MudStack>
+
+        <MudText Typo="Typo.h3">
+
+            @Value
+
+        </MudText>
+
+        @if (!string.IsNullOrWhiteSpace(Status))
+        {
+            <MudChip T="string"
+                     Color="@ChipColor"
+                     Variant="Variant.Filled"
+                     Size="Size.Small">
+
+                @Status
+
+            </MudChip>
+        }
+
+    </MudStack>
+
+</MudPaper>
+
+@code {
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string Value { get; set; } = "";
+
+    [Parameter]
+    public string Status { get; set; } = "";
+
+    [Parameter]
+    public Color ChipColor { get; set; } = Color.Primary;
+
+    [Parameter]
+    public string Icon { get; set; } =
+        Icons.Material.Filled.Dashboard;
+
+    [Parameter]
+    public Color IconColor { get; set; } =
+        Color.Primary;
+
+}

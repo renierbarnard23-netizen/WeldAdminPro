@@ -1,0 +1,322 @@
+@using WeldAdminPro.Core.Models
+
+    <DashboardSection
+    Title="Material Requirements"
+    Icon="@Icons.Material.Filled.Inventory2"
+    IconColor="Color.Info">
+
+
+        @if (WorkOrder == null || WorkOrder.MaterialRequirements.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info">
+
+                No material requirements have been assigned.
+
+            </MudAlert>
+        }
+        else
+        {
+            <MudTable T="MaterialRequirement"
+                Items="WorkOrder.MaterialRequirements"
+                Dense="true"
+                Hover="true"
+                Striped="true">
+
+            <HeaderContent>
+
+                <MudTh>Item Code</MudTh>
+
+                <MudTh>Description</MudTh>
+
+                <MudTh>Required</MudTh>
+
+                <MudTh>Available</MudTh>
+
+                <MudTh>Status</MudTh>
+
+            </HeaderContent>
+
+            <RowTemplate Context="material">
+
+                <MudTd>
+
+                    <b>@material.ItemCode</b>
+
+                </MudTd>
+
+                <MudTd>
+
+                    @material.Description
+
+                </MudTd>
+
+                <MudTd>
+
+                    @material.RequiredQuantity
+
+                </MudTd>
+
+                <MudTd>
+
+                    @material.ReservedQuantity
+
+                </MudTd>
+
+                <MudTd>
+
+                    @material.AvailableQuantity
+
+                </MudTd>
+
+                <MudTd>
+
+                    @material.IssuedQuantity
+
+                </MudTd>
+
+                <MudTd>
+
+                    @if (material.IssuedQuantity >= material.RequiredQuantity)
+                    {
+                        <MudChip T="string"
+                                 Color="Color.Success">
+
+                            ISSUED
+
+                        </MudChip>
+                    }
+                    else if (material.ReservedQuantity >= material.RequiredQuantity)
+                    {
+                        <MudChip T="string"
+                                 Color="Color.Info">
+
+                            RESERVED
+
+                        </MudChip>
+                    }
+                    else if (material.AvailableQuantity >= material.RequiredQuantity)
+                    {
+                        <MudChip T="string"
+                                 Color="Color.Warning">
+
+                            AVAILABLE
+
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string"
+                                 Color="Color.Error">
+
+                            SHORT
+
+                        </MudChip>
+                    }
+
+                </MudTd>
+
+            </RowTemplate>
+            
+            </MudTable>
+
+        <MudPaper Class="pa-3 mt-4" Elevation="1">
+
+            <MudGrid>
+
+                <MudItem xs="3">
+
+                    <MudText Typo="Typo.caption">
+                        Total Materials
+                    </MudText>
+
+                    <MudText Typo="Typo.h5">
+                        @WorkOrder.MaterialRequirements.Count
+                    </MudText>
+
+                </MudItem>
+
+                <MudItem xs="3">
+
+                    <MudText Typo="Typo.caption">
+                        Ready
+                    </MudText>
+
+                    <MudText Typo="Typo.h5"
+                             Color="Color.Success">
+
+                        @WorkOrder.MaterialRequirements.Count(x =>
+                            x.AvailableQuantity >= x.RequiredQuantity)
+
+                    </MudText>
+
+                </MudItem>
+
+                <MudItem xs="3">
+
+                    <MudText Typo="Typo.caption">
+                        Short
+                    </MudText>
+
+                    <MudText Typo="Typo.h5"
+                             Color="Color.Error">
+
+                        @WorkOrder.MaterialRequirements.Count(x =>
+                            x.AvailableQuantity < x.RequiredQuantity)
+
+                    </MudText>
+
+                </MudItem>
+
+                <MudItem xs="3">
+
+                    <MudText Typo="Typo.caption">
+                        Readiness
+                    </MudText>
+
+                    <MudProgressCircular Value="@Readiness"
+                                         Color="Color.Primary"
+                                         Size="Size.Large" />
+
+                </MudItem>
+
+            </MudGrid>
+
+        </MudPaper>
+
+        <MudDivider Class="my-4" />
+
+        <MudGrid>
+
+            <MudItem xs="3">
+
+                <MudText Typo="Typo.caption">
+
+                    Required
+
+                </MudText>
+
+                <MudText Typo="Typo.h5">
+
+                    @WorkOrder.MaterialRequirements.Sum(x => x.RequiredQuantity)
+
+                </MudText>
+
+            </MudItem>
+
+            <MudItem xs="3">
+
+                <MudText Typo="Typo.caption">
+
+                    Reserved
+
+                </MudText>
+
+                <MudText Typo="Typo.h5">
+
+                    @WorkOrder.MaterialRequirements.Sum(x => x.ReservedQuantity)
+
+                </MudText>
+
+            </MudItem>
+
+            <MudItem xs="3">
+
+                <MudText Typo="Typo.caption">
+
+                    Issued
+
+                </MudText>
+
+                <MudText Typo="Typo.h5">
+
+                    @WorkOrder.MaterialRequirements.Sum(x => x.IssuedQuantity)
+
+                </MudText>
+
+            </MudItem>
+
+            <MudItem xs="3">
+
+                <MudText Typo="Typo.caption">
+
+                    Completion
+
+                </MudText>
+
+                <MudProgressCircular Value="@IssuedPercent"
+                                     Size="Size.Large"
+                                     Color="Color.Success" />
+
+            </MudItem>
+
+        </MudGrid>
+
+            @if (WorkOrder.MaterialRequirements.All(x =>
+    x.AvailableQuantity >= x.RequiredQuantity))
+{
+    <MudAlert Severity="Severity.Success"
+              Class="mt-3">
+
+        READY FOR PRODUCTION
+
+    </MudAlert>
+}
+else
+{
+    <MudAlert Severity="Severity.Warning"
+              Class="mt-3">
+
+        MATERIAL SHORTAGES
+
+    </MudAlert>
+}
+        }
+
+
+</DashboardSection>
+
+@code {
+
+    [Parameter]
+    public WorkOrder? WorkOrder { get; set; }
+
+    private double Readiness
+    {
+        get
+        {
+            if (WorkOrder == null)
+                return 0;
+
+            if (WorkOrder.MaterialRequirements.Count == 0)
+                return 0;
+
+            var ready =
+                WorkOrder.MaterialRequirements.Count(x =>
+                    x.AvailableQuantity >= x.RequiredQuantity);
+
+            return ready * 100.0 /
+                   WorkOrder.MaterialRequirements.Count;
+        }
+    }
+
+    private double IssuedPercent
+    {
+        get
+        {
+            if (WorkOrder == null)
+                return 0;
+
+            var required =
+                WorkOrder.MaterialRequirements.Sum(x => x.RequiredQuantity);
+
+            if (required == 0)
+                return 0;
+
+            var issued =
+                WorkOrder.MaterialRequirements.Sum(x => x.IssuedQuantity);
+
+            return issued / required * 100;
+        }
+    }
+
+}

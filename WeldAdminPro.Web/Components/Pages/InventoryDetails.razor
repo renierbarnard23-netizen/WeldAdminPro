@@ -1,0 +1,88 @@
+@page "/inventory/{Id:guid}"
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Inventory
+@using WeldAdminPro.Web.Components.Shared.Inventory
+
+@inject StockApplicationService StockService
+
+<PageTitle>Stock Item</PageTitle>
+
+@if (_item == null)
+{
+    <div class="alert alert-danger">
+
+        Item not found.
+
+    </div>
+}
+else
+{
+    <h2>
+
+        @_item.ItemCode
+
+    </h2>
+
+    <div class="card shadow-sm">
+
+        <div class="card-body">
+
+            <dl class="row">
+
+                <dt class="col-sm-3">Description</dt>
+                <dd class="col-sm-9">@_item.Description</dd>
+
+                <dt class="col-sm-3">Category</dt>
+                <dd class="col-sm-9">@_item.Category</dd>
+
+                <dt class="col-sm-3">Quantity</dt>
+                <dd class="col-sm-9">@_item.Quantity</dd>
+
+                <dt class="col-sm-3">Unit</dt>
+                <dd class="col-sm-9">@_item.Unit</dd>
+
+                <dt class="col-sm-3">Inventory Value</dt>
+                <dd class="col-sm-9">
+
+                    <InventoryEditor
+                        Item="_item"
+                            OnSave="SaveItem" />
+
+                    @_item.TotalStockValue.ToString("C")
+
+                </dd>
+
+            </dl>
+
+        </div>
+
+    </div>
+}
+
+@code {
+
+    [Parameter]
+
+    public Guid Id { get; set; }
+
+    private StockItem? _item;
+
+    protected override void OnInitialized()
+    {
+        _item = StockService.GetStockItem(Id);
+    }
+
+    private void SaveItem()
+    {
+        if (_item == null)
+            return;
+
+        StockService.SaveStockItem(_item);
+
+        _item = StockService.GetStockItem(_item.Id);
+
+        StateHasChanged();
+    }
+
+}
