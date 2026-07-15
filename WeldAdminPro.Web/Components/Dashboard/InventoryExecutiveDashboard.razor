@@ -1,0 +1,415 @@
+@using WeldAdminPro.Core.Analytics
+@using WeldAdminPro.Core.Analytics.Executive
+@using WeldAdminPro.Core.Models
+
+@using WeldAdminPro.Data.Repositories
+@using WeldAdminPro.Data.Services
+@using WeldAdminPro.Core.Services
+
+@inject InventoryRiskSummaryService RiskSummaryService
+@inject StockForecastService ForecastService
+@inject MaterialTrendService TrendService
+@inject MaterialCostIntelligenceService CostService
+@inject InventoryAnomalyDetectionService AnomalyService
+@inject SmartReorderPlannerService SmartReorderPlanner
+@inject StockRepository StockRepository
+
+<PageTitle>Inventory Executive Dashboard</PageTitle>
+
+<EnterprisePageHeader Title="Inventory Executive Dashboard"
+                      Subtitle="Executive inventory intelligence, forecasting and procurement analytics."
+                      Icon="@Icons.Material.Filled.Inventory2">
+</EnterprisePageHeader>
+
+<MudGrid Class="mb-4">
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Health Score"
+                           Value="@($"{_risk?.HealthScore ?? 0}%")"
+                           Status="@(_risk?.OverallRiskLevel ?? "-")"
+                           ChipColor="Color.Success" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Negative Stock"
+                           Value="@(_risk?.NegativeStockItems.ToString() ?? "0")"
+                           Status="Requires Action"
+                           ChipColor="Color.Error" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Dead Stock"
+                           Value="@(_risk?.DeadStockItems.ToString() ?? "0")"
+                           Status="Capital Locked"
+                           ChipColor="Color.Warning" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Consumption Spikes"
+                           Value="@(_risk?.ConsumptionSpikes.ToString() ?? "0")"
+                           Status="Trend Monitoring"
+                           ChipColor="Color.Info" />
+
+    </MudItem>
+
+</MudGrid>
+
+<DashboardSection Title="Inventory Risk Summary"
+                  Icon="@Icons.Material.Filled.Warning">
+
+    <MudGrid>
+
+        <MudItem xs="12" md="3">
+
+            <EnterpriseKpiCard Title="Critical Items"
+                               Value="@(_risk?.CriticalInventoryItems.ToString() ?? "0")"
+                               Status="Immediate Review"
+                               ChipColor="Color.Error" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="3">
+
+            <EnterpriseKpiCard Title="Risk Level"
+                               Value="@(_risk?.OverallRiskLevel ?? "-")"
+                               Status="Overall"
+                               ChipColor="Color.Warning" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="3">
+
+            <EnterpriseKpiCard Title="Health"
+                               Value="@($"{_risk?.HealthScore ?? 0}%")"
+                               Status="Inventory"
+                               ChipColor="Color.Success" />
+
+        </MudItem>
+
+    </MudGrid>
+
+</DashboardSection>
+
+<DashboardSection Title="Stock Forecast"
+                  Icon="@Icons.Material.Filled.ShowChart">
+
+    <MudTable Items="_forecast"
+              Dense="true"
+              Hover="true"
+              Striped="true">
+
+        <HeaderContent>
+
+            <MudTh>Item</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Stock</MudTh>
+            <MudTh>Monthly Use</MudTh>
+            <MudTh>Days Left</MudTh>
+            <MudTh>Status</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.ItemCode</MudTd>
+
+            <MudTd>@context.Description</MudTd>
+
+            <MudTd>@context.CurrentStock</MudTd>
+
+            <MudTd>@context.AvgMonthlyUse</MudTd>
+
+            <MudTd>@($"{context.DaysRemaining:F0}")</MudTd>
+
+            <MudTd>
+
+                <MudChip T="string"
+                         Color="@GetForecastColor(context.Status)">
+
+                    @context.Status
+
+                </MudChip>
+
+            </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+
+</DashboardSection>
+
+<DashboardSection Title="Material Consumption Trends"
+                  Icon="@Icons.Material.Filled.TrendingUp">
+
+    <MudTable Items="_trends"
+              Dense="true"
+              Hover="true"
+              Striped="true">
+
+        <HeaderContent>
+
+            <MudTh>Item</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Last Month</MudTh>
+            <MudTh>This Month</MudTh>
+            <MudTh>Change</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.ItemCode</MudTd>
+
+            <MudTd>@context.Description</MudTd>
+
+            <MudTd>@context.LastMonthCost.ToString("C")</MudTd>
+
+            <MudTd>@context.ThisMonthCost.ToString("C")</MudTd>
+
+            <MudTd>
+
+                <MudChip T="string"
+                         Color="@(context.PercentChange > 0 ? Color.Warning : Color.Success)">
+
+                    @($"{context.PercentChange:F1}%")
+
+                </MudChip>
+
+            </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+
+</DashboardSection>
+
+<DashboardSection Title="Top Material Cost Drivers"
+                  Icon="@Icons.Material.Filled.AttachMoney">
+
+    <MudTable Items="_costDrivers"
+              Dense="true"
+              Hover="true"
+              Striped="true">
+
+        <HeaderContent>
+
+            <MudTh>Item</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Quantity</MudTh>
+            <MudTh>Total Cost</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.ItemCode</MudTd>
+
+            <MudTd>@context.Description</MudTd>
+
+            <MudTd>@context.TotalQuantity</MudTd>
+
+            <MudTd>
+
+                @context.TotalCost.ToString("C")
+
+            </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+
+</DashboardSection>
+
+<DashboardSection Title="Inventory Anomaly Detection"
+                  Icon="@Icons.Material.Filled.WarningAmber">
+
+    <MudTable Items="_anomalies"
+              Dense="true"
+              Hover="true"
+              Striped="true">
+
+        <HeaderContent>
+
+            <MudTh>Item</MudTh>
+
+            <MudTh>Description</MudTh>
+
+            <MudTh>Increase</MudTh>
+
+            <MudTh>Severity</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.ItemCode</MudTd>
+
+            <MudTd>@context.Description</MudTd>
+
+            <MudTd>
+
+                @($"{context.IncreasePercentage:F1}%")
+
+            </MudTd>
+
+            <MudTd>
+
+                <MudChip T="string"
+                         Color="@GetSeverityColor(context.Severity)">
+
+                    @context.Severity
+
+                </MudChip>
+
+            </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+
+</DashboardSection>
+
+<DashboardSection Title="Smart Reorder Planner"
+                  Icon="@Icons.Material.Filled.LocalShipping">
+
+    <MudTable Items="_reorder"
+              Dense="true"
+              Hover="true"
+              Striped="true">
+
+        <HeaderContent>
+
+            <MudTh>Item</MudTh>
+
+            <MudTh>Description</MudTh>
+
+            <MudTh>Quantity</MudTh>
+
+            <MudTh>Status</MudTh>
+
+            <MudTh>Risk</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.ItemCode</MudTd>
+
+            <MudTd>@context.Description</MudTd>
+
+            <MudTd>@context.Quantity</MudTd>
+
+            <MudTd>@context.SmartStatus</MudTd>
+
+            <MudTd>
+
+                @($"{context.StockValueRisk:N2}")
+
+            </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+
+</DashboardSection>
+
+<DashboardSection Title="Executive Recommendation"
+                  Icon="@Icons.Material.Filled.Psychology">
+
+    <MudAlert Severity="@GetExecutiveSeverity()"
+              Variant="Variant.Filled"
+              Dense="false">
+
+        @GetExecutiveRecommendation()
+
+    </MudAlert>
+
+</DashboardSection>
+
+@code
+{
+    private InventoryRiskSummary? _risk;
+    
+    private List<StockForecastModel> _forecast = new();
+    
+    private List<MaterialTrendModel> _trends = new();
+    
+    private List<MaterialCostStat> _costDrivers = new();
+    
+    private List<InventoryAnomaly> _anomalies = new();
+    
+    private List<StockItem> _reorder = new();
+    
+    protected override void OnInitialized()
+    {
+        _risk = RiskSummaryService.BuildSummary();
+
+        _forecast = ForecastService.GetStockForecast();
+
+        _trends = TrendService.GetMaterialTrends();
+
+        _costDrivers = CostService.GetTopCostDrivers();
+
+        _anomalies = AnomalyService.DetectAnomalies();
+
+        _reorder = SmartReorderPlanner.GetReorderItems(
+            StockRepository.GetAll());
+    }
+
+    private Color GetForecastColor(string status)
+    {
+        return status switch
+        {
+            "Critical" => Color.Error,
+            "Low" => Color.Warning,
+            "Watch" => Color.Info,
+            _ => Color.Success
+        };
+    }
+
+    private Color GetSeverityColor(string severity)
+    {
+        return severity switch
+        {
+            "Critical" => Color.Error,
+            "High" => Color.Warning,
+            "Medium" => Color.Info,
+            _ => Color.Success
+        };
+    }
+
+    private Severity GetExecutiveSeverity()
+    {
+        if (_risk == null)
+            return Severity.Info;
+
+        if (_risk.HealthScore >= 90)
+            return Severity.Success;
+
+        if (_risk.HealthScore >= 70)
+            return Severity.Warning;
+
+        return Severity.Error;
+    }
+
+    private string GetExecutiveRecommendation()
+    {
+        if (_risk == null)
+            return "Inventory intelligence unavailable.";
+
+        if (_risk.HealthScore >= 90)
+            return "Inventory health is excellent. Continue current procurement strategy.";
+
+        if (_risk.HealthScore >= 70)
+            return "Inventory health is stable. Monitor forecasted shortages and reorder recommendations.";
+
+        return "Executive attention required. Critical inventory risks and anomalies detected. Immediate procurement review is recommended.";
+    }
+}

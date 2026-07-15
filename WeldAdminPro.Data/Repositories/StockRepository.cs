@@ -73,9 +73,6 @@ WHERE Id = $id;";
 
             var countCmd = connection.CreateCommand();
             countCmd.CommandText = "SELECT COUNT(*) FROM StockItems;";
-            Console.WriteLine("StockItems Count = " + countCmd.ExecuteScalar());
-
-            Console.WriteLine("StockRepository DB = " + connection.DataSource);
 
             using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
@@ -118,7 +115,6 @@ ORDER BY ItemCode;";
 
             var countCmd = connection.CreateCommand();
             countCmd.CommandText = "SELECT COUNT(*) FROM StockItems;";
-            Console.WriteLine("StockItems Count = " + countCmd.ExecuteScalar());
 
             using var cmd = connection.CreateCommand();
 			cmd.CommandText = @"
@@ -408,8 +404,6 @@ WHERE Id = $id;";
 				using var connection = new SqliteConnection(_connectionString);
 				connection.Open();
 
-				Debug.WriteLine($"🔥 SEARCHING TRACE FOR: [{workOrderNumber}]");
-
 				using var cmd = connection.CreateCommand();
 
 				cmd.CommandText = @"
@@ -437,16 +431,13 @@ WHERE Id = $id;";
 						UnitCost = Convert.ToDecimal(reader["UnitCost"])
 					});
 				}
-
-				Debug.WriteLine($"📊 TRACE COUNT: {list.Count}");
 			}
-			catch (Exception ex)
+			catch (Exception)
 			{
-				Debug.WriteLine("❌ TRACE ERROR:");
-				Debug.WriteLine(ex.Message);
-			}
+                // TODO: Log exception
+            }
 
-			return list;
+            return list;
 		}
 
 	}

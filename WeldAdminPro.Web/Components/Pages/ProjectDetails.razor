@@ -5,6 +5,7 @@
 @using WeldAdminPro.Web.Components.Shared.Projects
 @using WeldAdminPro.Data.Services
 
+@inject ProjectCostingService ProjectCostingService
 @inject ProjectApplicationService ProjectService
 
 <PageTitle>Project Details</PageTitle>
@@ -205,10 +206,8 @@ else
 
         _materialSummary = ProjectService.GetMaterialSummary(Id);
 
-        var costing = new ProjectCostingService();
-
         _materialBreakdown =
-            costing.GetProjectMaterialBreakdown(Id);
+            ProjectCostingService.GetProjectMaterialBreakdown(Id);
     }
 
     private double CalculateCompliance()

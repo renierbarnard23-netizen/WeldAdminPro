@@ -82,6 +82,11 @@ builder.Services.AddScoped<WpsApplicationService>();
 
 builder.Services.AddScoped<WpsRepository>();
 
+builder.Services.AddSingleton<ProjectProfitabilityService>();
+
+builder.Services.AddScoped<PersistentReservationService>();
+
+builder.Services.AddScoped<PersistentReservationService>();
 
 // --------------------------------------------------
 

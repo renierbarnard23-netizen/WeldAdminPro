@@ -10,6 +10,8 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
+@inject PersistentReservationService ReservationService
+
 <PageTitle>Add Work Order Material</PageTitle>
 
 <EnterprisePageHeader
@@ -133,10 +135,7 @@
 
             WorkOrderMaterialRepository.Add(material);
 
-            var reservation =
-                new PersistentReservationService();
-
-            reservation.Reserve(WorkOrderId);
+            ReservationService.Reserve(WorkOrderId);
 
             Snackbar.Add(
                 "Material added successfully.",

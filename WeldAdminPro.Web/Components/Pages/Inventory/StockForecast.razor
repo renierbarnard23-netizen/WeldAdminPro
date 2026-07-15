@@ -1,0 +1,126 @@
+@page "/inventory/forecast-legacy"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Analytics.Executive
+@using WeldAdminPro.Data.Services.Inventory
+
+@inject StockApplicationService StockService
+
+<PageTitle>Stock Forecast</PageTitle>
+
+<EnterprisePageHeader Title="Executive Stock Forecast"
+                      Subtitle="Inventory consumption forecasting and replenishment planning."
+                      Icon="@Icons.Material.Filled.TrendingUp">
+</EnterprisePageHeader>
+
+<MudGrid Class="mb-4">
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Forecast Items"
+                           Value="@_forecast.Count.ToString()"
+                           Status="Analysed"
+                           ChipColor="Color.Primary" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Critical"
+                           Value="@_forecast.Count(x => x.Status == "Critical").ToString()"
+                           Status="Immediate Action"
+                           ChipColor="Color.Error" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Healthy"
+                           Value="@_forecast.Count(x => x.Status == "Healthy").ToString()"
+                           Status="Inventory Stable"
+                           ChipColor="Color.Success" />
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+
+        <EnterpriseKpiCard Title="Average Days"
+                           Value="@($"{_forecast.DefaultIfEmpty().Average(x => x?.DaysRemaining ?? 0):F0}")"
+                           Status="Remaining Stock"
+                           ChipColor="Color.Info" />
+
+    </MudItem>
+
+</MudGrid>
+
+<DashboardSection Title="Stock Forecast"
+                  Icon="@Icons.Material.Filled.Inventory2">
+
+    <MudTable T="StockForecastModel"
+              Items="_forecast"
+              Hover="true"
+              Dense="true"
+              Striped="true"
+              Bordered="true">
+
+        <HeaderContent>
+
+            <MudTh>Item Code</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Current Stock</MudTh>
+            <MudTh>Monthly Usage</MudTh>
+            <MudTh>Days Remaining</MudTh>
+            <MudTh>Status</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.ItemCode</MudTd>
+
+            <MudTd>@context.Description</MudTd>
+
+            <MudTd>@context.CurrentStock</MudTd>
+
+            <MudTd>@context.AvgMonthlyUse</MudTd>
+
+            <MudTd>@context.DaysRemaining</MudTd>
+
+            <MudTd>
+
+                <MudChip T="string"
+                         Color="@GetStatusColor(context.Status)">
+
+                    @context.Status
+
+                </MudChip>
+
+            </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+
+</DashboardSection>
+
+
+@code
+{
+    private List<StockForecastModel> _forecast = new();
+
+    protected override void OnInitialized()
+    {
+        _forecast = StockService.GetStockForecast();
+    }
+
+    private Color GetStatusColor(string status)
+    {
+        return status.ToLower() switch
+        {
+            "critical" => Color.Error,
+            "warning" => Color.Warning,
+            "healthy" => Color.Success,
+            _ => Color.Default
+        };
+    }
+}
