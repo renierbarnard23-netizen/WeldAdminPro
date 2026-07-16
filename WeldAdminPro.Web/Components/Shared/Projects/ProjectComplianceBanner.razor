@@ -1,0 +1,45 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Quality
+
+@if (Documents == null || Documents.Count == 0)
+{
+    <MudAlert Severity="Severity.Warning"
+              Variant="Variant.Outlined">
+
+        No project documents available.
+
+    </MudAlert>
+}
+else
+{
+    var approved = Documents.Count(d => d.IsApproved);
+    var compliance = approved * 100.0 / Documents.Count;
+
+    <MudAlert Severity="@(compliance >= 100 ? Severity.Success : Severity.Warning)"
+              Variant="Variant.Filled"
+              Dense="true"
+              Class="mb-4">
+
+        <MudText Typo="Typo.h6">
+
+            @(compliance >= 100
+                ? "PROJECT COMPLIANT"
+                : "PROJECT NON-COMPLIANT")
+
+        </MudText>
+
+        <MudText>
+
+            @approved of @Documents.Count required documents approved
+            (@($"{compliance:F0}%"))
+
+        </MudText>
+
+    </MudAlert>
+}
+
+@code
+{
+    [Parameter]
+    public List<ProjectDocument> Documents { get; set; } = new();
+}

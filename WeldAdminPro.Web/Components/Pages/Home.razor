@@ -1,24 +1,92 @@
 ﻿@page "/"
 
+@using MudBlazor
+@using WeldAdminPro.Web.Services.Dashboard
+@using WeldAdminPro.Web.Components.Dashboard
 @using WeldAdminPro.Web.Components.ControlCentres
+@using WeldAdminPro.Web.Components.Shared.Enterprise
+@using WeldAdminPro.Web.Components.Shared.Quality
+@using WeldAdminPro.Core.Quality.Models
 
-@inject WeldAdminPro.Web.Services.Dashboard.DashboardService DashboardService
+@inject DashboardService DashboardService
+@inject QualityDashboardService QualityDashboardService
 
 <PageTitle>WeldAdmin Pro Enterprise</PageTitle>
 
-<h1>WeldAdmin Pro Enterprise</h1>
+<EnterprisePageHeader Title="Executive Command Center"
+                      Subtitle="Real-time operational intelligence across Production, Projects, Inventory and Quality."
+                      Icon="@Icons.Material.Filled.Dashboard">
+</EnterprisePageHeader>
 
-<h4>Engineering Manufacturing Intelligence</h4>
+<ExecutiveSummary Production="_snapshot"
+                  Quality="_qualitySnapshot" />
 
-<hr />
+<MudGrid Class="mb-4">
+
+    <MudItem xs="12">
+        <FactoryAlerts Alerts="_snapshot?.Alerts" />
+        <ExecutiveProductionKpis Snapshot="_snapshot" />
+    </MudItem>
+
+</MudGrid>
 
 @if (_snapshot == null)
 {
-    <p><em>Loading Dashboard...</em></p>
+    <MudPaper Class="pa-8 my-6">
+
+        <MudStack AlignItems="AlignItems.Center"
+                  Justify="Justify.Center"
+                  Spacing="2">
+
+            <MudProgressCircular Indeterminate="true"
+                                 Color="Color.Primary" />
+
+            <MudText>
+
+                Loading Executive Dashboard...
+
+            </MudText>
+
+        </MudStack>
+
+    </MudPaper>
 }
 else
 {
-    <OperationsControlCentre Snapshot="_snapshot" />
+    <MudGrid Spacing="3">
+
+        <MudItem xs="12" lg="8">
+
+            <OperationsControlCentre Snapshot="_snapshot" />
+
+        </MudItem>
+
+        <MudItem xs="12" lg="4">
+
+            <DashboardSection Title="Quality Executive Dashboard"
+                              Icon="@Icons.Material.Filled.Verified">
+
+                <QualityKpiCards Snapshot="_qualitySnapshot" />
+
+                <QualityAlerts Snapshot="_qualitySnapshot" />
+
+            </DashboardSection>
+
+        </MudItem>
+
+        <MudItem xs="12" lg="6">
+
+            <InventoryExecutiveDashboard />
+
+        </MudItem>
+
+        <MudItem xs="12" lg="6">
+
+            <ExecutiveProjectRiskDashboard />
+
+        </MudItem>
+
+    </MudGrid>
 }
 
 @code
@@ -29,5 +97,10 @@ else
     protected override void OnInitialized()
     {
         _snapshot = DashboardService.GetDashboard();
+
+        _qualitySnapshot =
+            QualityDashboardService.GetDashboard();
     }
+
+    private QualitySnapshot? _qualitySnapshot;
 }

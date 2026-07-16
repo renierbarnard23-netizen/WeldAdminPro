@@ -18,43 +18,84 @@
 
 @if (_project == null)
 {
-    <div class="alert alert-danger">
+    <MudAlert Severity="Severity.Error">
 
         Project not found.
 
-    </div>
+    </MudAlert>
 }
 else
 {
+    <MudTabs Rounded="true"
+             Elevation="1">
 
-    <ProjectHeader Project="_project" />
-    <ProjectFinancialDashboard Project="_project" />
+        <MudTabPanel Text="Overview">
 
-    <div class="row">
+            <ProjectIssueMaterialCard StockItems="_stockItems"
+                                      OnIssue="IssueMaterial" />
 
-        <div class="col-lg-6">
+            <ProjectReturnMaterialCard ReturnableItems="_returnableItems"
+                                       OnReturn="ReturnMaterial" />
 
-            <ProjectEditor Project="_project"
-                           OnSave="SaveProject" />
+            <ProjectHeader Project="_project" />
 
-        </div>
+            <ProjectComplianceBanner Documents="_documents" />
 
-    </div>
+            <ProjectFinancialDashboard Project="_project" />
 
-    <div class="row">
+            <div class="row">
 
-        <div class="col-12">
+                <div class="col-lg-6">
 
-            <ProjectMaterialCard Summary="_materialSummary" />
-            <ProjectMaterialBreakdownCard Items="_materialBreakdown" />
-            <ProjectDocumentsCard Documents="_documents" />
-            <ProjectComplianceCard Documents="_documents" />
-            <ProjectStockHistoryCard Transactions="_transactions" />
+                    <ProjectEditor Project="_project"
+                                   OnSave="SaveProject" />
 
-        </div>
+                </div>
 
-    </div>
+            </div>
 
+            <div class="row">
+
+                <div class="col-12">
+
+                    <ProjectMaterialCard Summary="_materialSummary" />
+
+                    <ProjectMaterialBreakdownCard Items="_materialBreakdown" />
+
+                    <ProjectDocumentsCard Documents="_documents"
+                                          OnDocumentsChanged="RefreshProject" />
+
+                    <ProjectComplianceCard Documents="_documents" />
+
+                    <ProjectStockHistoryCard Transactions="_transactions" />
+
+                </div>
+
+            </div>
+
+        </MudTabPanel>
+
+        <MudTabPanel Text="Weld Map">
+
+            <MudPaper Class="pa-6">
+
+                <MudText Typo="Typo.h5">
+
+                    Weld Map
+
+                </MudText>
+
+                <MudText Color="Color.Secondary">
+
+                    WPF Weld Map migration coming in the next step.
+
+                </MudText>
+
+            </MudPaper>
+
+        </MudTabPanel>
+
+    </MudTabs>
 }
 
 @code {

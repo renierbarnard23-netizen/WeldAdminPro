@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Diagnostics;
+using System.IO;
 using System.Collections.Generic;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Core.Quality;
@@ -13,6 +15,11 @@ namespace WeldAdminPro.Data.Services.Projects
         private readonly ProjectDocumentRepository _documentRepository;
         private readonly ProjectStockUsageRepository _stockRepository;
         private readonly ProjectMaterialService _materialService;
+        private readonly ProjectDocumentFileRepository _fileRepository;
+        public List<ProjectDocumentFile> GetDocumentFiles(Guid documentId)
+        {
+            return _fileRepository.GetByDocument(documentId);
+        }
 
         public ProjectApplicationService()
         {
@@ -20,6 +27,8 @@ namespace WeldAdminPro.Data.Services.Projects
             _documentRepository = new ProjectDocumentRepository();
             _stockRepository = new ProjectStockUsageRepository();
             _materialService = new ProjectMaterialService();
+
+            _fileRepository = new ProjectDocumentFileRepository();
         }
 
         // =============================
@@ -77,6 +86,130 @@ namespace WeldAdminPro.Data.Services.Projects
             return _documentRepository.GetByProject(projectId);
         }
 
+        public void RegisterDocumentFile(
+            ProjectDocument document,
+            string storedFilePath)
+        {
+            if (document == null)
+                return;
+
+            if (string.IsNullOrWhiteSpace(storedFilePath))
+                return;
+
+            var file = new ProjectDocumentFile
+            {
+                Id = Guid.NewGuid(),
+                ProjectDocumentId = document.Id,
+                FileName = Path.GetFileName(storedFilePath),
+                FilePath = storedFilePath,
+                UploadedOn = DateTime.Now,
+                IsApproved = false
+            };
+
+            _fileRepository.Add(file);
+
+            if (!document.AllowMultiple)
+                document.FilePath = storedFilePath;
+
+            document.Files.Add(file);
+
+            document.IsUploaded = true;
+            document.UploadedDate = DateTime.Now;
+            document.LastModifiedOn = DateTime.Now;
+
+            _documentRepository.Update(document);
+        }
+
+        public bool ToggleDocumentApproval(ProjectDocument document)
+        {
+            if (document == null)
+                return false;
+
+            // Cannot approve a document that hasn't been uploaded.
+            if (!document.IsUploaded)
+                return false;
+
+            document.IsApproved = !document.IsApproved;
+
+            document.LastModifiedOn = DateTime.Now;
+
+            if (document.IsApproved)
+            {
+                document.ApprovedOn = DateTime.Now;
+                document.ApprovedBy = Environment.UserName;
+            }
+            else
+            {
+                document.ApprovedOn = null;
+                document.ApprovedBy = string.Empty;
+            }
+
+            _documentRepository.Update(document);
+
+            // Keep all uploaded files in sync with the document approval.
+            var files = _fileRepository.GetByDocument(document.Id);
+
+            foreach (var file in files)
+            {
+                file.IsApproved = document.IsApproved;
+
+                _fileRepository.Update(file);
+            }
+
+            return true;
+        }
+
+        public bool OpenDocument(ProjectDocument document)
+        {
+            if (document == null)
+                return false;
+
+            try
+            {
+                // Multi-file document
+                if (document.AllowMultiple)
+                {
+                    var files = _fileRepository.GetByDocument(document.Id);
+
+                    if (files.Count == 0)
+                        return false;
+
+                    foreach (var file in files)
+                    {
+                        if (File.Exists(file.FilePath))
+                        {
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = file.FilePath,
+                                UseShellExecute = true
+                            });
+                        }
+                    }
+
+                    return true;
+                }
+
+                // Single-file document
+                if (string.IsNullOrWhiteSpace(document.FilePath))
+                    return false;
+
+                if (!File.Exists(document.FilePath))
+                    return false;
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = document.FilePath,
+                    UseShellExecute = true
+                });
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         // =============================
         // Material Summary
         // =============================
@@ -94,12 +227,6 @@ namespace WeldAdminPro.Data.Services.Projects
         public void AddDocument(ProjectDocument document)
         {
             _documentRepository.Add(document);
-        }
-
-        public List<ProjectDocumentFile> GetDocumentFiles(Guid documentId)
-        {
-            return new ProjectDocumentFileRepository()
-                .GetByDocument(documentId);
         }
 
         // =============================

@@ -1,4 +1,54 @@
+@using MudBlazor
 @using WeldAdminPro.Core.Quality.Models
+
+@if (Snapshot == null)
+{
+    <MudAlert Severity="Severity.Info"
+              Variant="Variant.Outlined">
+
+        Loading recommendations...
+
+    </MudAlert>
+}
+else if (!Snapshot.Recommendations.Any())
+{
+    <MudAlert Severity="Severity.Success"
+              Variant="Variant.Filled"
+              Dense="true">
+
+        No quality recommendations.
+
+    </MudAlert>
+}
+else
+{
+    <MudStack Spacing="2">
+
+        @foreach (var recommendation in Snapshot.Recommendations)
+        {
+            <MudPaper Class="pa-3"
+                      Elevation="1">
+
+                <MudStack Row="true"
+                          AlignItems="AlignItems.Center"
+                          Spacing="2">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Psychology"
+                             Color="Color.Primary" />
+
+                    <MudText Typo="Typo.body1">
+
+                        @recommendation
+
+                    </MudText>
+
+                </MudStack>
+
+            </MudPaper>
+        }
+
+    </MudStack>
+}
 
 @code
 {

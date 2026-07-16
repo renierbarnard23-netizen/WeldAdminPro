@@ -1,7 +1,12 @@
-@inject ProjectApplicationService ProjectService
-
 @using WeldAdminPro.Core.Quality
 @using WeldAdminPro.Data.Services.Projects
+@using MudBlazor
+@using Microsoft.AspNetCore.Components
+@using WeldAdminPro.Web.Components.Shared.Projects
+
+@inject ProjectApplicationService ProjectService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <div class="card shadow-sm mt-4">
 
@@ -124,16 +129,32 @@
 
                             </td>
 
-                            <td class="text-end">
+                        <td class="text-end">
 
-                            <button class="btn btn-sm btn-primary"
-                                    @onclick="() => Toggle(doc)">
+                            <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                                     Color="Color.Primary">
 
-                                Details
+                                <MudMenuItem OnClick="@(() => Upload(doc))">
+                                    Upload
+                                </MudMenuItem>
 
-                            </button>
+                                <MudMenuItem OnClick="@(() => Approve(doc))">
+                                    Approve
+                                </MudMenuItem>
 
-                            </td>
+                                <MudMenuItem OnClick="@(() => Open(doc))">
+                                    Open
+                                </MudMenuItem>
+
+                                <MudDivider />
+
+                                <MudMenuItem OnClick="@(() => Toggle(doc))">
+                                    Details
+                                </MudMenuItem>
+
+                            </MudMenu>
+
+                        </td>
 
                         </tr>
 
@@ -221,6 +242,9 @@
 
     public List<ProjectDocument> Documents { get; set; } = new();
 
+    [Parameter]
+    public EventCallback OnDocumentsChanged { get; set; }
+
     private Guid? _expandedDocument;
 
     private List<ProjectDocumentFile> _files = new();
@@ -238,6 +262,54 @@
 
         _files =
             ProjectService.GetDocumentFiles(document.Id);
+    }
+
+    private async Task Upload(ProjectDocument document)
+    {
+        var parameters = new DialogParameters
+    {
+        { nameof(ProjectUploadDocumentDialog.ProjectId), document.ProjectId },
+        { nameof(ProjectUploadDocumentDialog.DocumentId), document.Id }
+    };
+
+        var dialog = await DialogService.ShowAsync<ProjectUploadDocumentDialog>(
+            "Upload Document",
+            parameters);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await OnDocumentsChanged.InvokeAsync();
+        }
+    }
+
+    private void Approve(ProjectDocument document)
+    {
+        if (ProjectService.ToggleDocumentApproval(document))
+        {
+            Snackbar.Add(
+                "Document approval updated.",
+                Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(
+                "Document must be uploaded before approval.",
+                Severity.Warning);
+        }
+
+        StateHasChanged();
+    }
+
+    private void Open(ProjectDocument document)
+    {
+        if (!ProjectService.OpenDocument(document))
+        {
+            Snackbar.Add(
+                "Unable to open document.",
+                Severity.Warning);
+        }
     }
 
 }

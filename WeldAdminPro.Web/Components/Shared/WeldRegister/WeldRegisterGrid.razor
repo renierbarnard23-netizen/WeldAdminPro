@@ -1,0 +1,56 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+
+<MudPaper Class="pa-4">
+
+    <MudTable T="Weld"
+              Items="Welds"
+              Hover="true"
+              Dense="true"
+              SelectOnRowClick="true"
+              SelectedItem="SelectedWeld"
+              SelectedItemChanged="OnSelectedChanged">
+
+        <HeaderContent>
+
+            <MudTh>Weld No</MudTh>
+            <MudTh>Drawing</MudTh>
+            <MudTh>Joint</MudTh>
+            <MudTh>WPS</MudTh>
+            <MudTh>Welder</MudTh>
+            <MudTh>Status</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.WeldNumber</MudTd>
+            <MudTd>@context.DrawingNumber</MudTd>
+            <MudTd>@context.JointNumber</MudTd>
+            <MudTd>@context.WpsNumber</MudTd>
+            <MudTd>@context.WelderNumber</MudTd>
+            <MudTd>@context.Status</MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+
+</MudPaper>
+
+@code
+{
+    [Parameter]
+    public List<Weld> Welds { get; set; } = new();
+
+    [Parameter]
+    public Weld? SelectedWeld { get; set; }
+
+    [Parameter]
+    public EventCallback<Weld?> SelectedWeldChanged { get; set; }
+
+    private async Task OnSelectedChanged(Weld? weld)
+    {
+        SelectedWeld = weld;
+        await SelectedWeldChanged.InvokeAsync(weld);
+    }
+}

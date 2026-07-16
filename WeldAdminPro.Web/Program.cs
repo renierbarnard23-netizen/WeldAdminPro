@@ -1,4 +1,5 @@
 using MudBlazor.Services;
+using WeldAdminPro.Core.Services;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
 using WeldAdminPro.Data.Services.Inventory;
@@ -6,6 +7,7 @@ using WeldAdminPro.Data.Services.Procurement;
 using WeldAdminPro.Data.Services.Production;
 using WeldAdminPro.Data.Services.ProductionEngine;
 using WeldAdminPro.Data.Services.Projects;
+using WeldAdminPro.Data.Services.Quality;
 using WeldAdminPro.Web.Components;
 using WeldAdminPro.Web.Services.Dashboard;
 using WeldAdminPro.Web.Services.Quality;
@@ -45,6 +47,8 @@ builder.Services.AddScoped<MaterialDemandForecastService>();
 builder.Services.AddSingleton<ProjectApplicationService>();
 
 builder.Services.AddScoped<WorkOrderRepository>();
+
+builder.Services.AddScoped<WeldRepository>();
 
 builder.Services.AddScoped<WorkOrderShortageDetectionService>();
 
@@ -87,6 +91,21 @@ builder.Services.AddSingleton<ProjectProfitabilityService>();
 builder.Services.AddScoped<PersistentReservationService>();
 
 builder.Services.AddScoped<PersistentReservationService>();
+
+builder.Services.AddScoped<SmartReorderPlannerService>();
+
+builder.Services.AddScoped<InventoryRiskSummaryService>();
+
+builder.Services.AddScoped<InventoryRiskService>();
+
+builder.Services.AddScoped<InventoryAnomalyDetectionService>();
+
+builder.Services.AddScoped<MaterialCostIntelligenceService>();
+
+builder.Services.AddScoped<DocumentStorageService>();
+
+builder.Services.AddScoped<WeldRegisterApplicationService>();
+
 
 // --------------------------------------------------
 

@@ -1,0 +1,81 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+
+<MudPaper Class="pa-4">
+
+    <MudText Typo="Typo.h6">
+        Weld Details
+    </MudText>
+
+    <MudDivider Class="mb-3" />
+
+    @if (Weld == null)
+    {
+        <MudAlert Severity="Severity.Info">
+            Select a weld to view its details.
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid>
+
+            <MudItem xs="6">
+                <b>Weld Number</b><br />
+                @Weld.WeldNumber
+            </MudItem>
+
+            <MudItem xs="6">
+                <b>Status</b><br />
+                @Weld.Status
+            </MudItem>
+
+            <MudItem xs="6">
+                <b>Drawing</b><br />
+                @Weld.DrawingNumber
+            </MudItem>
+
+            <MudItem xs="6">
+                <b>Joint</b><br />
+                @Weld.JointNumber
+            </MudItem>
+
+            <MudItem xs="6">
+                <b>WPS</b><br />
+                @Weld.WpsNumber
+            </MudItem>
+
+            <MudItem xs="6">
+                <b>Welder</b><br />
+                @Weld.WelderNumber
+            </MudItem>
+
+            <MudItem xs="6">
+                <b>Material</b><br />
+                @Weld.MaterialSpecification
+            </MudItem>
+
+            <MudItem xs="6">
+                <b>Diameter</b><br />
+                @Weld.Diameter
+            </MudItem>
+
+            <MudItem xs="6">
+                <b>Thickness</b><br />
+                @Weld.Thickness
+            </MudItem>
+
+            <MudItem xs="6">
+                <b>Position</b><br />
+                @Weld.Position
+            </MudItem>
+
+        </MudGrid>
+    }
+
+</MudPaper>
+
+@code
+{
+    [Parameter]
+    public Weld? Weld { get; set; }
+}

@@ -1,0 +1,163 @@
+@page "/quality/weld-register/{ProjectId:guid}"
+
+@using MudBlazor
+@using WeldAdminPro.Web.Components.Shared.WeldRegister
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Quality
+@using WeldAdminPro.Core.Quality.Models
+
+@using WeldAdminPro.Data.Repositories
+
+@inject WeldRepository WeldRepository
+@inject NavigationManager Navigation
+
+@inject WeldRegisterApplicationService WeldService
+
+<PageTitle>Weld Register</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+
+    <WeldAnalyticsCards />
+
+    <MudPaper Class="pa-4 mt-4">
+
+        <MudGrid>
+
+            <MudItem xs="12" md="3">
+                <MudTextField T="string"
+                              Label="Search"
+                              Variant="Variant.Outlined"
+                              Placeholder="Search Weld..." />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudSelect T="string"
+                           Label="Workflow"
+                           Variant="Variant.Outlined">
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudSelect T="string"
+                           Label="Welder"
+                           Variant="Variant.Outlined">
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudSelect T="string"
+                           Label="WPS"
+                           Variant="Variant.Outlined">
+                </MudSelect>
+            </MudItem>
+
+        </MudGrid>
+
+    </MudPaper>
+
+    <MudStack Row="true"
+              Justify="Justify.SpaceBetween"
+              AlignItems="AlignItems.Center"
+              Class="mb-4">
+
+        <MudText Typo="Typo.h5">
+
+            Weld Register
+
+        </MudText>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="NewWeld">
+
+            New Weld
+
+        </MudButton>
+
+    </MudStack>
+
+    <MudGrid Class="mt-4">
+
+        <MudItem xs="12" md="8">
+
+            <WeldRegisterGrid Welds="_welds"
+                              SelectedWeld="_selectedWeld"
+                              SelectedWeldChanged="SelectedWeldChanged" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+
+            <WeldDetailsCard Weld="_selectedWeld" />
+
+        </MudItem>
+
+    </MudGrid>
+
+    <MudGrid Class="mt-4">
+
+        <MudItem xs="12">
+
+            <WeldNdtHistoryCard Results="_ndtHistory" />
+
+        </MudItem>
+
+    </MudGrid>
+
+    <MudGrid Class="mt-4">
+
+        <MudItem xs="12">
+
+            <WeldHistoryCard History="_history" />
+
+        </MudItem>
+
+    </MudGrid>
+
+</MudContainer>
+
+@code
+{
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    private Weld? _selectedWeld;
+
+    private List<Weld> _welds = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _welds = await WeldService.GetProjectWelds(ProjectId);
+    }
+
+    private void NewWeld()
+    {
+        Navigation.NavigateTo(
+            $"/quality/weld-new/{ProjectId}");
+    }
+
+    private List<WeldNdtResult> _ndtHistory = new();
+
+    private List<WeldHistoryEntry> _history = new();
+
+    private Task SelectedWeldChanged(Weld? weld)
+    {
+        _selectedWeld = weld;
+
+        if (weld == null)
+        {
+            _ndtHistory.Clear();
+            _history.Clear();
+
+            return Task.CompletedTask;
+        }
+
+        _ndtHistory = WeldService.GetNdt(weld.Id);
+
+        _history = WeldService.GetHistory(weld.Id);
+
+        return Task.CompletedTask;
+    }
+}

@@ -1,0 +1,51 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Quality.Models
+
+<MudPaper Class="pa-4">
+
+    <MudText Typo="Typo.h6" Class="mb-3">
+        NDT History
+    </MudText>
+
+    @if (Results == null || !Results.Any())
+    {
+        <MudAlert Severity="Severity.Info">
+            No NDT history available.
+        </MudAlert>
+    }
+    else
+    {
+        <MudTable T="WeldNdtResult"
+                  Items="Results"
+                  Dense="true"
+                  Hover="true">
+
+            <HeaderContent>
+
+                <MudTh>Date</MudTh>
+                <MudTh>Method</MudTh>
+                <MudTh>Result</MudTh>
+                <MudTh>Inspector</MudTh>
+
+            </HeaderContent>
+
+            <RowTemplate>
+
+                <MudTd>@context.InspectionDate.ToShortDateString()</MudTd>
+                <MudTd>@context.NdtMethod</MudTd>
+                <MudTd>@context.Result</MudTd>
+                <MudTd>@context.InspectorName</MudTd>
+
+            </RowTemplate>
+
+        </MudTable>
+    }
+
+</MudPaper>
+
+@code {
+
+    [Parameter]
+    public List<WeldNdtResult> Results { get; set; } = new();
+
+}

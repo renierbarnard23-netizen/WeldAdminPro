@@ -1,93 +1,92 @@
+@using MudBlazor
 @using WeldAdminPro.Core.Models
 
-<div class="card shadow-sm mt-4">
+<MudPaper Class="pa-4 mb-4" Elevation="2">
 
-    <div class="card-header bg-primary text-white">
+    <MudText Typo="Typo.h6" Class="mb-4">
+        Issue Stock
+    </MudText>
 
-        <strong>Issue Material</strong>
+    <MudGrid>
 
-    </div>
+        <MudItem xs="12">
 
-    <div class="card-body">
+            <MudSelect T="StockItem"
+                       Label="Stock Item"
+                       @bind-Value="_selectedStock">
 
-        <div class="row">
+                @foreach (var item in StockItems)
+                {
+                    <MudSelectItem Value="@item">
+                        @($"{item.ItemCode} - {item.Description}")
+                    </MudSelectItem>
+                }
 
-            <div class="col-md-6">
+            </MudSelect>
 
-                <label class="form-label">
-                    Stock Item
-                </label>
+        </MudItem>
 
-                <select class="form-select"
-                        @bind="SelectedStockId">
+        <MudItem xs="12">
 
-                    <option value="">-- Select Material --</option>
+            <MudNumericField T="decimal"
+                             Label="Quantity"
+                             @bind-Value="_quantity" />
 
-                    @foreach (var item in StockItems)
-                    {
-                        <option value="@item.Id">
+        </MudItem>
 
-                            @item.ItemCode - @item.Description
+        <MudItem xs="12">
 
-                        </option>
-                    }
+            <MudAlert Severity="Severity.Info">
 
-                </select>
+                Available:
+                @($"{_selectedStock?.AvailableQuantity ?? 0:N2}")
 
-            </div>
+            </MudAlert>
 
-            <div class="col-md-3">
+        </MudItem>
 
-                <label class="form-label">
-                    Quantity
-                </label>
+        <MudItem xs="12">
 
-                <input class="form-control"
-                       type="number"
-                       @bind="Quantity" />
+            <MudTextField Label="Issued By"
+                          @bind-Value="_issuedBy" />
 
-            </div>
+        </MudItem>
 
-            <div class="col-md-3 d-flex align-items-end">
+        <MudItem xs="12">
 
-                <button class="btn btn-success w-100"
-                        @onclick="Issue">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="Issue">
 
-                    Issue Material
+                Issue Stock
 
-                </button>
+            </MudButton>
 
-            </div>
+        </MudItem>
 
-        </div>
+    </MudGrid>
 
-    </div>
+</MudPaper>
 
-</div>
-
-@code {
-
+@code
+{
     [Parameter]
     public List<StockItem> StockItems { get; set; } = new();
 
     [Parameter]
     public EventCallback<(Guid StockId, decimal Quantity)> OnIssue { get; set; }
 
-    private Guid SelectedStockId;
+    private StockItem? _selectedStock;
 
-    private decimal Quantity = 1;
+    private decimal _quantity = 1;
+
+    private string _issuedBy = "Web User";
 
     private async Task Issue()
     {
-        if (SelectedStockId == Guid.Empty)
+        if (_selectedStock is null)
             return;
 
-        if (Quantity <= 0)
-            return;
-
-        await OnIssue.InvokeAsync((SelectedStockId, Quantity));
-
-        Quantity = 1;
+        await OnIssue.InvokeAsync((_selectedStock.Id, _quantity));
     }
-
 }

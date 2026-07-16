@@ -1,4 +1,42 @@
+@using MudBlazor
 @using WeldAdminPro.Core.Quality.Models
+
+@if (Snapshot == null)
+{
+    <MudAlert Severity="Severity.Info"
+              Variant="Variant.Outlined">
+        Loading quality alerts...
+    </MudAlert>
+}
+else if (!Snapshot.Alerts.Any())
+{
+    <MudAlert Severity="Severity.Success"
+              Variant="Variant.Filled"
+              Dense="true">
+
+        No quality alerts.
+
+    </MudAlert>
+}
+else
+{
+    <MudList T="string" Dense="true">
+
+        @foreach (var alert in Snapshot.Alerts)
+        {
+            <MudListItem T="string" Icon="@Icons.Material.Filled.WarningAmber">
+
+                <MudText Typo="Typo.body2">
+
+                    @alert
+
+                </MudText>
+
+            </MudListItem>
+        }
+
+    </MudList>
+}
 
 @code
 {

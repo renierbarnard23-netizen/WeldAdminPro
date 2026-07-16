@@ -1,102 +1,92 @@
+@using MudBlazor
 @using WeldAdminPro.Core.Models
 
-<div class="card shadow-sm mt-4">
+<MudPaper Class="pa-4 mb-4"
+          Elevation="2">
 
-    <div class="card-header bg-warning">
+    <MudText Typo="Typo.h6"
+             Class="mb-4">
 
-        <strong>Return Material</strong>
+        Return Stock
 
-    </div>
+    </MudText>
 
-    <div class="card-body">
+    <MudGrid>
 
-        <div class="row">
+        <MudItem xs="12">
 
-            <div class="col-md-7">
+            <MudSelect T="ReturnableItemDto"
+                       Label="Issued Item"
+                       @bind-Value="_selectedItem">
 
-                <label class="form-label">
+                @foreach (var item in ReturnableItems)
+                {
+                    <MudSelectItem T="ReturnableItemDto"
+                                   Value="@item">
 
-                    Issued Material
+                        @($"{item.ItemCode} - {item.Description}")
 
-                </label>
+                    </MudSelectItem>
+                }
 
-                <select class="form-select"
-                        @bind="SelectedStockId">
+            </MudSelect>
 
-                    <option value="">-- Select Material --</option>
+        </MudItem>
 
-                    @foreach (var item in Items)
-                    {
-                        <option value="@item.StockItemId">
+        <MudItem xs="12">
 
-                            @item.ItemCode
-                            -
-                            @item.Description
-                            (@item.Quantity)
+            <MudNumericField T="decimal"
+                             Label="Return Quantity"
+                             @bind-Value="_quantity" />
 
-                        </option>
-                    }
+        </MudItem>
 
-                </select>
+        <MudItem xs="12">
 
-            </div>
+            <MudAlert Severity="Severity.Info">
 
-            <div class="col-md-3">
+                Remaining Issued:
+                @($"{_selectedItem?.Quantity ?? 0:N2}")
 
-                <label class="form-label">
+            </MudAlert>
 
-                    Quantity
+        </MudItem>
 
-                </label>
+        <MudItem xs="12">
 
-                <input class="form-control"
-                       type="number"
-                       @bind="Quantity" />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       StartIcon="@Icons.Material.Filled.KeyboardReturn"
+                       OnClick="ReturnStock">
 
-            </div>
+                Return Stock
 
-            <div class="col-md-2 d-flex align-items-end">
+            </MudButton>
 
-                <button class="btn btn-warning w-100"
-                        @onclick="ReturnMaterial">
+        </MudItem>
 
-                    Return
+    </MudGrid>
 
-                </button>
+</MudPaper>
 
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-@code {
+@code
+{
+    [Parameter]
+    public List<ReturnableItemDto> ReturnableItems { get; set; } = new();
 
     [Parameter]
-
-    public List<ReturnableItemDto> Items { get; set; } = new();
-
-    [Parameter]
-
     public EventCallback<(Guid StockId, decimal Quantity)> OnReturn { get; set; }
 
-    private Guid SelectedStockId;
+    private ReturnableItemDto? _selectedItem;
 
-    private decimal Quantity = 1;
+    private decimal _quantity = 1;
 
-    private async Task ReturnMaterial()
+    private async Task ReturnStock()
     {
-        if (SelectedStockId == Guid.Empty)
+        if (_selectedItem is null)
             return;
 
-        if (Quantity <= 0)
-            return;
-
-        await OnReturn.InvokeAsync((SelectedStockId, Quantity));
-
-        Quantity = 1;
+        await OnReturn.InvokeAsync(
+            (_selectedItem.StockItemId, _quantity));
     }
-
 }

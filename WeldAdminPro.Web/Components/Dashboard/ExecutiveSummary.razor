@@ -1,0 +1,127 @@
+@using MudBlazor
+@using WeldAdminPro.Data.Services.ProductionEngine
+@using WeldAdminPro.Core.Quality.Models
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+
+    <MudGrid>
+
+        <MudItem xs="12" md="8">
+
+            <MudText Typo="Typo.h5">
+
+                Executive Summary
+
+            </MudText>
+
+            <MudText Color="Color.Secondary">
+
+                Live operational overview of the factory.
+
+            </MudText>
+
+            <MudDivider Class="my-3"/>
+
+            <MudList T="string" Dense="true">
+
+                <MudListItem T="string">
+
+                    Factory Status
+
+                    <MudChip T="string"
+                             Class="ml-2"
+                             Color="Color.Success">
+
+                        @_factoryStatus
+
+                    </MudChip>
+
+                </MudListItem>
+
+                <MudListItem T="string">
+
+                    Production Health
+
+                    <strong class="ms-2">
+
+                        @($"{Production?.HealthScore ?? 0}%")
+
+                    </strong>
+
+                </MudListItem>
+
+                <MudListItem T="string">
+
+                    Inventory Forecast
+
+                    <strong class="ms-2">
+
+                        Stable
+
+                    </strong>
+
+                </MudListItem>
+
+                <MudListItem T="string">
+
+                    Quality Compliance
+
+                    <strong class="ms-2">
+
+                        @($"{Quality?.ComplianceScore ?? 0}%")
+
+                    </strong>
+
+                </MudListItem>
+
+            </MudList>
+
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+
+            <MudAlert Severity="Severity.Info">
+
+                <b>AI Executive Insight</b>
+
+                <br/><br/>
+
+                @GetInsight()
+
+            </MudAlert>
+
+        </MudItem>
+
+    </MudGrid>
+
+</MudPaper>
+
+@code
+{
+    [Parameter]
+
+    public ProductionSnapshot? Production { get; set; }
+
+    [Parameter]
+
+    public QualitySnapshot? Quality { get; set; }
+
+    private string _factoryStatus =>
+
+        Production?.FactoryStatus ?? "Unknown";
+
+    private string GetInsight()
+    {
+        if (Production == null)
+            return "Waiting for operational data.";
+
+        if (Production.BlockedWorkOrders > 0)
+            return "Production is experiencing blocked work orders.";
+
+        if ((Quality?.PendingNdt ?? 0) > 0)
+            return "Complete outstanding NDT inspections.";
+
+        return
+            "Factory operating normally. No significant risks detected.";
+    }
+}

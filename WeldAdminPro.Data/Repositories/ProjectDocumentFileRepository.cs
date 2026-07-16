@@ -69,6 +69,41 @@ VALUES
         }
 
         // =====================================================
+        // UPDATE FILE
+        // =====================================================
+
+        public void Update(ProjectDocumentFile file)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+
+            connection.Open();
+
+            var cmd = connection.CreateCommand();
+
+            cmd.CommandText = @"
+UPDATE ProjectDocumentFiles
+SET
+    FilePath = $path,
+    FileName = $name,
+    UploadedOn = $uploaded,
+    IsApproved = $approved
+WHERE Id = $id;";
+
+            cmd.Parameters.AddWithValue("$id", file.Id.ToString());
+            cmd.Parameters.AddWithValue("$path", file.FilePath);
+            cmd.Parameters.AddWithValue("$name", file.FileName);
+            cmd.Parameters.AddWithValue(
+                "$uploaded",
+                file.UploadedOn.ToString("yyyy-MM-dd HH:mm:ss"));
+
+            cmd.Parameters.AddWithValue(
+                "$approved",
+                file.IsApproved ? 1 : 0);
+
+            cmd.ExecuteNonQuery();
+        }
+
+        // =====================================================
         // GET FILES BY DOCUMENT
         // =====================================================
 

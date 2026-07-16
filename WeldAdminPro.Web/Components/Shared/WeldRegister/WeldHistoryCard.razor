@@ -1,0 +1,53 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Quality.Models
+
+<MudPaper Class="pa-4">
+
+    <MudText Typo="Typo.h6" Class="mb-3">
+        Weld History
+    </MudText>
+
+    @if (History == null || !History.Any())
+    {
+        <MudAlert Severity="Severity.Info">
+            No history available.
+        </MudAlert>
+    }
+    else
+    {
+        <MudTimeline>
+
+            @foreach (var item in History)
+            {
+                <MudTimelineItem>
+
+                    <ChildContent>
+
+                        <MudText Typo="Typo.body2">
+                            @item.EventDate.ToString("dd MMM yyyy HH:mm")
+                        </MudText>
+
+                        <MudText Typo="Typo.body1">
+                            @item.EventType
+                        </MudText>
+
+                        <MudText Typo="Typo.caption">
+                            @item.Description
+                        </MudText>
+
+                    </ChildContent>
+
+                </MudTimelineItem>
+            }
+
+        </MudTimeline>
+    }
+
+</MudPaper>
+
+@code {
+
+    [Parameter]
+    public List<WeldHistoryEntry> History { get; set; } = new();
+
+}

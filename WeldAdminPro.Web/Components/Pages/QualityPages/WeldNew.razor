@@ -1,0 +1,127 @@
+@page "/quality/weld-new/{ProjectId:guid}"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Repositories
+
+@inject WeldRepository WeldRepository
+@inject NavigationManager Navigation
+
+<PageTitle>New Weld</PageTitle>
+
+<MudPaper Class="pa-4">
+
+    <MudText Typo="Typo.h5" Class="mb-4">
+
+        New Weld
+
+    </MudText>
+
+    <MudGrid>
+
+        <MudItem xs="12" md="6">
+
+            <MudTextField T="string"
+                          Label="Weld Number"
+                          @bind-Value="_weld.WeldNumber" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudTextField T="string"
+                          Label="Drawing Number"
+                          @bind-Value="_weld.DrawingNumber" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudTextField T="string"
+                          Label="Joint Number"
+                          @bind-Value="_weld.JointNumber" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudTextField T="string"
+                          Label="WPS Number"
+                          @bind-Value="_weld.WpsNumber" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudTextField T="string"
+                          Label="Welder Number"
+                          @bind-Value="_weld.WelderNumber" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudTextField T="string"
+                          Label="Material"
+                          @bind-Value="_weld.MaterialSpecification" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+
+            <MudNumericField T="double"
+                             Label="Diameter"
+                             @bind-Value="_weld.Diameter" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+
+            <MudNumericField T="double"
+                             Label="Thickness"
+                             @bind-Value="_weld.Thickness" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+
+            <MudTextField T="string"
+                          Label="Position"
+                          @bind-Value="_weld.Position" />
+
+        </MudItem>
+
+        <MudItem xs="12">
+
+            <MudButton Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       OnClick="Save">
+
+                Save Weld
+
+            </MudButton>
+
+        </MudItem>
+
+    </MudGrid>
+
+</MudPaper>
+
+@code
+{
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    private Weld _weld = new();
+
+    private async Task Save()
+{
+    _weld.ProjectId = ProjectId;
+
+    await WeldRepository.AddAsync(_weld);
+
+    Navigation.NavigateTo(
+        $"/quality/weld-register/{ProjectId}");
+}
+        
+}

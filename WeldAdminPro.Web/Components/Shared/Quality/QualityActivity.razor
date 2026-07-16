@@ -1,4 +1,43 @@
+@using MudBlazor
 @using WeldAdminPro.Core.Quality.Models
+
+@if (Snapshot == null)
+{
+    <MudAlert Severity="Severity.Info"
+              Variant="Variant.Outlined">
+        Loading activity...
+    </MudAlert>
+}
+else if (!Snapshot.RecentActivity.Any())
+{
+    <MudAlert Severity="Severity.Success"
+              Variant="Variant.Filled"
+              Dense="true">
+
+        No recent quality activity.
+
+    </MudAlert>
+}
+else
+{
+    <MudTimeline>
+
+        @foreach (var activity in Snapshot.RecentActivity)
+        {
+            <MudTimelineItem Color="Color.Success"
+                             Variant="Variant.Filled">
+
+                <MudText Typo="Typo.body2">
+
+                    @activity
+
+                </MudText>
+
+            </MudTimelineItem>
+        }
+
+    </MudTimeline>
+}
 
 @code
 {

@@ -1,4 +1,101 @@
+@using MudBlazor
 @using WeldAdminPro.Core.Quality.Models
+
+@if (Snapshot == null)
+{
+    <MudAlert Severity="Severity.Info"
+              Variant="Variant.Outlined">
+
+        Loading inspection status...
+
+    </MudAlert>
+}
+else
+{
+    <MudGrid>
+
+        <MudItem xs="12" sm="6" md="3">
+
+            <MudPaper Class="pa-4 text-center">
+
+                <MudIcon Icon="@Icons.Material.Filled.Verified"
+                         Size="Size.Large"
+                         Color="Color.Success" />
+
+                <MudText Typo="Typo.h5">
+                    @Snapshot.ComplianceScore%
+                </MudText>
+
+                <MudText Typo="Typo.caption">
+                    Inspection Pass Rate
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+
+            <MudPaper Class="pa-4 text-center">
+
+                <MudIcon Icon="@Icons.Material.Filled.Search"
+                         Size="Size.Large"
+                         Color="Color.Warning" />
+
+                <MudText Typo="Typo.h5">
+                    @Snapshot.PendingNdt
+                </MudText>
+
+                <MudText Typo="Typo.caption">
+                    Pending NDT
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+
+            <MudPaper Class="pa-4 text-center">
+
+                <MudIcon Icon="@Icons.Material.Filled.Build"
+                         Size="Size.Large"
+                         Color="Color.Error" />
+
+                <MudText Typo="Typo.h5">
+                    @Snapshot.OpenRepairs
+                </MudText>
+
+                <MudText Typo="Typo.caption">
+                    Open Repairs
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+
+            <MudPaper Class="pa-4 text-center">
+
+                <MudIcon Icon="@Icons.Material.Filled.Description"
+                         Size="Size.Large"
+                         Color="Color.Info" />
+
+                <MudText Typo="Typo.h5">
+                    @Snapshot.MissingDocuments
+                </MudText>
+
+                <MudText Typo="Typo.caption">
+                    Missing Documents
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+    </MudGrid>
+}
 
 @code
 {
