@@ -1,16 +1,12 @@
 @page "/production/workorders/materials/{WorkOrderId:guid}"
 
 @using WeldAdminPro.Core.Models
-@using WeldAdminPro.Data.Repositories
-@using WeldAdminPro.Data.Services
 @using MudBlazor
+@using WeldAdminPro.Data.Services.Production
 
-@inject StockRepository StockRepository
-@inject WorkOrderMaterialRepository WorkOrderMaterialRepository
+@inject ProductionApplicationService ProductionService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
-
-@inject PersistentReservationService ReservationService
 
 <PageTitle>Add Work Order Material</PageTitle>
 
@@ -103,9 +99,7 @@
     protected override void OnInitialized()
     {
         _materials =
-            StockRepository
-                .GetAll()
-                .ToList();
+            ProductionService.GetStockItems();
     }
 
     private void AddMaterial()
@@ -133,9 +127,7 @@
                     RequiredQuantity = _requiredQuantity
                 };
 
-            WorkOrderMaterialRepository.Add(material);
-
-            ReservationService.Reserve(WorkOrderId);
+            ProductionService.AddWorkOrderMaterial(material);
 
             Snackbar.Add(
                 "Material added successfully.",

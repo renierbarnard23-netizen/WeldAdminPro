@@ -21,18 +21,25 @@ namespace WeldAdminPro.Data.Services.Production
         private readonly ProductionAIPlannerService _planner;
         private readonly ProductionCapacityService _capacityService;
         private readonly ProjectRepository _projectRepository;
+        private readonly StockRepository _stockRepository;
+        private readonly WorkOrderMaterialRepository _workOrderMaterialRepository;
+        private readonly PersistentReservationService _reservationService;
 
         public ProductionApplicationService
             (
                 WorkOrderRepository repository,
                 ProjectRepository projectRepository,
+                StockRepository stockRepository,
+                WorkOrderMaterialRepository workOrderMaterialRepository,
+                PersistentReservationService reservationService,
                 ProductionAdvisorService advisor,
                 ProductionReadinessService readinessService,
                 ProductionAIPlannerService planner,
                 ProductionScheduleService scheduleService,
                 ProductionCapacityService capacityService,
                 ProductionDelayPredictionService delayPredictionService,
-                TimelineEngine timelineEngine)
+                TimelineEngine timelineEngine
+            )
         {
             _repository = repository;
             _advisor = advisor;
@@ -43,6 +50,9 @@ namespace WeldAdminPro.Data.Services.Production
             _delayPredictionService = delayPredictionService;
             _timelineEngine = timelineEngine;
             _projectRepository = projectRepository;
+            _stockRepository = stockRepository;
+            _workOrderMaterialRepository = workOrderMaterialRepository;
+            _reservationService = reservationService;
         }
 
         // Temporary compatibility constructor
@@ -50,6 +60,9 @@ namespace WeldAdminPro.Data.Services.Production
             : this(
                 new WorkOrderRepository(),
                 new ProjectRepository(),
+                new StockRepository(),
+                new WorkOrderMaterialRepository(),
+                new PersistentReservationService(),
                 new ProductionAdvisorService(),
                 new ProductionReadinessService(
                     new WorkOrderRepository(),
@@ -112,6 +125,12 @@ namespace WeldAdminPro.Data.Services.Production
         public List<ProductionDelayPrediction> GetDelayPredictions()
         {
             return _delayPredictionService.PredictDelays();
+        }
+        public List<StockItem> GetStockItems()
+        {
+            return _stockRepository
+                .GetAll()
+                .ToList();
         }
 
         public List<ProductionGanttItem> GetTimeline()
@@ -255,7 +274,14 @@ namespace WeldAdminPro.Data.Services.Production
                 _repository.Update(workOrder);
                 return true;
             }
+        public bool AddWorkOrderMaterial(WorkOrderMaterial material)
+        {
+            _workOrderMaterialRepository.Add(material);
 
+            _reservationService.Reserve(material.WorkOrderId);
 
-}
+            return true;
+        }
+
+    }
     }
