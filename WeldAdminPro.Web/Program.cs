@@ -120,8 +120,6 @@ builder.Services.AddScoped<RepairApplicationService>();
 
 builder.Services.AddScoped<IWeldService, WeldService>();
 
-builder.Services.AddSingleton<ProductionApplicationService>();
-
 // --------------------------------------------------
 
 var app = builder.Build();

@@ -24,6 +24,7 @@ namespace WeldAdminPro.Data.Services.Production
         private readonly StockRepository _stockRepository;
         private readonly WorkOrderMaterialRepository _workOrderMaterialRepository;
         private readonly PersistentReservationService _reservationService;
+        private readonly StockProjectTransactionService _stockService;
 
         public ProductionApplicationService
             (
@@ -38,8 +39,10 @@ namespace WeldAdminPro.Data.Services.Production
                 ProductionScheduleService scheduleService,
                 ProductionCapacityService capacityService,
                 ProductionDelayPredictionService delayPredictionService,
-                TimelineEngine timelineEngine
-            )
+                TimelineEngine timelineEngine,
+                StockProjectTransactionService stockService
+                
+             )
         {
             _repository = repository;
             _advisor = advisor;
@@ -53,6 +56,9 @@ namespace WeldAdminPro.Data.Services.Production
             _stockRepository = stockRepository;
             _workOrderMaterialRepository = workOrderMaterialRepository;
             _reservationService = reservationService;
+            _scheduleService = scheduleService;
+            _capacityService = capacityService;
+            _stockService = stockService;
         }
 
         // Temporary compatibility constructor
@@ -71,7 +77,9 @@ namespace WeldAdminPro.Data.Services.Production
                 new ProductionScheduleService(),
                 new ProductionCapacityService(new WorkOrderRepository()),
                 new ProductionDelayPredictionService(),
-                new TimelineEngine())
+                new TimelineEngine(),
+                new StockProjectTransactionService()  
+                  )
         {
         }
 
@@ -279,6 +287,23 @@ namespace WeldAdminPro.Data.Services.Production
             _workOrderMaterialRepository.Add(material);
 
             _reservationService.Reserve(material.WorkOrderId);
+
+            return true;
+        }
+
+        public bool IssueMaterial
+            (
+                Project project,
+                StockItem stockItem,
+                int quantity,
+                string issuedBy
+            )
+        {
+            _stockService.IssueStock(
+                project,
+                stockItem,
+                quantity,
+                issuedBy);
 
             return true;
         }

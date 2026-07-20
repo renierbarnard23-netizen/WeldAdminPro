@@ -2,16 +2,10 @@
 
 @using MudBlazor
 @using WeldAdminPro.Core.Models
-@using WeldAdminPro.Data.Repositories
-@using WeldAdminPro.Data.Services
+@using WeldAdminPro.Data.Services.Production
 
 @inject NavigationManager Navigation
-
-@inject WorkOrderRepository WorkOrderRepository
-@inject ProjectRepository ProjectRepository
-@inject StockRepository StockRepository
-@inject StockProjectTransactionService StockService
-
+@inject ProductionApplicationService ProductionService
 @inject ISnackbar Snackbar
 
 <PageTitle>Issue Material</PageTitle>
@@ -216,7 +210,7 @@
     {
         _loading = true;
 
-        _workOrder = WorkOrderRepository.GetById(Id);
+        _workOrder = ProductionService.GetWorkOrder(Id);
 
         if (_workOrder == null)
         {
@@ -224,13 +218,13 @@
             return;
         }
 
-        _project =
-            ProjectRepository.GetById(
-                _workOrder.ProjectId);
+        _project = ProductionService
+            .GetProjects()
+            .FirstOrDefault(x => x.Id == _workOrder.ProjectId);
 
         _stockItems =
-            StockRepository
-                .GetAll()
+            ProductionService
+                .GetStockItems()
                 .OrderBy(x => x.ItemCode)
                 .ToList();
 
@@ -277,7 +271,7 @@
 
         try
         {
-            StockService.IssueStock(
+            ProductionService.IssueMaterial(
                 _project,
                 _selectedItem,
                 (int)_quantity,
