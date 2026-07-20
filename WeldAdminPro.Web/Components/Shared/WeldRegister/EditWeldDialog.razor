@@ -1,0 +1,100 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Repositories
+@using WeldAdminPro.Core.Quality.Models
+
+@inject WeldRepository WeldRepository
+@inject WeldHistoryRepository HistoryRepository
+@inject ISnackbar Snackbar
+
+<MudDialog>
+
+    <DialogContent>
+
+        <MudText Typo="Typo.h5">
+
+            Edit Weld
+
+        </MudText>
+
+        <MudDivider Class="mb-4" />
+
+        <MudTextField T="string"
+                      Label="Weld Number"
+                      Value="@Weld.WeldNumber"
+                      Disabled="true" />
+
+        <MudTextField T="string"
+                      Label="Drawing Number"
+                      @bind-Value="Weld.DrawingNumber" />
+
+        <MudTextField T="string"
+                      Label="Joint Number"
+                      @bind-Value="Weld.JointNumber" />
+
+    </DialogContent>
+
+    <DialogActions>
+
+        <MudButton OnClick="Cancel">
+
+            Cancel
+
+        </MudButton>
+
+        <MudButton Color="Color.Primary"
+                   OnClick="Save">
+
+            Save
+
+        </MudButton>
+
+    </DialogActions>
+
+</MudDialog>
+
+@code
+{
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public Weld Weld { get; set; } = new();
+
+    void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            await WeldRepository.UpdateAsync(Weld);
+
+            HistoryRepository.Add(
+                new WeldHistoryEntry
+                {
+                    Id = Guid.NewGuid(),
+                    WeldId = Weld.Id,
+                    EventDate = DateTime.Now,
+                    EventType = "Edit",
+                    Description = "Weld updated",
+                    UserName = "Web User",
+                    StatusSnapshot = Weld.Status.ToString()
+                });
+
+            Snackbar.Add(
+                "Weld updated successfully.",
+                Severity.Success);
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+    }
+}

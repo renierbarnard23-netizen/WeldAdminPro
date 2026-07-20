@@ -1,69 +1,110 @@
 @using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Web.Components.Shared.Dashboard
 
 <MudGrid>
 
     <MudItem xs="6" md="3">
-
-        <MudPaper Class="pa-4">
-
-            <MudText Typo="Typo.caption">
-                Total Welds
-            </MudText>
-
-            <MudText Typo="Typo.h4">
-                0
-            </MudText>
-
-        </MudPaper>
-
+        <KpiCard
+            Title="Total Welds"
+            Value="@Total.ToString()"
+            Color="Color.Primary" />
     </MudItem>
 
     <MudItem xs="6" md="3">
-
-        <MudPaper Class="pa-4">
-
-            <MudText Typo="Typo.caption">
-                Completed
-            </MudText>
-
-            <MudText Typo="Typo.h4">
-                0
-            </MudText>
-
-        </MudPaper>
-
+        <KpiCard
+            Title="Completed"
+                 Value="@( (Accepted + Closed).ToString() )"
+            Color="Color.Success" />
     </MudItem>
 
     <MudItem xs="6" md="3">
-
-        <MudPaper Class="pa-4">
-
-            <MudText Typo="Typo.caption">
-                Pending NDT
-            </MudText>
-
-            <MudText Typo="Typo.h4">
-                0
-            </MudText>
-
-        </MudPaper>
-
+        <KpiCard
+            Title="Pending"
+            Value="@Pending.ToString()"
+            Color="Color.Warning" />
     </MudItem>
 
     <MudItem xs="6" md="3">
+        <KpiCard
+            Title="Repairs"
+            Value="@Repairs.ToString()"
+            Color="Color.Error" />
+    </MudItem>
 
-        <MudPaper Class="pa-4">
+    <MudItem xs="6" md="3">
+        <KpiCard
+            Title="Accepted"
+            Value="@Accepted.ToString()"
+            Color="Color.Success" />
+    </MudItem>
 
-            <MudText Typo="Typo.caption">
-                Repairs
-            </MudText>
+    <MudItem xs="6" md="3">
+        <KpiCard
+            Title="Rejected"
+            Value="@Rejected.ToString()"
+            Color="Color.Error" />
+    </MudItem>
 
-            <MudText Typo="Typo.h4">
-                0
-            </MudText>
+    <MudItem xs="6" md="3">
+        <KpiCard
+            Title="Awaiting Reinspection"
+            Value="@AwaitingReinspection.ToString()"
+            Color="Color.Warning" />
+    </MudItem>
 
-        </MudPaper>
-
+    <MudItem xs="6" md="3">
+        <KpiCard
+            Title="Completion"
+            Value="@($"{Completion:F1}%")"
+            Color="Color.Info" />
     </MudItem>
 
 </MudGrid>
+
+@code
+{
+    [Parameter]
+    public List<Weld> Welds { get; set; } = new();
+    
+    private int Total =>
+        Welds.Count;
+
+    private int Completed =>
+        Accepted + Closed;
+
+    private string CompletionText =>
+    $"{Completion:F1}%";
+
+    private string RepairRateText =>
+        $"{RepairRate:F1}%";
+
+    private int Accepted =>
+        Welds.Count(w => w.Status == WeldStatusType.Accepted);
+
+    private int Rejected =>
+        Welds.Count(w => w.Status == WeldStatusType.Rejected);
+
+    private int Repairs =>
+        Welds.Count(w => w.Status == WeldStatusType.RepairRequired);
+
+    private int AwaitingReinspection =>
+        Welds.Count(w => w.Status == WeldStatusType.AwaitingReinspection);
+
+    private int Pending =>
+        Welds.Count(w => w.Status == WeldStatusType.Pending);
+
+    private int Closed =>
+        Welds.Count(w => w.Status == WeldStatusType.Closed);
+
+    private double Completion =>
+    Total == 0
+        ? 0
+        : ((Accepted + Closed) * 100.0) / Total;
+
+    private double RepairRate =>
+    Total == 0
+        ? 0
+        : (Repairs * 100.0) / Total;
+}

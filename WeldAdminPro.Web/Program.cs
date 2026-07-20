@@ -11,6 +11,7 @@ using WeldAdminPro.Data.Services.Quality;
 using WeldAdminPro.Web.Components;
 using WeldAdminPro.Web.Services.Dashboard;
 using WeldAdminPro.Web.Services.Quality;
+using WeldAdminPro.Core.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,15 +41,22 @@ builder.Services.AddScoped<MaterialTrendService>();
 
 builder.Services.AddScoped<StockForecastService>();
 
-builder.Services.AddScoped<ProjectRiskService>();
-
 builder.Services.AddScoped<MaterialDemandForecastService>();
 
 builder.Services.AddSingleton<ProjectApplicationService>();
 
 builder.Services.AddScoped<WorkOrderRepository>();
 
+// Register the concrete repository
 builder.Services.AddScoped<WeldRepository>();
+
+// Register the interface using the same instance
+builder.Services.AddScoped<IWeldRepository>(sp =>
+    sp.GetRequiredService<WeldRepository>());
+
+builder.Services.AddScoped<WeldTraceabilityRepository>();
+
+builder.Services.AddScoped<WeldHistoryRepository>();
 
 builder.Services.AddScoped<WorkOrderShortageDetectionService>();
 
@@ -86,9 +94,9 @@ builder.Services.AddScoped<WpsApplicationService>();
 
 builder.Services.AddScoped<WpsRepository>();
 
-builder.Services.AddSingleton<ProjectProfitabilityService>();
+builder.Services.AddScoped<WelderQualificationRepository>();
 
-builder.Services.AddScoped<PersistentReservationService>();
+builder.Services.AddSingleton<ProjectProfitabilityService>();
 
 builder.Services.AddScoped<PersistentReservationService>();
 
@@ -106,6 +114,11 @@ builder.Services.AddScoped<DocumentStorageService>();
 
 builder.Services.AddScoped<WeldRegisterApplicationService>();
 
+builder.Services.AddScoped<WeldTraceabilityApplicationService>();
+
+builder.Services.AddScoped<RepairApplicationService>();
+
+builder.Services.AddScoped<IWeldService, WeldService>();
 
 // --------------------------------------------------
 

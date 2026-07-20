@@ -1,12 +1,17 @@
 @page "/projects/{Id:guid}"
 
 @using WeldAdminPro.Core.Models
-@using WeldAdminPro.Data.Services.Projects
-@using WeldAdminPro.Web.Components.Shared.Projects
+@using WeldAdminPro.Core.Quality.Models
 @using WeldAdminPro.Data.Services
+@using WeldAdminPro.Data.Services.Projects
+@using WeldAdminPro.Data.Services.Quality
+@using WeldAdminPro.Web.Components.Shared.Projects
+@using WeldAdminPro.Web.Components.Pages.QualityPages
 
 @inject ProjectCostingService ProjectCostingService
 @inject ProjectApplicationService ProjectService
+@inject WeldTraceabilityApplicationService TraceabilityService
+@inject RepairApplicationService RepairService
 
 <PageTitle>Project Details</PageTitle>
 
@@ -75,23 +80,29 @@ else
 
         </MudTabPanel>
 
-        <MudTabPanel Text="Weld Map">
+        <MudTabPanel Text="Weld Management">
 
-            <MudPaper Class="pa-6">
+    @if (_project != null)
+    {
+        <WeldRegister ProjectId="@_project.Id" />
+    }
 
-                <MudText Typo="Typo.h5">
+        </MudTabPanel>
 
-                    Weld Map
+        <MudTabPanel Text="Traceability Matrix">
 
-                </MudText>
+            <ProjectTraceabilityMatrix
+                Rows="_traceabilityRows" />
 
-                <MudText Color="Color.Secondary">
+        </MudTabPanel>
 
-                    WPF Weld Map migration coming in the next step.
+        <MudTabPanel Text="Repairs">
 
-                </MudText>
+            <RepairKpiCards Analytics="_repairAnalytics" />
 
-            </MudPaper>
+            <MudDivider Class="my-4" />
+
+            <RepairRegister Repairs="_repairs" />
 
         </MudTabPanel>
 
@@ -117,6 +128,12 @@ else
     private List<ReturnableItemDto> _returnableItems = new();
 
     private List<ProjectMaterialBreakdown> _materialBreakdown = new();
+
+    private List<WeldTraceabilityRow> _traceabilityRows = new();
+
+    private List<RepairRecord> _repairs = new();
+
+    private RepairAnalytics _repairAnalytics = new();
 
     private void SaveProject()
     {
@@ -228,6 +245,15 @@ else
         _materialSummary =
             ProjectService.GetMaterialSummary(projectId);
 
+        _traceabilityRows =
+            TraceabilityService.GetProjectRows(projectId).Result;
+
+        _repairs =
+            RepairService.GetProjectRepairs(projectId).Result;
+
+        _repairAnalytics = 
+            RepairService.GetAnalytics(projectId).Result;
+
         StateHasChanged();
     }
 
@@ -249,6 +275,12 @@ else
 
         _materialBreakdown =
             ProjectCostingService.GetProjectMaterialBreakdown(Id);
+
+        _traceabilityRows = TraceabilityService.GetProjectRows(Id).Result;
+
+        _repairs = RepairService.GetProjectRepairs(Id).Result;
+
+        _repairAnalytics = RepairService.GetAnalytics(Id).Result;
     }
 
     private double CalculateCompliance()

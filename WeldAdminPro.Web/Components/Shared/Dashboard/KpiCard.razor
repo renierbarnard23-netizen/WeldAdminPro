@@ -1,0 +1,52 @@
+@using MudBlazor
+
+<MudPaper Class="pa-4"
+          Outlined="true"
+          Style="cursor:pointer"
+          @onclick="OnClick">
+
+    <MudStack Row="true"
+              AlignItems="AlignItems.Center"
+              Spacing="2">
+
+        <MudIcon Icon="@Icon"
+                 Size="Size.Large"
+                 Color="@Color" />
+
+        <MudStack>
+
+            <MudText Typo="Typo.caption">
+                @Title
+            </MudText>
+
+            <MudText Typo="Typo.h4"
+                     Color="@Color">
+
+                @Value
+
+            </MudText>
+
+        </MudStack>
+
+    </MudStack>
+
+</MudPaper>
+
+@code
+{
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string Value { get; set; } = "";
+
+    [Parameter]
+    public Color Color { get; set; } = Color.Default;
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    [Parameter]
+    public string Icon { get; set; } = Icons.Material.Filled.Info;
+
+}

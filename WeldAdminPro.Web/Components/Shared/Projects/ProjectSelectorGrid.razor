@@ -1,0 +1,97 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+
+<MudPaper Class="pa-4">
+
+    <MudText Typo="Typo.h5" GutterBottom="true">
+        Select Project
+    </MudText>
+
+    <MudTextField T="string"
+                  Label="Search"
+                  Placeholder="Job Number, Project or Client..."
+                  Variant="Variant.Outlined"
+                  Immediate="true"
+                  @bind-Value="_search"
+                  Class="mb-4" />
+
+    <MudTable T="Project"
+              Items="FilteredProjects"
+              Hover="true"
+              Dense="true"
+              Bordered="true"
+              Striped="true">
+
+        <HeaderContent>
+
+            <MudTh>Job No</MudTh>
+            <MudTh>Project</MudTh>
+            <MudTh>Client</MudTh>
+            <MudTh>Assigned To</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh></MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.JobNumber</MudTd>
+
+            <MudTd>@context.ProjectName</MudTd>
+
+            <MudTd>@context.Client</MudTd>
+
+            <MudTd>@context.AssignedTo</MudTd>
+
+            <MudTd>@context.Status</MudTd>
+
+            <MudTd>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           OnClick="@(() => OpenProject.InvokeAsync(context))">
+
+                    Open Weld Register
+
+                </MudButton>
+
+            </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+
+</MudPaper>
+
+@code
+{
+    [Parameter]
+    public IEnumerable<Project> Projects { get; set; }
+        = Enumerable.Empty<Project>();
+
+    [Parameter]
+    public EventCallback<Project> OpenProject { get; set; }
+
+    private string _search = "";
+
+    private IEnumerable<Project> FilteredProjects =>
+        Projects.Where(p =>
+
+            string.IsNullOrWhiteSpace(_search)
+
+            ||
+
+            p.JobNumber.ToString().Contains(_search,
+                StringComparison.OrdinalIgnoreCase)
+
+            ||
+
+            p.ProjectName.Contains(_search,
+                StringComparison.OrdinalIgnoreCase)
+
+            ||
+
+            p.Client.Contains(_search,
+                StringComparison.OrdinalIgnoreCase));
+}

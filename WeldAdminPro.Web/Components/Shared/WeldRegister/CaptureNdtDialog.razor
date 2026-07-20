@@ -1,0 +1,160 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Core.Quality.Enums
+
+<MudDialog>
+
+    <DialogContent>
+
+        <MudText Typo="Typo.h6" Class="mb-4">
+
+            Capture NDT Result
+
+        </MudText>
+
+        <MudGrid>
+
+            <MudItem xs="12" md="6">
+
+                <MudSelect T="NdtMethodType"
+                           Label="Method"
+                           @bind-Value="_result.NdtMethod">
+
+                    @foreach (var method in Enum.GetValues<NdtMethodType>())
+                    {
+                        <MudSelectItem T="NdtMethodType"
+                                       Value="@method">
+
+                            @method
+
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudSelect T="NdtResultType"
+                           Label="Result"
+                           @bind-Value="_result.Result">
+
+                    @foreach (var result in Enum.GetValues<NdtResultType>())
+                    {
+                        <MudSelectItem T="NdtResultType"
+                                       Value="@result">
+
+                            @result
+
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+
+            </MudItem>
+
+            <MudItem xs="12">
+
+                <MudTextField Label="Inspector"
+                              @bind-Value="_result.InspectorName" />
+
+            </MudItem>
+
+            <MudItem xs="12">
+
+                <MudTextField Label="Report Number"
+                              @bind-Value="_result.ReportNumber" />
+
+            </MudItem>
+
+            <MudItem xs="12">
+
+                <MudTextField Label="Acceptance Criteria"
+                              @bind-Value="_result.AcceptanceCriteria" />
+
+            </MudItem>
+
+            <MudItem xs="12">
+
+                <MudTextField Label="Remarks"
+                              Lines="3"
+                              @bind-Value="_result.Remarks" />
+
+            </MudItem>
+
+            <MudItem xs="12">
+
+                <MudCheckBox @bind-Value="_result.RequiresRepair"
+                             Label="Requires Repair" />
+
+            </MudItem>
+
+            <MudItem xs="12">
+
+                <MudCheckBox @bind-Value="_result.IsReinspection"
+                             Label="Reinspection" />
+
+            </MudItem>
+
+            <MudItem xs="12">
+
+                <MudNumericField T="int"
+                                 Label="Repair Cycle"
+                                 @bind-Value="_result.RepairCycle" />
+
+            </MudItem>
+
+        </MudGrid>
+
+    </DialogContent>
+
+    <DialogActions>
+
+        <MudButton OnClick="Cancel">
+
+            Cancel
+
+        </MudButton>
+
+        <MudButton Color="Color.Primary"
+                   OnClick="Save">
+
+            Save
+
+        </MudButton>
+
+    </DialogActions>
+
+</MudDialog>
+
+@code
+{
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public Weld Weld { get; set; } = default!;
+
+    private WeldNdtResult _result = new();
+
+    protected override void OnInitialized()
+    {
+        _result.Id = Guid.NewGuid();
+
+        _result.WeldId = Weld.Id;
+
+        _result.InspectionDate = DateTime.Now;
+    }
+
+    private void Save()
+    {
+        MudDialog.Close(DialogResult.Ok(_result));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

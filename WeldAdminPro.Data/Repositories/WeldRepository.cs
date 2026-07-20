@@ -870,6 +870,9 @@ WHERE ProjectId = $ProjectId;";
             cmd.CommandText = @"
 UPDATE Welds
 SET
+    DrawingNumber = $DrawingNumber,
+    JointNumber = $JointNumber,
+
     Status = $Status,
     JointType = $JointType,
     WeldType = $WeldType,
@@ -886,6 +889,14 @@ SET
     IsReady = $IsReady,
     ReadinessSummary = $ReadinessSummary
 WHERE Id = $Id;";
+
+            cmd.Parameters.AddWithValue(
+                "$DrawingNumber",
+                weld.DrawingNumber);
+
+            cmd.Parameters.AddWithValue(
+                "$JointNumber",
+                weld.JointNumber);
 
             cmd.Parameters.AddWithValue(
                 "$Status",
@@ -953,6 +964,26 @@ WHERE Id = $Id;";
             cmd.Parameters.AddWithValue(
                 "$ReadinessSummary",
                 weld.ReadinessSummary);
+
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        public async Task DeleteAsync(Guid weldId)
+        {
+            using var connection =
+                new SqliteConnection(_connectionString);
+
+            await connection.OpenAsync();
+
+            var cmd = connection.CreateCommand();
+
+            cmd.CommandText = @"
+DELETE FROM Welds
+WHERE Id = $Id;";
+
+            cmd.Parameters.AddWithValue(
+                "$Id",
+                weldId.ToString());
 
             await cmd.ExecuteNonQueryAsync();
         }

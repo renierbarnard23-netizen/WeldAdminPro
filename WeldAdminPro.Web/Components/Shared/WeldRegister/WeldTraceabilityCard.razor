@@ -1,0 +1,73 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Quality.Models
+
+@{
+    var record = Records.LastOrDefault();
+}
+
+<MudPaper Class="pa-4">
+
+    <MudText Typo="Typo.h6" GutterBottom="true">
+        Traceability
+    </MudText>
+
+    @if (!Records.Any())
+    {
+        <MudAlert Severity="Severity.Info">
+            No traceability information available.
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid>
+
+            <MudItem xs="5"><b>WPS</b></MudItem>
+            <MudItem xs="7">@record?.WpsNumber</MudItem>
+
+            <MudItem xs="5"><b>PQR</b></MudItem>
+            <MudItem xs="7">@record?.PqrNumber</MudItem>
+
+            <MudItem xs="5"><b>Welder Qualification</b></MudItem>
+            <MudItem xs="7">@record?.WelderQualification</MudItem>
+
+            <MudItem xs="5"><b>Material Heat</b></MudItem>
+            <MudItem xs="7">@record?.MaterialHeatNumber</MudItem>
+
+            <MudItem xs="5"><b>Consumable Batch</b></MudItem>
+            <MudItem xs="7">@record?.ConsumableBatch</MudItem>
+
+            <MudItem xs="5"><b>NDT Report</b></MudItem>
+            <MudItem xs="7">@record?.NdtReportNumber</MudItem>
+
+            <MudItem xs="5"><b>Release Certificate</b></MudItem>
+            <MudItem xs="7">@record?.ReleaseCertificate</MudItem>
+
+        </MudGrid>
+
+        <MudDivider Class="my-3" />
+
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Edit"
+                   OnClick="EditClicked">
+
+            Edit Traceability
+
+        </MudButton>
+    }
+
+</MudPaper>
+
+@code
+{
+    [Parameter]
+    public List<WeldTraceabilityRecord> Records { get; set; } = new();
+
+    [Parameter]
+    public EventCallback Edit { get; set; }
+
+    private async Task EditClicked()
+    {
+        await Edit.InvokeAsync();
+    }
+}

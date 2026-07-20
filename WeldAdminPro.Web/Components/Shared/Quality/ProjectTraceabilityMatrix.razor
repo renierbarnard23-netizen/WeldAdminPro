@@ -1,0 +1,40 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Quality.Models
+
+
+<MudTable Items="@Rows"
+          Dense="true"
+          Hover="true"
+          Bordered="true">
+
+    <HeaderContent>
+
+        <MudTh>Weld No</MudTh>
+        <MudTh>Welder</MudTh>
+        <MudTh>WPS</MudTh>
+        <MudTh>Material</MudTh>
+        <MudTh>NDT</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Repairs</MudTh>
+
+    </HeaderContent>
+
+    <RowTemplate>
+
+        <MudTd>@context.WeldNumber</MudTd>
+        <MudTd>@context.Welder</MudTd>
+        <MudTd>@context.WpsNumber</MudTd>
+        <MudTd>@context.Material</MudTd>
+        <MudTd>@context.NdtStatus</MudTd>
+        <MudTd>@context.WeldStatus</MudTd>
+        <MudTd>@context.RepairCount</MudTd>
+
+    </RowTemplate>
+
+</MudTable>
+
+@code
+{
+    [Parameter]
+    public List<WeldTraceabilityRow> Rows { get; set; } = new();
+}

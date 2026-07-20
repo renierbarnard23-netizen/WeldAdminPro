@@ -1,0 +1,96 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Data.Repositories
+
+@inject WeldTraceabilityRepository Repository
+
+<CascadingValue Value="MudDialog">
+
+    <MudDialog>
+
+        <DialogContent>
+
+            <MudText Typo="Typo.h6" Class="mb-4">
+
+                Edit Traceability
+
+            </MudText>
+
+            <MudTextField Label="WPS Number"
+                          @bind-Value="Record.WpsNumber" />
+
+            <MudTextField Label="PQR Number"
+                          @bind-Value="Record.PqrNumber" />
+
+            <MudTextField Label="Welder Qualification"
+                          @bind-Value="Record.WelderQualification" />
+
+            <MudTextField Label="Material Heat Number"
+                          @bind-Value="Record.MaterialHeatNumber" />
+
+            <MudTextField Label="Consumable Batch"
+                          @bind-Value="Record.ConsumableBatch" />
+
+            <MudTextField Label="NDT Report Number"
+                          @bind-Value="Record.NdtReportNumber" />
+
+            <MudTextField Label="Release Certificate"
+                          @bind-Value="Record.ReleaseCertificate" />
+
+        </DialogContent>
+
+        <DialogActions>
+
+            <MudButton OnClick="Cancel">
+
+                Cancel
+
+            </MudButton>
+
+            <MudButton Color="Color.Primary"
+                       OnClick="Save">
+
+                Save
+
+            </MudButton>
+
+        </DialogActions>
+
+    </MudDialog>
+
+</CascadingValue>
+
+@code
+{
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public WeldTraceabilityRecord Record { get; set; } = new();
+
+    private void Save()
+    {
+        var existing =
+            Repository.GetByWeld(Record.WeldId)
+                      .Any(x => x.Id == Record.Id);
+
+        if (existing)
+        {
+            Repository.Update(Record);
+        }
+        else
+        {
+            if (Record.Id == Guid.Empty)
+                Record.Id = Guid.NewGuid();
+
+            Repository.Add(Record);
+        }
+
+        MudDialog.Close(DialogResult.Ok(Record));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

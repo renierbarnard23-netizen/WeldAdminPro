@@ -1,0 +1,44 @@
+@page "/quality/project-weld-register"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Repositories
+@using WeldAdminPro.Web.Components.Shared.Projects
+
+@inject ProjectRepository ProjectRepository
+@inject NavigationManager Navigation
+
+<PageTitle>Project Weld Register</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+
+    <MudText Typo="Typo.h4" GutterBottom="true">
+        Project Weld Register
+    </MudText>
+
+    <MudText Typo="Typo.subtitle1" Class="mb-4">
+        Select a project to open its Weld Register.
+    </MudText>
+
+    <ProjectSelectorGrid Projects="_projects"
+                         OpenProject="OpenProject" />
+
+</MudContainer>
+
+@code
+{
+    private List<Project> _projects = new();
+
+    protected override void OnInitialized()
+    {
+        _projects = ProjectRepository
+            .GetAll()
+            .ToList();
+    }
+
+    private void OpenProject(Project project)
+    {
+        Navigation.NavigateTo(
+            $"/quality/weld-register/{project.Id}");
+    }
+}

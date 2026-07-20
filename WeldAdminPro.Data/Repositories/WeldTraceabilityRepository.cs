@@ -1,5 +1,6 @@
 using Dapper;
 using Microsoft.Data.Sqlite;
+using System.IO;
 using System;
 using System.Collections.Generic;
 using WeldAdminPro.Core.Quality.Models;
@@ -9,6 +10,26 @@ namespace WeldAdminPro.Data.Repositories
     public class WeldTraceabilityRepository
     {
         private readonly string _connectionString;
+
+        public WeldTraceabilityRepository()
+        {
+            var appData =
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder.ApplicationData);
+
+            var dbFolder =
+                Path.Combine(
+                    appData,
+                    "WeldAdminPro");
+
+            Directory.CreateDirectory(
+                dbFolder);
+
+            _connectionString =
+                $"Data Source={Path.Combine(
+                    dbFolder,
+                    "weldadmin.db")}";
+        }
 
         public WeldTraceabilityRepository(
             string connectionString)

@@ -1,0 +1,48 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Quality.Models
+
+<MudPaper Class="pa-4">
+
+    <MudText Typo="Typo.h5" Class="mb-4">
+        Repair Register
+    </MudText>
+
+    <MudTable Items="@Repairs"
+              Hover="true"
+              Dense="true"
+              Bordered="true"
+              Striped="true">
+
+        <HeaderContent>
+                        
+            <MudTh>Repair #</MudTh>
+            <MudTh>Reason</MudTh>
+            <MudTh>Requested</MudTh>
+            <MudTh>Completed</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Repair WPS</MudTh>
+            <MudTh>Repair Welder</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.RepairNumber</MudTd>
+            <MudTd>@context.Reason</MudTd>
+            <MudTd>@context.RequestedDate</MudTd>
+            <MudTd>@context.CompletedDate</MudTd>
+            <MudTd>@context.Status</MudTd>
+            <MudTd>@context.RepairWpsNumber</MudTd>
+            <MudTd>@context.RepairedByWelder</MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+
+</MudPaper>
+
+@code
+{
+    [Parameter]
+    public List<RepairRecord> Repairs { get; set; } = new();
+}

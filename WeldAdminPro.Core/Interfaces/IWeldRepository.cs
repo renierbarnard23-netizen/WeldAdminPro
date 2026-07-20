@@ -13,5 +13,6 @@ namespace WeldAdminPro.Core.Interfaces
             Guid projectId);
 
         Task UpdateAsync(Weld weld);
+        Task DeleteAsync(Guid weldId);
     }
 }

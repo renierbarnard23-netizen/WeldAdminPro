@@ -1,0 +1,41 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Quality.Models
+@using Microsoft.AspNetCore.Components
+
+<MudGrid>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.caption">Total Repairs</MudText>
+            <MudText Typo="Typo.h4">@Analytics.TotalRepairs</MudText>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.caption">Open Repairs</MudText>
+            <MudText Typo="Typo.h4">@Analytics.OpenRepairs</MudText>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.caption">Average Closure Days</MudText>
+            <MudText Typo="Typo.h4">@Analytics.AverageClosureDays</MudText>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.caption">Worst Welder</MudText>
+            <MudText Typo="Typo.h4">@Analytics.WorstWelder</MudText>
+        </MudPaper>
+    </MudItem>
+
+</MudGrid>
+
+@code
+{
+    [Parameter]
+    public RepairAnalytics Analytics { get; set; } = new();
+}
