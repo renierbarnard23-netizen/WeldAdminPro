@@ -5,12 +5,11 @@
 @using MudBlazor
 @using WeldAdminPro.Data.Services
 @using WeldAdminPro.Core.Execution
+@using WeldAdminPro.Data.Services.Production
 
-@inject WorkOrderRepository WorkOrderRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
-@inject ProductionReadinessService ProductionReadinessService
-@inject WorkOrderExecutionService ExecutionService
+@inject ProductionApplicationService ProductionService
 
 <PageTitle>Work Orders</PageTitle>
 
@@ -239,7 +238,7 @@
                      Color="@GetPriorityColor(context.Priority)"
                      Variant="Variant.Filled">
 
-                P@context.Priority
+                P@(context.Priority)
 
             </MudChip>
 
@@ -368,40 +367,7 @@
     {
         _loading = true;
 
-        _workOrders = WorkOrderRepository
-            .GetAll()
-            .Where(x =>
-        x.Status != WorkOrderStatus.Completed &&
-        x.Status != WorkOrderStatus.Cancelled)
-            .ToList();
-
-        var readiness =
-            ProductionReadinessService
-                .GetWorkOrderReadiness();
-
-        foreach (var wo in _workOrders)
-        {
-            var state =
-                readiness.FirstOrDefault(
-                    r => r.WorkOrderId == wo.Id);
-
-            if (state == null)
-                continue;
-
-            if (state.IsReady)
-            {
-                wo.BlockReason = BlockReason.None;
-                wo.BlockMessage = "Ready";
-            }
-            else
-            {
-                wo.BlockReason =
-                    BlockReason.MaterialShortage;
-
-                wo.BlockMessage =
-                    state.Reason;
-            }
-        }
+        _workOrders = ProductionService.GetActiveWorkOrders();
 
         _loading = false;
     }
@@ -411,7 +377,7 @@
         if (_selected is null)
             return;
 
-        ExecutionService.StartWorkOrder(_selected.Id);
+        ProductionService.StartWorkOrder(_selected.Id);
 
         Snackbar.Add(
             "Work Order Started.",
@@ -425,7 +391,7 @@
         if (_selected is null)
             return;
 
-        ExecutionService.PauseWorkOrder(_selected.Id);
+        ProductionService.PauseWorkOrder(_selected.Id);
 
         Snackbar.Add(
             "Work Order Paused.",
@@ -439,7 +405,7 @@
     if (_selected is null)
         return;
 
-    ExecutionService.CompleteWorkOrder(_selected.Id);
+    ProductionService.CompleteWorkOrder(_selected.Id);
 
     Snackbar.Add(
         "Work Order Completed.",
@@ -453,7 +419,7 @@
         if (_selected is null)
             return;
 
-        ExecutionService.CancelWorkOrder(_selected.Id);
+        ProductionService.CancelWorkOrder(_selected.Id);
 
         Snackbar.Add(
             "Work Order Cancelled.",

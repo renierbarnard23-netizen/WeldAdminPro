@@ -11,14 +11,18 @@ namespace WeldAdminPro.Data.Services.ProductionEngine
         private readonly WorkOrderRepository _workOrderRepository;
         private readonly WorkOrderMaterialRepository _materialRepository;
         private readonly StockRepository _stockRepository;
-        private readonly BlockReasonEngine _blockReasonEngine;
+        private readonly ProductionReadinessService _readinessService;
 
         public EvaluationEngine()
         {
             _workOrderRepository = new WorkOrderRepository();
             _materialRepository = new WorkOrderMaterialRepository();
             _stockRepository = new StockRepository();
-            _blockReasonEngine = new BlockReasonEngine();
+
+            _readinessService =
+                new ProductionReadinessService(
+                    new WorkOrderRepository(),
+                    new WorkOrderShortageDetectionService());
         }
 
         public void Evaluate(
@@ -61,15 +65,21 @@ namespace WeldAdminPro.Data.Services.ProductionEngine
                                 m.RequiredQuantity
                         }).ToList();
 
-                var result =
-                    _blockReasonEngine.Evaluate(
-                        workOrder);
+                var readiness =
+                    _readinessService
+                    .GetWorkOrderReadiness()
+                    .FirstOrDefault(r => r.WorkOrderId == workOrder.Id);
 
-                item.BlockReason =
-                    result.Reason;
-
-                item.BlockMessage =
-                    result.Message;
+                if (readiness == null || readiness.MaterialsReady)
+                {
+                    item.BlockReason = BlockReason.None;
+                    item.BlockMessage = "Ready";
+                }
+                else
+                {
+                    item.BlockReason = BlockReason.MaterialShortage;
+                    item.BlockMessage = readiness.Reason;
+                }
             }
         }
     }

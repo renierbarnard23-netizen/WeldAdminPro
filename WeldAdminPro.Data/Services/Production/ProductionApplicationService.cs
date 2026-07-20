@@ -2,44 +2,59 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WeldAdminPro.Core.Analytics.Production;
+using WeldAdminPro.Core.Execution;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
-using WeldAdminPro.Data.Services.ProductionEngine;
 using WeldAdminPro.Data.Services;
+using WeldAdminPro.Data.Services.ProductionEngine;
 
 namespace WeldAdminPro.Data.Services.Production
 {
     public class ProductionApplicationService
     {
         private readonly WorkOrderRepository _repository;
-        private readonly WeldAdminPro.Data.Services.ProductionAdvisorService _advisor;
-        private readonly WeldAdminPro.Data.Services.ProductionReadinessService _readinessService;
-        private readonly WeldAdminPro.Data.Services.ProductionAIPlannerService _planner;
         private readonly ProductionScheduleService _scheduleService;
-        private readonly WeldAdminPro.Data.Services.ProductionCapacityService _capacityService;
         private readonly ProductionDelayPredictionService _delayPredictionService;
-        private readonly WeldAdminPro.Data.Services.ProductionEngine.TimelineEngine _timelineEngine;
+        private readonly TimelineEngine _timelineEngine;
+        private readonly ProductionAdvisorService _advisor;
+        private readonly ProductionReadinessService _readinessService;
+        private readonly ProductionAIPlannerService _planner;
+        private readonly ProductionCapacityService _capacityService;
 
-
-        public ProductionApplicationService()
+        public ProductionApplicationService(
+            WorkOrderRepository repository,
+            ProductionAdvisorService advisor,
+            ProductionReadinessService readinessService,
+            ProductionAIPlannerService planner,
+            ProductionScheduleService scheduleService,
+            ProductionCapacityService capacityService,
+            ProductionDelayPredictionService delayPredictionService,
+            TimelineEngine timelineEngine)
         {
-            _repository = new WorkOrderRepository();
-            _advisor = new WeldAdminPro.Data.Services.ProductionAdvisorService();
-            _readinessService =
-                new WeldAdminPro.Data.Services.ProductionReadinessService(
+            _repository = repository;
+            _advisor = advisor;
+            _readinessService = readinessService;
+            _planner = planner;
+            _scheduleService = scheduleService;
+            _capacityService = capacityService;
+            _delayPredictionService = delayPredictionService;
+            _timelineEngine = timelineEngine;
+        }
+
+        // Temporary compatibility constructor
+        public ProductionApplicationService()
+            : this(
+                new WorkOrderRepository(),
+                new ProductionAdvisorService(),
+                new ProductionReadinessService(
                     new WorkOrderRepository(),
-                    new WeldAdminPro.Data.Services.WorkOrderShortageDetectionService());
-            _planner =
-                new WeldAdminPro.Data.Services.ProductionAIPlannerService();
-            _scheduleService =
-                new WeldAdminPro.Data.Services.ProductionScheduleService();
-            _capacityService =
-                new WeldAdminPro.Data.Services.ProductionCapacityService(
-                    new WorkOrderRepository());
-            _delayPredictionService =
-                new ProductionDelayPredictionService();
-            _timelineEngine =
-                new WeldAdminPro.Data.Services.ProductionEngine.TimelineEngine();
+                    new WorkOrderShortageDetectionService()),
+                new ProductionAIPlannerService(),
+                new ProductionScheduleService(),
+                new ProductionCapacityService(new WorkOrderRepository()),
+                new ProductionDelayPredictionService(),
+                new TimelineEngine())
+        {
         }
 
         // =====================================================
@@ -102,6 +117,39 @@ namespace WeldAdminPro.Data.Services.Production
             _timelineEngine.Evaluate(snapshot);
 
             return snapshot.Timeline;
+        }
+
+        public List<WorkOrder> GetActiveWorkOrders()
+        {
+            var workOrders = _repository
+                .GetAll()
+                .Where(x =>
+                    x.Status != WorkOrderStatus.Completed &&
+                    x.Status != WorkOrderStatus.Cancelled)
+                .ToList();
+
+            var readiness = _readinessService.GetWorkOrderReadiness();
+
+            foreach (var wo in workOrders)
+            {
+                var state = readiness.FirstOrDefault(r => r.WorkOrderId == wo.Id);
+
+                if (state == null)
+                    continue;
+
+                if (state.IsReady)
+                {
+                    wo.BlockReason = BlockReason.None;
+                    wo.BlockMessage = "Ready";
+                }
+                else
+                {
+                    wo.BlockReason = BlockReason.MaterialShortage;
+                    wo.BlockMessage = state.Reason;
+                }
+            }
+
+            return workOrders;
         }
 
         // =====================================================
@@ -168,5 +216,34 @@ namespace WeldAdminPro.Data.Services.Production
 
             return true;
         }
-    }
+
+            public bool CancelWorkOrder(Guid id)
+            {
+                var workOrder = _repository.GetById(id);
+
+                if (workOrder == null)
+                    return false;
+
+                workOrder.Status = WorkOrderStatus.Cancelled;
+                workOrder.IsPaused = false;
+
+                _repository.Update(workOrder);
+
+                return true;
+            }
+
+            public bool CreateWorkOrder(WorkOrder workOrder)
+            {
+                _repository.Add(workOrder);
+                return true;
+            }
+
+            public bool UpdateWorkOrder(WorkOrder workOrder)
+            {
+                _repository.Update(workOrder);
+                return true;
+            }
+
+
 }
+    }
