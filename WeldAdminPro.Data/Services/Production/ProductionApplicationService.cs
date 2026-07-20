@@ -20,16 +20,19 @@ namespace WeldAdminPro.Data.Services.Production
         private readonly ProductionReadinessService _readinessService;
         private readonly ProductionAIPlannerService _planner;
         private readonly ProductionCapacityService _capacityService;
+        private readonly ProjectRepository _projectRepository;
 
-        public ProductionApplicationService(
-            WorkOrderRepository repository,
-            ProductionAdvisorService advisor,
-            ProductionReadinessService readinessService,
-            ProductionAIPlannerService planner,
-            ProductionScheduleService scheduleService,
-            ProductionCapacityService capacityService,
-            ProductionDelayPredictionService delayPredictionService,
-            TimelineEngine timelineEngine)
+        public ProductionApplicationService
+            (
+                WorkOrderRepository repository,
+                ProjectRepository projectRepository,
+                ProductionAdvisorService advisor,
+                ProductionReadinessService readinessService,
+                ProductionAIPlannerService planner,
+                ProductionScheduleService scheduleService,
+                ProductionCapacityService capacityService,
+                ProductionDelayPredictionService delayPredictionService,
+                TimelineEngine timelineEngine)
         {
             _repository = repository;
             _advisor = advisor;
@@ -39,12 +42,14 @@ namespace WeldAdminPro.Data.Services.Production
             _capacityService = capacityService;
             _delayPredictionService = delayPredictionService;
             _timelineEngine = timelineEngine;
+            _projectRepository = projectRepository;
         }
 
         // Temporary compatibility constructor
         public ProductionApplicationService()
             : this(
                 new WorkOrderRepository(),
+                new ProjectRepository(),
                 new ProductionAdvisorService(),
                 new ProductionReadinessService(
                     new WorkOrderRepository(),
@@ -150,6 +155,13 @@ namespace WeldAdminPro.Data.Services.Production
             }
 
             return workOrders;
+        }
+
+        public List<Project> GetProjects()
+        {
+            return _projectRepository
+                .GetAll()
+                .ToList();
         }
 
         // =====================================================

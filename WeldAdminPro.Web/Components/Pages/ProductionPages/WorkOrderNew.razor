@@ -1,11 +1,10 @@
 @page "/production/workorders/new"
 
 @using WeldAdminPro.Core.Models
-@using WeldAdminPro.Data.Repositories
+@using WeldAdminPro.Data.Services.Production
 @using MudBlazor
 
-@inject ProjectRepository ProjectRepository
-@inject WorkOrderRepository WorkOrderRepository
+@inject ProductionApplicationService ProductionService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -137,9 +136,7 @@
     protected override void OnInitialized()
     {
         _projects =
-            ProjectRepository
-                .GetAll()
-                .ToList();
+            ProductionService.GetProjects();
     }
 
     private void Create()
@@ -172,7 +169,7 @@
                 DueDate = _dueDate
             };
 
-            WorkOrderRepository.Add(workOrder);
+            ProductionService.CreateWorkOrder(workOrder);
 
             Snackbar.Add(
                 "Work Order created successfully.",
