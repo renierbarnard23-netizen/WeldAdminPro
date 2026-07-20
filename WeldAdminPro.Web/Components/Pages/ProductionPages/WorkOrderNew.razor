@@ -92,22 +92,6 @@
             Repository ignores this value exactly like WPF.
         -->
 
-        <MudItem xs="12">
-
-            <MudSelect T="WorkOrderStatus"
-                       Label="Status"
-                       @bind-Value="_status">
-
-                @foreach (var value in Enum.GetValues<WorkOrderStatus>())
-                {
-                    <MudSelectItem Value="@value">
-                        @value
-                    </MudSelectItem>
-                }
-
-            </MudSelect>
-
-        </MudItem>
 
     </MudGrid>
 

@@ -235,17 +235,13 @@
 
         <MudTd>
 
-            <MudTd>
+            <MudChip T="string"
+                     Color="@GetPriorityColor(context.Priority)"
+                     Variant="Variant.Filled">
 
-                <MudChip T="string"
-                         Color="@GetPriorityColor(context.Priority)"
-                         Variant="Variant.Filled">
+                P@context.Priority
 
-                    P@context.Priority
-
-                </MudChip>
-
-            </MudTd>
+            </MudChip>
 
         </MudTd>
 
