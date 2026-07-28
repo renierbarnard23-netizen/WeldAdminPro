@@ -1,11 +1,20 @@
 @page "/quality/wps"
 
+@using System.IO;
 @using MudBlazor
 @using WeldAdminPro.Core.Quality
 @using WeldAdminPro.Web.Services.Quality
 @using WeldAdminPro.Web.Components.Shared.Quality
+@using WeldAdminPro.Data.Services
+@using Microsoft.AspNetCore.Components.Forms
 
 @inject WpsApplicationService WpsService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@inject PdfToImageService PdfService
+@inject WpsOcrService OcrService
+@inject WpsParserService ParserService
 
 <PageTitle>WPS Management</PageTitle>
 
@@ -17,33 +26,28 @@
 
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Add">
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="NewWps">
 
             New WPS
 
         </MudButton>
 
+        <MudPaper Class="pa-2 d-inline-block">
+
+            <InputFile OnChange="ImportPdf"
+                       accept=".pdf" />
+
+        </MudPaper>
+
     </Actions>
 
 </EnterprisePageHeader>
 
-<WpsGrid Items="_items" />
-
-<MudPaper Class="pa-6">
-
-    <MudText Typo="Typo.h5">
-
-        WPS Module
-
-    </MudText>
-
-    <MudText Color="Color.Secondary">
-
-        Under construction...
-
-    </MudText>
-
-</MudPaper>
+<WpsGrid Items="_items"
+         OnEdit="EditWps"
+         OnDelete="DeleteWps"
+         OnView="ViewWps" />
 
 @code
 {
@@ -51,6 +55,159 @@
 
     protected override void OnInitialized()
     {
+        Load();
+    }
+
+    private void Load()
+    {
         _items = WpsService.GetAll();
+    }
+
+    private async Task NewWps()
+    {
+        var parameters = new DialogParameters
+        {
+            ["Model"] = new Wps()
+        };
+
+        var dialog = await DialogService.ShowAsync<WpsEditorDialog>(
+            "New WPS",
+            parameters);
+
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+            return;
+
+        var wps = (Wps)result.Data!;
+
+        WpsService.Save(wps);
+
+        Snackbar.Add("WPS created.", Severity.Success);
+
+        Load();
+
+        StateHasChanged();
+    }
+
+    private async Task EditWps(Wps wps)
+    {
+        var copy = new Wps
+        {
+            Id = wps.Id,
+            WpsNumber = wps.WpsNumber,
+            Process = wps.Process,
+            MaterialGroup = wps.MaterialGroup,
+            ThicknessMin = wps.ThicknessMin,
+            ThicknessMax = wps.ThicknessMax,
+            LinkedPqrNumber = wps.LinkedPqrNumber,
+            IsApproved = wps.IsApproved,
+            IsActive = wps.IsActive,
+            Revision = wps.Revision
+        };
+
+        var parameters = new DialogParameters
+        {
+            ["Model"] = copy
+        };
+
+        var dialog = await DialogService.ShowAsync<WpsEditorDialog>(
+            "Edit WPS",
+            parameters);
+
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+            return;
+
+        WpsService.Save((Wps)result.Data!);
+
+        Snackbar.Add("WPS updated.", Severity.Success);
+
+        Load();
+
+        StateHasChanged();
+    }
+
+    private Task DeleteWps(Wps wps)
+    {
+        WpsService.Delete(wps.Id);
+
+        Snackbar.Add("WPS deleted.", Severity.Success);
+
+        Load();
+
+        StateHasChanged();
+
+        return Task.CompletedTask;
+    }
+
+    private Task ViewWps(Wps wps)
+    {
+        return EditWps(wps);
+    }
+
+    private async Task ImportPdf(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+
+            if (file == null)
+                return;
+
+            var tempPdf = Path.Combine(
+                Path.GetTempPath(),
+                Guid.NewGuid() + ".pdf");
+
+            await using (var stream = File.Create(tempPdf))
+            {
+                await file.OpenReadStream(50 * 1024 * 1024)
+                          .CopyToAsync(stream);
+            }
+
+            Snackbar.Add("PDF uploaded.", Severity.Info);
+
+            // Step 1
+            var image = PdfService.ConvertFirstPage(tempPdf);
+
+            // Step 2
+            var text = OcrService.ExtractText(image);
+
+            // Step 3
+            var parsed = ParserService.ParseMultiple(text, file.Name);
+
+            if (parsed.Count == 0)
+            {
+                Snackbar.Add("No WPS could be extracted.", Severity.Warning);
+                return;
+            }
+
+            var parameters = new DialogParameters
+            {
+                ["Model"] = parsed[0]
+            };
+
+            var dialog = await DialogService.ShowAsync<WpsEditorDialog>(
+                "Imported WPS",
+                parameters);
+
+            var result = await dialog.Result;
+
+            if (result == null || result.Canceled)
+                return;
+
+            WpsService.Save((Wps)result.Data!);
+
+            Snackbar.Add("Imported successfully.", Severity.Success);
+
+            Load();
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
     }
 }

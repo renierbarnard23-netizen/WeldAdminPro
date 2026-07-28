@@ -1,0 +1,795 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Web.Components.Quality
+@using WeldAdminPro.Web.Services.Quality
+
+@inject MaterialLibraryService MaterialLibrary
+@inject PqrApplicationService PqrService
+
+<MudDialog Style="width:95vw;max-width:1600px;">
+
+    <DialogContent>
+
+        <MudGrid Spacing="3">
+
+            <!-- ========================= -->
+            <!-- HEADER -->
+            <!-- ========================= -->
+
+            <MudItem xs="12">
+                <MudText Typo="Typo.h5"
+                         Color="Color.Primary"
+                         Class="mb-2">
+                    PQR / WPS Details
+                </MudText>
+
+                <MudDivider Class="mb-4" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudTextField Label="PQR Number"
+                              @bind-Value="Model.PqrNumber" />
+            </MudItem>
+
+            <MudItem xs="12" md="2">
+                <MudTextField Label="Revision"
+                              @bind-Value="PqrRevision" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudDatePicker Label="PQR Date"
+                               @bind-Date="PqrDate" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudTextField Label="WPS Number"
+                              @bind-Value="Model.WpsReferenceNumber" />
+            </MudItem>
+
+            <!-- ========================= -->
+            <!-- CODE / STANDARD -->
+            <!-- ========================= -->
+
+            <MudItem xs="12" Class="mt-4">
+                <MudText Typo="Typo.h5"
+                         Color="Color.Primary"
+                         Class="mb-2">
+                    Code / Standard
+                </MudText>
+
+                <MudDivider Class="mb-4" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="string"
+                           Label="Standard"
+                           @bind-Value="Model.Standard">
+
+                    @foreach (var item in Standards)
+                    {
+                        <MudSelectItem Value="@item">
+                            @item
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="string"
+                           Label="Welding Process"
+                           @bind-Value="Model.Process">
+
+                    @foreach (var item in Processes)
+                    {
+                        <MudSelectItem Value="@item">
+                            @item
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <!-- ========================= -->
+            <!-- JOINT DESIGN -->
+            <!-- ========================= -->
+
+            <MudItem xs="12" Class="mt-6">
+                <MudText Typo="Typo.h5"
+                         Color="Color.Primary"
+                         Class="mb-2">
+                    Joint Design (QW-402)
+                </MudText>
+
+                <MudDivider Class="mb-4" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="string"
+                           Label="Joint Type"
+                           @bind-Value="Model.JointType">
+
+                    @foreach (var item in JointTypes)
+                    {
+                        <MudSelectItem Value="@item">@item</MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTextField Label="Joint Design"
+                              @bind-Value="Model.JointDesign" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudTextField Label="Surface Preparation"
+                              @bind-Value="Model.SurfacePreparation" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudNumericField T="double"
+                                 Label="Groove Angle"
+                                 @bind-Value="Model.GrooveAngle" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudNumericField T="double"
+                                 Label="Root Face"
+                                 @bind-Value="Model.RootFace" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudNumericField T="double"
+                                 Label="Root Gap"
+                                 @bind-Value="Model.RootGap" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudNumericField T="double"
+                                 Label="Groove Radius"
+                                 @bind-Value="Model.GrooveRadius" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudNumericField T="double"
+                                 Label="Misalignment"
+                                 @bind-Value="Model.Misalignment" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTextField Label="Backing"
+                              @bind-Value="Model.Backing" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTextField Label="Backing Type"
+                              @bind-Value="Model.BackingType" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField Label="Edge Preparation"
+                              @bind-Value="Model.EdgePreparation" />
+            </MudItem>
+
+            <!-- ========================= -->
+            <!-- BASE METAL SECTION -->
+            <!-- ========================= -->
+
+            <MudItem xs="12" Class="mt-6">
+                <MudText Typo="Typo.h5"
+                         Color="Color.Primary"
+                         Class="mb-2">
+                    Base Metals (QW-403)
+                </MudText>
+                
+                <MudDivider Class="mb-4" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MaterialPicker
+                    Label="Base Material 1"
+                    Value="@SelectedBaseMaterial1"
+                    ValueChanged="@(m => SelectedBaseMaterial1 = m)" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudTextField Label="P-No"
+                              Value="@BaseMetal1PNo"
+                              ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudTextField Label="Group"
+                              Value="@BaseMetal1Group"
+                              ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MaterialPicker Label="Base Material 2"
+                                Value="@SelectedBaseMaterial2"
+                                ValueChanged="@(m => SelectedBaseMaterial2 = m)" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudTextField Label="P-No"
+                              Value="@BaseMetal2PNo"
+                              ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudTextField Label="Group"
+                              Value="@BaseMetal2Group"
+                              ReadOnly="true" />
+            </MudItem>
+
+            <!-- ========================= -->
+            <!-- FILLER METAL -->
+            <!-- ========================= -->
+
+            <MudItem xs="12" Class="mt-6">
+                <MudText Typo="Typo.h5"
+                         Color="Color.Primary"
+                         Class="mb-2">
+                    Filler Metal (QW-404)
+                </MudText>
+
+                <MudDivider Class="mb-4" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <FillerMaterialPicker Label="Classification"
+                                      Value="@SelectedFillerMaterial"
+                                      ValueChanged="@(f => SelectedFillerMaterial = f)" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudTextField Label="F-No"
+                              Value="@FNumber"
+                              ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudTextField Label="A-No"
+                              Value="@ANumber"
+                              ReadOnly="true" />
+            </MudItem>
+
+            <!-- ========================= -->
+            <!-- WELDING VARIABLES -->
+            <!-- ========================= -->
+
+            <MudItem xs="12" Class="mt-6">
+
+                <MudText Typo="Typo.h5"
+                         Color="Color.Primary"
+                         Class="mb-2">
+
+                    Welding Variables
+
+                </MudText>
+
+                <MudDivider Class="mb-4" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudSelect T="string"
+                           Label="Welding Position"
+                           @bind-Value="Model.WeldingPosition">
+
+                    @foreach (var item in WeldingPositions)
+                    {
+                        <MudSelectItem Value="@item">@item</MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudSelect T="string"
+                           Label="Progression"
+                           @bind-Value="Model.Progression">
+
+                    @foreach (var item in Progressions)
+                    {
+                        <MudSelectItem Value="@item">@item</MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudSelect T="string"
+                           Label="Current Type"
+                           @bind-Value="Model.CurrentType">
+
+                    @foreach (var item in CurrentTypes)
+                    {
+                        <MudSelectItem Value="@item">@item</MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="string"
+                           Label="Polarity"
+                           @bind-Value="Model.Polarity">
+
+                    @foreach (var item in Polarities)
+                    {
+                        <MudSelectItem Value="@item">@item</MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="string"
+                           Label="Transfer Mode"
+                           @bind-Value="Model.TransferMode">
+
+                    @foreach (var item in TransferModes)
+                    {
+                        <MudSelectItem Value="@item">@item</MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <!-- We'll add the MudSelect controls here next -->
+            <!-- ========================= -->
+            <!-- SHIELDING GAS -->
+            <!-- ========================= -->
+
+            <MudItem xs="12" Class="mt-6">
+            <MudText Typo="Typo.h5"
+                     Color="Color.Primary"
+                     Class="mb-2">
+                Shielding Gas
+            </MudText>
+                
+                <MudDivider Class="mb-4" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="string"
+                           Label="Shielding Gas"
+                           @bind-Value="Model.ShieldingGas">
+
+                    @foreach (var gas in ShieldingGases)
+                    {
+                        <MudSelectItem Value="@gas">@gas</MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="string"
+                           Label="Backing Gas"
+                           @bind-Value="Model.BackingGas">
+
+                    @foreach (var gas in ShieldingGases)
+                    {
+                        <MudSelectItem Value="@gas">@gas</MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <!-- ========================= -->
+            <!-- THERMAL VARIABLES -->
+            <!-- ========================= -->
+
+            <MudItem xs="12" Class="mt-6">
+            <MudText Typo="Typo.h5"
+                     Color="Color.Primary"
+                     Class="mb-2">
+                Thermal Variables
+            </MudText>
+                
+                <MudDivider Class="mb-4" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudNumericField T="double"
+                                 Label="Preheat (°C)"
+                                 @bind-Value="Model.Preheat" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudNumericField T="double"
+                                 Label="Interpass (°C)"
+                                 @bind-Value="Model.Interpass" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudNumericField T="double"
+                                 Label="Heat Input (kJ/mm)"
+                                 @bind-Value="Model.HeatInput" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudSelect T="string"
+                           Label="PWHT"
+                           @bind-Value="Model.PostWeldHeatTreatment">
+
+                    @foreach (var item in PwhtOptions)
+                    {
+                        <MudSelectItem Value="@item">@item</MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <!-- ========================= -->
+            <!-- QUALIFICATION RANGE -->
+            <!-- ========================= -->
+            
+            <MudItem xs="12" Class="mt-6">
+                <MudText Typo="Typo.h5"
+                     Color="Color.Primary"
+                     Class="mb-2">
+                Qualification Range (ASME IX)
+            </MudText>
+            
+            <MudDivider Class="mb-4" />
+                </MudItem>
+                
+                <MudItem xs="12" md="4">
+                    <MudNumericField T="double"
+                                 Label="Test Thickness (mm)"
+                                 Immediate="true"
+                                 @bind-Value="Model.ThicknessTested" />
+                </MudItem>
+                
+                <MudItem xs="12" md="4">
+                    <MudNumericField T="double"
+                     Label="Qualified Min Thickness"
+                     Value="Model.ThicknessQualifiedMin"
+                     ReadOnly="true" />
+                 </MudItem>
+                 
+                 <MudItem xs="12" md="4">
+                     <MudNumericField T="double"
+                         Label="Qualified Max Thickness"
+                         Value="Model.ThicknessQualifiedMax"
+                         ReadOnly="true" />
+                 </MudItem>
+                     
+                     <MudItem xs="12" md="4">
+                         
+                         <MudNumericField T="double"
+                                 Label="Test Diameter"
+                                 Immediate="true"
+                                 @bind-Value="Model.DiameterMax" />
+                     </MudItem>
+                     
+                     <MudItem xs="12" md="4">
+                         <MudTextField Label="Qualified Position"
+                             Value="Model.QualifiedPosition"
+                             ReadOnly="true" />
+                     </MudItem>
+                     
+                     <MudItem xs="12" md="4">
+                         <MudTextField 
+                             Label="Qualified P-No Range"
+                             Value="Model.QualifiedPNumberRange"
+                             ReadOnly="true" />
+                     </MudItem>
+
+            <!-- ========================= -->
+            <!-- QUALIFICATION RESULTS -->
+            <!-- ========================= -->
+
+            <MudItem xs="12" Class="mt-6">
+            <MudText Typo="Typo.h5"
+                     Color="Color.Primary"
+                     Class="mb-2">
+                Qualification Results
+            </MudText>
+
+                <MudDivider Class="mb-4" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    <b>Thickness Range</b><br />
+                    @Model.QualifiedRangeDisplay
+                </MudAlert>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    <b>Qualified Position</b><br />
+                    @Model.QualifiedPosition
+                </MudAlert>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudAlert Severity="Severity.Success" Dense="true">
+                    Qualified P-Number Range:
+                    <b>@Model.QualifiedPNumberRange</b>
+                </MudAlert>
+            </MudItem>
+
+        </MudGrid>
+
+    </DialogContent>
+
+    <DialogActions>
+
+        <MudButton Color="Color.Default"
+                   Variant="Variant.Text"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="Save">
+            Save
+        </MudButton>
+
+    </DialogActions>
+
+</MudDialog>
+
+@code
+{
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public Pqr Model { get; set; } = new();
+
+    private string PqrRevision = "0";
+
+    private DateTime? PqrDate = DateTime.Today;
+
+    private readonly List<string> Standards = new()
+    {
+        "ASME BPVC Section IX",
+        "ISO 15614",
+        "AWS D1.1",
+        "ISO 3834",
+        "SANS 347"
+    };
+
+    private readonly List<string> Processes = new()
+    {
+        "TIG",
+        "MIG",
+        "SMAW",
+        "FCAW",
+        "SAW"
+    };
+
+    private void Save()
+    {
+        MudDialog.Close(DialogResult.Ok(Model));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private readonly List<string> JointTypes = new()
+    {
+        "Groove",
+        "Fillet",
+        "Plug",
+        "Slot",
+        "Spot",
+        "Seam",
+        "Surfacing"
+    };
+
+    private BaseMaterial? _selectedBaseMaterial1;
+
+    private BaseMaterial? SelectedBaseMaterial1
+    {
+        get => _selectedBaseMaterial1;
+        set
+        {
+            _selectedBaseMaterial1 = value;
+
+            BaseMetal1PNo = value?.PNumber.ToString() ?? "";
+            BaseMetal1Group = value?.GroupNumber.ToString() ?? "";
+
+            Model.PNumber = BaseMetal1PNo;
+
+            Model.BaseMaterial1 = value?.Material ?? "";
+            Model.BaseMaterial1Specification = value?.Specification ?? "";
+
+            // Recalculate all qualification data
+            PqrService.CalculateQualification(Model);
+
+            StateHasChanged();
+        }
+    }
+
+    private BaseMaterial? _selectedBaseMaterial2;
+
+    private BaseMaterial? SelectedBaseMaterial2
+    {
+        get => _selectedBaseMaterial2;
+        set
+        {
+            _selectedBaseMaterial2 = value;
+
+            BaseMetal2PNo = value?.PNumber.ToString() ?? "";
+            BaseMetal2Group = value?.GroupNumber.ToString() ?? "";
+
+            Model.BaseMaterial2 = value?.Material ?? "";
+            Model.BaseMaterial2Specification = value?.Specification ?? "";
+
+            PqrService.CalculateQualification(Model);
+
+            StateHasChanged();
+        }
+    }
+
+    private string BaseMetal1PNo = "";
+    private string BaseMetal1Group = "";
+
+    private string BaseMetal2PNo = "";
+    private string BaseMetal2Group = "";
+
+
+    private FillerMaterial? _selectedFillerMaterial;
+
+    private FillerMaterial? SelectedFillerMaterial
+    {
+        get => _selectedFillerMaterial;
+        set
+        {
+            _selectedFillerMaterial = value;
+
+            FNumber = value?.FNumber.ToString() ?? "";
+            ANumber = value?.ANumber.ToString() ?? "";
+
+            Model.FNumber = FNumber;
+            Model.ANumber = ANumber;
+            Model.FillerClassification = value?.Classification;
+            Model.FillerMaterial = value?.Classification ?? "";
+        }
+    }
+
+    private string FNumber = "";
+    private string ANumber = "";
+    
+    private readonly List<string> WeldingPositions = new()
+{
+    "1G",
+    "2G",
+    "3G",
+    "4G",
+    "5G",
+    "6G",
+    "1F",
+    "2F",
+    "3F",
+    "4F"
+};
+
+    private readonly List<string> Progressions = new()
+{
+    "Uphill",
+    "Downhill"
+};
+
+    private readonly List<string> CurrentTypes = new()
+{
+    "AC",
+    "DC"
+};
+
+    private readonly List<string> Polarities = new()
+{
+    "DCEN",
+    "DCEP",
+    "AC"
+};
+
+    private readonly List<string> TransferModes = new()
+{
+    "Short Circuit",
+    "Spray",
+    "Pulse Spray",
+    "Globular"
+};
+
+    private readonly List<string> ShieldingGases = new()
+{
+    "None",
+    "Argon",
+    "CO₂",
+    "Argon / CO₂",
+    "Argon / Oxygen",
+    "Helium",
+    "Argon / Helium",
+    "Nitrogen"
+};
+
+    private readonly List<string> PwhtOptions = new()
+{
+    "None",
+    "Required",
+    "Performed"
+};
+
+    private void CalculateQualification()
+    {
+        PqrService.CalculateQualification(Model);
+
+        StateHasChanged();
+    }
+
+    private Pqr? _lastModel;
+
+    protected override void OnParametersSet()
+    {
+        if (_lastModel != Model)
+        {
+            _lastModel = Model;
+
+            // -----------------------------
+            // Restore Base Material 1
+            // -----------------------------
+            if (!string.IsNullOrWhiteSpace(Model.BaseMaterial1))
+            {
+                SelectedBaseMaterial1 =
+                    MaterialLibrary.BaseMaterials.FirstOrDefault(m =>
+                        string.Equals(
+                            m.Material,
+                            Model.BaseMaterial1,
+                            StringComparison.OrdinalIgnoreCase)
+                            &&
+                            string.Equals(
+                                m.Specification,
+                                Model.BaseMaterial1Specification,
+                                StringComparison.OrdinalIgnoreCase));
+            }
+
+            // -----------------------------
+            // Restore Base Material 2
+            // -----------------------------
+            if (!string.IsNullOrWhiteSpace(Model.BaseMaterial2))
+            {
+                SelectedBaseMaterial2 =
+                    MaterialLibrary.BaseMaterials.FirstOrDefault(m =>
+                        string.Equals(
+                            m.Material,
+                            Model.BaseMaterial2,
+                            StringComparison.OrdinalIgnoreCase)
+                            &&
+                            string.Equals(
+                                m.Specification,
+                                Model.BaseMaterial2Specification,
+                                StringComparison.OrdinalIgnoreCase));
+            }
+
+            // -----------------------------
+            // Restore Filler
+            // -----------------------------
+            if (!string.IsNullOrWhiteSpace(Model.FillerMaterial))
+            {
+                SelectedFillerMaterial =
+                    MaterialLibrary.Fillers.FirstOrDefault(f =>
+                        string.Equals(
+                            f.Classification,
+                            Model.FillerMaterial,
+                            StringComparison.OrdinalIgnoreCase));
+            }
+
+            CalculateQualification();
+        }
+    }
+}

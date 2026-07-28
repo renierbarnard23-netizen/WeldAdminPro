@@ -9,6 +9,12 @@
     <PackageReference Include="MudBlazor" Version="9.6.0" />
   </ItemGroup>
 
+	<ItemGroup>
+		<Content Include="tessdata\**\*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>

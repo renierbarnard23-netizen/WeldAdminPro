@@ -1,0 +1,68 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Quality
+
+<MudDialog>
+
+    <DialogContent>
+
+        <MudText Typo="Typo.h5" Class="mb-4">
+            @(_isNew ? "New WPS" : "Edit WPS")
+        </MudText>
+
+        <MudTextField @bind-Value="Model.WpsNumber"
+                      Label="WPS Number"
+                      Required="true" />
+
+        <MudTextField @bind-Value="Model.Process"
+                      Label="Process" />
+
+        <MudTextField @bind-Value="Model.MaterialGroup"
+                      Label="Material Group" />
+
+        <MudNumericField T="double"
+                         @bind-Value="Model.ThicknessMin"
+                         Label="Minimum Thickness (mm)" />
+
+        <MudNumericField T="double"
+                         @bind-Value="Model.ThicknessMax"
+                         Label="Maximum Thickness (mm)" />
+
+    </DialogContent>
+
+    <DialogActions>
+
+        <MudButton Color="Color.Default"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="Save">
+            Save
+        </MudButton>
+
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+
+    [CascadingParameter]
+    public IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public Wps Model { get; set; } = new();
+
+    private bool _isNew => Model.Id == Guid.Empty;
+
+    void Save()
+    {
+        MudDialog.Close(DialogResult.Ok(Model));
+    }
+
+    void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

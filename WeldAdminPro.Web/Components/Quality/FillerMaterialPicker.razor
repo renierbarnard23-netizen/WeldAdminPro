@@ -1,0 +1,57 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Web.Services.Quality
+
+@inject FillerMaterialSearchService SearchService
+
+<MudAutocomplete T="FillerMaterial"
+                 Label="@Label"
+                 Value="@Value"
+                 ValueChanged="@ValueChanged"
+                 SearchFunc="Search"
+                 ToStringFunc="@(f => f?.Classification ?? "")"
+                 Variant="Variant.Outlined"
+                 Dense="true"
+                 Clearable="true"
+                 ResetValueOnEmptyText="true">
+
+    <ItemTemplate Context="item">
+
+        <MudStack Spacing="0">
+
+            <MudText Typo="Typo.body1">
+                @item.Classification
+            </MudText>
+
+            <MudText Typo="Typo.caption">
+                @item.FillerComposition
+            </MudText>
+
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @item.AwsClassification |
+                @item.SfaNumber |
+                F-@item.FNumber |
+                A-@item.ANumber
+            </MudText>
+
+        </MudStack>
+
+    </ItemTemplate>
+
+</MudAutocomplete>
+
+@code {
+
+    [Parameter]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public FillerMaterial? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<FillerMaterial?> ValueChanged { get; set; }
+
+    private Task<IEnumerable<FillerMaterial>> Search(string value, CancellationToken token)
+        => SearchService.Search(value);
+
+}

@@ -328,7 +328,8 @@
         var options = new DialogOptions
         {
             MaxWidth = MaxWidth.Medium,
-            FullWidth = true
+            FullWidth = true,
+            CloseButton = true
         };
 
         var dialog = await DialogService.ShowAsync<CaptureNdtDialog>(

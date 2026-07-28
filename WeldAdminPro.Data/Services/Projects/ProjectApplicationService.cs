@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Core.Quality;
 using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Data.Services;
 
 namespace WeldAdminPro.Data.Services.Projects
 {
@@ -47,21 +48,95 @@ namespace WeldAdminPro.Data.Services.Projects
 
         public void SaveProject(Project project)
         {
-            var existing = _projectRepository.GetById(project.Id);
+            Console.WriteLine("SaveProject called");
 
-            if (existing == null)
+            if (project == null)
+                throw new ArgumentNullException(nameof(project));
+
+            ValidateProject(project);
+
+            if (project.Id == Guid.Empty)
             {
-                _projectRepository.Add(project);
+                Console.WriteLine("Calling CreateProject");
+                CreateProject(project);
             }
             else
             {
-                _projectRepository.Update(project);
+                Console.WriteLine("Calling UpdateProject");
+                UpdateProject(project);
             }
         }
 
         public void DeleteProject(Guid id)
         {
             _projectRepository.Delete(id);
+        }
+
+        private void CreateProject(Project project)
+        {
+            Console.WriteLine("CreateProject entered");
+
+            project.CreatedOn = DateTime.Now;
+            project.LastModifiedOn = DateTime.Now;
+
+            project.Status = ProjectStatus.Active;
+            project.IsInvoiced = false;
+            project.IsArchived = false;
+
+            Console.WriteLine("Calling repository.Add");
+
+            _projectRepository.Add(project);
+
+            Console.WriteLine("Returned from repository.Add");
+
+            InitializeProject(project);
+        }
+
+        private void UpdateProject(Project project)
+        {
+            project.LastModifiedOn = DateTime.Now;
+
+            ApplyInvoiceRules(project);
+
+            _projectRepository.Update(project);
+        }
+
+        private void InitializeProject(Project project)
+        {
+            new ProjectDocumentService()
+                .InitializeProjectDocuments(project.Id);
+        }
+
+        private void ValidateProject(Project project)
+        {
+            if (string.IsNullOrWhiteSpace(project.ProjectName))
+                throw new InvalidOperationException("Project name is required.");
+
+            if (string.IsNullOrWhiteSpace(project.Client))
+                throw new InvalidOperationException("Client is required.");
+
+            ValidateCompletion(project);
+        }
+
+        private void ValidateCompletion(Project project)
+        {
+            if (project.Status == ProjectStatus.Completed)
+            {
+                // Future:
+                // Verify compliance
+                // Verify outstanding documents
+                // Verify repairs completed
+            }
+        }
+
+        private void ApplyInvoiceRules(Project project)
+        {
+            if (project.IsInvoiced &&
+                string.IsNullOrWhiteSpace(project.InvoiceNumber))
+            {
+                throw new InvalidOperationException(
+                    "Invoice number is required when a project is marked as invoiced.");
+            }
         }
 
         // =============================

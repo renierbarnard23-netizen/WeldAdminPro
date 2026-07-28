@@ -12,8 +12,8 @@ namespace WeldAdminPro.Data.Services
             try
             {
                 var tessPath = Path.Combine(
-     AppDomain.CurrentDomain.BaseDirectory,
-     "tessdata");
+                    AppDomain.CurrentDomain.BaseDirectory,
+                    "tessdata");
 
                 if (!Directory.Exists(tessPath))
                 {
@@ -26,8 +26,18 @@ namespace WeldAdminPro.Data.Services
 
                 var text = page.GetText();
 
+                System.IO.File.WriteAllText(
+                    @"C:\Temp\OCR_RESULT.txt",
+                    text);
+
+                Debug.WriteLine($"OCR Length = {text.Length}");
+
                 Debug.WriteLine("🧠 OCR TEXT:");
                 Debug.WriteLine(text);
+
+                System.IO.File.WriteAllText(
+                    @"C:\Temp\TESSPATH.txt",
+                    tessPath);
 
                 return text;
             }

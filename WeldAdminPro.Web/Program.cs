@@ -1,5 +1,9 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor.Services;
+using WeldAdminPro.Core.Interfaces;
 using WeldAdminPro.Core.Services;
+using WeldAdminPro.Data;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
 using WeldAdminPro.Data.Services.Inventory;
@@ -8,10 +12,12 @@ using WeldAdminPro.Data.Services.Production;
 using WeldAdminPro.Data.Services.ProductionEngine;
 using WeldAdminPro.Data.Services.Projects;
 using WeldAdminPro.Data.Services.Quality;
+using WeldAdminPro.Data.Services.Recognition;
 using WeldAdminPro.Web.Components;
+using WeldAdminPro.Web.Security;
 using WeldAdminPro.Web.Services.Dashboard;
+using WeldAdminPro.Web.Services.Import;
 using WeldAdminPro.Web.Services.Quality;
-using WeldAdminPro.Core.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +28,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddAuthorizationCore();
+
+builder.Services.AddCascadingAuthenticationState();
+
+builder.Services.AddScoped<WeldAuthenticationStateProvider>();
+
+builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
+    sp.GetRequiredService<WeldAuthenticationStateProvider>());
 
 // --------------------------------------------------
 // WeldAdmin Pro Services
@@ -43,7 +58,7 @@ builder.Services.AddScoped<StockForecastService>();
 
 builder.Services.AddScoped<MaterialDemandForecastService>();
 
-builder.Services.AddSingleton<ProjectApplicationService>();
+builder.Services.AddScoped<ProjectApplicationService>();
 
 builder.Services.AddScoped<WorkOrderRepository>();
 
@@ -53,6 +68,12 @@ builder.Services.AddScoped<WeldRepository>();
 // Register the interface using the same instance
 builder.Services.AddScoped<IWeldRepository>(sp =>
     sp.GetRequiredService<WeldRepository>());
+
+builder.Services.AddScoped<SystemUserRepository>(sp =>
+    new SystemUserRepository(
+        $"Data Source={DatabasePath.Get()}"));
+
+builder.Services.AddScoped<AuthenticationService>();
 
 builder.Services.AddScoped<WeldTraceabilityRepository>();
 
@@ -92,6 +113,26 @@ builder.Services.AddScoped<QualityDashboardService>();
 
 builder.Services.AddScoped<WpsApplicationService>();
 
+builder.Services.AddScoped<PqrApplicationService>();
+
+builder.Services.AddScoped<PqrRepository>();
+
+builder.Services.AddScoped<PqrParserService>();
+
+builder.Services.AddScoped<PqrOcrService>();
+
+builder.Services.AddSingleton<MaterialLibraryService>();
+
+builder.Services.AddScoped<MaterialSearchService>();
+
+builder.Services.AddSingleton<FillerMaterialSearchService>();
+
+builder.Services.AddScoped<PdfToImageService>();
+
+builder.Services.AddScoped<WpsOcrService>();
+
+builder.Services.AddScoped<WpsParserService>();
+
 builder.Services.AddScoped<WpsRepository>();
 
 builder.Services.AddScoped<WelderQualificationRepository>();
@@ -120,9 +161,52 @@ builder.Services.AddScoped<RepairApplicationService>();
 
 builder.Services.AddScoped<IWeldService, WeldService>();
 
+builder.Services.AddSingleton<TesseractService>();
+
+builder.Services.AddScoped<PqrOcrService>();
+
+builder.Services.AddScoped<PqrParserService>();
+
+builder.Services.AddScoped<WpsOcrService>();
+
+builder.Services.AddScoped<WpsParserService>();
+
+builder.Services.AddScoped<IDocumentImporter, DocumentImportService>();
+
+builder.Services.AddScoped<MaterialRecognitionService>();
+
+builder.Services.AddScoped<TextNormalizationService>();
+
+builder.Services.AddScoped<MaterialSectionExtractor>();
+
+builder.Services.AddScoped<MaterialScoringService>();
+
+builder.Services.AddScoped<PNumberRecognitionService>();
+
+builder.Services.AddScoped<FNumberRecognitionService>();
+
+builder.Services.AddScoped<ThicknessRecognitionService>();
+
+builder.Services.AddSingleton<SmartMaterialExtractor>();
+
+builder.Services.AddScoped<RecognitionEngine>();
+
+builder.Services.AddScoped<SpecificationScanner>();
+
+builder.Services.AddScoped<PqrNumberRecognitionService>();
+
+builder.Services.AddScoped<HeaderRecognitionService>();
+
+
 // --------------------------------------------------
 
 var app = builder.Build();
+
+// --------------------------------------------------
+// Initialize WeldAdmin Pro Database
+// --------------------------------------------------
+
+DatabaseInitializer.Initialize();
 
 // --------------------------------------------------
 

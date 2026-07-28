@@ -1,4 +1,7 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@inject NavigationManager Navigation
+@inject WeldAdminPro.Web.Security.WeldAuthenticationStateProvider AuthenticationProvider
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
 
         <div>
@@ -387,6 +390,18 @@
             </NavLink>
         </div>
 
+        <div class="nav-item px-3">
+
+            <a class="nav-link"
+               href="#"
+               @onclick="Logout">
+
+                🚪 Logout
+
+            </a>
+
+        </div>
+
     </nav>
 
 </div>
@@ -397,4 +412,11 @@
     private bool productionExpanded = true;
     private bool inventoryExpanded = false;
     private bool qualityExpanded = true;
+
+    private void Logout()
+    {
+        AuthenticationProvider.SignOut();
+
+        Navigation.NavigateTo("/login", true);
+    }
 }

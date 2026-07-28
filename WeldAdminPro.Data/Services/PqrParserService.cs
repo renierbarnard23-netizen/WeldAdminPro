@@ -3,15 +3,97 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using WeldAdminPro.Core.Quality;
+using WeldAdminPro.Data.Models.OCR;
+using WeldAdminPro.Data.Services.Recognition;
 
 namespace WeldAdminPro.Data.Services
 {
     public class PqrParserService
     {
+        private readonly MaterialRecognitionService _materialRecognition;
+        private readonly MaterialSectionExtractor _materialSectionExtractor;
+        private readonly PNumberRecognitionService _pNumberRecognition;
+        private readonly FNumberRecognitionService _fNumberRecognition;
+        private readonly ThicknessRecognitionService _thicknessRecognition;
+        private readonly SmartMaterialExtractor _materialExtractor;
+        private readonly RecognitionEngine _recognitionEngine;
+        private readonly PqrNumberRecognitionService _pqrNumberRecognition;
+        private readonly TextNormalizationService _textNormalization;
+        private readonly HeaderRecognitionService _headerRecognition;
+
+        public PqrParserService(
+            MaterialRecognitionService materialRecognition,
+            MaterialSectionExtractor materialSectionExtractor,
+            TextNormalizationService textNormalization,
+            PNumberRecognitionService pNumberRecognition,
+            FNumberRecognitionService fNumberRecognition,
+            ThicknessRecognitionService thicknessRecognition,
+            SmartMaterialExtractor materialExtractor,
+            RecognitionEngine recognitionEngine,
+            PqrNumberRecognitionService pqrNumberRecognition,
+            HeaderRecognitionService headerRecognition
+            )
+
+        {
+            _materialRecognition = materialRecognition;
+            _materialSectionExtractor = materialSectionExtractor;
+            _textNormalization = textNormalization;
+            _pNumberRecognition = pNumberRecognition;
+            _fNumberRecognition = fNumberRecognition;
+            _thicknessRecognition = thicknessRecognition;
+            _materialExtractor = materialExtractor;
+            _recognitionEngine = recognitionEngine;
+            _pqrNumberRecognition = pqrNumberRecognition;
+            _textNormalization = textNormalization;
+            _headerRecognition = headerRecognition;
+        }
+
+        public Pqr Parse(OcrDocument document, string fallbackName)
+        {
+            Console.WriteLine(">>> USING OcrDocument PARSER <<<");
+
+            ArgumentNullException.ThrowIfNull(document);
+
+            var context = new OcrRecognitionContext(document);
+
+            var header =
+                _headerRecognition.Recognize(context.FirstPageText);
+
+            Console.WriteLine("===== DOCUMENT HEADER =====");
+            Console.WriteLine($"PQR Number : {header.PqrNumber}");
+            Console.WriteLine($"WPS Number : {header.WpsNumber}");
+            Console.WriteLine($"Code       : {header.CodeStandard}");
+            Console.WriteLine($"Revision   : {header.Revision}");
+            Console.WriteLine($"Date       : {header.Date}");
+            Console.WriteLine("===========================");
+
+            // This now uses the page-aware recognition engine.
+            var recognition = _recognitionEngine.Recognize(context);
+
+            // Keep the legacy parser for everything else until we migrate it.
+            var pqr = Parse(document.FullText, fallbackName);
+
+            // Override the fields that should come from page-aware recognition.
+            pqr.MaterialGroup = recognition.Material;
+            pqr.PNumber = recognition.PNumber;
+
+            return pqr;
+        }
         public Pqr Parse(string text, string fallbackName)
         {
+            Console.WriteLine(">>> USING STRING PARSER <<<");
 
             text ??= "";
+
+            var header = _headerRecognition.Recognize(text);
+
+            Console.WriteLine("===== DOCUMENT HEADER =====");
+            Console.WriteLine($"PQR Number : {header.PqrNumber}");
+            Console.WriteLine($"WPS Number : {header.WpsNumber}");
+            Console.WriteLine($"Code       : {header.CodeStandard}");
+            Console.WriteLine($"Revision   : {header.Revision}");
+            Console.WriteLine($"Date       : {header.Date}");
+            Console.WriteLine("===========================");
 
             System.IO.File.WriteAllText($@"C:\Temp\PQR_DEBUG_{DateTime.Now.Ticks}.txt", text);
 
@@ -39,12 +121,17 @@ namespace WeldAdminPro.Data.Services
             // ✅ PQR NUMBER (MATCH WPS STYLE)
             // =========================
 
-            var pqrMatch = Regex.Match(text,
-                @"PQR\s*(Number|No)\s*[:\-]?\s*(PQR\s*[A-Z0-9\/\-]+|[A-Z0-9\/\-]+)",
-                RegexOptions.IgnoreCase);
-
-            if (pqrMatch.Success && pqrMatch.Groups[2].Value.Length > 3)
-                pqr.PqrNumber = pqrMatch.Groups[2].Value.Trim();
+            if (!string.IsNullOrWhiteSpace(header.PqrNumber))
+            {
+                pqr.PqrNumber = Clean(header.PqrNumber);
+            }
+            else
+            {
+                pqr.PqrNumber =
+                    _pqrNumberRecognition.Recognize(
+                        text,
+                        fallbackName);
+            }
 
             // =========================
             // ✅ SUPPLIER PQR (e.g. 1000)
@@ -58,45 +145,17 @@ namespace WeldAdminPro.Data.Services
                 pqr.PqrNumber = suppMatch.Groups[1].Value;
 
             // =========================
-            // 🔥 MATERIAL DETECTION (LIKE WPS)
+            // MATERIAL DETECTION
             // =========================
 
-            if (Regex.IsMatch(text, @"304L"))
-                pqr.MaterialGroup = "Stainless 304L";
+            var recognition =
+                  _recognitionEngine.Recognize(text);
 
-            else if (Regex.IsMatch(text, @"310"))
-                pqr.MaterialGroup = "Stainless 310";
+            var materialText =
+                recognition.MaterialText;
 
-            else if (Regex.IsMatch(text, @"316"))
-                pqr.MaterialGroup = "Stainless 316";
-
-            else if (Regex.IsMatch(text, @"SAF2507|S32550"))
-                pqr.MaterialGroup = "Duplex SAF2507";
-
-            else if (Regex.IsMatch(text, @"SB\s*163", RegexOptions.IgnoreCase))
-                pqr.MaterialGroup = "Nickel Alloy";
-
-            // =========================
-            // 🔥 PQR NUMBER CORRECTIONS (SAFE OVERRIDES)
-            // =========================
-
-            // SA310 must NEVER become SAF2507
-            if (pqr.MaterialGroup == "Stainless 310")
-            {
-                pqr.PqrNumber = "PQR-SA310";
-            }
-
-            // SAF2507
-            else if (pqr.MaterialGroup == "Duplex SAF2507")
-            {
-                pqr.PqrNumber = "PQRSAF2507";
-            }
-
-            // Nickel SB163
-            else if (pqr.MaterialGroup == "Nickel Alloy")
-            {
-                pqr.PqrNumber = "PQR SB 163";
-            }
+            pqr.MaterialGroup =
+                recognition.Material;
 
             // =========================
             // ✅ P NUMBER (SAFE)
@@ -136,31 +195,24 @@ namespace WeldAdminPro.Data.Services
                 pqr.PNumber = "P10H";
             }
 
+            // ==================================================
+            // Recognition Engine is authoritative
+            // ==================================================
+
+            if (!string.IsNullOrWhiteSpace(recognition.PNumber))
+            {
+                pqr.PNumber = recognition.PNumber;
+            }
+
             // =========================
             // 🔥 F NUMBER (MATCH WPS STYLE)
             // =========================
 
-            var fillerSection = Regex.Match(text,
-                @"FILLER METALS\s*\(QW-404\)(.*?)(PREHEAT|\Z)",
-                RegexOptions.IgnoreCase | RegexOptions.Singleline);
-
-            if (fillerSection.Success)
-            {
-                var sectionText = fillerSection.Groups[1].Value;
-
-                var fMatch = Regex.Match(sectionText, @"F[- ]?Number\s*(\d+)");
-                if (fMatch.Success)
-                {
-                    pqr.FNumber = $"F{fMatch.Groups[1].Value}";
-                }
-            }
-
-            // fallback
-            if (string.IsNullOrWhiteSpace(pqr.FNumber))
-            {
-                if (Regex.IsMatch(text, @"ER308|ER316|ER2594"))
-                    pqr.FNumber = "F6";
-            }
+            pqr.FNumber =
+                _fNumberRecognition.Recognize(
+                    text,
+                    materialText,
+                    pqr.MaterialGroup);
 
             // =========================
             // 🔥 F NUMBER CORRECTIONS (SAFE - DO NOT BREAK EXISTING)
@@ -220,78 +272,43 @@ namespace WeldAdminPro.Data.Services
             // 🔥 THICKNESS (FINAL - ALL REAL PQR FORMATS)
             // =========================
 
-            // 1️⃣ Pattern: "Sch 80s 7.62"
-            var schInline = Regex.Match(text,
-                @"Sch\s*\d+\s*[A-Za-z]*\s*(\d+[\.,]?\d*)",
+            var thickness =
+                _thicknessRecognition.RecognizePqr(text);
+
+            pqr.ThicknessTested = thickness.TestedThickness;
+            pqr.ThicknessQualifiedMin = thickness.MinimumThickness;
+            pqr.ThicknessQualifiedMax = thickness.MaximumThickness;
+
+            // =========================
+            // POSITION DETECTION
+            // =========================
+
+            var correctedText = text
+                .Replace(" Manual 46", " Manual 4G")
+                .Replace(" Manual 66", " Manual 6G");
+
+            var positionMatch = Regex.Match(
+                correctedText,
+                @"GTAW\s*-\s*Manual\s*-\s*([1-6]G)",
                 RegexOptions.IgnoreCase);
 
-            if (schInline.Success)
+            if (positionMatch.Success)
             {
-                pqr.ThicknessTested = ParseDouble(schInline.Groups[1].Value);
+                pqr.QualifiedPosition =
+                    positionMatch.Groups[1].Value.ToUpper();
             }
-            else
+            else if (correctedText.Contains("6G"))
             {
-                // 2️⃣ Pattern: "Sch. Thickness (mm)" with messy OCR
-                var schBlock = Regex.Match(text,
-                    @"Sch\.?\s*Thickness\s*\(mm\)(.*?)(Without|Pass|$)",
-                    RegexOptions.IgnoreCase);
-
-                if (schBlock.Success)
-                {
-                    var numbers = Regex.Matches(schBlock.Groups[1].Value, @"\d+[\.,]?\d*")
-                        .Select(m => ParseDouble(m.Value))
-                        .Where(n => n > 2 && n < 50)
-                        .ToList();
-
-                    if (numbers.Any())
-                    {
-                        // 🔥 Pick MOST REALISTIC thickness (pipe schedule thickness usually 5–15 mm)
-                        pqr.ThicknessTested = numbers
-                            .Where(n => n >= 3 && n <= 20)
-                            .OrderByDescending(n => n)
-                            .FirstOrDefault();
-                    }
-                }
-                else
-                {
-                    // 3️⃣ Pattern: "THICKNESS :5,49mm"
-                    var direct = Regex.Match(text,
-                        @"THICKNESS\s*[:\-]?\s*(\d+[\.,]?\d*)\s*mm",
-                        RegexOptions.IgnoreCase);
-
-                    if (direct.Success)
-                    {
-                        pqr.ThicknessTested = ParseDouble(direct.Groups[1].Value);
-                    }
-                }
-            }
-
-            // =========================
-            // 🔥 QUALIFIED RANGE CALCULATION
-            // =========================
-
-            var t = pqr.ThicknessTested;
-
-            if (t > 0)
-            {
-                if (t <= 1.5)
-                {
-                    pqr.ThicknessQualifiedMin = Math.Round(0.5 * t, 2);
-                    pqr.ThicknessQualifiedMax = Math.Round(2 * t, 2);
-                }
-                else
-                {
-                    pqr.ThicknessQualifiedMin = 1.5;
-                    pqr.ThicknessQualifiedMax = Math.Round(2 * t, 2);
-                }
-            }
-
-            // =========================
-            // ✅ POSITION
-            // =========================
-
-            if (text.Contains("6G"))
                 pqr.QualifiedPosition = "6G";
+            }
+            else if (correctedText.Contains("4G"))
+            {
+                pqr.QualifiedPosition = "4G";
+            }
+
+            Console.WriteLine("========== OCR POSITION SEARCH ==========");
+            Console.WriteLine(text);
+            Console.WriteLine("=========================================");
 
             // =========================
             // 🔥 POSITION CORRECTIONS (SAFE)
@@ -332,13 +349,13 @@ namespace WeldAdminPro.Data.Services
                 else
                 {
                     // 3️⃣ Infer from POSITION (pipe welding = groove)
-                    var positionMatch = Regex.Match(text,
+                    var jointPositionMatch = Regex.Match(text,
                         @"POSITION\s*[:\-]?\s*(\d+G)",
                         RegexOptions.IgnoreCase);
 
-                    if (positionMatch.Success)
+                    if (jointPositionMatch.Success)
                     {
-                        var pos = positionMatch.Groups[1].Value.ToUpper();
+                        var pos = jointPositionMatch.Groups[1].Value.ToUpper();
 
                         if (pos.Contains("G"))
                         {
@@ -351,8 +368,19 @@ namespace WeldAdminPro.Data.Services
             // =========================
             // ✅ RETURN RESULT
             // =========================
-            return pqr;
 
+            Console.WriteLine("===== PQR PARSED =====");
+            Console.WriteLine($"Number      : {pqr.PqrNumber}");
+            Console.WriteLine($"Material    : {pqr.MaterialGroup}");
+            Console.WriteLine($"P Number    : {pqr.PNumber}");
+            Console.WriteLine($"F Number    : {pqr.FNumber}");
+            Console.WriteLine($"Tested      : {pqr.ThicknessTested}");
+            Console.WriteLine($"Qualified   : {pqr.ThicknessQualifiedMin} - {pqr.ThicknessQualifiedMax}");
+            Console.WriteLine($"Position    : {pqr.QualifiedPosition}");
+            Console.WriteLine($"Joint       : {pqr.JointType}");
+            Console.WriteLine("======================");
+
+            return pqr;
         }
 
         private string Clean(string input)
@@ -363,6 +391,24 @@ namespace WeldAdminPro.Data.Services
             return input.Replace(".pdf", "").Trim();
         }
 
+        private void CalculateQualificationRange(
+    ThicknessRecognitionResult result,
+    double testedThickness)
+        {
+            if (testedThickness <= 0)
+                return;
+
+            if (testedThickness <= 1.5)
+            {
+                result.MinimumThickness = Math.Round(0.5 * testedThickness, 2);
+                result.MaximumThickness = Math.Round(2 * testedThickness, 2);
+            }
+            else
+            {
+                result.MinimumThickness = 1.5;
+                result.MaximumThickness = Math.Round(2 * testedThickness, 2);
+            }
+        }
+    }
 
     }
-}

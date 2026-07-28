@@ -432,9 +432,13 @@ WHERE Id = $id;";
 					});
 				}
 			}
-			catch (Exception)
-			{
-                // TODO: Log exception
+            catch (Exception ex)
+            {
+                File.WriteAllText(
+                    @"C:\Temp\OCR_ERROR.txt",
+                    ex.ToString());
+
+                throw;
             }
 
             return list;

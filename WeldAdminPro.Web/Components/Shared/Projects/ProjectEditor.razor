@@ -60,6 +60,20 @@
             </div>
 
             <div class="col-md-6">
+                <label class="form-label">Status</label>
+
+                <InputSelect class="form-select"
+                             @bind-Value="Project.Status">
+
+                    @foreach (var status in Enum.GetValues<ProjectStatus>())
+                    {
+                        <option value="@status">@status</option>
+                    }
+
+                </InputSelect>
+            </div>
+
+            <div class="col-md-6">
                 <label class="form-label">Start Date</label>
                 <InputDate class="form-control"
                            @bind-Value="Project.StartDate" />
@@ -115,7 +129,11 @@
 
     private async Task Save()
     {
+        Console.WriteLine("Editor Save button clicked");
+
         await OnSave.InvokeAsync();
+
+        Console.WriteLine("Editor callback finished");
     }
 
 }

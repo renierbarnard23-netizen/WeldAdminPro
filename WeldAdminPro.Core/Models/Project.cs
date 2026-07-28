@@ -12,9 +12,9 @@ namespace WeldAdminPro.Core.Models
 
 	public class Project
 	{
-		public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid Id { get; set; } = Guid.Empty;
 
-		public int JobNumber { get; set; }
+        public int JobNumber { get; set; }
 
 		public string ProjectName { get; set; } = string.Empty;
 		public string Client { get; set; } = string.Empty;

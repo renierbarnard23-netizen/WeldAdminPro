@@ -19,6 +19,7 @@
         <MudTh>PQR</MudTh>
         <MudTh>Status</MudTh>
         <MudTh>Compliance</MudTh>
+        <MudTh>Actions</MudTh>
 
     </HeaderContent>
 
@@ -66,14 +67,7 @@
             }
 
         </MudTd>
-
-        <MudTd DataLabel="Compliance">      
-                         Size="Size.Small">
-
-            }
-
-        </MudTd>
-
+        
         <MudTd DataLabel="Compliance">
 
             @if (context.IsCompliant)
@@ -89,6 +83,26 @@
 
         </MudTd>
 
+        <MudTd>
+
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                           Size="Size.Small"
+                           Color="Color.Info"
+                           OnClick="@(() => OnView.InvokeAsync(context))" />
+
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           OnClick="@(() => OnEdit.InvokeAsync(context))" />
+
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Size="Size.Small"
+                           Color="Color.Error"
+                           OnClick="@(() => OnDelete.InvokeAsync(context))" />
+
+        </MudTd>
+
+
     </RowTemplate>
 
 </MudTable>
@@ -97,4 +111,13 @@
 {
     [Parameter]
     public List<Wps> Items { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<Wps> OnView { get; set; }
+
+    [Parameter]
+    public EventCallback<Wps> OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<Wps> OnDelete { get; set; }
 }

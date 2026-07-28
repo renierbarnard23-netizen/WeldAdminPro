@@ -146,13 +146,16 @@ INSERT INTO Projects (
 	@Status, @CreatedOn, @ActualCost, @CommittedCost, @CompletedOn,
 	@LastModifiedOn, @IsArchived
 );";
+            BindParameters(cmd, project);
 
-			BindParameters(cmd, project);
-			cmd.ExecuteNonQuery();
+            cmd.ExecuteNonQuery();
 
-			UpdateNextJobNumber(connection, project.JobNumber + 1);
-			tx.Commit();
-		}
+            Console.WriteLine($"Project inserted: {project.ProjectName} ({project.JobNumber})");
+
+            UpdateNextJobNumber(connection, project.JobNumber + 1);
+
+            tx.Commit();
+        }
 
 		// ================= UPDATE =================
 

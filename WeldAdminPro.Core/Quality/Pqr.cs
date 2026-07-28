@@ -12,6 +12,12 @@ namespace WeldAdminPro.Core.Quality
         public string Process { get; set; } = string.Empty;
         public string MaterialGroup { get; set; } = string.Empty;
 
+        public string BaseMaterial1 { get; set; } = "";
+        public string BaseMaterial2 { get; set; } = "";
+
+        public string BaseMaterial1Specification { get; set; } = "";
+        public string BaseMaterial2Specification { get; set; } = "";
+
         public string Position { get; set; } = string.Empty;
 
         public string FillerMaterial { get; set; } = string.Empty;
@@ -29,6 +35,12 @@ namespace WeldAdminPro.Core.Quality
         public Guid? WpsId { get; set; }
         public bool PwhtPerformed { get; set; }
         public string PNumber { get; set; } = "";
+
+        public string? FillerClassification { get; set; }
+
+        public string? WeldingPosition { get; set; }
+        public string? TransferMode { get; set; }
+        public string? ANumber { get; set; }
         public double ThicknessQualifiedMin { get; set; }
         public double ThicknessQualifiedMax { get; set; }
 
@@ -86,6 +98,10 @@ namespace WeldAdminPro.Core.Quality
         public string Polarity { get; set; } = "";
 
         public string PreheatNotes { get; set; } = "";
+
+        public string PreheatTemperature { get; set; } = "";
+
+        public string PostWeldHeatTreatment { get; set; } = "";
 
         // =========================
         // Gas

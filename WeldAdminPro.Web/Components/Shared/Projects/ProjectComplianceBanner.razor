@@ -12,8 +12,9 @@
 }
 else
 {
-    var approved = Documents.Count(d => d.IsApproved);
-    var compliance = approved * 100.0 / Documents.Count;
+    var required = Documents.Where(d => d.IsRequired).ToList();
+    var approved = required.Count(d => d.IsApproved);
+    var compliance = required.Count == 0 ? 100 : approved * 100.0 / required.Count;
 
     <MudAlert Severity="@(compliance >= 100 ? Severity.Success : Severity.Warning)"
               Variant="Variant.Filled"
@@ -30,7 +31,7 @@ else
 
         <MudText>
 
-            @approved of @Documents.Count required documents approved
+            @approved of @required.Count required documents approved
             (@($"{compliance:F0}%"))
 
         </MudText>

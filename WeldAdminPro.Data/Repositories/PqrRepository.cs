@@ -70,8 +70,43 @@ INSERT INTO Pqr (
 
     ThicknessQualifiedMin, ThicknessQualifiedMax,
     DiameterMin, DiameterMax,
-    WpsReferenceNumber
-)
+    WpsReferenceNumber,
+
+    BaseMaterial1,
+    BaseMaterial2,
+    BaseMaterial1Specification,
+    BaseMaterial2Specification,
+
+    FillerClassification,
+    ANumber,
+
+    WeldingPosition,
+    WeldingType,
+    Progression,
+    CurrentType,
+    TransferMode,
+    Polarity,
+
+    TravelSpeed,
+
+    ShieldingGas,
+    GasFlowRate,
+
+    BackingGas,
+    BackingGasFlowRate,
+
+    PreheatNotes,
+    PreheatTemperature,
+    PostWeldHeatTreatment,
+
+    QualifiedPNumberRange,
+
+    Revision,
+    IsActive,
+    IsPipe,
+
+    PNumber2
+    )
 VALUES (
     $id, $number, $date, $by, $thickness,
     $process, $standard, $material, $position,
@@ -87,7 +122,42 @@ VALUES (
 
     $tMin, $tMax,
     $dMin, $dMax,
-    $wpsRef
+    $wpsRef,
+
+    $base1, 
+    $base2, 
+    $base1Spec, 
+    $base2Spec,
+
+    $fillerClassification,
+    $aNumber,
+
+    $weldingPosition,
+    $weldingType,
+    $progression,
+    $currentType,
+    $transferMode,
+    $polarity,
+
+    $travelSpeed,
+
+    $shieldingGas,
+    $gasFlowRate,
+
+$backingGas,
+$backingGasFlowRate,
+
+$preheatNotes,
+$preheatTemperature,
+$postWeldHeatTreatment,
+
+$qualifiedPNumberRange,
+
+$revision,
+$isActive,
+$isPipe,
+
+$pNumber2
 );";
 
             cmd.Parameters.AddWithValue("$id", pqr.Id.ToString());
@@ -98,6 +168,12 @@ VALUES (
 
             cmd.Parameters.AddWithValue("$process", pqr.Process ?? "");
             cmd.Parameters.AddWithValue("$material", pqr.MaterialGroup ?? "");
+
+            cmd.Parameters.AddWithValue("$base1", pqr.BaseMaterial1);
+            cmd.Parameters.AddWithValue("$base2", pqr.BaseMaterial2);
+            cmd.Parameters.AddWithValue("$base1Spec", pqr.BaseMaterial1Specification);
+            cmd.Parameters.AddWithValue("$base2Spec", pqr.BaseMaterial2Specification);
+
             cmd.Parameters.AddWithValue("$position", pqr.Position ?? "");
 
             cmd.Parameters.AddWithValue("$filler", pqr.FillerMaterial ?? "");
@@ -135,6 +211,36 @@ VALUES (
             cmd.Parameters.AddWithValue("$rootGap", pqr.RootGap);
             cmd.Parameters.AddWithValue("$backing", pqr.Backing ?? "");
             cmd.Parameters.AddWithValue("$backGouging", pqr.BackGouging ?? "");
+
+            cmd.Parameters.AddWithValue("$fillerClassification", pqr.FillerClassification ?? "");
+            cmd.Parameters.AddWithValue("$aNumber", pqr.ANumber ?? "");
+
+            cmd.Parameters.AddWithValue("$weldingPosition", pqr.WeldingPosition ?? "");
+            cmd.Parameters.AddWithValue("$weldingType", pqr.WeldingType ?? "");
+            cmd.Parameters.AddWithValue("$progression", pqr.Progression ?? "");
+            cmd.Parameters.AddWithValue("$currentType", pqr.CurrentType ?? "");
+            cmd.Parameters.AddWithValue("$transferMode", pqr.TransferMode ?? "");
+            cmd.Parameters.AddWithValue("$polarity", pqr.Polarity ?? "");
+
+            cmd.Parameters.AddWithValue("$travelSpeed", pqr.TravelSpeed);
+
+            cmd.Parameters.AddWithValue("$shieldingGas", pqr.ShieldingGas ?? "");
+            cmd.Parameters.AddWithValue("$gasFlowRate", pqr.GasFlowRate);
+
+            cmd.Parameters.AddWithValue("$backingGas", pqr.BackingGas ?? "");
+            cmd.Parameters.AddWithValue("$backingGasFlowRate", pqr.BackingGasFlowRate);
+
+            cmd.Parameters.AddWithValue("$preheatNotes", pqr.PreheatNotes ?? "");
+            cmd.Parameters.AddWithValue("$preheatTemperature", pqr.PreheatTemperature ?? "");
+            cmd.Parameters.AddWithValue("$postWeldHeatTreatment", pqr.PostWeldHeatTreatment ?? "");
+
+            cmd.Parameters.AddWithValue("$qualifiedPNumberRange", pqr.QualifiedPNumberRange ?? "");
+
+            cmd.Parameters.AddWithValue("$revision", pqr.Revision);
+            cmd.Parameters.AddWithValue("$isActive", pqr.IsActive ? 1 : 0);
+            cmd.Parameters.AddWithValue("$isPipe", pqr.IsPipe ? 1 : 0);
+
+            cmd.Parameters.AddWithValue("$pNumber2", pqr.PNumber2 ?? "");
 
             cmd.ExecuteNonQuery();
         }
@@ -210,7 +316,42 @@ UPDATE Pqr SET
     GrooveRadius = $grooveRadius,
     Misalignment = $misalignment,
     BackingType = $backingType,
-    EdgePreparation = $edgePrep
+    EdgePreparation = $edgePrep,
+
+    BaseMaterial1=$BaseMaterial1,
+    BaseMaterial2=$BaseMaterial2,
+    BaseMaterial1Specification=$BaseMaterial1Specification,
+    BaseMaterial2Specification=$BaseMaterial2Specification,
+
+    FillerClassification = $fillerClassification,
+ANumber = $aNumber,
+
+WeldingPosition = $weldingPosition,
+WeldingType = $weldingType,
+Progression = $progression,
+CurrentType = $currentType,
+TransferMode = $transferMode,
+Polarity = $polarity,
+
+TravelSpeed = $travelSpeed,
+
+ShieldingGas = $shieldingGas,
+GasFlowRate = $gasFlowRate,
+
+BackingGas = $backingGas,
+BackingGasFlowRate = $backingGasFlowRate,
+
+PreheatNotes = $preheatNotes,
+PreheatTemperature = $preheatTemperature,
+PostWeldHeatTreatment = $postWeldHeatTreatment,
+
+QualifiedPNumberRange = $qualifiedPNumberRange,
+
+Revision = $revision,
+IsActive = $isActive,
+IsPipe = $isPipe,
+
+PNumber2 = $pNumber2
 
 WHERE Id = $id;
 ";
@@ -223,6 +364,12 @@ WHERE Id = $id;
 
             cmd.Parameters.AddWithValue("$process", pqr.Process ?? "");
             cmd.Parameters.AddWithValue("$material", pqr.MaterialGroup ?? "");
+
+            cmd.Parameters.AddWithValue("$BaseMaterial1", pqr.BaseMaterial1 ?? "");
+            cmd.Parameters.AddWithValue("$BaseMaterial2", pqr.BaseMaterial2 ?? "");
+            cmd.Parameters.AddWithValue("$BaseMaterial1Specification", pqr.BaseMaterial1Specification ?? "");
+            cmd.Parameters.AddWithValue("$BaseMaterial2Specification", pqr.BaseMaterial2Specification ?? "");
+
             cmd.Parameters.AddWithValue("$position", pqr.Position ?? "");
 
             cmd.Parameters.AddWithValue("$filler", pqr.FillerMaterial ?? "");
@@ -270,6 +417,36 @@ WHERE Id = $id;
             cmd.Parameters.AddWithValue("$misalignment", pqr.Misalignment);
             cmd.Parameters.AddWithValue("$backingType", pqr.BackingType ?? "");
             cmd.Parameters.AddWithValue("$edgePrep", pqr.EdgePreparation ?? "");
+
+            cmd.Parameters.AddWithValue("$fillerClassification", pqr.FillerClassification ?? "");
+            cmd.Parameters.AddWithValue("$aNumber", pqr.ANumber ?? "");
+
+            cmd.Parameters.AddWithValue("$weldingPosition", pqr.WeldingPosition ?? "");
+            cmd.Parameters.AddWithValue("$weldingType", pqr.WeldingType ?? "");
+            cmd.Parameters.AddWithValue("$progression", pqr.Progression ?? "");
+            cmd.Parameters.AddWithValue("$currentType", pqr.CurrentType ?? "");
+            cmd.Parameters.AddWithValue("$transferMode", pqr.TransferMode ?? "");
+            cmd.Parameters.AddWithValue("$polarity", pqr.Polarity ?? "");
+
+            cmd.Parameters.AddWithValue("$travelSpeed", pqr.TravelSpeed);
+
+            cmd.Parameters.AddWithValue("$shieldingGas", pqr.ShieldingGas ?? "");
+            cmd.Parameters.AddWithValue("$gasFlowRate", pqr.GasFlowRate);
+
+            cmd.Parameters.AddWithValue("$backingGas", pqr.BackingGas ?? "");
+            cmd.Parameters.AddWithValue("$backingGasFlowRate", pqr.BackingGasFlowRate);
+
+            cmd.Parameters.AddWithValue("$preheatNotes", pqr.PreheatNotes ?? "");
+            cmd.Parameters.AddWithValue("$preheatTemperature", pqr.PreheatTemperature ?? "");
+            cmd.Parameters.AddWithValue("$postWeldHeatTreatment", pqr.PostWeldHeatTreatment ?? "");
+
+            cmd.Parameters.AddWithValue("$qualifiedPNumberRange", pqr.QualifiedPNumberRange ?? "");
+
+            cmd.Parameters.AddWithValue("$revision", pqr.Revision);
+            cmd.Parameters.AddWithValue("$isActive", pqr.IsActive ? 1 : 0);
+            cmd.Parameters.AddWithValue("$isPipe", pqr.IsPipe ? 1 : 0);
+
+            cmd.Parameters.AddWithValue("$pNumber2", pqr.PNumber2 ?? "");
 
             cmd.ExecuteNonQuery();
         }
@@ -421,6 +598,13 @@ ON Pqr(IsApproved);
 
                 Process = reader["Process"]?.ToString() ?? "",
                 MaterialGroup = reader["MaterialGroup"]?.ToString() ?? "",
+
+                BaseMaterial1 = reader["BaseMaterial1"]?.ToString() ?? "",
+                BaseMaterial2 = reader["BaseMaterial2"]?.ToString() ?? "",
+
+                BaseMaterial1Specification = reader["BaseMaterial1Specification"]?.ToString() ?? "",
+                BaseMaterial2Specification = reader["BaseMaterial2Specification"]?.ToString() ?? "",
+
                 Position = reader["Position"]?.ToString() ?? "",
 
                 FillerMaterial = reader["FillerMaterial"]?.ToString() ?? "",
@@ -483,6 +667,36 @@ ON Pqr(IsApproved);
 
                 Backing = reader["Backing"]?.ToString() ?? "",
                 BackGouging = reader["BackGouging"]?.ToString() ?? "",
+
+                FillerClassification = reader["FillerClassification"]?.ToString() ?? "",
+                ANumber = reader["ANumber"]?.ToString() ?? "",
+
+                WeldingPosition = reader["WeldingPosition"]?.ToString() ?? "",
+                WeldingType = reader["WeldingType"]?.ToString() ?? "",
+                Progression = reader["Progression"]?.ToString() ?? "",
+                CurrentType = reader["CurrentType"]?.ToString() ?? "",
+                TransferMode = reader["TransferMode"]?.ToString() ?? "",
+                Polarity = reader["Polarity"]?.ToString() ?? "",
+
+                TravelSpeed = reader["TravelSpeed"] == DBNull.Value ? 0 : Convert.ToDouble(reader["TravelSpeed"]),
+
+                ShieldingGas = reader["ShieldingGas"]?.ToString() ?? "",
+                GasFlowRate = reader["GasFlowRate"] == DBNull.Value ? 0 : Convert.ToDouble(reader["GasFlowRate"]),
+
+                BackingGas = reader["BackingGas"]?.ToString() ?? "",
+                BackingGasFlowRate = reader["BackingGasFlowRate"] == DBNull.Value ? 0 : Convert.ToDouble(reader["BackingGasFlowRate"]),
+
+                PreheatNotes = reader["PreheatNotes"]?.ToString() ?? "",
+                PreheatTemperature = reader["PreheatTemperature"]?.ToString() ?? "",
+                PostWeldHeatTreatment = reader["PostWeldHeatTreatment"]?.ToString() ?? "",
+
+                QualifiedPNumberRange = reader["QualifiedPNumberRange"]?.ToString() ?? "",
+
+                Revision = reader["Revision"] == DBNull.Value ? 0 : Convert.ToInt32(reader["Revision"]),
+                IsActive = reader["IsActive"] != DBNull.Value && Convert.ToInt32(reader["IsActive"]) == 1,
+                IsPipe = reader["IsPipe"] != DBNull.Value && Convert.ToInt32(reader["IsPipe"]) == 1,
+
+                PNumber2 = reader["PNumber2"]?.ToString() ?? "",
             };
             
     }

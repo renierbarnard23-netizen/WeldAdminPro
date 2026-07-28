@@ -17,15 +17,15 @@
     </div>
 
     <div class="card-body">
-
+        
         @if (Documents.Any(x => x.IsRequired && !x.IsUploaded))
         {
             <div class="alert alert-warning">
-
+                
                 <strong>Project is NOT document compliant.</strong>
-
+                
                 Required documents are still outstanding.
-
+                
             </div>
         }
         else
@@ -36,6 +36,7 @@
                 
             </div>
         }
+        
             <table class="table table-hover align-middle">
 
                 <thead>
@@ -62,7 +63,7 @@
 
                 <tbody>
 
-                    @foreach (var doc in Documents)
+                @foreach (var doc in Documents.Where(d => d.IsRequired))
                     {
                         <tr>
 
@@ -185,7 +186,7 @@
 
                     <h4>
 
-                        @Documents.Count
+                    @Documents.Count(x => x.IsRequired)
 
                     </h4>
 
@@ -197,7 +198,7 @@
 
                     <h4>
 
-                        @Documents.Count(x => x.IsUploaded)
+                    @Documents.Count(x => x.IsRequired && x.IsUploaded)
 
                     </h4>
 
@@ -209,7 +210,7 @@
 
                     <h4>
 
-                        @Documents.Count(x => x.IsApproved)
+                        @Documents.Count(x => x.IsRequired && x.IsApproved)
 
                     </h4>
 
@@ -230,7 +231,7 @@
                 </div>
 
             </div>
-        }
+        
 
     </div>
 
@@ -246,6 +247,16 @@
     public EventCallback OnDocumentsChanged { get; set; }
 
     private Guid? _expandedDocument;
+
+    private async Task ToggleRequired(ProjectDocument document, bool value)
+    {
+        document.IsRequired = value;
+        document.LastModifiedOn = DateTime.Now;
+
+        ProjectService.UpdateDocument(document);
+
+        await OnDocumentsChanged.InvokeAsync();
+    }
 
     private List<ProjectDocumentFile> _files = new();
 

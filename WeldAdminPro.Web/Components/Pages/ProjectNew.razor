@@ -1,0 +1,54 @@
+@page "/projects/new"
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Projects
+@using WeldAdminPro.Web.Components.Shared.Projects
+
+@inject ProjectApplicationService ProjectService
+@inject NavigationManager Navigation
+
+<PageTitle>New Project</PageTitle>
+
+<h3 class="mb-3">New Project</h3>
+
+<ProjectEditor Project="@Project"
+               OnSave="SaveProject" />
+
+@code {
+
+    private Project Project = new();
+
+    protected override void OnInitialized()
+    {
+        Project.StartDate = DateTime.Today;
+        Project.EndDate = DateTime.Today.AddDays(30);
+
+        Project.Status = ProjectStatus.Active;
+        Project.IsInvoiced = false;
+    }
+
+    private void SaveProject()
+    {
+        Console.WriteLine("=== PAGE SAVE START ===");
+
+        try
+        {
+            Console.WriteLine("Calling ProjectService.SaveProject");
+
+            ProjectService.SaveProject(Project);
+
+            Console.WriteLine($"Returned. Project Id = {Project.Id}");
+
+            Navigation.NavigateTo($"/projects/{Project.Id}");
+
+            Console.WriteLine("Navigation requested");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("EXCEPTION:");
+            Console.WriteLine(ex);
+            throw;
+        }
+    }
+
+}

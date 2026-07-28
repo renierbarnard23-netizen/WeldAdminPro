@@ -2,6 +2,10 @@
 
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Projects
+@using MudBlazor
+@using WeldAdminPro.Web.Components.Shared.Dialogs
+
+@inject IDialogService DialogService
 
 @inject ProjectApplicationService ProjectService
 @inject NavigationManager Navigation
@@ -24,7 +28,18 @@
 
             </div>
 
-            <div class="col-md-2">
+            <div class="col-auto">
+
+                <button class="btn btn-success"
+                        @onclick="NewProject">
+
+                    + New Project
+
+                </button>
+
+            </div>
+
+            <div class="col-auto">
 
                 <button class="btn btn-outline-secondary"
                         @onclick="Load">
@@ -97,9 +112,14 @@
 
                             <br />
 
-                            <button class="btn btn-sm btn-primary"
+                            <button class="btn btn-sm btn-primary me-2"
                                     @onclick="() => Open(project.Id)">
                                 Open
+                            </button>
+
+                            <button class="btn btn-sm btn-danger"
+                                    @onclick="() => DeleteProject(project)">
+                                Delete
                             </button>
 
                         </td>
@@ -128,7 +148,23 @@
 
     private void Load()
     {
-        _projects = ProjectService.GetProjects();
+        _projects = ProjectService
+            .GetProjects()
+            .OrderBy(p => GetStatusSortOrder(p.Status))
+            .ThenBy(p => p.JobNumber)
+            .ToList();
+    }
+
+    private static int GetStatusSortOrder(ProjectStatus status)
+    {
+        return status switch
+        {
+            ProjectStatus.Active => 0,
+            ProjectStatus.OnHold => 1,
+            ProjectStatus.Completed => 2,
+            ProjectStatus.Cancelled => 3,
+            _ => 99
+        };
     }
 
     private IEnumerable<Project> FilteredProjects =>
@@ -157,6 +193,35 @@
         Console.WriteLine($"Opening Project: {id}");
 
         Navigation.NavigateTo($"/projects/{id}");
+    }
+
+    private void NewProject()
+    {
+        Navigation.NavigateTo("/projects/new");
+    }
+
+    private async Task DeleteProject(Project project)
+    {
+        var parameters = new DialogParameters
+    {
+        { nameof(ConfirmDialog.Title), "Delete Project" },
+        { nameof(ConfirmDialog.Message), $"Delete project '{project.ProjectName}'?" }
+    };
+
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>(
+            "Confirm Delete",
+            parameters);
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            ProjectService.DeleteProject(project.Id);
+
+            Load();
+
+            StateHasChanged();
+        }
     }
 
 }

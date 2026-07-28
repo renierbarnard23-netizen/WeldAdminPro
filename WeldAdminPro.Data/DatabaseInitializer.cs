@@ -175,6 +175,41 @@ CREATE TABLE IF NOT EXISTS Pqr (
             AddColumnIfNotExists(connection, "Pqr", "BackingType", "TEXT");
             AddColumnIfNotExists(connection, "Pqr", "EdgePreparation", "TEXT");
 
+            AddColumnIfNotExists(connection, "Pqr", "BaseMaterial1", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "BaseMaterial2", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "BaseMaterial1Specification", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "BaseMaterial2Specification", "TEXT");
+
+            AddColumnIfNotExists(connection, "Pqr", "FillerClassification", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "ANumber", "TEXT");
+
+            AddColumnIfNotExists(connection, "Pqr", "WeldingPosition", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "WeldingType", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "Progression", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "CurrentType", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "TransferMode", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "Polarity", "TEXT");
+
+            AddColumnIfNotExists(connection, "Pqr", "TravelSpeed", "REAL");
+
+            AddColumnIfNotExists(connection, "Pqr", "ShieldingGas", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "GasFlowRate", "REAL");
+
+            AddColumnIfNotExists(connection, "Pqr", "BackingGas", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "BackingGasFlowRate", "REAL");
+
+            AddColumnIfNotExists(connection, "Pqr", "PreheatNotes", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "PreheatTemperature", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "PostWeldHeatTreatment", "TEXT");
+
+            AddColumnIfNotExists(connection, "Pqr", "QualifiedPNumberRange", "TEXT");
+
+            AddColumnIfNotExists(connection, "Pqr", "Revision", "INTEGER");
+            AddColumnIfNotExists(connection, "Pqr", "IsActive", "INTEGER");
+            AddColumnIfNotExists(connection, "Pqr", "IsPipe", "INTEGER");
+
+            AddColumnIfNotExists(connection, "Pqr", "PNumber2", "TEXT");
+
             // =========================
             // WPS TABLE (CRITICAL FIX)
             // =========================

@@ -1,0 +1,199 @@
+@page "/quality/pqr"
+
+@using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Web.Services.Quality
+@using Microsoft.AspNetCore.Components.Forms
+@using WeldAdminPro.Web.Services.Import
+@using WeldAdminPro.Web.Components.Shared.Quality
+
+@inject PqrApplicationService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject IDocumentImporter ImportService
+
+<PageTitle>PQR Management</PageTitle>
+
+<EnterprisePageHeader Title="Procedure Qualification Records"
+                      Subtitle="Manage Procedure Qualification Records (PQRs)">
+
+    <Actions>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="NewPqr">
+
+            New PQR
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Secondary"
+                   StartIcon="@Icons.Material.Filled.Upload"
+                   OnClick="OpenImport">
+
+            Import PDF
+
+        </MudButton>
+
+    </Actions>    
+
+</EnterprisePageHeader>
+
+<PqrGrid Items="@Items"
+         OnEdit="EditPqr"
+         OnDelete="DeletePqr" />
+
+@code
+{
+    private List<Pqr> Items = new();
+
+    protected override void OnInitialized()
+    {
+        Load();
+    }
+
+    private void Load()
+    {
+        Items = Service.GetAll();
+
+        foreach (var p in Items)
+        {
+            Console.WriteLine(
+                $"{p.PqrNumber} | P={p.PNumber} | F={p.FNumber} | Pos={p.QualifiedPosition} | Joint={p.JointType} | Thick={p.ThicknessQualifiedMin}-{p.ThicknessQualifiedMax}");
+        }
+    }
+
+    
+
+    private async Task NewPqr()
+    {
+        var parameters = new DialogParameters
+        {
+            ["Model"] = new Pqr()
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.ExtraLarge,
+            FullWidth = true,
+            CloseButton = true,
+            BackdropClick = false
+        };
+
+        var dialog = await DialogService.ShowAsync<PqrEditorDialog>(
+            "New PQR",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is null)
+            return;
+
+        if (result.Canceled)
+            return;
+
+        if (result.Data is not Pqr pqr)
+            return;
+
+        Service.Save(pqr);
+
+        Load();
+
+        Snackbar.Add(
+            "PQR saved.",
+            Severity.Success);
+    }
+
+    private async Task EditPqr(Pqr pqr)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Model"] = pqr
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.ExtraLarge,
+            FullWidth = true,
+            CloseButton = true,
+            BackdropClick = false
+        };
+
+        var dialog = await DialogService.ShowAsync<PqrEditorDialog>(
+            "Edit PQR",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is null)
+            return;
+
+        if (result.Canceled)
+            return;
+
+        if (result.Data is not Pqr updated)
+            return;
+
+        Service.Save(updated);
+
+        Load();
+
+        Snackbar.Add(
+            "PQR updated.",
+            Severity.Success);
+    }
+
+    private Task DeletePqr(Pqr pqr)
+    {
+        Service.Delete(pqr.Id);
+
+        Load();
+
+        Snackbar.Add("PQR deleted.", Severity.Success);
+
+        return Task.CompletedTask;
+    }
+
+    private async Task OpenImport()
+    {
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<PqrImportDialog>(
+    "Import PQR",
+    options);
+
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+            return;
+
+        if (result.Data is not Pqr imported)
+            return;
+
+        Console.WriteLine("===== IMPORT RESULT =====");
+        Console.WriteLine($"PQR: {imported.PqrNumber}");
+        Console.WriteLine($"P: {imported.PNumber}");
+        Console.WriteLine($"F: {imported.FNumber}");
+        Console.WriteLine($"Position: {imported.QualifiedPosition}");
+        Console.WriteLine($"Joint: {imported.JointType}");
+        Console.WriteLine($"Thickness: {imported.ThicknessQualifiedMin} - {imported.ThicknessQualifiedMax}");
+        Console.WriteLine("=========================");
+
+        Service.Save(imported);
+
+        Load();
+
+        Snackbar.Add(
+            "PQR imported successfully.",
+            Severity.Success);
+    }
+}

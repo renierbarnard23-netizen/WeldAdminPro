@@ -1,0 +1,68 @@
+@using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Web.Services.Quality
+@inject MaterialSearchService SearchService
+
+<MudAutocomplete T="BaseMaterial"
+                 Label="@Label"
+                 Variant="Variant.Outlined"
+                 Dense="true"
+                 Clearable="true"
+                 ResetValueOnEmptyText="true"
+                 SearchFunc="Search"
+                 ToStringFunc="DisplayMaterial"
+                 Value="@Value"
+                 ValueChanged="OnValueChanged">
+
+    <ItemTemplate Context="material">
+
+        <MudStack Spacing="0">
+
+            <MudText Typo="Typo.body1">
+                <b>@material.Specification @material.Grade</b>
+            </MudText>
+
+            <MudText Typo="Typo.caption">
+                @material.Material
+            </MudText>
+
+            <MudText Typo="Typo.caption">
+                P-No @material.PNumber | Group @material.GroupNumber
+            </MudText>
+
+        </MudStack>
+
+    </ItemTemplate>
+
+</MudAutocomplete>
+
+@code
+{
+    [Parameter]
+    public string Label { get; set; } = "Material";
+
+    [Parameter]
+    public BaseMaterial? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<BaseMaterial?> ValueChanged { get; set; }
+
+    private Task<IEnumerable<BaseMaterial>> Search(string text, CancellationToken token)
+    {
+        var result = SearchService.Search(text);
+        return Task.FromResult(result);
+    }
+
+    private string DisplayMaterial(BaseMaterial? material)
+    {
+        if (material == null)
+            return "";
+
+        return $"{material.Specification} {material.Grade}";
+    }
+
+    private async Task OnValueChanged(BaseMaterial? value)
+    {
+        Value = value;
+        await ValueChanged.InvokeAsync(value);
+    }
+}

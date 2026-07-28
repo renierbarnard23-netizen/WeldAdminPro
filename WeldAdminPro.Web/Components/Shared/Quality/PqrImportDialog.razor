@@ -1,0 +1,104 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using WeldAdminPro.Web.Models.Import
+@using WeldAdminPro.Web.Services.Import
+@using WeldAdminPro.Web.Services.Quality
+
+@inject IDocumentImporter ImportService
+@inject PqrApplicationService PqrService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+
+    <TitleContent>
+
+        <MudText Typo="Typo.h5">
+            Import Procedure Qualification Record
+        </MudText>
+
+    </TitleContent>
+
+    <DialogContent>
+
+        <InputFile OnChange="FileSelected"
+                   accept=".pdf" />
+
+        @if (!string.IsNullOrWhiteSpace(FileName))
+        {
+            <MudAlert Severity="Severity.Info"
+                      Class="mt-4">
+
+                @FileName
+
+            </MudAlert>
+        }
+
+    </DialogContent>
+
+    <DialogActions>
+
+        <MudButton OnClick="Cancel">
+
+            Cancel
+
+        </MudButton>
+
+        <MudButton Color="Color.Primary"
+                   Disabled="@(_file is null)"
+                   OnClick="Import">
+
+            Import
+
+        </MudButton>
+
+    </DialogActions>
+
+</MudDialog>
+
+@code
+{
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private IBrowserFile? _file;
+
+    private string FileName = "";
+
+    private void FileSelected(InputFileChangeEventArgs e)
+    {
+        _file = e.File;
+        FileName = _file.Name;
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Import()
+    {
+        if (_file is null)
+            return;
+
+        using var stream = _file.OpenReadStream(1024 * 1024 * 100);
+
+        var result = await ImportService.ImportAsync(
+            stream,
+            _file.Name);
+
+        if (result.Pqr is null)
+        {
+            Snackbar.Add(
+                "Unable to import the selected document.",
+                Severity.Error);
+
+            return;
+        }
+
+        if (result.Pqr.ThicknessQualifiedMax <= 0)
+        {
+            PqrService.CalculateQualification(result.Pqr);
+        }
+
+        MudDialog.Close(DialogResult.Ok(result.Pqr));
+    }
+}

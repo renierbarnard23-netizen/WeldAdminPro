@@ -1,0 +1,76 @@
+@page "/login"
+@layout LoginLayout
+
+@using MudBlazor
+@using WeldAdminPro.Data.Services
+@using WeldAdminPro.Web.Security
+@using WeldAdminPro.Web.Components.Layout
+
+@inject AuthenticationService AuthenticationService
+@inject WeldAuthenticationStateProvider AuthenticationProvider
+@inject NavigationManager Navigation
+
+<MudPaper Class="pa-8"
+          Elevation="8"
+          Style="width:420px;">
+
+    <MudText Typo="Typo.h4" GutterBottom="true">
+        WeldAdmin Pro
+    </MudText>
+
+    <MudText Typo="Typo.subtitle1" Class="mb-4">
+        Sign in
+    </MudText>
+
+    <MudTextField Label="Username"
+                  @bind-Value="_username"
+                  Immediate="true" />
+
+    <MudTextField Label="Password"
+                  @bind-Value="_password"
+                  InputType="InputType.Password"
+                  Class="mt-3" />
+
+    <MudButton Color="Color.Primary"
+               Variant="Variant.Filled"
+               FullWidth="true"
+               Class="mt-5"
+               OnClick="SignIn">
+        Login
+    </MudButton>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <MudAlert Severity="Severity.Error"
+                  Class="mt-4">
+            @_error
+        </MudAlert>
+    }
+
+</MudPaper>
+
+@code
+{
+    private string _username = "";
+    private string _password = "";
+    private string _error = "";
+
+    private void SignIn()
+    {
+        _error = "";
+
+        var user = AuthenticationService.Authenticate(
+            _username,
+            _password);
+
+        if (user == null)
+        {
+            _error = "Invalid username or password.";
+            return;
+        }
+
+        AuthenticationProvider.SignIn(user);
+
+        Navigation.NavigateTo("/");
+    }
+}

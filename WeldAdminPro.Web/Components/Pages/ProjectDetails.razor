@@ -67,6 +67,9 @@ else
 
                     <ProjectMaterialBreakdownCard Items="_materialBreakdown" />
 
+                    <ProjectRequiredDocumentsCard Documents="_documents"
+                                                  OnDocumentsChanged="RefreshProject" />
+
                     <ProjectDocumentsCard Documents="_documents"
                                           OnDocumentsChanged="RefreshProject" />
 
@@ -236,8 +239,8 @@ else
         _transactions =
             ProjectService.GetStockUsage(projectId);
 
-        _documents =
-            ProjectService.GetDocuments(projectId);
+        _documents = ProjectService.GetDocuments(projectId);
+            StateHasChanged();
 
         _returnableItems =
             ProjectService.GetReturnableItems(projectId);
@@ -288,10 +291,16 @@ else
         if (_documents.Count == 0)
             return 0;
 
-        var approved =
-            _documents.Count(d => d.IsApproved);
+        var required =
+            _documents.Where(d => d.IsRequired).ToList();
 
-        return approved * 100.0 / _documents.Count;
+        if (!required.Any())
+            return 100;
+
+        var approved =
+            required.Count(d => d.IsApproved);
+
+        return approved * 100.0 / required.Count;
     }
 
 }

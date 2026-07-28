@@ -1,0 +1,125 @@
+@page "/quality/import/pqr"
+
+@using Microsoft.AspNetCore.Components.Forms
+@using MudBlazor
+
+@using WeldAdminPro.Web.Services.Import
+@using WeldAdminPro.Web.Models.Import
+@using WeldAdminPro.Web.Services.Quality
+
+@inject NavigationManager Navigation
+@inject IDocumentImporter ImportService
+@inject PqrApplicationService PqrService
+
+<PageTitle>PQR Import</PageTitle>
+
+<MudPaper Class="pa-6">
+
+    <MudText Typo="Typo.h4">
+        Import PQR
+    </MudText>
+
+    <MudDivider Class="my-4" />
+
+    <InputFile OnChange="FileSelected"
+               accept=".pdf" />
+
+    @if (!string.IsNullOrWhiteSpace(FileName))
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-4">
+            Selected:
+            <strong>@FileName</strong>
+        </MudAlert>
+    }
+
+    <MudButton Color="Color.Primary"
+               Variant="Variant.Filled"
+               Disabled="@(_file is null)"
+               OnClick="ImportDocument"
+               Class="mt-4">
+
+        Import
+
+    </MudButton>
+
+    <MudDivider Class="my-4" />
+
+    <MudText Typo="Typo.subtitle1">
+        Status
+    </MudText>
+
+    <MudAlert Severity="Severity.Success">
+        @Status
+    </MudAlert>
+
+    <MudText Typo="Typo.subtitle1"
+             Class="mt-6">
+
+        OCR Text
+
+    </MudText>
+
+    <MudPaper Class="pa-4 mt-2"
+              Style="height:350px;overflow:auto">
+
+        @RawText
+
+    </MudPaper>
+
+</MudPaper>
+
+@code
+{
+    private IBrowserFile? _file;
+
+    private string FileName = "";
+
+    private string Status = "Ready";
+
+    private string RawText = "";
+
+    private void FileSelected(InputFileChangeEventArgs e)
+    {
+        _file = e.File;
+
+        FileName = _file.Name;
+
+        Status = "File selected";
+    }
+
+    private async Task ImportDocument()
+    {
+        if (_file is null)
+            return;
+
+        Status = "Importing...";
+
+        using var stream = _file.OpenReadStream(1024 * 1024 * 100);
+
+        var result = await ImportService.ImportAsync(
+            stream,
+            _file.Name);
+
+        Status = result.Status.ToString();
+
+        RawText = result.RawText;
+
+        if (result.Pqr is null)
+        {
+            Status = "Parser did not create a PQR.";
+
+            return;
+        }
+
+        // Calculate qualification before saving
+        PqrService.CalculateQualification(result.Pqr);
+
+        // Save the imported PQR
+        PqrService.Save(result.Pqr);
+
+        Status = "PQR Imported Successfully";
+
+        // Return to the PQR dashboard
+        Navigation.NavigateTo("/quality/pqr", true);
+    }
+}
