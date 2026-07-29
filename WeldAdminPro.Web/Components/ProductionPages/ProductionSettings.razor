@@ -1,0 +1,162 @@
+@page "/production/settings"
+
+@using MudBlazor
+@using ProductionSettingsModel = WeldAdminPro.Core.Models.ProductionSettings
+@using WeldAdminPro.Data.Services
+@using WeldAdminPro.Web.Components.Dashboard
+@using WeldAdminPro.Web.Components.Shared.Production
+
+@inject AdministrationApplicationService AdministrationService
+@inject ISnackbar Snackbar
+
+<PageTitle>Production Settings</PageTitle>
+
+<EnterprisePageHeader Title="Production Settings"
+                      Subtitle="Configure production planning defaults used by the Production Engine."
+                      Icon="@Icons.Material.Filled.Settings">
+
+    <Actions>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="Save">
+
+            Save Settings
+
+        </MudButton>
+
+    </Actions>
+
+</EnterprisePageHeader>
+
+@if (_settings == null)
+{
+    <MudPaper Class="pa-8 my-6">
+
+        <MudStack AlignItems="AlignItems.Center"
+                  Justify="Justify.Center">
+
+            <MudProgressCircular Indeterminate="true" />
+
+            <MudText>
+                Loading production settings...
+            </MudText>
+
+        </MudStack>
+
+    </MudPaper>
+}
+else
+{
+    <MudGrid>
+
+        <MudItem xs="12" md="8">
+
+            <DashboardSection Title="Planning Parameters"
+                              Icon="@Icons.Material.Filled.Factory">
+
+                <MudGrid>
+
+                    <MudItem xs="12" md="6">
+
+                        <MudNumericField T="int"
+                                         Label="Workers"
+                                         Min="1"
+                                         Max="500"
+                                         @bind-Value="_settings.Workers" />
+
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+
+                        <MudNumericField T="double"
+                                         Label="Hours Per Day"
+                                         Min="1"
+                                         Max="24"
+                                         @bind-Value="_settings.HoursPerDay" />
+
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+
+                        <MudNumericField T="double"
+                                         Label="Overtime Hours"
+                                         Min="0"
+                                         Max="24"
+                                         @bind-Value="_settings.OvertimeHours" />
+
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+
+                        <MudNumericField T="int"
+                                         Label="Shifts"
+                                         Min="1"
+                                         Max="4"
+                                         @bind-Value="_settings.Shifts" />
+
+                    </MudItem>
+
+                </MudGrid>
+
+            </DashboardSection>
+
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+
+            <DashboardSection Title="Daily Capacity"
+                              Icon="@Icons.Material.Filled.Speed">
+
+                <MudPaper Class="pa-4">
+
+                    <MudText Typo="Typo.h3"
+                             Color="Color.Primary">
+
+                        @_settings.DailyCapacity
+
+                    </MudText>
+
+                    <MudText Typo="Typo.subtitle1">
+
+                        Production Hours / Day
+
+                    </MudText>
+
+                </MudPaper>
+
+            </DashboardSection>
+
+        </MudItem>
+
+    </MudGrid>
+}
+
+@code
+{
+    private ProductionSettingsModel? _settings;
+
+    protected override void OnInitialized()
+    {
+        _settings = AdministrationService.GetProductionSettings();
+    }
+
+    private void Save()
+    {
+        try
+        {
+            AdministrationService.SaveProductionSettings(_settings!);
+
+            Snackbar.Add(
+                "Production settings saved successfully.",
+                Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+    }
+}

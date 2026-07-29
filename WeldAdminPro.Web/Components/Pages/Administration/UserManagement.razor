@@ -1,0 +1,318 @@
+@page "/administration/users"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services
+@using WeldAdminPro.Web.Components.Shared.Administration
+@using WeldAdminPro.Core.Enums
+
+@inject AdministrationApplicationService AdministrationService
+
+<PageTitle>User Management</PageTitle>
+
+<MudStack Row="true"
+          Justify="Justify.SpaceBetween"
+          AlignItems="AlignItems.Center"
+          Class="mb-4">
+
+    <MudText Typo="Typo.h4">
+        User Management
+    </MudText>
+
+    <MudStack Row="true" Spacing="2">
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="AddUser">
+
+            Add User
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Disabled="_selectedUser is null"
+                   OnClick="EditUser">
+
+            Edit
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Disabled="_selectedUser is null"
+                   OnClick="EnableUser">
+
+            Enable
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Disabled="_selectedUser is null"
+                   OnClick="DisableUser">
+
+            Disable
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Warning"
+                   Disabled="_selectedUser is null"
+                   OnClick="@(() => ShowPasswordEditor())">
+
+            Change Password
+
+        </MudButton>
+
+    </MudStack>
+
+</MudStack>
+
+@if (_users == null)
+{
+    <MudProgressCircular Color="Color.Primary"
+                         Indeterminate="true" />
+}
+else
+{
+    <MudTable T="SystemUser"
+              Items="_users"
+              Hover="true"
+              Dense="true"
+              Striped="true"
+              SelectOnRowClick="true"
+              @bind-SelectedItem="_selectedUser">
+
+        <HeaderContent>
+
+            <MudTh>Username</MudTh>
+            <MudTh>Full Name</MudTh>
+            <MudTh>Role</MudTh>
+            <MudTh>Active</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.Username</MudTd>
+            <MudTd>@context.FullName</MudTd>
+            <MudTd>@context.Role</MudTd>
+            <MudTd>@(context.IsActive ? "Yes" : "No")</MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+}
+
+    @if (_showEditor && _editingUser is not null)
+    {
+        <MudSpacer />
+
+        <UserEditor User="_editingUser!"
+                OnSave="SaveUser" />
+    }
+
+    @if (_showPasswordEditor)
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+
+            <MudText Typo="Typo.h6">
+            Change Password
+            </MudText>
+
+            <MudTextField @bind-Value="_newPassword"
+                      Label="New Password"
+                      InputType="InputType.Password" />
+
+            <MudTextField @bind-Value="_confirmPassword"
+                      Label="Confirm Password"
+                      InputType="InputType.Password" />
+
+            <MudStack Row="true" Class="mt-3">
+
+                <MudButton Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       OnClick="SavePassword">
+
+                    Save
+
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                       OnClick="CancelPasswordEditor">
+
+                    Cancel
+
+                </MudButton>
+
+            </MudStack>
+
+    </MudPaper>
+}
+
+@code
+{
+    private List<SystemUser>? _users;
+    private SystemUser? _selectedUser;    
+    private SystemUser? _editingUser;
+
+    private bool _showPasswordEditor;
+
+    private string _newPassword = string.Empty;
+
+    private string _confirmPassword = string.Empty;
+
+    private bool _showEditor;
+    private bool _isNewUser;
+
+    protected override void OnInitialized()
+    {
+        LoadUsers();
+    }
+
+    private void SaveUser()
+    {
+        if (_editingUser is null)
+            return;
+
+        if (_isNewUser)
+        {
+            AdministrationService.AddUser(_editingUser);
+        }
+        else
+        {
+            AdministrationService.UpdateUser(_editingUser);
+        }
+
+        LoadUsers();
+
+        CloseEditor();
+
+        StateHasChanged();
+    }
+
+    private void EditUser()
+    {
+        if (_selectedUser is null)
+            return;
+
+        _isNewUser = false;
+
+        _editingUser = new SystemUser
+        {
+            Id = _selectedUser.Id,
+            Username = _selectedUser.Username,
+            FullName = _selectedUser.FullName,
+            Role = _selectedUser.Role,
+            IsActive = _selectedUser.IsActive,
+            PasswordHash = _selectedUser.PasswordHash
+        };
+
+        _showEditor = true;
+    }
+
+    private void LoadUsers()
+    {
+        _users = AdministrationService.GetUsers();
+    }
+
+    private void CloseEditor()
+    {
+        _selectedUser = null;
+        _editingUser = null;
+
+        _showEditor = false;
+        _isNewUser = false;
+    }
+
+    private void AddUser()
+    {
+        _editingUser = new SystemUser
+        {
+        Id = Guid.NewGuid(),
+        Username = "",
+        FullName = "",
+        Role = SystemRole.Viewer,
+        IsActive = true,
+        PasswordHash = ""
+        };
+
+        _isNewUser = true;
+        _showEditor = true;
+    }
+
+    private void EnableUser()
+    {
+        if (_selectedUser is null)
+            return;
+
+        AdministrationService.EnableUser(_selectedUser.Id);
+
+        LoadUsers();
+
+        CloseEditor();
+
+        StateHasChanged();
+    }
+
+    private void DisableUser()
+    {
+        if (_selectedUser is null)
+            return;
+
+        AdministrationService.DisableUser(_selectedUser.Id);
+
+        LoadUsers();
+
+        CloseEditor();
+
+        StateHasChanged();
+    }
+
+    private void ResetPassword()
+    {
+        if (_selectedUser is null)
+            return;
+
+        AdministrationService.ResetPassword(_selectedUser.Id);
+
+        LoadUsers();
+
+        CloseEditor();
+
+        StateHasChanged();
+    }
+
+    private void ShowPasswordEditor()
+    {
+        _newPassword = string.Empty;
+        _confirmPassword = string.Empty;
+        _showPasswordEditor = true;
+    }
+
+    private void CancelPasswordEditor()
+    {
+        _showPasswordEditor = false;
+    }
+
+    private void SavePassword()
+    {
+        if (_selectedUser == null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(_newPassword))
+            return;
+
+        if (_newPassword != _confirmPassword)
+            return;
+
+        AdministrationService.SetPassword(
+            _selectedUser.Id,
+            _newPassword);
+
+        LoadUsers();
+
+        _showPasswordEditor = false;
+
+        StateHasChanged();
+    }
+    
+}

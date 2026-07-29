@@ -3,9 +3,11 @@ using System.Text;
 using WeldAdminPro.Data.Services;
 using WeldAdminPro.Web.Models.Import;
 using WeldAdminPro.Data.Models.OCR;
+using System.Runtime.Versioning;
 
 namespace WeldAdminPro.Web.Services.Import;
 
+[SupportedOSPlatform("windows")]
 public class DocumentImportService : IDocumentImporter
 {
     private readonly PdfToImageService _pdfService;

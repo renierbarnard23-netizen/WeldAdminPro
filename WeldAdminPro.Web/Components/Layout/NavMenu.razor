@@ -382,13 +382,52 @@
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link"
-                     href="administration">
 
-                ⚙ Administration
+            <a class="nav-link"
+               href="#"
+               @onclick="() => administrationExpanded = !administrationExpanded">
 
-            </NavLink>
+                ⚙ Administration @(administrationExpanded ? "▼" : "►")
+
+            </a>
+
         </div>
+
+        @if (administrationExpanded)
+        {
+            <div class="nav-item ps-5">
+
+                <NavLink class="nav-link"
+                         href="/administration/users">
+
+                    User Management
+
+                </NavLink>
+
+            </div>
+
+            <div class="nav-item ps-5">
+
+                <NavLink class="nav-link"
+                         href="/administration/audit">
+
+                    Audit Log
+
+                </NavLink>
+
+            </div>
+
+            <div class="nav-item ps-5">
+
+                <NavLink class="nav-link"
+                         href="/administration/settings">
+
+                    Production Settings
+
+                </NavLink>
+
+            </div>
+        }
 
         <div class="nav-item px-3">
 
@@ -412,6 +451,7 @@
     private bool productionExpanded = true;
     private bool inventoryExpanded = false;
     private bool qualityExpanded = true;
+    private bool administrationExpanded = true;
 
     private void Logout()
     {

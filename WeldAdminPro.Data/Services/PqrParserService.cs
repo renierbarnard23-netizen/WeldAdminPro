@@ -108,14 +108,7 @@ namespace WeldAdminPro.Data.Services
                 PqrNumber = Clean(fallbackName),
                 Process = text.Contains("GTAW", StringComparison.OrdinalIgnoreCase) ? "TIG" : "UNKNOWN",
                 MaterialGroup = "UNKNOWN"
-            };
-
-            double ParseDouble(string v)
-            {
-                v = v.Replace(",", ".");
-                double.TryParse(v, NumberStyles.Any, CultureInfo.InvariantCulture, out var r);
-                return r;
-            }
+            };            
 
             // =========================
             // ✅ PQR NUMBER (MATCH WPS STYLE)

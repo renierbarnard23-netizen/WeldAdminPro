@@ -1,0 +1,77 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Enums
+
+<MudPaper Class="pa-4" Elevation="2">
+
+    <MudText Typo="Typo.h6" Class="mb-4">
+        User Details
+    </MudText>
+
+    <MudGrid>
+
+        <MudItem xs="12" md="6">
+
+            <MudTextField Label="Username"
+                          @bind-Value="User.Username" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudTextField Label="Full Name"
+                          @bind-Value="User.FullName" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudSelect T="SystemRole"
+                       Label="Role"
+                       @bind-Value="User.Role">
+
+                @foreach (var role in Enum.GetValues<SystemRole>())
+                {
+                    <MudSelectItem Value="@role">
+                        @role
+                    </MudSelectItem>
+                }
+
+            </MudSelect>
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudCheckBox Label="Active"
+                         @bind-Value="User.IsActive" />
+
+        </MudItem>
+
+    </MudGrid>
+
+    <MudDivider Class="my-4" />
+
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               OnClick="Save">
+
+        Save
+
+    </MudButton>
+
+</MudPaper>
+
+@code
+{
+    [Parameter]
+    public SystemUser User { get; set; } = new();
+
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    private async Task Save()
+    {
+        await OnSave.InvokeAsync();
+    }
+}

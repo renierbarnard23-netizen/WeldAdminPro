@@ -1,0 +1,58 @@
+@page "/administration/audit"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services
+
+@inject AdministrationApplicationService AdministrationService
+
+<PageTitle>Audit Log</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">
+    Audit Log
+</MudText>
+
+@if (_logs == null)
+{
+    <MudProgressCircular Indeterminate="true"
+                         Color="Color.Primary" />
+}
+else
+{
+    <MudTable Items="_logs"
+              Dense="true"
+              Hover="true"
+              Striped="true">
+
+        <HeaderContent>
+
+            <MudTh>Date / Time</MudTh>
+            <MudTh>User</MudTh>
+            <MudTh>Action</MudTh>
+            <MudTh>Module</MudTh>
+            <MudTh>Details</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.Timestamp</MudTd>
+            <MudTd>@context.Username</MudTd>
+            <MudTd>@context.Action</MudTd>
+            <MudTd>@context.Module</MudTd>
+            <MudTd>@context.Details</MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+}
+
+@code
+{
+    private List<WeldAdminPro.Core.Models.AuditLog>? _logs;
+
+    protected override void OnInitialized()
+    {
+        _logs = AdministrationService.GetAuditLog();
+    }
+}

@@ -60,6 +60,8 @@ builder.Services.AddScoped<MaterialDemandForecastService>();
 
 builder.Services.AddScoped<ProjectApplicationService>();
 
+builder.Services.AddScoped<AdministrationApplicationService>();
+
 builder.Services.AddScoped<WorkOrderRepository>();
 
 // Register the concrete repository
@@ -171,7 +173,10 @@ builder.Services.AddScoped<WpsOcrService>();
 
 builder.Services.AddScoped<WpsParserService>();
 
-builder.Services.AddScoped<IDocumentImporter, DocumentImportService>();
+if (OperatingSystem.IsWindows())
+{
+    builder.Services.AddScoped<IDocumentImporter, DocumentImportService>();
+}
 
 builder.Services.AddScoped<MaterialRecognitionService>();
 
