@@ -94,12 +94,12 @@ else
     private WeldAdminPro.Data.Services.ProductionEngine.ProductionSnapshot?
         _snapshot;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _snapshot = DashboardService.GetDashboard();
 
         _qualitySnapshot =
-            QualityDashboardService.GetDashboard();
+            await QualityDashboardService.GetDashboard();
     }
 
     private QualitySnapshot? _qualitySnapshot;

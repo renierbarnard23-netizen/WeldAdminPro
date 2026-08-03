@@ -1,6 +1,7 @@
 @page "/quality"
 
 @using MudBlazor
+@inject ISnackbar Snackbar
 @using WeldAdminPro.Web.Components.Shared.Quality
 @using WeldAdminPro.Core.Quality.Models
 @using WeldAdminPro.Web.Services.Dashboard
@@ -14,6 +15,15 @@
                       Icon="@Icons.Material.Filled.Verified">
 
     <Actions>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Success"
+                   StartIcon="@Icons.Material.Filled.FileDownload"
+                   OnClick="ExportTurnoverPackage">
+
+            Export Turnover Package
+
+        </MudButton>
 
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
@@ -77,6 +87,32 @@
 
 </DashboardSection>
 
+<MudGrid Class="mt-4">
+
+    <MudItem xs="12" md="6">
+
+        <DashboardSection Title="Workflow Distribution"
+                          Icon="@Icons.Material.Filled.AccountTree">
+
+            <WorkflowDistribution Snapshot="_snapshot" />
+
+        </DashboardSection>
+
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+
+        <DashboardSection Title="Repair Aging"
+                          Icon="@Icons.Material.Filled.BuildCircle">
+
+            <RepairAgingGrid Snapshot="_snapshot" />
+
+        </DashboardSection>
+
+    </MudItem>
+
+</MudGrid>
+
 <DashboardSection Title="AI Quality Advisor"
                   Icon="@Icons.Material.Filled.Psychology">
 
@@ -88,13 +124,20 @@
 {
     private QualitySnapshot? _snapshot;
 
-        protected override void OnInitialized()
-        {
-            _snapshot = DashboardService.GetDashboard();
-        }
+    protected override async Task OnInitializedAsync()
+    {
+        _snapshot = await DashboardService.GetDashboard();
+    }
 
-        private void RefreshDashboard()
-        {
-            _snapshot = DashboardService.GetDashboard();
-        }
+    private async Task RefreshDashboard()
+    {
+        _snapshot = await DashboardService.GetDashboard();
+    }
+
+    private void ExportTurnoverPackage()
+    {
+        Snackbar.Add(
+            "Turnover Package export will be implemented next.",
+            Severity.Info);
+    }
 }

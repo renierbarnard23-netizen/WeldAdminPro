@@ -1,6 +1,7 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
+using System.Security.Claims;
 using WeldAdminPro.Core.Models;
+using WeldAdminPro.Core.Security;
 
 namespace WeldAdminPro.Web.Security;
 
@@ -20,16 +21,28 @@ public class WeldAuthenticationStateProvider
 
     public void SignIn(SystemUser user)
     {
+        var roleName =
+            SystemRoleMapper.ToDatabaseRole(user.Role);
+
         var identity = new ClaimsIdentity(
             new[]
             {
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.GivenName, user.FullName),
-                new Claim(ClaimTypes.Role, user.Role.ToString())
+                new Claim(
+                    ClaimTypes.Name,
+                    user.Username),
+
+                new Claim(
+                    ClaimTypes.GivenName,
+                    user.FullName),
+
+                new Claim(
+                    ClaimTypes.Role,
+                    roleName)
             },
             authenticationType: "WeldAdmin");
 
-        _currentUser = new ClaimsPrincipal(identity);
+        _currentUser =
+            new ClaimsPrincipal(identity);
 
         NotifyAuthenticationStateChanged(
             GetAuthenticationStateAsync());

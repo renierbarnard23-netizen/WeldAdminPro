@@ -78,6 +78,13 @@ namespace WeldAdminPro.Core.Quality.Services
                 ?.Key
                 ?? "N/A";
 
+            if (analytics.TotalRepairs > 0)
+            {
+                analytics.RepairRatePercent =
+                    analytics.OpenRepairs * 100.0 /
+                    analytics.TotalRepairs;
+            }
+
             return analytics;
         }
     }

@@ -1,76 +1,66 @@
 @page "/login"
 @layout LoginLayout
 
-@using MudBlazor
-@using WeldAdminPro.Data.Services
-@using WeldAdminPro.Web.Security
-@using WeldAdminPro.Web.Components.Layout
-
-@inject AuthenticationService AuthenticationService
-@inject WeldAuthenticationStateProvider AuthenticationProvider
 @inject NavigationManager Navigation
 
-<MudPaper Class="pa-8"
-          Elevation="8"
-          Style="width:420px;">
+<PageTitle>Login</PageTitle>
 
-    <MudText Typo="Typo.h4" GutterBottom="true">
+<MudPaper Class="pa-6 mx-auto mt-12" MaxWidth="MaxWidth.Small" Elevation="4">
+
+    <MudText Typo="Typo.h4" Class="mb-4">
         WeldAdmin Pro
     </MudText>
 
-    <MudText Typo="Typo.subtitle1" Class="mb-4">
-        Sign in
-    </MudText>
-
-    <MudTextField Label="Username"
-                  @bind-Value="_username"
-                  Immediate="true" />
-
-    <MudTextField Label="Password"
-                  @bind-Value="_password"
-                  InputType="InputType.Password"
-                  Class="mt-3" />
-
-    <MudButton Color="Color.Primary"
-               Variant="Variant.Filled"
-               FullWidth="true"
-               Class="mt-5"
-               OnClick="SignIn">
-        Login
-    </MudButton>
-
-    @if (!string.IsNullOrWhiteSpace(_error))
+    @if (ShowError)
     {
-        <MudAlert Severity="Severity.Error"
-                  Class="mt-4">
-            @_error
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">
+            Invalid username or password.
         </MudAlert>
     }
+
+    <form method="post" action="/account/login">
+
+        <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input class="form-control"
+                   type="text"
+                   name="Username"
+                   autocomplete="username"
+                   required />
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">Password</label>
+            <input class="form-control"
+                   type="password"
+                   name="Password"
+                   autocomplete="current-password"
+                   required />
+        </div>
+
+        <MudButton ButtonType="ButtonType.Submit"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   FullWidth="true">
+
+            Login
+
+        </MudButton>
+
+    </form>
 
 </MudPaper>
 
 @code
 {
-    private string _username = "";
-    private string _password = "";
-    private string _error = "";
+    private bool ShowError;
 
-    private void SignIn()
+    protected override void OnInitialized()
     {
-        _error = "";
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
 
-        var user = AuthenticationService.Authenticate(
-            _username,
-            _password);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
 
-        if (user == null)
-        {
-            _error = "Invalid username or password.";
-            return;
-        }
-
-        AuthenticationProvider.SignIn(user);
-
-        Navigation.NavigateTo("/");
+        ShowError = query.ContainsKey("error");
     }
 }

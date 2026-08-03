@@ -1,107 +1,146 @@
+@using MudBlazor
 @using WeldAdminPro.Core.Models
 
-@if (Projects.Count == 0)
+@if (Projects == null || Projects.Count == 0)
 {
-    <div class="alert alert-info">
+    <MudAlert Severity="Severity.Info"
+              Dense="true"
+              Variant="Variant.Filled">
 
         No projects found.
 
-    </div>
+    </MudAlert>
 }
 else
 {
-    <table class="table table-hover align-middle">
+    <MudTable T="Project"
+              Items="Projects"
+              Hover="true"
+              Dense="true"
+              Striped="true"
+              Breakpoint="Breakpoint.Md">
 
-        <thead>
+        <HeaderContent>
 
-            <tr>
+            <MudTh>Status</MudTh>
+            <MudTh>Job #</MudTh>
+            <MudTh>Project</MudTh>
+            <MudTh>Client</MudTh>
+            <MudTh>Quote</MudTh>
+            <MudTh>Order</MudTh>
+            <MudTh>Assigned</MudTh>
+            <MudTh Class="text-end">Amount</MudTh>
+            <MudTh>Invoiced</MudTh>
+            <MudTh Class="text-center">Actions</MudTh>
 
-                <th>Job</th>
+        </HeaderContent>
 
-                <th>Status</th>
+        <RowTemplate>
 
-                <th>Project</th>
+            <MudTd>
 
-                <th>Client</th>
+                <MudChip T="string"
+                         Color="@GetStatusColor(context.Status)"
+                         Variant="Variant.Filled"
+                         Size="Size.Small">
 
-                <th>Assigned</th>
+                    @context.Status
 
-                <th class="text-end">
+                </MudChip>
 
-                    Budget
+            </MudTd>
 
-                </th>
+            <MudTd>@context.JobNumber</MudTd>
 
-                <th></th>
+            <MudTd>@context.ProjectName</MudTd>
 
-            </tr>
+            <MudTd>@context.Client</MudTd>
 
-        </thead>
+            <MudTd>@context.QuoteNumber</MudTd>
 
-        <tbody>
+            <MudTd>@context.OrderNumber</MudTd>
 
-            @foreach (var project in Projects.OrderBy(p => p.JobNumber))
-            {
-                <tr>
+            <MudTd>@context.AssignedTo</MudTd>
 
-                    <td>
+            <MudTd Class="text-end">
 
-                        @project.JobNumber
+                @context.Amount.ToString("C")
 
-                    </td>
+            </MudTd>
 
-                    <td>
+            <MudTd>
 
-                        @project.Status
+                @if (context.IsInvoiced)
+                {
+                    <MudChip T="string"
+                             Color="Color.Success"
+                             Size="Size.Small">
 
-                    </td>
+                        Yes
 
-                    <td>
+                    </MudChip>
+                }
+                else
+                {
+                    <MudChip T="string"
+                             Color="Color.Warning"
+                             Size="Size.Small">
 
-                        @project.ProjectName
+                        No
 
-                    </td>
+                    </MudChip>
+                }
 
-                    <td>
+            </MudTd>
 
-                        @project.Client
+            <MudTd Class="text-center">
 
-                    </td>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           OnClick="@(() => OnOpen.InvokeAsync(context.Id))">
 
-                    <td>
+                    Open
 
-                        @project.AssignedTo
+                </MudButton>
 
-                    </td>
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Error"
+                           Size="Size.Small"
+                           Class="ms-2"
+                           OnClick="@(() => OnDelete.InvokeAsync(context))">
 
-                    <td class="text-end">
+                    Delete
 
-                        @project.Budget.ToString("N2")
+                </MudButton>
 
-                    </td>
+            </MudTd>
 
-                    <td class="text-end">
+        </RowTemplate>
 
-                        <a class="btn btn-sm btn-primary"
-                           href="/projects/@project.Id">
-
-                            Open
-
-                        </a>
-
-                    </td>
-
-                </tr>
-            }
-
-        </tbody>
-
-    </table>
+    </MudTable>
 }
 
 @code
 {
     [Parameter]
-
     public List<Project> Projects { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<Guid> OnOpen { get; set; }
+
+    [Parameter]
+    public EventCallback<Project> OnDelete { get; set; }
+
+    private static Color GetStatusColor(ProjectStatus status)
+    {
+        return status switch
+        {
+            ProjectStatus.Active => Color.Success,
+            ProjectStatus.OnHold => Color.Warning,
+            ProjectStatus.Completed => Color.Info,
+            ProjectStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+    }
 }

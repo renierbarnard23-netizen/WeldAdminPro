@@ -24,7 +24,9 @@ else
 
         @foreach (var alert in Snapshot.Alerts)
         {
-            <MudListItem T="string" Icon="@Icons.Material.Filled.WarningAmber">
+            <MudListItem T="string"
+                         Icon="@GetIcon(alert)"
+                         IconColor="@GetColor(alert)">
 
                 <MudText Typo="Typo.body2">
 
@@ -42,4 +44,38 @@ else
 {
     [Parameter]
     public QualitySnapshot? Snapshot { get; set; }
+
+    private string GetIcon(string alert)
+    {
+        if (alert.Contains("No approved"))
+            return Icons.Material.Filled.Error;
+
+        if (alert.Contains("compliance"))
+            return Icons.Material.Filled.GppBad;
+
+        if (alert.Contains("missing"))
+            return Icons.Material.Filled.Description;
+
+        if (alert.Contains("pending"))
+            return Icons.Material.Filled.PendingActions;
+
+        return Icons.Material.Filled.Info;
+    }
+
+    private Color GetColor(string alert)
+    {
+        if (alert.Contains("No approved"))
+            return Color.Error;
+
+        if (alert.Contains("compliance"))
+            return Color.Error;
+
+        if (alert.Contains("missing"))
+            return Color.Warning;
+
+        if (alert.Contains("pending"))
+            return Color.Warning;
+
+        return Color.Info;
+    }
 }

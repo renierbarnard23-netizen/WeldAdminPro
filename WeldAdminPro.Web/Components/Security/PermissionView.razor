@@ -1,0 +1,36 @@
+@using WeldAdminPro.Web.Services.Security
+
+@inject UserContextService UserContext
+@inject WeldAdminPro.Data.Services.Security.PermissionAuthorizationService PermissionAuthorization
+
+@if (_hasPermission)
+{
+    @ChildContent
+}
+
+@code
+{
+    [Parameter, EditorRequired]
+    public string Permission { get; set; } = string.Empty;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private bool _hasPermission;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _hasPermission = false;
+
+        if (!UserContext.IsAuthenticated)
+            return;
+
+        if (string.IsNullOrWhiteSpace(UserContext.CurrentRole))
+            return;
+
+        _hasPermission =
+            await PermissionAuthorization.HasPermissionAsync(
+                UserContext.CurrentRole,
+                Permission);
+    }
+}

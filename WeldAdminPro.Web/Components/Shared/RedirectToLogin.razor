@@ -1,9 +1,39 @@
+@using Microsoft.AspNetCore.Components.Authorization
+
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<MudText Class="ma-4">
+    Checking authorization...
+</MudText>
 
 @code
 {
-    protected override void OnInitialized()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        Navigation.NavigateTo("/login", true);
+        if (!firstRender)
+            return;
+
+        var authState =
+            await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        var user = authState.User;
+
+        Console.WriteLine("================================");
+        Console.WriteLine("REDIRECT AUTHORIZATION CHECK");
+        Console.WriteLine($"Authenticated : {user.Identity?.IsAuthenticated}");
+        Console.WriteLine($"User          : {user.Identity?.Name}");
+        Console.WriteLine(
+            $"Role          : {user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value}");
+        Console.WriteLine("================================");
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            Navigation.NavigateTo("/access-denied");
+        }
+        else
+        {
+            Navigation.NavigateTo("/login");
+        }
     }
 }

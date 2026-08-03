@@ -1,77 +1,101 @@
 using WeldAdminPro.Core.Quality.Models;
+using WeldAdminPro.Core.Quality.Services;
 using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Data.Services.Quality;
+using WeldAdminPro.Web.Services.Quality;
 
 namespace WeldAdminPro.Web.Services.Dashboard;
 
 public class QualityDashboardService
 {
-    public QualitySnapshot GetDashboard()
+    public async Task<QualitySnapshot> GetDashboard()
     {
+
+        var compliance = await _complianceService.CalculateAsync();        
+
         var snapshot = new QualitySnapshot
         {
-            ComplianceScore = 98,
+            ComplianceScore = compliance.Score,
+            ComplianceRating = compliance.Rating,
+            ComplianceSummary = compliance.Summary,
 
-            ActivePqr = 18,
-
-            QualifiedWelders = 25,
-
-            PendingNdt = 6,
-
-            OpenRepairs = 2,
-
-            MissingDocuments = 5,
-
-            ExpiringQualifications = 3
+            ActivePqr = _pqrService.GetActiveApprovedCount(),
+            QualifiedWelders = _welderQualificationService.GetValidQualifiedWelderCount(),
+            PendingNdt = _ndtService.GetPendingCount(),
+            MissingDocuments = _documentService.GetMissingDocumentCount(),
+            ExpiringQualifications = _welderQualificationService.GetExpiringQualificationCount(),
         };
 
         try
         {
             snapshot.ActiveWps =
-                _wpsRepository
-                    .GetActive()
-                    .Count;
+                _wpsRepository.GetActive().Count;
         }
         catch
         {
             snapshot.ActiveWps = 0;
         }
 
-        snapshot.Alerts.Add(
-            "3 Welder qualifications expire within 30 days.");
+        var repairAnalytics =
+            await _repairService.GetEnterpriseAnalytics();
 
-        snapshot.Alerts.Add(
-            "2 WPS documents require approval.");
+        snapshot.OpenRepairs =
+            repairAnalytics.OpenRepairs;
 
-        snapshot.Alerts.Add(
-            "5 project documents are outstanding.");
+        // Build quality alerts
+        var alertSummary = _alertService.Build(snapshot);
 
-        snapshot.RecentActivity.Add(
-            "WPS-101 approved.");
+        snapshot.Alerts = alertSummary.Alerts
+            .Select(a => a.Message)
+            .ToList();
 
-        snapshot.RecentActivity.Add(
-            "PQR-034 linked to WPS-101.");
+        // Build AI recommendations
+        snapshot.Recommendations =
+            _recommendationService.Build(snapshot);
 
-        snapshot.RecentActivity.Add(
-            "Repair completed on Project P24018.");
-
-        snapshot.Recommendations.Add(
-            "Schedule welder requalification.");
-
-        snapshot.Recommendations.Add(
-            "Approve outstanding WPS documents.");
-
-        snapshot.Recommendations.Add(
-            "Complete pending NDT inspections.");
+        // Build recent activity
+        snapshot.RecentActivity =
+            _activityService.Build(snapshot);
 
         return snapshot;
     }
 
     private readonly WpsRepository _wpsRepository;
+    private readonly PqrApplicationService _pqrService;
+    private readonly RepairApplicationService _repairService;
+    private readonly WeldRegisterApplicationService _weldService;
+    private readonly WelderQualificationApplicationService _welderQualificationService;
+    private readonly NdtApplicationService _ndtService;
+    private readonly DocumentApplicationService _documentService;
+    private readonly QualityComplianceService _complianceService;
+    private readonly QualityAlertService _alertService;
+    private readonly QualityRecommendationService _recommendationService;
+    private readonly QualityActivityService _activityService;
 
     public QualityDashboardService(
-        WpsRepository wpsRepository)
+        WpsRepository wpsRepository,
+        PqrApplicationService pqrService,
+        RepairApplicationService repairService,
+        WeldRegisterApplicationService weldService,
+        WelderQualificationApplicationService welderQualificationService,
+        NdtApplicationService ndtService,
+        DocumentApplicationService documentService,
+        QualityComplianceService complianceService,
+        QualityAlertService alertService,
+        QualityRecommendationService recommendationService,
+        QualityActivityService activityService)
     {
         _wpsRepository = wpsRepository;
+        _pqrService = pqrService;
+        _repairService = repairService;
+        _weldService = weldService;
+        _welderQualificationService = welderQualificationService;
+        _ndtService = ndtService;
+        _documentService = documentService;
+        _complianceService = complianceService;
+        _alertService = alertService;
+        _recommendationService = recommendationService;
+        _activityService = activityService;
     }
 
 }

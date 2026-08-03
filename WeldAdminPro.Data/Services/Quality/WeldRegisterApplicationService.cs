@@ -15,14 +15,14 @@ namespace WeldAdminPro.Data.Services.Quality
         {
             _weldRepository = new WeldRepository();
 
-            var connectionString =
+            var connectionString = 
                 $"Data Source={DatabasePath.Get()}";
 
             _historyRepository =
                 new WeldHistoryRepository(connectionString);
 
             _ndtRepository =
-                new WeldNdtRepository(connectionString);
+                new WeldNdtRepository();
         }
 
         public async Task<List<Weld>> GetProjectWelds(Guid projectId)

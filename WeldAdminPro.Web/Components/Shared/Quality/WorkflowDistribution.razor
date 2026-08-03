@@ -1,0 +1,61 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Quality.Models
+
+@if (Snapshot is null)
+{
+    <MudAlert Severity="Severity.Info">
+        No workflow information available.
+    </MudAlert>
+}
+else
+{
+    <MudTable Items="_rows"
+              Dense="true"
+              Hover="true"
+              Striped="true"
+              Elevation="0">
+
+        <HeaderContent>
+
+            <MudTh>Workflow Status</MudTh>
+            <MudTh Class="text-end">Count</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.Status</MudTd>
+            <MudTd Class="text-end">@context.Count</MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+}
+
+@code
+{
+    [Parameter]
+    public QualitySnapshot? Snapshot { get; set; }
+
+    private readonly List<WorkflowRow> _rows = new();
+
+    protected override void OnParametersSet()
+    {
+        _rows.Clear();
+
+        if (Snapshot is null)
+            return;
+
+        // Temporary values until service integration
+
+        _rows.Add(new WorkflowRow("Pending Review", 12));
+        _rows.Add(new WorkflowRow("Awaiting NDT", 8));
+        _rows.Add(new WorkflowRow("Under Repair", 4));
+        _rows.Add(new WorkflowRow("Accepted", 215));
+        _rows.Add(new WorkflowRow("Rejected", 3));
+    }
+
+    private sealed record WorkflowRow(
+        string Status,
+        int Count);
+}

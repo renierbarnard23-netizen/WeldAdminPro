@@ -12,7 +12,15 @@
 
 <PageTitle>Projects</PageTitle>
 
-<h2 class="mb-4">Projects</h2>
+<EnterprisePageHeader Title="Projects"
+                      Subtitle="Manage projects, costs, materials and compliance."
+                      Icon="@Icons.Material.Filled.Work">
+</EnterprisePageHeader>
+
+<ProjectKpiCards Projects="_projects" />
+
+<DashboardSection Title="Projects"
+                  Icon="@Icons.Material.Filled.Workspaces">
 
 <div class="card shadow-sm">
 
@@ -52,88 +60,15 @@
 
         </div>
 
-        <table class="table table-hover align-middle">
-
-            <thead>
-
-                <tr>
-
-                    <th>Job #</th>
-                    <th>Status</th>
-                    <th>Project</th>
-                    <th>Client</th>
-                    <th>Quote</th>
-                    <th>Order</th>
-                    <th>Assigned</th>
-                    <th>Amount</th>
-                    <th></th>
-
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-                @foreach (var project in FilteredProjects)
-                {
-                    <tr>
-
-                        <td>@project.JobNumber</td>
-
-                        <td>
-
-                            <span class="badge bg-primary">
-
-                                @project.Status
-
-                            </span>
-
-                        </td>
-
-                        <td>@project.ProjectName</td>
-
-                        <td>@project.Client</td>
-
-                        <td>@project.QuoteNumber</td>
-
-                        <td>@project.OrderNumber</td>
-
-                        <td>@project.AssignedTo</td>
-
-                        <td>
-
-                            @project.Amount.ToString("C")
-
-                        </td>
-
-                        <td>
-
-                            <small>@project.Id</small>
-
-                            <br />
-
-                            <button class="btn btn-sm btn-primary me-2"
-                                    @onclick="() => Open(project.Id)">
-                                Open
-                            </button>
-
-                            <button class="btn btn-sm btn-danger"
-                                    @onclick="() => DeleteProject(project)">
-                                Delete
-                            </button>
-
-                        </td>
-
-                    </tr>
-                }
-
-            </tbody>
-
-        </table>
+            <ProjectGrid Projects="FilteredProjects.ToList()"
+                         OnOpen="Open"
+                         OnDelete="DeleteProject" />
 
     </div>
 
 </div>
+
+</DashboardSection>
 
 @code {
 

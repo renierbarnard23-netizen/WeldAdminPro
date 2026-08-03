@@ -2,6 +2,8 @@ using Dapper;
 using Microsoft.Data.Sqlite;
 using System;
 using System.Linq;
+using WeldAdminPro.Core.Security.Catalog;
+using WeldAdminPro.Data.Services.Security;
 
 namespace WeldAdminPro.Data.Services
 {
@@ -24,14 +26,16 @@ namespace WeldAdminPro.Data.Services
 
             connection.Open();
 
-            var version =
-                connection.QueryFirstOrDefault<int?>(
-                    @"
-SELECT MAX(SchemaVersion)
-FROM DatabaseVersions");
+            int currentVersion = 0;
 
-            var currentVersion =
-                version ?? 0;
+            if (TableExists(connection, "DatabaseVersions"))
+            {
+                currentVersion =
+                    connection.QueryFirstOrDefault<int?>(
+                        @"SELECT MAX(SchemaVersion)
+              FROM DatabaseVersions")
+                    ?? 0;
+            }
 
             if (currentVersion < 1)
             {
@@ -52,6 +56,11 @@ FROM DatabaseVersions");
             {
                 ApplyVersion4(connection);
             }
+
+            if (currentVersion < 5)
+            {
+                ApplyVersion5(connection);
+            }
         }
 
         // =====================================
@@ -61,27 +70,11 @@ FROM DatabaseVersions");
         private void ApplyVersion1(
             SqliteConnection connection)
         {
-            connection.Execute(
-                @"
-INSERT INTO DatabaseVersions
-(
-    SchemaVersion,
-    BuildVersion,
-    AppliedDate,
-    Notes
-)
-VALUES
-(
-    1,
-    '1.0.0',
-    @AppliedDate,
-    'Initial schema'
-)",
-                new
-                {
-                    AppliedDate =
-                        DateTime.Now.ToString("O")
-                });
+            RecordVersion(
+                connection,
+                1,
+                "1.0.0",
+                "Initial schema");
         }
 
         // =====================================
@@ -133,32 +126,16 @@ VALUES
                 "Status",
                 "INTEGER DEFAULT 0");
 
-            connection.Execute(
-                @"
-INSERT INTO DatabaseVersions
-(
-    SchemaVersion,
-    BuildVersion,
-    AppliedDate,
-    Notes
-)
-VALUES
-(
-    2,
-    '1.1.0',
-    @AppliedDate,
-    'MRB + CAPA system added'
-)",
-                new
-                {
-                    AppliedDate =
-                        DateTime.Now.ToString("O")
-                });
+            RecordVersion(
+                connection,
+                2,
+                "1.1.0",
+                "MRB + CAPA system added");
         }
 
         private bool TableExists(
-    SqliteConnection connection,
-    string table)
+            SqliteConnection connection,
+            string table)
         {
             var count =
                 connection.ExecuteScalar<int>(
@@ -173,10 +150,10 @@ VALUES
 
 
         private void RecordVersion(
-    SqliteConnection connection,
-    int version,
-    string build,
-    string notes)
+            SqliteConnection connection,
+            int version,
+            string build,
+            string notes)
         {
             connection.Execute(
                 @"
@@ -294,27 +271,11 @@ VALUES
                 "CustomerApprovalReference",
                 "TEXT");
 
-            connection.Execute(
-                @"
-INSERT INTO DatabaseVersions
-(
-    SchemaVersion,
-    BuildVersion,
-    AppliedDate,
-    Notes
-)
-VALUES
-(
-    3,
-    '1.2.0',
-    @AppliedDate,
-    'Expanded NCR system'
-)",
-                new
-                {
-                    AppliedDate =
-                        DateTime.Now.ToString("O")
-                });
+            RecordVersion(
+                connection,
+                3,
+                "1.2.0",
+                "Expanded NCR system");
         }
 
         // =====================================
@@ -358,32 +319,134 @@ VALUES
                 "RepairedByWelder",
                 "TEXT");
 
+
+
             // =====================================
             // VERSION RECORD
             // =====================================
 
+            RecordVersion(
+                connection,
+                4,
+                "1.3.0",
+                "Expanded Repair Management system");
+
+
+        }
+
+        // =====================================
+        // VERSION 5
+        // Enterprise Security Framework
+        // =====================================
+
+        private void ApplyVersion5(SqliteConnection connection)
+        {
+            CreateRolesTable(connection);
+            CreatePermissionsTable(connection);
+            CreateRolePermissionsTable(connection);
+            CreateUserPermissionsTable(connection);
+
+            SecuritySeeder.Seed(connection);
+            
+            RecordVersion(
+                connection,
+                5,
+                "1.4.0",
+                "Enterprise Security Framework");
+        }
+
+        private void CreateRolesTable(
+    SqliteConnection connection)
+        {
+            if (TableExists(connection, "Roles"))
+                return;
+
             connection.Execute(
                 @"
-INSERT INTO DatabaseVersions
+CREATE TABLE Roles
 (
-    SchemaVersion,
-    BuildVersion,
-    AppliedDate,
-    Notes
-)
-VALUES
-(
-    4,
-    '1.3.0',
-    @AppliedDate,
-    'Expanded Repair Management system'
-)",
-                new
-                {
-                    AppliedDate =
-                        DateTime.Now.ToString("O")
-                });
+    Id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    Name            TEXT NOT NULL UNIQUE,
+    Description     TEXT,
+    IsSystemRole    INTEGER NOT NULL DEFAULT 0
+);");
         }
+
+        private void CreatePermissionsTable(
+    SqliteConnection connection)
+        {
+            if (TableExists(connection, "Permissions"))
+                return;
+
+            connection.Execute(
+                @"
+CREATE TABLE Permissions
+(
+    Id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    PermissionKey   TEXT NOT NULL UNIQUE,
+    PermissionGroup TEXT NOT NULL,
+    Name            TEXT NOT NULL,
+    Description     TEXT
+);");
+        }
+
+        private void CreateRolePermissionsTable(
+    SqliteConnection connection)
+        {
+            if (TableExists(connection, "RolePermissions"))
+                return;
+
+            connection.Execute(
+                @"
+CREATE TABLE RolePermissions
+(
+    Id              INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    RoleId          INTEGER NOT NULL,
+
+    PermissionId    INTEGER NOT NULL,
+
+    FOREIGN KEY(RoleId)
+        REFERENCES Roles(Id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY(PermissionId)
+        REFERENCES Permissions(Id)
+        ON DELETE CASCADE,
+
+    UNIQUE(RoleId, PermissionId)
+);");
+        }
+
+        private void CreateUserPermissionsTable(
+    SqliteConnection connection)
+        {
+            if (TableExists(connection, "UserPermissions"))
+                return;
+
+            connection.Execute(
+                @"
+CREATE TABLE UserPermissions
+(
+    Id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    UserId              TEXT NOT NULL,
+
+    PermissionId        INTEGER NOT NULL,
+
+    IsGranted           INTEGER NOT NULL,
+
+    FOREIGN KEY(UserId)
+        REFERENCES SystemUsers(Id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY(PermissionId)
+        REFERENCES Permissions(Id)
+        ON DELETE CASCADE,
+
+    UNIQUE(UserId, PermissionId)
+);");
+        }               
 
         // =====================================
         // SAFE COLUMN ADDER

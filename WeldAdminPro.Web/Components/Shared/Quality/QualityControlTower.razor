@@ -1,7 +1,290 @@
+@using MudBlazor
 @using WeldAdminPro.Core.Quality.Models
+
+@if (Snapshot == null)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        Loading Quality Control Tower...
+    </MudAlert>
+}
+else
+{
+    <MudGrid>
+
+        <MudItem xs="12" md="4">
+
+            <MudPaper Class="pa-4" Elevation="2">
+
+                <MudText Typo="Typo.h6">
+                    Overall Status
+                </MudText>
+
+                <MudChip T="string"
+                         Color="@GetStatusColor()"
+                         Variant="Variant.Filled"
+                         Size="Size.Large"
+                         Class="mt-4">
+
+                    @GetStatusText()
+
+                </MudChip>
+
+                <MudDivider Class="my-4" />
+
+                <MudText Typo="Typo.body2" Align="Align.Center">
+
+                    Production Readiness
+
+                </MudText>
+
+                <MudText Typo="Typo.h3"
+                         Align="Align.Center"
+                         Color="@GetReadinessColor()">
+
+                    @GetReadinessScore()%
+
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <MudItem xs="12" md="8">
+
+            <MudPaper Class="pa-4" Elevation="2">
+
+                <MudText Typo="Typo.h6" GutterBottom="true">
+    Executive Summary
+</MudText>
+
+<MudGrid>
+
+    <MudItem xs="6">
+        <MudPaper Class="pa-3 text-center" Outlined="true">
+            <MudText Typo="Typo.caption">
+                Compliance
+            </MudText>
+
+            <MudText Typo="Typo.h4" Color="Color.Primary">
+                @Snapshot.ComplianceScore%
+            </MudText>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="6">
+        <MudPaper Class="pa-3 text-center" Outlined="true">
+            <MudText Typo="Typo.caption">
+                Readiness
+            </MudText>
+
+            <MudText Typo="Typo.h4" Color="@GetReadinessColor()">
+                @GetReadinessScore()%
+            </MudText>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="6">
+        <MudPaper Class="pa-3 text-center" Outlined="true">
+            <MudText Typo="Typo.caption">
+                Qualified Welders
+            </MudText>
+
+            <MudText Typo="Typo.h5">
+                @Snapshot.QualifiedWelders
+            </MudText>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="6">
+        <MudPaper Class="pa-3 text-center" Outlined="true">
+            <MudText Typo="Typo.caption">
+                Missing Documents
+            </MudText>
+
+            <MudText Typo="Typo.h5" Color="Color.Warning">
+                @Snapshot.MissingDocuments
+            </MudText>
+        </MudPaper>
+    </MudItem>
+
+</MudGrid>
+                                
+                <MudDivider Class="my-4"/>
+
+                <MudText Typo="Typo.h6">
+                    Production Readiness
+                </MudText>
+
+                <MudGrid Class="mt-2">
+
+                    <MudItem xs="6">
+                        <MudText>WPS</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudChip T="string"
+                            Color="@(Snapshot.ActiveWps > 0 ? Color.Success : Color.Error)">
+                            @(Snapshot.ActiveWps > 0 ? "Ready" : "Missing")
+                        </MudChip>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText>PQR</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudChip T="string"
+                            Color="@(Snapshot.ActivePqr > 0 ? Color.Success : Color.Error)">
+                            @(Snapshot.ActivePqr > 0 ? "Ready" : "Missing")
+                        </MudChip>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText>Documents</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudChip T="string"
+                            Color="@(Snapshot.MissingDocuments == 0 ? Color.Success : Color.Warning)">
+                            @(Snapshot.MissingDocuments == 0 ? "Complete" : $"{Snapshot.MissingDocuments} Missing")
+                        </MudChip>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText>Pending NDT</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudChip T="string"
+                            Color="@(Snapshot.PendingNdt == 0 ? Color.Success : Color.Warning)">
+                            @(Snapshot.PendingNdt == 0 ? "Ready" : $"{Snapshot.PendingNdt} Pending")
+                        </MudChip>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText>Open Repairs</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudChip T="string"
+                            Color="@(Snapshot.OpenRepairs == 0 ? Color.Success : Color.Warning)">
+                            @(Snapshot.OpenRepairs == 0 ? "None" : Snapshot.OpenRepairs.ToString())
+                        </MudChip>
+                    </MudItem>
+
+                </MudGrid>
+
+                <MudText Typo="Typo.subtitle1"
+                         Class="mt-5 mb-2">
+
+                    Production Readiness
+
+                </MudText>
+
+                <MudProgressLinear Class="mt-4"
+                                   Value="@GetReadinessScore()"
+                                   Color="@GetReadinessColor()"
+                                   Rounded="true"
+                                   Size="Size.Large" />
+
+                <MudText Align="Align.Center"
+                         Typo="Typo.subtitle2"
+                         Class="mt-2">
+
+                    @GetReadinessScore()% Ready for Production
+
+                </MudText>
+
+                <MudDivider Class="my-4"/>
+
+                <MudText Typo="Typo.h6">
+                    Executive Priorities
+                </MudText>
+
+                <MudList T="string" Dense="true">
+
+                    @foreach (var item in Snapshot.Recommendations.Take(3))
+                    {
+                        <MudListItem T="string"
+                                     Icon="@Icons.Material.Filled.PriorityHigh">
+
+                            @item
+
+                        </MudListItem>
+                    }
+
+                </MudList>
+
+            </MudPaper>
+
+        </MudItem>
+
+    </MudGrid>
+}
 
 @code
 {
     [Parameter]
     public QualitySnapshot? Snapshot { get; set; }
+
+    private Color GetStatusColor()
+    {
+        if (Snapshot == null)
+            return Color.Default;
+
+        if (Snapshot.ComplianceScore >= 90)
+            return Color.Success;
+
+        if (Snapshot.ComplianceScore >= 70)
+            return Color.Warning;
+
+        return Color.Error;
+    }
+
+    private string GetStatusText()
+    {
+        if (Snapshot == null)
+            return "Loading";
+
+        if (Snapshot.ComplianceScore >= 90)
+            return "LOW RISK";
+
+        if (Snapshot.ComplianceScore >= 70)
+            return "MEDIUM RISK";
+
+        return "HIGH RISK";
+    }
+
+    private int GetReadinessScore()
+    {
+        if (Snapshot == null)
+            return 0;
+
+        int score = 100;
+
+        if (Snapshot.ActiveWps == 0)
+            score -= 20;
+
+        if (Snapshot.ActivePqr == 0)
+            score -= 20;
+
+        score -= Snapshot.MissingDocuments * 10;
+        score -= Snapshot.PendingNdt * 5;
+        score -= Snapshot.OpenRepairs * 5;
+
+        return Math.Max(score, 0);
+    }
+
+    private Color GetReadinessColor()
+    {
+        var score = GetReadinessScore();
+
+        if (score >= 90)
+            return Color.Success;
+
+        if (score >= 70)
+            return Color.Warning;
+
+        return Color.Error;
+    }
 }

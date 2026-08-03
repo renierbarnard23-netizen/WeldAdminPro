@@ -1,5 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 
+@inject NavigationManager Navigation
+
 <Router AppAssembly="typeof(Program).Assembly"
         NotFoundPage="typeof(Pages.NotFound)">
 
@@ -22,3 +24,4 @@
     </Found>
 
 </Router>
+

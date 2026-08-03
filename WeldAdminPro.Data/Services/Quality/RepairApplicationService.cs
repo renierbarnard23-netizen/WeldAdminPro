@@ -56,4 +56,14 @@ public class RepairApplicationService
 
         return analyticsService.Generate(repairs);
     }
+
+    public Task<RepairAnalytics> GetEnterpriseAnalytics()
+    {
+        var repairs = _repairRepository.GetAll();
+
+        var analyticsService = new RepairAnalyticsService();
+
+        return Task.FromResult(
+            analyticsService.Generate(repairs));
+    }
 }

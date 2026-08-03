@@ -5,6 +5,7 @@ using WeldAdminPro.Core.Interfaces;
 using WeldAdminPro.Core.Services;
 using WeldAdminPro.Data;
 using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Data.Repositories.Security;
 using WeldAdminPro.Data.Services;
 using WeldAdminPro.Data.Services.Inventory;
 using WeldAdminPro.Data.Services.Procurement;
@@ -17,7 +18,13 @@ using WeldAdminPro.Web.Components;
 using WeldAdminPro.Web.Security;
 using WeldAdminPro.Web.Services.Dashboard;
 using WeldAdminPro.Web.Services.Import;
+using WeldAdminPro.Web.Services.Navigation;
 using WeldAdminPro.Web.Services.Quality;
+using WeldAdminPro.Web.Services.Security;
+using WeldAdminPro.Data.Services.Security;
+using static WeldAdminPro.Web.Services.Quality.PqrApplicationService;
+using Microsoft.AspNetCore.Authorization;
+using WeldAdminPro.Web.Security.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,14 +36,77 @@ builder.Services
     .AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddAuthorizationCore();
+builder.Services.AddControllers();
+
+// --------------------------------------------------
+// Authentication
+// --------------------------------------------------
+
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/login";
+        options.LogoutPath = "/logout";
+        options.AccessDeniedPath = "/access-denied";
+
+        options.Cookie.Name = "WeldAdminPro.Auth";
+
+        options.SlidingExpiration = true;
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+
+        options.Events = new CookieAuthenticationEvents
+        {
+            OnRedirectToLogin = context =>
+            {
+                Console.WriteLine(
+                    $"*** RedirectToLogin: {context.Request.Path} -> {context.RedirectUri}");
+
+                context.Response.Redirect(context.RedirectUri);
+
+                return Task.CompletedTask;
+            },
+
+            OnRedirectToAccessDenied = context =>
+            {
+                Console.WriteLine(
+                    $"*** RedirectToAccessDenied: {context.Request.Path} -> {context.RedirectUri}");
+
+                context.Response.Redirect(context.RedirectUri);
+
+                return Task.CompletedTask;
+            },
+
+            OnValidatePrincipal = context =>
+            {
+                Console.WriteLine(
+                    $"*** Authenticated: {context.Principal?.Identity?.IsAuthenticated}");
+
+                Console.WriteLine(
+                    $"*** User: {context.Principal?.Identity?.Name}");
+
+                var role =
+                    context.Principal?
+                        .FindFirst(
+                            System.Security.Claims.ClaimTypes.Role)?
+                        .Value;
+
+                Console.WriteLine($"*** Role: {role}");
+
+                return Task.CompletedTask;
+            }
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+builder.Services.AddSingleton<IAuthorizationPolicyProvider,
+    PermissionPolicyProvider>();
+
+builder.Services.AddScoped<IAuthorizationHandler,
+    PermissionAuthorizationHandler>();
 
 builder.Services.AddCascadingAuthenticationState();
-
-builder.Services.AddScoped<WeldAuthenticationStateProvider>();
-
-builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
-    sp.GetRequiredService<WeldAuthenticationStateProvider>());
 
 // --------------------------------------------------
 // WeldAdmin Pro Services
@@ -117,8 +187,6 @@ builder.Services.AddScoped<WpsApplicationService>();
 
 builder.Services.AddScoped<PqrApplicationService>();
 
-builder.Services.AddScoped<PqrRepository>();
-
 builder.Services.AddScoped<PqrParserService>();
 
 builder.Services.AddScoped<PqrOcrService>();
@@ -137,7 +205,13 @@ builder.Services.AddScoped<WpsParserService>();
 
 builder.Services.AddScoped<WpsRepository>();
 
+builder.Services.AddScoped<PqrRepository>();
+
 builder.Services.AddScoped<WelderQualificationRepository>();
+
+builder.Services.AddScoped<WeldNdtRepository>();
+
+builder.Services.AddScoped<ProjectDocumentRepository>();
 
 builder.Services.AddSingleton<ProjectProfitabilityService>();
 
@@ -202,6 +276,39 @@ builder.Services.AddScoped<PqrNumberRecognitionService>();
 
 builder.Services.AddScoped<HeaderRecognitionService>();
 
+builder.Services.AddHttpContextAccessor();;
+
+builder.Services.AddScoped<NavigationService>();
+
+builder.Services.AddScoped<WelderQualificationApplicationService>();
+
+builder.Services.AddScoped<NdtApplicationService>();
+
+builder.Services.AddScoped<DocumentApplicationService>();
+
+builder.Services.AddScoped<QualityComplianceService>();
+
+builder.Services.AddScoped<QualityAlertService>();
+
+builder.Services.AddScoped<QualityRecommendationService>();
+
+builder.Services.AddScoped<QualityActivityService>();
+
+builder.Services.AddSingleton(
+    new RoleRepository(DatabasePath.GetConnectionString()));
+
+builder.Services.AddSingleton(
+    new PermissionRepository(DatabasePath.GetConnectionString()));
+
+builder.Services.AddSingleton(
+    new RolePermissionRepository(DatabasePath.GetConnectionString()));
+
+builder.Services.AddSingleton(
+    new UserPermissionRepository(DatabasePath.GetConnectionString()));
+
+builder.Services.AddScoped<UserContextService>();
+
+builder.Services.AddScoped<WeldAdminPro.Data.Services.Security.PermissionAuthorizationService>();
 
 // --------------------------------------------------
 
@@ -214,6 +321,12 @@ var app = builder.Build();
 DatabaseInitializer.Initialize();
 
 // --------------------------------------------------
+
+var migrationService =
+    new DatabaseMigrationService(
+        DatabasePath.GetConnectionString());
+
+migrationService.ApplyMigrations();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -229,9 +342,15 @@ app.UseStatusCodePagesWithReExecute(
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
+
+app.UseAuthorization();
+
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+
+app.MapControllers();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

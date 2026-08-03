@@ -1,12 +1,21 @@
 @page "/administration/users"
 
+@using WeldAdminPro.Core.Security
+@using Microsoft.AspNetCore.Authorization
+
 @using MudBlazor
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services
 @using WeldAdminPro.Web.Components.Shared.Administration
 @using WeldAdminPro.Core.Enums
 
+@using WeldAdminPro.Web.Services.Security
+
+@attribute [Authorize(Roles = "Administrator")]
 @inject AdministrationApplicationService AdministrationService
+
+@inject UserContextService UserContext
+@inject WeldAdminPro.Data.Services.Security.PermissionAuthorizationService PermissionAuthorization
 
 <PageTitle>User Management</PageTitle>
 
@@ -15,9 +24,9 @@
           AlignItems="AlignItems.Center"
           Class="mb-4">
 
-    <MudText Typo="Typo.h4">
-        User Management
-    </MudText>
+    <EnterprisePageHeader Title="User Management"
+                          Subtitle="Manage users, roles and account status."
+                          Icon="@Icons.Material.Filled.AdminPanelSettings" />
 
     <MudStack Row="true" Spacing="2">
 

@@ -3,17 +3,13 @@ using System;
 using System.Collections.Generic;
 using WeldAdminPro.Core.Quality.Models;
 using WeldAdminPro.Core.Quality.Enums;
+using WeldAdminPro.Core.Quality;
 
 namespace WeldAdminPro.Data.Repositories
 {
     public class WeldNdtRepository
     {
-        private readonly string _connectionString;
-
-        public WeldNdtRepository(string connectionString)
-        {
-            _connectionString = connectionString;
-        }
+        private string _connectionString => $"Data Source={DatabasePath.Get()}";
 
         public List<WeldNdtResult> GetByWeld(Guid weldId)
         {

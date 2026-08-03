@@ -1,5 +1,4 @@
 using WeldAdminPro.Core.Models;
-using WeldAdminPro.Core.Quality;
 using WeldAdminPro.Core.Quality.Models;
 using WeldAdminPro.Core.Quality.Services;
 using WeldAdminPro.Data.Repositories;
@@ -15,11 +14,8 @@ namespace WeldAdminPro.Data.Services.Quality
         {
             _weldRepository = new WeldRepository();
 
-            var connectionString =
-                $"Data Source={DatabasePath.Get()}";
-
-            _ndtRepository =
-                new WeldNdtRepository(connectionString);
+            _ndtRepository = 
+                new WeldNdtRepository();
         }
 
         public async Task<List<WeldTraceabilityRow>> GetProjectRows(Guid projectId)

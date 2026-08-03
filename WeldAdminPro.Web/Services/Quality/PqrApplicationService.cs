@@ -5,7 +5,7 @@ using WeldAdminPro.Core.Services;
 namespace WeldAdminPro.Web.Services.Quality
 {
     public class PqrApplicationService
-    {
+    {        
         private readonly PqrRepository _repository;
         private readonly QualificationRangeEngine _rangeEngine = new();
         public PqrApplicationService(PqrRepository repository)
@@ -93,5 +93,30 @@ namespace WeldAdminPro.Web.Services.Quality
                     break;
             }
         }
+
+        public int GetActiveCount()
+        {
+            return _repository
+                .GetAll()
+                .Count(x => x.IsActive);
+        }
+
+        public int GetApprovedCount()
+        {
+            return _repository
+                .GetAll()
+                .Count(x => x.IsApproved);
+        }
+
+        public int GetActiveApprovedCount()
+        {
+            return _repository
+                .GetAll()
+                .Count(x =>
+                    x.IsActive &&
+                    x.IsApproved);
+        }
+                
     }
 }
+

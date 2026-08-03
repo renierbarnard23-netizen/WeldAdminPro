@@ -1,95 +1,44 @@
 @using WeldAdminPro.Core.Models
 
-@if (Projects.Count > 0)
-{
-    <div class="row mb-4">
+<MudGrid>
 
-        <div class="col-md-3">
+    <MudItem xs="12" sm="6" lg="3">
+        <EnterpriseKpiCard Title="Projects"
+                           Value="@Projects.Count.ToString()"
+                           Status="Total"
+                           Icon="@Icons.Material.Filled.Folder"
+                           IconColor="Color.Primary"
+                           ChipColor="Color.Primary" />
+    </MudItem>
 
-            <div class="card shadow-sm">
+    <MudItem xs="12" sm="6" lg="3">
+        <EnterpriseKpiCard Title="Active"
+                           Value="@Projects.Count(p => p.Status == ProjectStatus.Active).ToString()"
+                           Status="Running"
+                           Icon="@Icons.Material.Filled.Work"
+                           IconColor="Color.Success"
+                           ChipColor="Color.Success" />
+    </MudItem>
 
-                <div class="card-body text-center">
+    <MudItem xs="12" sm="6" lg="3">
+        <EnterpriseKpiCard Title="Completed"
+                           Value="@Projects.Count(p => p.Status == ProjectStatus.Completed).ToString()"
+                           Status="Finished"
+                           Icon="@Icons.Material.Filled.TaskAlt"
+                           IconColor="Color.Info"
+                           ChipColor="Color.Info" />
+    </MudItem>
 
-                    <div class="text-muted">
-                        Projects
-                    </div>
+    <MudItem xs="12" sm="6" lg="3">
+        <EnterpriseKpiCard Title="Contract Value"
+                           Value="@Projects.Sum(p => p.Amount).ToString("C0")"
+                           Status="Total"
+                           Icon="@Icons.Material.Filled.AttachMoney"
+                           IconColor="Color.Warning"
+                           ChipColor="Color.Warning" />
+    </MudItem>
 
-                    <h2>@Projects.Count</h2>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <div class="col-md-3">
-
-            <div class="card shadow-sm">
-
-                <div class="card-body text-center">
-
-                    <div class="text-muted">
-                        Active
-                    </div>
-
-                    <h2>
-
-                        @Projects.Count(p => p.Status == ProjectStatus.Active)
-
-                    </h2>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <div class="col-md-3">
-
-            <div class="card shadow-sm">
-
-                <div class="card-body text-center">
-
-                    <div class="text-muted">
-                        Completed
-                    </div>
-
-                    <h2>
-
-                        @Projects.Count(p => p.Status == ProjectStatus.Completed)
-
-                    </h2>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <div class="col-md-3">
-
-            <div class="card shadow-sm">
-
-                <div class="card-body text-center">
-
-                    <div class="text-muted">
-                        Contract Value
-                    </div>
-
-                    <h2>
-
-                        @Projects.Sum(p => p.Budget).ToString("N0")
-
-                    </h2>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-}
+</MudGrid>
 
 @code
 {

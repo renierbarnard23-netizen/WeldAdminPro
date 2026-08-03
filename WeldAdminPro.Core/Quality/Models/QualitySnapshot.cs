@@ -31,5 +31,9 @@ namespace WeldAdminPro.Core.Quality.Models
         public List<string> RecentActivity { get; set; } = new();
 
         public List<string> Recommendations { get; set; } = new();
+
+        public string ComplianceRating { get; set; } = "";
+
+        public string ComplianceSummary { get; set; } = "";
     }
 }

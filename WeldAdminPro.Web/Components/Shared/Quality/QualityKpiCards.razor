@@ -6,58 +6,76 @@
 {
     <MudGrid>
 
-        <MudItem xs="12" sm="6" md="4" lg="2">
-            <EnterpriseKpiCard Title="Compliance"
+        <MudItem xs="12" sm="6" md="4" lg="3">
+            <EnterpriseKpiCard Title="Quality Compliance"
                                Value="@($"{Snapshot.ComplianceScore}%")"
-                               Status="ISO 3834"
-                               ChipColor="Color.Success"
+                               Status="@Snapshot.ComplianceRating"
+                               ChipColor="@GetComplianceColor()"
                                Icon="@Icons.Material.Filled.Verified"
-                               IconColor="Color.Success" />
+                               IconColor="@GetComplianceColor()" />
         </MudItem>
 
-        <MudItem xs="12" sm="6" md="4" lg="2">
+        <MudItem xs="12" sm="6" md="4" lg="3">
             <EnterpriseKpiCard Title="Active WPS"
                                Value="@Snapshot.ActiveWps.ToString()"
-                               Status="Approved"
+                               Status="@(Snapshot.ActiveWps > 0 ? "Approved" : "Missing")"
                                ChipColor="Color.Primary"
                                Icon="@Icons.Material.Filled.Description"
                                IconColor="Color.Primary" />
         </MudItem>
 
-        <MudItem xs="12" sm="6" md="4" lg="2">
+        <MudItem xs="12" sm="6" md="4" lg="3">
+            <EnterpriseKpiCard Title="Active PQR"
+                               Value="@Snapshot.ActivePqr.ToString()"
+                               Status="@(Snapshot.ActivePqr > 0 ? "Approved" : "Missing")"
+                               ChipColor="Color.Secondary"
+                               Icon="@Icons.Material.Filled.FactCheck"
+                               IconColor="Color.Secondary" />
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="4" lg="3">
             <EnterpriseKpiCard Title="Qualified Welders"
                                Value="@Snapshot.QualifiedWelders.ToString()"
-                               Status="Certified"
+                               Status="@(Snapshot.QualifiedWelders > 0 ? "Certified" : "Not Certified")"
                                ChipColor="Color.Success"
                                Icon="@Icons.Material.Filled.Groups"
                                IconColor="Color.Success" />
         </MudItem>
 
-        <MudItem xs="12" sm="6" md="4" lg="2">
+        <MudItem xs="12" sm="6" md="4" lg="3">
             <EnterpriseKpiCard Title="Pending NDT"
                                Value="@Snapshot.PendingNdt.ToString()"
-                               Status="Awaiting"
+                               Status="@(Snapshot.PendingNdt > 0 ? "Awaiting" : "None")"
                                ChipColor="Color.Warning"
                                Icon="@Icons.Material.Filled.Search"
                                IconColor="Color.Warning" />
         </MudItem>
 
-        <MudItem xs="12" sm="6" md="4" lg="2">
+        <MudItem xs="12" sm="6" md="4" lg="3">
             <EnterpriseKpiCard Title="Open Repairs"
                                Value="@Snapshot.OpenRepairs.ToString()"
-                               Status="Outstanding"
+                               Status="@(Snapshot.OpenRepairs > 0 ? "Outstanding" : "None")"
                                ChipColor="Color.Error"
                                Icon="@Icons.Material.Filled.Build"
                                IconColor="Color.Error" />
         </MudItem>
 
-        <MudItem xs="12" sm="6" md="4" lg="2">
+        <MudItem xs="12" sm="6" md="4" lg="3">
             <EnterpriseKpiCard Title="Expiring"
                                Value="@Snapshot.ExpiringQualifications.ToString()"
                                Status="30 Days"
                                ChipColor="Color.Warning"
                                Icon="@Icons.Material.Filled.Schedule"
                                IconColor="Color.Warning" />
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="4" lg="3">
+            <EnterpriseKpiCard Title="Missing Documents"
+                               Value="@Snapshot.MissingDocuments.ToString()"
+                               Status="Required"
+                               ChipColor="Color.Info"
+                               Icon="@Icons.Material.Filled.FolderOpen"
+                               IconColor="Color.Info" />
         </MudItem>
 
     </MudGrid>
@@ -67,4 +85,20 @@
 {
     [Parameter]
     public QualitySnapshot? Snapshot { get; set; }
+
+    private Color GetComplianceColor()
+    {
+        if (Snapshot == null)
+            return Color.Default;
+
+        return Snapshot.ComplianceRating switch
+        {
+            "Excellent" => Color.Success,
+            "Good" => Color.Primary,
+            "Acceptable" => Color.Warning,
+            "High Risk" => Color.Warning,
+            "Critical" => Color.Error,
+            _ => Color.Default
+        };
+    }
 }

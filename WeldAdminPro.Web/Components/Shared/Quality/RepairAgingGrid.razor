@@ -1,0 +1,86 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Quality.Models
+
+@if (Snapshot is null)
+{
+    <MudAlert Severity="Severity.Info">
+        No repair information available.
+    </MudAlert>
+}
+else
+{
+    <MudTable Items="_repairs"
+              Dense="true"
+              Hover="true"
+              Striped="true"
+              Elevation="0">
+
+        <HeaderContent>
+            <MudTh>Repair No</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh Class="text-end">Days Open</MudTh>
+            <MudTh>Overdue</MudTh>
+        </HeaderContent>
+
+        <RowTemplate>
+            <MudTd>@context.Number</MudTd>
+            <MudTd>@context.Status</MudTd>
+            <MudTd Class="text-end">@context.DaysOpen</MudTd>
+
+            <MudTd>
+
+                @if (context.Overdue)
+                {
+                    <MudChip T="string"
+                             Color="Color.Error"
+                             Variant="Variant.Filled"
+                             Size="Size.Small"
+                             Icon="@Icons.Material.Filled.Warning">
+                        Overdue
+                    </MudChip>
+                }
+                else
+                {
+                    <MudChip T="string"
+                             Color="Color.Success"
+                             Variant="Variant.Outlined"
+                             Size="Size.Small"
+                             Icon="@Icons.Material.Filled.CheckCircle">
+                        On Time
+                    </MudChip>
+                }
+
+            </MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+}
+
+@code
+{
+    [Parameter]
+    public QualitySnapshot? Snapshot { get; set; }
+
+    private readonly List<RepairRow> _repairs = new();
+
+    protected override void OnParametersSet()
+    {
+        _repairs.Clear();
+
+        if (Snapshot is null)
+            return;
+
+        // Temporary sample data
+
+        _repairs.Add(new("REP-0001", "Open", 14, true));
+        _repairs.Add(new("REP-0002", "Awaiting Inspection", 6, false));
+        _repairs.Add(new("REP-0003", "Closed", 2, false));
+    }
+
+    private sealed record RepairRow(
+        string Number,
+        string Status,
+        int DaysOpen,
+        bool Overdue);
+}

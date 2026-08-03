@@ -200,6 +200,109 @@ WHERE ProjectId = $projectId;";
         }
 
         // =====================================================
+        // GET ALL
+        // =====================================================
+
+        public List<ProjectDocument> GetAll()
+        {
+            var list = new List<ProjectDocument>();
+
+            using var connection =
+                new SqliteConnection(_connectionString);
+
+            connection.Open();
+
+            RunMigrations(connection);
+
+            var cmd = connection.CreateCommand();
+
+            cmd.CommandText = @"
+SELECT
+    Id,
+    ProjectId,
+    DocumentType,
+    IsRequired,
+    IsUploaded,
+    FilePath,
+    UploadedDate,
+    IsApproved,
+    AllowMultiple,
+    ApprovedBy,
+    LastModifiedOn,
+    Category
+FROM ProjectDocuments;";
+
+            using var reader = cmd.ExecuteReader();
+
+            while (reader.Read())
+            {
+                var docType =
+                    reader.IsDBNull(2)
+                        ? "Unknown"
+                        : reader.GetString(2);
+
+                DateTime? uploadedDate = null;
+
+                if (!reader.IsDBNull(6))
+                {
+                    var raw = reader.GetString(6);
+
+                    if (DateTime.TryParse(raw, out var parsed))
+                        uploadedDate = parsed;
+                }
+
+                list.Add(new ProjectDocument
+                {
+                    Id = Guid.Parse(reader.GetString(0)),
+                    ProjectId = Guid.Parse(reader.GetString(1)),
+
+                    DocumentType = docType,
+                    DocumentName = docType,
+
+                    IsRequired =
+                        !reader.IsDBNull(3) &&
+                        reader.GetInt32(3) == 1,
+
+                    IsUploaded =
+                        !reader.IsDBNull(4) &&
+                        reader.GetInt32(4) == 1,
+
+                    FilePath =
+                        reader.IsDBNull(5)
+                            ? ""
+                            : reader.GetString(5),
+
+                    UploadedDate = uploadedDate,
+
+                    IsApproved =
+                        !reader.IsDBNull(7) &&
+                        reader.GetInt32(7) == 1,
+
+                    AllowMultiple =
+                        !reader.IsDBNull(8) &&
+                        reader.GetInt32(8) == 1,
+
+                    ApprovedBy =
+                        reader.IsDBNull(9)
+                            ? ""
+                            : reader.GetString(9),
+
+                    LastModifiedOn =
+                        reader.IsDBNull(10)
+                            ? null
+                            : DateTime.Parse(reader.GetString(10)),
+
+                    Category =
+                        reader.IsDBNull(11)
+                            ? ""
+                            : reader.GetString(11)
+                });
+            }
+
+            return list;
+        }
+
+        // =====================================================
         // ADD
         // =====================================================
 

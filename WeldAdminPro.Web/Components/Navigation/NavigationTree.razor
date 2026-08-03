@@ -1,0 +1,22 @@
+@using WeldAdminPro.Web.Models.Navigation
+@using WeldAdminPro.Web.Services.Navigation
+
+@inject NavigationService NavigationService
+
+@if (_nodes != null)
+{
+    @foreach (var node in _nodes)
+    {
+        <NavigationNodeView Node="node" />
+    }
+}
+
+@code
+{
+    private IReadOnlyList<NavigationNode>? _nodes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _nodes = await NavigationService.GetNavigationAsync();
+    }
+}

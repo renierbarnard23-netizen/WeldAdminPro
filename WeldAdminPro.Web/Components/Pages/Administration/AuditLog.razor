@@ -1,9 +1,14 @@
 @page "/administration/audit"
 
+@using Microsoft.AspNetCore.Authorization
+@using WeldAdminPro.Core.Security
+
 @using MudBlazor
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services
 
+
+@attribute [Authorize(Policy = "Permission:Administration.AuditLog")]
 @inject AdministrationApplicationService AdministrationService
 
 <PageTitle>Audit Log</PageTitle>
