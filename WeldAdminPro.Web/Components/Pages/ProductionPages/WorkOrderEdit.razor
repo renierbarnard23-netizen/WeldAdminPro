@@ -1,5 +1,6 @@
 @page "/production/workorders/edit/{Id:guid}"
 
+@attribute [Authorize(Policy = "Permission:Production.EditWorkOrder")]
 @using MudBlazor
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Production

@@ -1,5 +1,6 @@
 @page "/inventory/{Id:guid}"
 
+@attribute [Authorize(Policy = "Permission:Inventory.View")]
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Inventory
 @using WeldAdminPro.Web.Components.Shared.Inventory

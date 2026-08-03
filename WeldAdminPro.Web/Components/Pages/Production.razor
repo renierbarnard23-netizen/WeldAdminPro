@@ -1,5 +1,6 @@
 @page "/production"
 
+@attribute [Authorize(Policy = "Permission:Production.View")]
 @using MudBlazor
 @using WeldAdminPro.Data.Services.ProductionEngine
 @using WeldAdminPro.Web.Components.Dashboard

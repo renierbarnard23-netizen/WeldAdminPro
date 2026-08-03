@@ -1,5 +1,6 @@
 @page "/inventory/stockout"
 
+@attribute [Authorize(Policy = "Permission:Inventory.StockOut")]
 @using MudBlazor
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Inventory

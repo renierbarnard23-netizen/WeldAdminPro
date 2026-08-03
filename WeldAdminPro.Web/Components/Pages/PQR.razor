@@ -1,5 +1,6 @@
 @page "/quality/pqr"
 
+@attribute [Authorize(Policy = "Permission:Quality.PQR")]
 @using WeldAdminPro.Core.Quality
 @using WeldAdminPro.Web.Services.Quality
 @using Microsoft.AspNetCore.Components.Forms

@@ -1,5 +1,6 @@
 @page "/inventory/new"
 
+@attribute [Authorize(Policy = "Permission:Inventory.Create")]
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Inventory
 @using WeldAdminPro.Web.Components.Shared.Inventory

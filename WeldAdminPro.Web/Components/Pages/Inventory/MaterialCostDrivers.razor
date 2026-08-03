@@ -1,5 +1,6 @@
 @page "/inventory/material-cost-drivers"
 
+@attribute [Authorize(Policy = "Permission:Inventory.Forecast")]
 @using MudBlazor
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Inventory

@@ -1,5 +1,6 @@
 @page "/quality/weld-register/{ProjectId:guid}"
 
+@attribute [Authorize(Policy = "Permission:Quality.WeldRegister")]
 @using MudBlazor
 @using WeldAdminPro.Web.Components.Shared.WeldRegister
 

@@ -1,5 +1,6 @@
 @page "/production/settings"
 
+@attribute [Authorize(Policy = "Permission:Administration.Settings")]
 @using MudBlazor
 @using ProductionSettingsModel = WeldAdminPro.Core.Models.ProductionSettings
 @using WeldAdminPro.Data.Services

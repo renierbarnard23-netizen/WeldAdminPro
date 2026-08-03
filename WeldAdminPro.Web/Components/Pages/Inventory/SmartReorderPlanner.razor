@@ -1,5 +1,6 @@
 @page "/inventory/smart-reorder"
 
+@attribute [Authorize(Policy = "Permission:Inventory.Forecast")]
 @using MudBlazor
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Inventory

@@ -1,5 +1,6 @@
 @page "/quality"
 
+@attribute [Authorize(Policy = "Permission:Quality.View")]
 @using MudBlazor
 @inject ISnackbar Snackbar
 @using WeldAdminPro.Web.Components.Shared.Quality

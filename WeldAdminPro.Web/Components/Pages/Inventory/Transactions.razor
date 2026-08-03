@@ -1,5 +1,6 @@
 @page "/inventory/transactions"
 
+@attribute [Authorize(Policy = "Permission:Inventory.View")]
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Repositories
 

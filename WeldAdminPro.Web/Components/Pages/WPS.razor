@@ -1,5 +1,6 @@
 @page "/quality/wps"
 
+@attribute [Authorize(Policy = "Permission:Quality.WPS")]
 @using System.IO;
 @using MudBlazor
 @using WeldAdminPro.Core.Quality

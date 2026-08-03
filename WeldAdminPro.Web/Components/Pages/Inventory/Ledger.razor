@@ -1,5 +1,6 @@
 @page "/inventory/ledger"
 
+@attribute [Authorize(Policy = "Permission:Inventory.View")]
 @using MudBlazor
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Inventory

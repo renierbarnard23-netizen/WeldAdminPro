@@ -1,5 +1,6 @@
 @page "/inventory/stockin"
 
+@attribute [Authorize(Policy = "Permission:Inventory.StockIn")]
 @using MudBlazor
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Inventory

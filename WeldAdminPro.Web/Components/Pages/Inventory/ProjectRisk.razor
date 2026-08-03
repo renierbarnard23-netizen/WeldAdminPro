@@ -1,5 +1,6 @@
 @page "/inventory/projectrisk"
 
+@attribute [Authorize(Policy = "Permission:Inventory.Forecast")]
 @using MudBlazor
 @using WeldAdminPro.Core.Analytics.Executive
 @using WeldAdminPro.Data.Services.Inventory

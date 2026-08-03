@@ -1,5 +1,6 @@
 @page "/production/workorders/new"
 
+@attribute [Authorize(Policy = "Permission:Production.CreateWorkOrder")]
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Production
 @using MudBlazor

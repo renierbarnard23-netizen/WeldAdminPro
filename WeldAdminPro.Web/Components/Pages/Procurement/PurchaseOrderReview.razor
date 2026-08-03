@@ -1,5 +1,6 @@
 @page "/procurement/purchase-orders/{Id:guid}"
 
+@attribute [Authorize(Policy = "Permission:Procurement.EditPO")]
 @using MudBlazor
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Procurement

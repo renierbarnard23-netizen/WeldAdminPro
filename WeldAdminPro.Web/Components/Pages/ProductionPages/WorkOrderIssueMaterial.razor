@@ -1,5 +1,6 @@
 @page "/production/workorders/issue/{Id:guid}"
 
+@attribute [Authorize(Policy = "Permission:Production.IssueMaterial")]
 @using MudBlazor
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Production
