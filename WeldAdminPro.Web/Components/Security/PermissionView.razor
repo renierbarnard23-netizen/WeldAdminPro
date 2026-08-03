@@ -1,6 +1,6 @@
-@using WeldAdminPro.Web.Services.Security
+@using WeldAdminPro.Core.Security.Abstractions
 
-@inject UserContextService UserContext
+@inject ICurrentUserContext UserContext
 @inject WeldAdminPro.Data.Services.Security.PermissionAuthorizationService PermissionAuthorization
 
 @if (_hasPermission)
@@ -25,12 +25,12 @@
         if (!UserContext.IsAuthenticated)
             return;
 
-        if (string.IsNullOrWhiteSpace(UserContext.CurrentRole))
+        if (string.IsNullOrWhiteSpace(UserContext.Role))
             return;
 
         _hasPermission =
             await PermissionAuthorization.HasPermissionAsync(
-                UserContext.CurrentRole,
+                UserContext.Role,
                 Permission);
     }
 }

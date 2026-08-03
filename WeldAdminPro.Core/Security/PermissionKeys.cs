@@ -59,6 +59,7 @@ public static class PermissionKeys
         public const string WeldRegister = "Quality.WeldRegister";
         public const string Repairs = "Quality.Repairs";
         public const string NDT = "Quality.NDT";
+        public const string HoldPointApproval = "Quality.HoldPointApproval";
         public const string Export = "Quality.Export";
     }
 

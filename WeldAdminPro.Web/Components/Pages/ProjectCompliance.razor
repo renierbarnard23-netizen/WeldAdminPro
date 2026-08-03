@@ -1,5 +1,8 @@
 @page "/projects/compliance"
 
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "Permission:Projects.Compliance")]
+
 @using MudBlazor
 @using WeldAdminPro.Core.Analytics.Executive
 @using WeldAdminPro.Data.Repositories

@@ -1,6 +1,5 @@
 using Dapper;
 using Microsoft.Data.Sqlite;
-using WeldAdminPro.Core.Enums;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Core.Quality.Enums;
 using WeldAdminPro.Core.Services;
@@ -1071,12 +1070,7 @@ CREATE TABLE IF NOT EXISTS DocumentVaultFiles
                 IX_DocumentVaultFiles_WeldId
                 ON DocumentVaultFiles(WeldId);");
 
-            // ===================================== 
-            // SEED DEFAULT ADMIN 
-            // =====================================
-
-            SeedDefaultAdmin();
-
+            
         }
 
         // =========================
@@ -1099,49 +1093,7 @@ CREATE TABLE IF NOT EXISTS DocumentVaultFiles
             using var alterCmd = connection.CreateCommand();
             alterCmd.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {type};";
             alterCmd.ExecuteNonQuery();
-        }
-
-        private static void SeedDefaultAdmin()
-        {
-            var repository =
-                new SystemUserRepository(
-                    DatabasePath.GetConnectionString());
-
-            var existing =
-                repository.GetByUsername(
-                    "admin");
-
-            if (existing != null)
-            {
-                return;
-            }
-
-            var hashService =
-                new PasswordHashService();
-
-            repository.Add(
-                new SystemUser
-                {
-                    Id = Guid.NewGuid(),
-
-                    Username = "admin",
-
-                    FullName =
-                        "System Administrator",
-
-                    PasswordHash =
-                        hashService.Hash(
-                            "admin123"),
-
-                    Role =
-                        SystemRole.Admin,
-
-                    IsActive = true,
-
-                    CreatedDate =
-                        DateTime.UtcNow
-                });
-        }
+        }        
 
         private static void CreateReservedMaterialsTable(
     SqliteConnection connection)

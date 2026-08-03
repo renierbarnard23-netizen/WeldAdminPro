@@ -1,7 +1,6 @@
 using Dapper;
 using Microsoft.Data.Sqlite;
 using WeldAdminPro.Core.Security.Catalog;
-using System.Linq;
 
 namespace WeldAdminPro.Data.Services.Security;
 
@@ -15,36 +14,54 @@ public static class SecuritySeeder
     }
 
     private static void SeedRoles(
-    SqliteConnection connection)
+        SqliteConnection connection)
     {
         foreach (var role in RoleCatalog.All)
         {
-            var exists = connection.ExecuteScalar<int>(
-                @"SELECT COUNT(*)
-              FROM Roles
-              WHERE Name=@Name",
-                new
-                {
-                    role.Name
-                });
+            var existingId =
+                connection.ExecuteScalar<int?>(
+                    @"
+SELECT Id
+FROM Roles
+WHERE Name = @Name",
+                    new
+                    {
+                        role.Name
+                    });
 
-            if (exists > 0)
+            if (existingId.HasValue)
+            {
+                connection.Execute(
+                    @"
+UPDATE Roles
+SET
+    Description = @Description,
+    IsSystemRole = @IsSystemRole
+WHERE Id = @Id",
+                    new
+                    {
+                        Id = existingId.Value,
+                        role.Description,
+                        IsSystemRole = role.IsSystemRole ? 1 : 0
+                    });
+
                 continue;
+            }
 
             connection.Execute(
                 @"
-            INSERT INTO Roles
-                (
-                    Name,
-                    Description,
-                    IsSystemRole
-                )
-            VALUES
-                (
-                    @Name,
-                    @Description,
-                    @IsSystemRole
-                )",
+INSERT INTO Roles
+(
+    Name,
+    Description,
+    IsSystemRole
+)
+VALUES
+(
+    @Name,
+    @Description,
+    @IsSystemRole
+)",
                 new
                 {
                     role.Name,
@@ -55,21 +72,41 @@ public static class SecuritySeeder
     }
 
     private static void SeedPermissions(
-    SqliteConnection connection)
+        SqliteConnection connection)
     {
         foreach (var permission in PermissionCatalog.All)
         {
-            var exists = connection.ExecuteScalar<int>(
-                @"SELECT COUNT(*)
-              FROM Permissions
-              WHERE PermissionKey=@PermissionKey",
-                new
-                {
-                    PermissionKey = permission.Key
-                });
+            var existingId =
+                connection.ExecuteScalar<int?>(
+                    @"
+SELECT Id
+FROM Permissions
+WHERE PermissionKey = @PermissionKey",
+                    new
+                    {
+                        PermissionKey = permission.Key
+                    });
 
-            if (exists > 0)
+            if (existingId.HasValue)
+            {
+                connection.Execute(
+                    @"
+UPDATE Permissions
+SET
+    PermissionGroup = @PermissionGroup,
+    Name = @Name,
+    Description = @Description
+WHERE Id = @Id",
+                    new
+                    {
+                        Id = existingId.Value,
+                        PermissionGroup = permission.Group,
+                        permission.Name,
+                        permission.Description
+                    });
+
                 continue;
+            }
 
             connection.Execute(
                 @"
@@ -98,58 +135,84 @@ VALUES
     }
 
     private static void SeedRolePermissions(
-    SqliteConnection connection)
+        SqliteConnection connection)
     {
-        // Get Administrator Role Id
-        var administratorRoleId =
-            connection.ExecuteScalar<int?>(
-                @"SELECT Id
-              FROM Roles
-              WHERE Name = 'Administrator'");
-
-        if (administratorRoleId == null)
-            return;
-
-        // Get every permission
-        var permissions =
-            connection.Query<int>(
-                @"SELECT Id
-              FROM Permissions")
-            .ToList();
-
-        foreach (var permissionId in permissions)
+        foreach (var roleEntry in RolePermissionCatalog.All)
         {
-            var exists =
-                connection.ExecuteScalar<int>(
-                    @"SELECT COUNT(*)
-                  FROM RolePermissions
-                  WHERE RoleId=@RoleId
-                  AND PermissionId=@PermissionId",
+            var roleName = roleEntry.Key;
+            var permissionKeys = roleEntry.Value;
+
+            var roleId =
+                connection.ExecuteScalar<int?>(
+                    @"
+SELECT Id
+FROM Roles
+WHERE Name = @RoleName",
                     new
                     {
-                        RoleId = administratorRoleId,
-                        PermissionId = permissionId
+                        RoleName = roleName
                     });
 
-            if (exists > 0)
-                continue;
+            if (!roleId.HasValue)
+            {
+                Console.WriteLine(
+                    $"Security seed warning: role '{roleName}' was not found.");
 
+                continue;
+            }
+
+            // System role permissions are defined by
+            // RolePermissionCatalog, so rebuild them
+            // from the authoritative permission matrix.
             connection.Execute(
-                @"INSERT INTO RolePermissions
-            (
-                RoleId,
-                PermissionId
-            )
-            VALUES
-            (
-                @RoleId,
-                @PermissionId
-            )",
+                @"
+DELETE FROM RolePermissions
+WHERE RoleId = @RoleId",
                 new
                 {
-                    RoleId = administratorRoleId,
-                    PermissionId = permissionId
+                    RoleId = roleId.Value
                 });
+
+            foreach (var permissionKey in permissionKeys.Distinct())
+            {
+                var permissionId =
+                    connection.ExecuteScalar<int?>(
+                        @"
+SELECT Id
+FROM Permissions
+WHERE PermissionKey = @PermissionKey",
+                        new
+                        {
+                            PermissionKey = permissionKey
+                        });
+
+                if (!permissionId.HasValue)
+                {
+                    Console.WriteLine(
+                        $"Security seed warning: permission '{permissionKey}' " +
+                        $"for role '{roleName}' was not found.");
+
+                    continue;
+                }
+
+                connection.Execute(
+                    @"
+INSERT INTO RolePermissions
+(
+    RoleId,
+    PermissionId
+)
+VALUES
+(
+    @RoleId,
+    @PermissionId
+)",
+                    new
+                    {
+                        RoleId = roleId.Value,
+                        PermissionId = permissionId.Value
+                    });
+            }
         }
     }
 }

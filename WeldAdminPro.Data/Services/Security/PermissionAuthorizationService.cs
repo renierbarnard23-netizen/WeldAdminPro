@@ -1,9 +1,10 @@
-using WeldAdminPro.Core.Security.Models;
+using WeldAdminPro.Core.Security.Abstractions;
 using WeldAdminPro.Data.Repositories.Security;
 
 namespace WeldAdminPro.Data.Services.Security;
 
 public class PermissionAuthorizationService
+    : IPermissionAuthorizationService
 {
     private readonly RoleRepository _roleRepository;
     private readonly PermissionRepository _permissionRepository;
@@ -23,8 +24,8 @@ public class PermissionAuthorizationService
     }
 
     public async Task<bool> HasPermissionAsync(
-    string roleName,
-    string permissionKey)
+        string roleName,
+        string permissionKey)
     {
         var role =
             await _roleRepository.GetByNameAsync(roleName);
@@ -33,7 +34,8 @@ public class PermissionAuthorizationService
             return false;
 
         var permission =
-            await _permissionRepository.GetByKeyAsync(permissionKey);
+            await _permissionRepository.GetByKeyAsync(
+                permissionKey);
 
         if (permission == null)
             return false;
@@ -42,6 +44,7 @@ public class PermissionAuthorizationService
             await _rolePermissionRepository
                 .GetPermissionIdsAsync(role.Id);
 
-        return permissionIds.Contains(permission.Id);
+        return permissionIds.Contains(
+            permission.Id);
     }
 }

@@ -1,5 +1,8 @@
 @page "/projects/risk"
 
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "Permission:Projects.Risk")]
+
 @using WeldAdminPro.Core.Analytics.Executive
 @using WeldAdminPro.Data.Services
 

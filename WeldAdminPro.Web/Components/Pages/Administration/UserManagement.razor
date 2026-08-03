@@ -7,12 +7,15 @@
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services
 @using WeldAdminPro.Web.Components.Shared.Administration
-@using WeldAdminPro.Core.Enums
+
+@using WeldAdminPro.Core.Security.Models
+@using WeldAdminPro.Data.Repositories.Security
 
 @using WeldAdminPro.Web.Services.Security
 
-@attribute [Authorize(Roles = "Administrator")]
+@attribute [Authorize(Policy = "Permission:Administration.Users")]
 @inject AdministrationApplicationService AdministrationService
+@inject RoleRepository RoleRepository
 
 @inject UserContextService UserContext
 @inject WeldAdminPro.Data.Services.Security.PermissionAuthorizationService PermissionAuthorization
@@ -103,7 +106,7 @@ else
 
             <MudTd>@context.Username</MudTd>
             <MudTd>@context.FullName</MudTd>
-            <MudTd>@context.Role</MudTd>
+            <MudTd>@context.RoleName</MudTd>
             <MudTd>@(context.IsActive ? "Yes" : "No")</MudTd>
 
         </RowTemplate>
@@ -115,7 +118,8 @@ else
     {
         <MudSpacer />
 
-        <UserEditor User="_editingUser!"
+    <UserEditor User="_editingUser!"
+                Roles="_roles"
                 OnSave="SaveUser" />
     }
 
@@ -163,6 +167,9 @@ else
     private SystemUser? _selectedUser;    
     private SystemUser? _editingUser;
 
+    private IReadOnlyList<Role> _roles =
+            Array.Empty<Role>();
+
     private bool _showPasswordEditor;
 
     private string _newPassword = string.Empty;
@@ -172,8 +179,12 @@ else
     private bool _showEditor;
     private bool _isNewUser;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        _roles =
+            (await RoleRepository.GetAllAsync())
+            .ToList();
+
         LoadUsers();
     }
 
@@ -210,9 +221,13 @@ else
             Id = _selectedUser.Id,
             Username = _selectedUser.Username,
             FullName = _selectedUser.FullName,
-            Role = _selectedUser.Role,
+            Email = _selectedUser.Email,
+            RoleId = _selectedUser.RoleId,
+            RoleName = _selectedUser.RoleName,
             IsActive = _selectedUser.IsActive,
-            PasswordHash = _selectedUser.PasswordHash
+            PasswordHash = _selectedUser.PasswordHash,
+            CreatedDate = _selectedUser.CreatedDate,
+            LastLoginDate = _selectedUser.LastLoginDate
         };
 
         _showEditor = true;
@@ -234,14 +249,23 @@ else
 
     private void AddUser()
     {
+        var viewerRole =
+    _roles.FirstOrDefault(x =>
+        string.Equals(
+            x.Name,
+            "Viewer",
+            StringComparison.OrdinalIgnoreCase));
+
         _editingUser = new SystemUser
         {
-        Id = Guid.NewGuid(),
-        Username = "",
-        FullName = "",
-        Role = SystemRole.Viewer,
-        IsActive = true,
-        PasswordHash = ""
+            Id = Guid.NewGuid(),
+            Username = "",
+            FullName = "",
+            RoleId = viewerRole?.Id ?? 0,
+            RoleName = viewerRole?.Name ?? "",
+            IsActive = true,
+            PasswordHash = "",
+            CreatedDate = DateTime.UtcNow
         };
 
         _isNewUser = true;

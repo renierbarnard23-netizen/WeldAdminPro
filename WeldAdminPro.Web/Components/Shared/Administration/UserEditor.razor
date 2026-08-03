@@ -1,6 +1,6 @@
 @using MudBlazor
 @using WeldAdminPro.Core.Models
-@using WeldAdminPro.Core.Enums
+@using WeldAdminPro.Core.Security.Models
 
 <MudPaper Class="pa-4" Elevation="2">
 
@@ -26,14 +26,15 @@
 
         <MudItem xs="12" md="6">
 
-            <MudSelect T="SystemRole"
+            <MudSelect T="int"
                        Label="Role"
-                       @bind-Value="User.Role">
+                       @bind-Value="User.RoleId">
 
-                @foreach (var role in Enum.GetValues<SystemRole>())
+                @foreach (var role in Roles)
                 {
-                    <MudSelectItem Value="@role">
-                        @role
+                    <MudSelectItem T="int"
+                                   Value="@role.Id">
+                        @role.Name
                     </MudSelectItem>
                 }
 
@@ -66,6 +67,10 @@
 {
     [Parameter]
     public SystemUser User { get; set; } = new();
+
+    [Parameter]
+    public IReadOnlyList<Role> Roles { get; set; } =
+        Array.Empty<Role>();
 
     [Parameter]
     public EventCallback OnSave { get; set; }

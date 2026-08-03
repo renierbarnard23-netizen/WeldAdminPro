@@ -1,28 +1,37 @@
 using System;
 using WeldAdminPro.Core.Models;
-using WeldAdminPro.Core.Services;
+using WeldAdminPro.Core.Security.Abstractions;
 using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.Data.Services
 {
-    public static class AuditService
+    public class AuditService
     {
-        public static void Log(
+        private readonly AuditLogRepository _repository;
+        private readonly ICurrentUserContext _currentUser;
+
+        public AuditService(
+            ICurrentUserContext currentUser)
+        {
+            _currentUser = currentUser;
+
+            _repository =
+                new AuditLogRepository(
+                    DatabasePath.GetConnectionString());
+        }
+
+        public void Log(
             string action,
             string module,
             string details)
         {
-            var repository =
-                new AuditLogRepository(
-                    DatabasePath.GetConnectionString());
-
             var log =
                 new AuditLog
                 {
                     Id = Guid.NewGuid(),
 
                     Username =
-                        CurrentUserContext.Username,
+                        _currentUser.Username,
 
                     Action = action,
 
@@ -33,7 +42,7 @@ namespace WeldAdminPro.Data.Services
                     Timestamp = DateTime.UtcNow
                 };
 
-            repository.Add(log);
+            _repository.Add(log);
         }
     }
 }

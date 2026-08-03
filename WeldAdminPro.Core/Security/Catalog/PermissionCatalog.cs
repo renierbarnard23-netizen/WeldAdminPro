@@ -215,6 +215,11 @@ public static class PermissionCatalog
             "NDT",
             "Manage NDT"),
         new(
+            PermissionKeys.Quality.HoldPointApproval,
+            PermissionGroups.Quality,
+            "Hold Point Approval",
+            "Approve and reject quality hold points"),
+        new(
             PermissionKeys.Quality.Export,
             PermissionGroups.Quality,
             "Export",

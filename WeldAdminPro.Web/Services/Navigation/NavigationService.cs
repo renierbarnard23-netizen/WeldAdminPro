@@ -2,17 +2,18 @@ using WeldAdminPro.Core.Security;
 using WeldAdminPro.Web.Models.Navigation;
 using WeldAdminPro.Web.Services.Security;
 using WeldAdminPro.Data.Services.Security;
+using WeldAdminPro.Core.Security.Abstractions;
 
 namespace WeldAdminPro.Web.Services.Navigation;
 
 public class NavigationService
 {
 
-    private readonly UserContextService _userContext;
+    private readonly ICurrentUserContext _userContext;
     private readonly PermissionAuthorizationService _permissionAuthorization;
 
     public NavigationService(
-    UserContextService userContext,
+    ICurrentUserContext userContext,
     PermissionAuthorizationService permissionAuthorization)
     {
         _userContext = userContext;
@@ -305,7 +306,7 @@ public class NavigationService
             {
                 allowed = false;
             }
-            else if (string.IsNullOrWhiteSpace(_userContext.CurrentRole))
+            else if (string.IsNullOrWhiteSpace(_userContext.Role))
             {
                 allowed = false;
             }
@@ -313,7 +314,7 @@ public class NavigationService
             {
                 allowed =
                     await _permissionAuthorization.HasPermissionAsync(
-                        _userContext.CurrentRole,
+                        _userContext.Role,
                         node.Permission);
             }
         }

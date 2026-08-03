@@ -1,5 +1,4 @@
 using System;
-using WeldAdminPro.Core.Enums;
 
 namespace WeldAdminPro.Core.Models
 {
@@ -16,7 +15,13 @@ namespace WeldAdminPro.Core.Models
 
         public string PasswordHash { get; set; } = "";
 
-        public SystemRole Role { get; set; }
+        // ============================================
+        // DATABASE ROLE ARCHITECTURE
+        // ============================================
+
+        public int RoleId { get; set; }
+
+        public string RoleName { get; set; } = "";
 
         public bool IsActive { get; set; } = true;
 

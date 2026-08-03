@@ -12,9 +12,12 @@ namespace WeldAdminPro.Data.Services
         private readonly AuditLogRepository _auditRepository;
         private readonly ProductionSettingsRepository _settingsRepository;
         private readonly PasswordHashService _passwordHashService;
+        private readonly AuditService _auditService;
 
-        public AdministrationApplicationService()
+        public AdministrationApplicationService(
+            AuditService auditService)
         {
+            _auditService = auditService;
             var connectionString = DatabasePath.GetConnectionString();
 
             _userRepository = new SystemUserRepository(connectionString);
@@ -40,7 +43,7 @@ namespace WeldAdminPro.Data.Services
         {
             _userRepository.Update(user);
 
-            AuditService.Log(
+            _auditService.Log(
                 "EDIT USER",
                 "User Management",
                 $"Edited user: {user.Username}");
@@ -57,7 +60,7 @@ namespace WeldAdminPro.Data.Services
 
             _userRepository.Update(user);
 
-            AuditService.Log(
+            _auditService.Log(
                 "ENABLE USER",
                 "User Management",
                 $"Enabled user: {user.Username}");
@@ -74,7 +77,7 @@ namespace WeldAdminPro.Data.Services
 
             _userRepository.Update(user);
 
-            AuditService.Log(
+            _auditService.Log(
                 "DISABLE USER",
                 "User Management",
                 $"Disabled user: {user.Username}");
@@ -91,7 +94,7 @@ namespace WeldAdminPro.Data.Services
 
             _userRepository.Update(user);
 
-            AuditService.Log(
+            _auditService.Log(
                 "RESET PASSWORD",
                 "User Management",
                 $"Password reset for: {user.Username}");
@@ -111,7 +114,7 @@ namespace WeldAdminPro.Data.Services
 
             _userRepository.Update(user);
 
-            AuditService.Log(
+            _auditService.Log(
                 "CHANGE PASSWORD",
                 "User Management",
                 $"Password changed for: {user.Username}");
@@ -127,7 +130,7 @@ namespace WeldAdminPro.Data.Services
 
             _userRepository.Add(user);
 
-            AuditService.Log(
+            _auditService.Log(
                 "CREATE USER",
                 "User Management",
                 $"Created user: {user.Username}");
@@ -142,7 +145,7 @@ namespace WeldAdminPro.Data.Services
         {
             _settingsRepository.Save(settings);
 
-            AuditService.Log(
+            _auditService.Log(
                 "UPDATE PRODUCTION SETTINGS",
                 "Administration",
                 "Production settings updated.");

@@ -61,6 +61,34 @@ namespace WeldAdminPro.Data.Services
             {
                 ApplyVersion5(connection);
             }
+
+            if (currentVersion < 6)
+            {
+                ApplyVersion6(connection);
+            }
+
+            if (currentVersion < 7)
+            {
+                ApplyVersion7(connection);
+            }
+
+            // =====================================
+            // SECURITY CATALOG SYNCHRONIZATION
+            // =====================================
+            //
+            // Roles, permissions and the system-role permission
+            // matrix are application reference data rather than
+            // database schema. Synchronize them on startup so
+            // changes to the security catalogue are applied to
+            // existing databases as well.
+            //
+            if (TableExists(connection, "Roles") &&
+                TableExists(connection, "Permissions") &&
+                TableExists(connection, "RolePermissions") &&
+                TableExists(connection, "UserPermissions"))
+            {
+                SecuritySeeder.Seed(connection);
+            }
         }
 
         // =====================================
@@ -446,7 +474,270 @@ CREATE TABLE UserPermissions
 
     UNIQUE(UserId, PermissionId)
 );");
-        }               
+        }
+
+
+        // =====================================
+        // VERSION 6
+        // Database-backed System User Roles
+        // =====================================
+
+        private void ApplyVersion6(
+            SqliteConnection connection)
+        {
+            // Ensure the enterprise security catalogue is
+            // available before mapping legacy user roles.
+            SecuritySeeder.Seed(connection);
+
+            // Keep the legacy Role column during the
+            // transition. RoleId becomes the new role link.
+            TryAddColumn(
+                connection,
+                "SystemUsers",
+                "RoleId",
+                "INTEGER");
+
+            // =====================================
+            // LEGACY SYSTEMROLE -> ROLES TABLE
+            // =====================================
+            //
+            // Legacy values:
+            //
+            // 0 = Viewer
+            // 1 = Welder
+            // 2 = QC
+            // 3 = QA
+            // 4 = Supervisor
+            // 5 = WeldingCoordinator
+            // 6 = QualityManager
+            // 7 = OperationsManager
+            // 8 = StoreController
+            // 9 = Admin
+            //
+            // Resolve the new RoleId by role NAME rather
+            // than relying on database-generated IDs.
+            //
+
+            connection.Execute(
+                @"
+UPDATE SystemUsers
+SET RoleId =
+    CASE Role
+
+        WHEN 0 THEN
+            (
+                SELECT Id
+                FROM Roles
+                WHERE Name = 'Viewer'
+            )
+
+        WHEN 1 THEN
+            (
+                SELECT Id
+                FROM Roles
+                WHERE Name = 'Welder'
+            )
+
+        WHEN 2 THEN
+            (
+                SELECT Id
+                FROM Roles
+                WHERE Name = 'QC Inspector'
+            )
+
+        WHEN 3 THEN
+            (
+                SELECT Id
+                FROM Roles
+                WHERE Name = 'QA Inspector'
+            )
+
+        WHEN 4 THEN
+            (
+                SELECT Id
+                FROM Roles
+                WHERE Name = 'Production Supervisor'
+            )
+
+        WHEN 5 THEN
+            (
+                SELECT Id
+                FROM Roles
+                WHERE Name = 'Welding Coordinator'
+            )
+
+        WHEN 6 THEN
+            (
+                SELECT Id
+                FROM Roles
+                WHERE Name = 'Quality Manager'
+            )
+
+        WHEN 7 THEN
+            (
+                SELECT Id
+                FROM Roles
+                WHERE Name = 'Operations Manager'
+            )
+
+        WHEN 8 THEN
+            (
+                SELECT Id
+                FROM Roles
+                WHERE Name = 'Store Controller'
+            )
+
+        WHEN 9 THEN
+            (
+                SELECT Id
+                FROM Roles
+                WHERE Name = 'Administrator'
+            )
+
+        ELSE NULL
+    END
+WHERE RoleId IS NULL;
+");
+
+            // =====================================
+            // MIGRATION VALIDATION
+            // =====================================
+
+            var unmappedUsers =
+                connection.ExecuteScalar<int>(
+                    @"
+SELECT COUNT(*)
+FROM SystemUsers
+WHERE RoleId IS NULL;
+");
+
+            if (unmappedUsers > 0)
+            {
+                throw new InvalidOperationException(
+                    $"Version 6 migration failed: " +
+                    $"{unmappedUsers} SystemUsers could not be mapped to Roles.");
+            }
+
+            RecordVersion(
+                connection,
+                6,
+                "1.5.0",
+                "Database-backed System User roles");
+        }
+
+
+        // =====================================
+        // VERSION 7
+        // Remove obsolete security roles
+        // =====================================
+
+        private void ApplyVersion7(
+            SqliteConnection connection)
+        {
+            // Ensure the authoritative security catalogue
+            // is synchronized before cleanup.
+            SecuritySeeder.Seed(connection);
+
+            // =====================================
+            // SAFETY VALIDATION
+            // =====================================
+            //
+            // Obsolete roles must never be deleted while
+            // they are still assigned to system users.
+            //
+
+            var assignedObsoleteUsers =
+                connection.ExecuteScalar<int>(
+                    @"
+SELECT COUNT(*)
+FROM SystemUsers u
+INNER JOIN Roles r
+    ON r.Id = u.RoleId
+WHERE r.Name IN
+(
+    'Production Manager',
+    'Project Manager',
+    'Engineer',
+    'Supervisor'
+);
+");
+
+            if (assignedObsoleteUsers > 0)
+            {
+                throw new InvalidOperationException(
+                    "Version 7 migration failed: " +
+                    $"{assignedObsoleteUsers} SystemUsers are still assigned " +
+                    "to obsolete security roles.");
+            }
+
+            // =====================================
+            // REMOVE OBSOLETE ROLE PERMISSIONS
+            // =====================================
+
+            connection.Execute(
+                @"
+DELETE FROM RolePermissions
+WHERE RoleId IN
+(
+    SELECT Id
+    FROM Roles
+    WHERE Name IN
+    (
+        'Production Manager',
+        'Project Manager',
+        'Engineer',
+        'Supervisor'
+    )
+);
+");
+
+            // =====================================
+            // REMOVE OBSOLETE ROLES
+            // =====================================
+
+            connection.Execute(
+                @"
+DELETE FROM Roles
+WHERE Name IN
+(
+    'Production Manager',
+    'Project Manager',
+    'Engineer',
+    'Supervisor'
+);
+");
+
+            // =====================================
+            // VALIDATE CLEANUP
+            // =====================================
+
+            var remainingObsoleteRoles =
+                connection.ExecuteScalar<int>(
+                    @"
+SELECT COUNT(*)
+FROM Roles
+WHERE Name IN
+(
+    'Production Manager',
+    'Project Manager',
+    'Engineer',
+    'Supervisor'
+);
+");
+
+            if (remainingObsoleteRoles > 0)
+            {
+                throw new InvalidOperationException(
+                    "Version 7 migration failed: " +
+                    $"{remainingObsoleteRoles} obsolete security roles remain.");
+            }
+
+            RecordVersion(
+                connection,
+                7,
+                "1.6.0",
+                "Removed obsolete security roles");
+        }
 
         // =====================================
         // SAFE COLUMN ADDER

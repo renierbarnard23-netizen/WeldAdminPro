@@ -1,5 +1,8 @@
 @page "/projects/costs"
 
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "Permission:Projects.Costs")]
+
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services
 

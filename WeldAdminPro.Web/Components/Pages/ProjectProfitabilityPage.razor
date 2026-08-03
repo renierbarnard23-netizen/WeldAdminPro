@@ -1,5 +1,8 @@
 @page "/projects/profitability"
 
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "Permission:Projects.Profitability")]
+
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services
 

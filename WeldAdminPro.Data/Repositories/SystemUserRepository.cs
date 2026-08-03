@@ -1,8 +1,6 @@
 using Dapper;
 using Microsoft.Data.Sqlite;
-using PdfSharpCore.Pdf.IO;
 using System.Linq;
-using WeldAdminPro.Core.Enums;
 using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Data.Repositories
@@ -18,10 +16,11 @@ namespace WeldAdminPro.Data.Repositories
                 connectionString;
         }
 
-public void Add(SystemUser user)
+        public void Add(SystemUser user)
         {
             using var connection =
-                new SqliteConnection(_connectionString);
+                new SqliteConnection(
+                    _connectionString);
 
             connection.Execute(
                 @"
@@ -33,6 +32,7 @@ INSERT INTO SystemUsers
     FullName,
     Email,
     Role,
+    RoleId,
     IsActive,
     CreatedDate,
     LastLoginDate
@@ -44,14 +44,16 @@ VALUES
     @PasswordHash,
     @FullName,
     @Email,
-    @Role,
+    0,
+    @RoleId,
     @IsActive,
     @CreatedDate,
     @LastLoginDate
 )",
                 new
                 {
-                    Id = user.Id.ToString(),
+                    Id =
+                        user.Id.ToString(),
 
                     user.Username,
 
@@ -61,7 +63,7 @@ VALUES
 
                     user.Email,
 
-                    Role = (int)user.Role,
+                    user.RoleId,
 
                     IsActive =
                         user.IsActive ? 1 : 0,
@@ -74,8 +76,8 @@ VALUES
                 });
         }
 
-public SystemUser? GetByUsername(
-    string username)
+        public SystemUser? GetByUsername(
+            string username)
         {
             using var connection =
                 new SqliteConnection(
@@ -84,9 +86,21 @@ public SystemUser? GetByUsername(
             var row =
                 connection.QueryFirstOrDefault(
                     @"
-SELECT *
-FROM SystemUsers
-WHERE Username = @Username",
+SELECT
+    u.Id,
+    u.Username,
+    u.PasswordHash,
+    u.FullName,
+    u.Email,
+    u.RoleId,
+    u.IsActive,
+    u.CreatedDate,
+    u.LastLoginDate,
+    r.Name AS RoleName
+FROM SystemUsers u
+LEFT JOIN Roles r
+    ON r.Id = u.RoleId
+WHERE u.Username = @Username",
                     new
                     {
                         Username = username
@@ -97,40 +111,10 @@ WHERE Username = @Username",
                 return null;
             }
 
-            return new SystemUser
-            {
-                Id =
-                    Guid.Parse(row.Id),
-
-                Username =
-                    row.Username,
-
-                PasswordHash =
-                    row.PasswordHash,
-
-                FullName =
-                    row.FullName,
-
-                Email =
-                    row.Email ?? "",
-
-                Role =
-                    (SystemRole)row.Role,
-
-                IsActive =
-                    row.IsActive == 1,
-
-                CreatedDate =
-                    DateTime.Parse(row.CreatedDate),
-
-                LastLoginDate =
-                    row.LastLoginDate != null
-                        ? DateTime.Parse(row.LastLoginDate)
-                        : null
-            };
+            return MapUser(row);
         }
 
-public List<SystemUser> GetAll()
+        public List<SystemUser> GetAll()
         {
             using var connection =
                 new SqliteConnection(
@@ -138,45 +122,29 @@ public List<SystemUser> GetAll()
 
             var rows =
                 connection.Query(
-                    "SELECT * FROM SystemUsers");
+                    @"
+SELECT
+    u.Id,
+    u.Username,
+    u.PasswordHash,
+    u.FullName,
+    u.Email,
+    u.RoleId,
+    u.IsActive,
+    u.CreatedDate,
+    u.LastLoginDate,
+    r.Name AS RoleName
+FROM SystemUsers u
+LEFT JOIN Roles r
+    ON r.Id = u.RoleId
+ORDER BY u.Username");
 
-            return rows.Select(row =>
-                new SystemUser
-                {
-                    Id =
-                        Guid.Parse(row.Id),
-
-                    Username =
-                        row.Username,
-
-                    PasswordHash =
-                        row.PasswordHash,
-
-                    FullName =
-                        row.FullName,
-
-                    Email =
-                        row.Email ?? "",
-
-                    Role =
-                        (SystemRole)row.Role,
-
-                    IsActive =
-                        row.IsActive == 1,
-
-                    CreatedDate =
-                        DateTime.Parse(row.CreatedDate),
-
-                    LastLoginDate =
-                        row.LastLoginDate != null
-                            ? DateTime.Parse(row.LastLoginDate)
-                            : null
-                })
+            return rows
+                .Select(MapUser)
                 .ToList();
         }
 
-
-public void Update(SystemUser user)
+        public void Update(SystemUser user)
         {
             using var connection =
                 new SqliteConnection(
@@ -190,7 +158,7 @@ SET
     PasswordHash = @PasswordHash,
     FullName = @FullName,
     Email = @Email,
-    Role = @Role,
+    RoleId = @RoleId,
     IsActive = @IsActive,
     LastLoginDate = @LastLoginDate
 WHERE Id = @Id",
@@ -207,8 +175,7 @@ WHERE Id = @Id",
 
                     user.Email,
 
-                    Role =
-                        (int)user.Role,
+                    user.RoleId,
 
                     IsActive =
                         user.IsActive ? 1 : 0,
@@ -218,6 +185,48 @@ WHERE Id = @Id",
                 });
         }
 
+        private static SystemUser MapUser(
+            dynamic row)
+        {
+            return new SystemUser
+            {
+                Id =
+                    Guid.Parse(
+                        (string)row.Id),
 
+                Username =
+                    row.Username,
+
+                PasswordHash =
+                    row.PasswordHash,
+
+                FullName =
+                    row.FullName,
+
+                Email =
+                    row.Email ?? "",
+
+                RoleId =
+                    row.RoleId == null
+                        ? 0
+                        : (int)(long)row.RoleId,
+
+                RoleName =
+                    row.RoleName ?? "",
+
+                IsActive =
+                    row.IsActive == 1,
+
+                CreatedDate =
+                    DateTime.Parse(
+                        (string)row.CreatedDate),
+
+                LastLoginDate =
+                    row.LastLoginDate != null
+                        ? DateTime.Parse(
+                            (string)row.LastLoginDate)
+                        : null
+            };
+        }
     }
 }

@@ -1,5 +1,8 @@
 @page "/projects"
 
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "Permission:Projects.View")]
+
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Projects
 @using MudBlazor

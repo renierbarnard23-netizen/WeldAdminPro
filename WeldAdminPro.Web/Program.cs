@@ -25,6 +25,7 @@ using WeldAdminPro.Data.Services.Security;
 using static WeldAdminPro.Web.Services.Quality.PqrApplicationService;
 using Microsoft.AspNetCore.Authorization;
 using WeldAdminPro.Web.Security.Authorization;
+using WeldAdminPro.Core.Security.Abstractions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -155,7 +156,9 @@ builder.Services.AddScoped<WorkOrderShortageDetectionService>();
 
 builder.Services.AddScoped<ProductionReadinessService>();
 
-builder.Services.AddSingleton<StockApplicationService>();
+builder.Services.AddScoped<StockApplicationService>();
+
+builder.Services.AddScoped<AuditService>();
 
 builder.Services.AddScoped<PurchaseOrderApplicationService>();
 
@@ -276,7 +279,7 @@ builder.Services.AddScoped<PqrNumberRecognitionService>();
 
 builder.Services.AddScoped<HeaderRecognitionService>();
 
-builder.Services.AddHttpContextAccessor();;
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddScoped<NavigationService>();
 
@@ -308,7 +311,19 @@ builder.Services.AddSingleton(
 
 builder.Services.AddScoped<UserContextService>();
 
-builder.Services.AddScoped<WeldAdminPro.Data.Services.Security.PermissionAuthorizationService>();
+builder.Services.AddScoped<ICurrentUserContext>(
+    sp => sp.GetRequiredService<UserContextService>());
+
+builder.Services.AddScoped<
+    WeldAdminPro.Data.Services.Security.PermissionAuthorizationService>();
+
+builder.Services.AddScoped<
+    WeldAdminPro.Core.Security.Abstractions.IPermissionAuthorizationService>(
+        sp => sp.GetRequiredService<
+            WeldAdminPro.Data.Services.Security.PermissionAuthorizationService>());
+
+builder.Services.AddScoped<
+    WeldAdminPro.Core.Quality.Services.HoldPointWorkflowService>();
 
 // --------------------------------------------------
 
@@ -327,6 +342,16 @@ var migrationService =
         DatabasePath.GetConnectionString());
 
 migrationService.ApplyMigrations();
+
+// --------------------------------------------------
+// Seed default administrator after security migrations
+// --------------------------------------------------
+
+var defaultAdminSeeder =
+    new WeldAdminPro.Data.Services.Security.DefaultAdminSeeder(
+        DatabasePath.GetConnectionString());
+
+await defaultAdminSeeder.SeedAsync();
 
 if (!app.Environment.IsDevelopment())
 {

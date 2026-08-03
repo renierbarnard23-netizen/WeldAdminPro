@@ -21,6 +21,7 @@ namespace WeldAdminPro.Data.Services.Inventory
         private readonly ExecutiveReportService _executiveReportService;
 
         private readonly AuditLogRepository _auditRepository;
+        private readonly AuditService _auditService;
 
         private readonly StockForecastService _stockForecastService;
 
@@ -31,8 +32,11 @@ namespace WeldAdminPro.Data.Services.Inventory
         private readonly SmartReorderPlannerService _smartReorderPlannerService;
 
         private readonly MaterialCostAnalysisService _materialCostService;
-        public StockApplicationService()
+        public StockApplicationService(
+            AuditService auditService)
         {
+            _auditService = auditService;
+
             _stockRepository = new StockRepository();
             _categoryRepository = new CategoryRepository();
 
@@ -195,7 +199,7 @@ namespace WeldAdminPro.Data.Services.Inventory
         {
             _stockRepository.AddTransaction(transaction);
 
-            AuditService.Log(
+            _auditService.Log(
                 "Receive Stock",
                 "Inventory",
                 transaction.StockItemId.ToString());
@@ -205,7 +209,7 @@ namespace WeldAdminPro.Data.Services.Inventory
         {
             _stockRepository.AddTransaction(transaction);
 
-            AuditService.Log(
+            _auditService.Log(
                 "Issue Stock",
                 "Inventory",
                 transaction.StockItemId.ToString());

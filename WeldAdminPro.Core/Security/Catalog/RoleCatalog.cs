@@ -12,38 +12,48 @@ public static class RoleCatalog
             true),
 
         new(
-            "Production Manager",
-            "Production planning and execution",
+            "Operations Manager",
+            "Operations management, production, projects and reporting",
             true),
 
         new(
             "Quality Manager",
-            "Quality management",
+            "Quality management and compliance",
             true),
 
         new(
-            "Project Manager",
-            "Project management",
+            "Welding Coordinator",
+            "Welding coordination, WPS, PQR and weld quality management",
+            true),
+
+        new(
+            "Production Supervisor",
+            "Production supervision and work order execution",
+            true),
+
+        new(
+            "QA Inspector",
+            "Quality assurance and compliance",
+            true),
+
+        new(
+            "QC Inspector",
+            "Quality control, inspection and weld register functions",
             true),
 
         new(
             "Store Controller",
-            "Inventory management",
+            "Inventory control, stock movement and goods receiving",
             true),
 
         new(
-            "Engineer",
-            "Engineering functions",
-            true),
-
-        new(
-            "Supervisor",
-            "Production supervision",
+            "Welder",
+            "Production execution and welding-related access",
             true),
 
         new(
             "Viewer",
-            "Read-only access",
+            "Read-only system access",
             true)
     ];
 }
