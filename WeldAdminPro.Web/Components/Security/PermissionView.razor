@@ -30,6 +30,7 @@
 
         _hasPermission =
             await PermissionAuthorization.HasPermissionAsync(
+                UserContext.UserId,
                 UserContext.Role,
                 Permission);
     }

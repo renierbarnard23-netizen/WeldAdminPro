@@ -90,6 +90,7 @@ namespace WeldAdminPro.Core.Quality.Services
             var hasPermission =
                 await _permissionAuthorization
                     .HasPermissionAsync(
+                        _currentUser.UserId,
                         _currentUser.Role,
                         PermissionKeys.Quality.HoldPointApproval);
 

@@ -1,3 +1,4 @@
+using System.Linq;
 using WeldAdminPro.Core.Security.Abstractions;
 using WeldAdminPro.Data.Repositories.Security;
 
@@ -24,20 +25,42 @@ public class PermissionAuthorizationService
     }
 
     public async Task<bool> HasPermissionAsync(
+        string userId,
         string roleName,
         string permissionKey)
     {
-        var role =
-            await _roleRepository.GetByNameAsync(roleName);
-
-        if (role == null)
+        if (string.IsNullOrWhiteSpace(userId) ||
+            string.IsNullOrWhiteSpace(roleName) ||
+            string.IsNullOrWhiteSpace(permissionKey))
+        {
             return false;
+        }
 
         var permission =
             await _permissionRepository.GetByKeyAsync(
                 permissionKey);
 
         if (permission == null)
+            return false;
+
+        var userPermissions =
+            await _userPermissionRepository
+                .GetByUserIdAsync(userId);
+
+        var userOverride =
+            userPermissions.FirstOrDefault(
+                x => x.PermissionId == permission.Id);
+
+        if (userOverride != null)
+        {
+            return userOverride.IsGranted;
+        }
+
+        var role =
+            await _roleRepository.GetByNameAsync(
+                roleName);
+
+        if (role == null)
             return false;
 
         var permissionIds =

@@ -20,6 +20,10 @@ public static class UserClaimsFactory
                 new[]
                 {
                     new Claim(
+                        ClaimTypes.NameIdentifier,
+                        user.Id.ToString()),
+
+                    new Claim(
                         ClaimTypes.Name,
                         user.Username),
 

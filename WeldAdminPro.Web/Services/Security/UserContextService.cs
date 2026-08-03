@@ -20,6 +20,9 @@ public class UserContextService : ICurrentUserContext
     public bool IsAuthenticated =>
         User?.Identity?.IsAuthenticated ?? false;
 
+    public string UserId =>
+        User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+
     public string Username =>
         User?.Identity?.Name ?? "";
 
@@ -28,7 +31,7 @@ public class UserContextService : ICurrentUserContext
 
     public string Role =>
         User?.FindFirst(ClaimTypes.Role)?.Value ?? "";
-        
+
     public bool IsAdministrator =>
         string.Equals(
             Role,

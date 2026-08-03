@@ -314,6 +314,7 @@ public class NavigationService
             {
                 allowed =
                     await _permissionAuthorization.HasPermissionAsync(
+                        _userContext.UserId,
                         _userContext.Role,
                         node.Permission);
             }

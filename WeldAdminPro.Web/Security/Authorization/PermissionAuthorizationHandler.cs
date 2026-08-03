@@ -24,14 +24,23 @@ public sealed class PermissionAuthorizationHandler
         if (context.User.Identity?.IsAuthenticated != true)
             return;
 
-        var roleName =
-            context.User.FindFirst(ClaimTypes.Role)?.Value;
+        var userId =
+            context.User.FindFirst(
+                ClaimTypes.NameIdentifier)?.Value;
 
-        if (string.IsNullOrWhiteSpace(roleName))
+        var roleName =
+            context.User.FindFirst(
+                ClaimTypes.Role)?.Value;
+
+        if (string.IsNullOrWhiteSpace(userId) ||
+            string.IsNullOrWhiteSpace(roleName))
+        {
             return;
+        }
 
         var allowed =
             await _permissionAuthorization.HasPermissionAsync(
+                userId,
                 roleName,
                 requirement.PermissionKey);
 
