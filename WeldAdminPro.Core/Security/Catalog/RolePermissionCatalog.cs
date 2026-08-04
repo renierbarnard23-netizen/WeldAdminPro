@@ -1,4 +1,3 @@
-﻿
 using WeldAdminPro.Core.Security;
 
 namespace WeldAdminPro.Core.Security.Catalog;
@@ -75,6 +74,10 @@ public static class RolePermissionCatalog
                 PermissionKeys.Quality.PQR,
                 PermissionKeys.Quality.WeldRegister,
                 PermissionKeys.Quality.Repairs,
+                PermissionKeys.Quality.NCR,
+                PermissionKeys.Quality.NcrDisposition,
+                PermissionKeys.Quality.NcrVerify,
+                PermissionKeys.Quality.NcrClose,
                 PermissionKeys.Quality.NDT,
                 PermissionKeys.Quality.Export,
 
@@ -100,6 +103,10 @@ public static class RolePermissionCatalog
                 PermissionKeys.Quality.PQR,
                 PermissionKeys.Quality.WeldRegister,
                 PermissionKeys.Quality.Repairs,
+                PermissionKeys.Quality.NCR,
+                PermissionKeys.Quality.NcrDisposition,
+                PermissionKeys.Quality.NcrVerify,
+                PermissionKeys.Quality.NcrClose,
                 PermissionKeys.Quality.NDT,
                 PermissionKeys.Quality.Export,
 
@@ -148,6 +155,10 @@ public static class RolePermissionCatalog
                 PermissionKeys.Quality.PQR,
                 PermissionKeys.Quality.WeldRegister,
                 PermissionKeys.Quality.Repairs,
+                PermissionKeys.Quality.NCR,
+                PermissionKeys.Quality.NcrDisposition,
+                PermissionKeys.Quality.NcrVerify,
+                PermissionKeys.Quality.NcrClose,
                 PermissionKeys.Quality.NDT,
                 PermissionKeys.Quality.Export,
 
@@ -170,6 +181,8 @@ public static class RolePermissionCatalog
                 PermissionKeys.Quality.WPS,
                 PermissionKeys.Quality.WeldRegister,
                 PermissionKeys.Quality.Repairs,
+                PermissionKeys.Quality.NCR,
+                PermissionKeys.Quality.NcrVerify,
                 PermissionKeys.Quality.NDT,
 
                 PermissionKeys.Reports.View,

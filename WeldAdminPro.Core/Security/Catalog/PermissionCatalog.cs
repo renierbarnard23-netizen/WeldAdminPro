@@ -210,6 +210,26 @@ public static class PermissionCatalog
             "Repairs",
             "Manage repairs"),
         new(
+            PermissionKeys.Quality.NCR,
+            PermissionGroups.Quality,
+            "NCR",
+            "Manage non-conformance reports"),
+        new(
+            PermissionKeys.Quality.NcrDisposition,
+            PermissionGroups.Quality,
+            "NCR Disposition",
+            "Approve NCR dispositions"),
+        new(
+            PermissionKeys.Quality.NcrVerify,
+            PermissionGroups.Quality,
+            "NCR Verification",
+            "Verify NCR corrective actions"),
+        new(
+            PermissionKeys.Quality.NcrClose,
+            PermissionGroups.Quality,
+            "NCR Close",
+            "Close verified NCRs"),
+        new(
             PermissionKeys.Quality.NDT,
             PermissionGroups.Quality,
             "NDT",

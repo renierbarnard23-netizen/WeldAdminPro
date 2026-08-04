@@ -215,6 +215,9 @@ builder.Services.AddScoped<WelderQualificationRepository>();
 builder.Services.AddScoped<WeldNdtRepository>();
 
 builder.Services.AddScoped<ProjectDocumentRepository>();
+builder.Services.AddScoped<NcrRepository>(_ =>
+    new NcrRepository(
+        DatabasePath.GetConnectionString()));
 
 builder.Services.AddSingleton<ProjectProfitabilityService>();
 

@@ -2,6 +2,7 @@ using Dapper;
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using WeldAdminPro.Core.Quality.Enums;
 using WeldAdminPro.Core.Quality.Models;
 
@@ -43,7 +44,15 @@ namespace WeldAdminPro.Data.Repositories
                     Status,
                     IsClosed,
                     ClosedBy,
-                    ClosedDate
+                    ClosedDate,
+                    DispositionType,
+                    DispositionApprovedBy,
+                    DispositionApprovedDate,
+                    VerificationBy,
+                    VerificationDate,
+                    RequiresCustomerApproval,
+                    CustomerApproved,
+                    CustomerApprovalReference
                 )
                 VALUES
                 (
@@ -62,47 +71,17 @@ namespace WeldAdminPro.Data.Repositories
                     @Status,
                     @IsClosed,
                     @ClosedBy,
-                    @ClosedDate
+                    @ClosedDate,
+                    @DispositionType,
+                    @DispositionApprovedBy,
+                    @DispositionApprovedDate,
+                    @VerificationBy,
+                    @VerificationDate,
+                    @RequiresCustomerApproval,
+                    @CustomerApproved,
+                    @CustomerApprovalReference
                 )",
-                new
-                {
-                    Id =
-                        item.Id.ToString(),
-
-                    WeldId =
-                        item.WeldId.ToString(),
-
-                    item.WeldNumber,
-
-                    item.NcrNumber,
-
-                    item.Description,
-
-                    item.RootCause,
-
-                    item.CorrectiveAction,
-
-                    item.PreventiveAction,
-
-                    item.RaisedBy,
-
-                    RaisedDate =
-                    item.RaisedDate,
-
-                    item.AssignedTo,
-
-                    item.DueDate,
-
-                    Status =
-                        (int)item.Status,
-
-                    IsClosed =
-                        item.IsClosed ? 1 : 0,
-
-                    item.ClosedBy,
-
-                    item.ClosedDate
-                });
+                ToParameters(item));
         }
 
         public List<NcrRecord> GetAll()
@@ -111,90 +90,15 @@ namespace WeldAdminPro.Data.Repositories
                 new SqliteConnection(
                     _connectionString);
 
-            var rows = connection.Query(
-                @"SELECT *
-                  FROM NcrRecords");
+            var rows =
+                connection.Query(
+                    @"SELECT *
+                      FROM NcrRecords
+                      ORDER BY RaisedDate DESC");
 
-            var result =
-                new List<NcrRecord>();
-
-            foreach (var row in rows)
-            {
-                result.Add(
-                    new NcrRecord
-                    {
-                        Id =
-                            Guid.Parse(
-                                (string)row.Id),
-
-                        WeldId =
-                            Guid.Parse(
-                                (string)row.WeldId),
-
-                        WeldNumber =
-                            row.WeldNumber?.ToString()
-                            ?? "",
-
-                        Description =
-                            row.Description?.ToString()
-                            ?? "",
-
-                        NcrNumber =
-    row.NcrNumber?.ToString()
-    ?? "",
-
-                        RootCause =
-                            row.RootCause?.ToString()
-                            ?? "",
-
-                        CorrectiveAction =
-                            row.CorrectiveAction?.ToString()
-                            ?? "",
-
-                        PreventiveAction =
-                            row.PreventiveAction?.ToString()
-                            ?? "",
-
-                        RaisedBy =
-                            row.RaisedBy?.ToString()
-                            ?? "",
-
-                        RaisedDate =
-                            Convert.ToDateTime(
-                                row.RaisedDate),
-
-                        AssignedTo =
-                            row.AssignedTo?.ToString()
-                            ?? "",
-
-                        DueDate =
-                            row.DueDate == null
-                                ? null
-                                : Convert.ToDateTime(
-                                    row.DueDate),
-
-                        Status =
-                            (NcrStatus)
-                            Convert.ToInt32(
-                                row.Status),
-
-                        IsClosed =
-                            Convert.ToBoolean(
-                                row.IsClosed),
-
-                        ClosedBy =
-                            row.ClosedBy?.ToString()
-                            ?? "",
-
-                        ClosedDate =
-                            row.ClosedDate == null
-                                ? null
-                                : Convert.ToDateTime(
-                                    row.ClosedDate)
-                    });
-            }
-
-            return result;
+            return rows
+                .Select(Map)
+                .ToList();
         }
 
         public List<NcrRecord> GetByWeld(
@@ -204,92 +108,21 @@ namespace WeldAdminPro.Data.Repositories
                 new SqliteConnection(
                     _connectionString);
 
-            var rows = connection.Query(
-                @"SELECT *
-                  FROM NcrRecords
-                  WHERE WeldId = @WeldId",
-                new
-                {
-                    WeldId =
-                        weldId.ToString()
-                });
-
-            var result =
-                new List<NcrRecord>();
-
-            foreach (var row in rows)
-            {
-                result.Add(
-                    new NcrRecord
+            var rows =
+                connection.Query(
+                    @"SELECT *
+                      FROM NcrRecords
+                      WHERE WeldId = @WeldId
+                      ORDER BY RaisedDate DESC",
+                    new
                     {
-                        Id =
-                            Guid.Parse(
-                                (string)row.Id),
-
                         WeldId =
-                            Guid.Parse(
-                                (string)row.WeldId),
-
-                        WeldNumber =
-                            row.WeldNumber?.ToString()
-                            ?? "",
-
-                        Description =
-                            row.Description?.ToString()
-                            ?? "",
-
-                        RootCause =
-                            row.RootCause?.ToString()
-                            ?? "",
-
-                        CorrectiveAction =
-                            row.CorrectiveAction?.ToString()
-                            ?? "",
-
-                        PreventiveAction =
-                            row.PreventiveAction?.ToString()
-                            ?? "",
-
-                        RaisedBy =
-                            row.RaisedBy?.ToString()
-                            ?? "",
-
-                        RaisedDate =
-                            Convert.ToDateTime(
-                                row.RaisedDate),
-
-                        AssignedTo =
-                            row.AssignedTo?.ToString()
-                            ?? "",
-
-                        DueDate =
-                            row.DueDate == null
-                                ? null
-                                : Convert.ToDateTime(
-                                    row.DueDate),
-
-                        Status =
-                            (NcrStatus)
-                            Convert.ToInt32(
-                                row.Status),
-
-                        IsClosed =
-                            Convert.ToBoolean(
-                                row.IsClosed),
-
-                        ClosedBy =
-                            row.ClosedBy?.ToString()
-                            ?? "",
-
-                        ClosedDate =
-                            row.ClosedDate == null
-                                ? null
-                                : Convert.ToDateTime(
-                                    row.ClosedDate)
+                            weldId.ToString()
                     });
-            }
 
-            return result;
+            return rows
+                .Select(Map)
+                .ToList();
         }
 
         public void Update(
@@ -302,44 +135,197 @@ namespace WeldAdminPro.Data.Repositories
             connection.Execute(
                 @"UPDATE NcrRecords
                   SET
+                    WeldNumber = @WeldNumber,
                     Description = @Description,
+                    NcrNumber = @NcrNumber,
                     RootCause = @RootCause,
                     CorrectiveAction = @CorrectiveAction,
                     PreventiveAction = @PreventiveAction,
+                    RaisedBy = @RaisedBy,
+                    RaisedDate = @RaisedDate,
                     AssignedTo = @AssignedTo,
                     DueDate = @DueDate,
                     Status = @Status,
                     IsClosed = @IsClosed,
                     ClosedBy = @ClosedBy,
-                    ClosedDate = @ClosedDate
+                    ClosedDate = @ClosedDate,
+                    DispositionType = @DispositionType,
+                    DispositionApprovedBy = @DispositionApprovedBy,
+                    DispositionApprovedDate = @DispositionApprovedDate,
+                    VerificationBy = @VerificationBy,
+                    VerificationDate = @VerificationDate,
+                    RequiresCustomerApproval = @RequiresCustomerApproval,
+                    CustomerApproved = @CustomerApproved,
+                    CustomerApprovalReference = @CustomerApprovalReference
                   WHERE Id = @Id",
-                new
-                {
-                    item.Description,
+                ToParameters(item));
+        }
 
-                    item.RootCause,
+        private static object ToParameters(
+            NcrRecord item)
+        {
+            return new
+            {
+                Id =
+                    item.Id.ToString(),
 
-                    item.CorrectiveAction,
+                WeldId =
+                    item.WeldId.ToString(),
 
-                    item.PreventiveAction,
+                item.WeldNumber,
+                item.Description,
+                item.NcrNumber,
+                item.RootCause,
+                item.CorrectiveAction,
+                item.PreventiveAction,
+                item.RaisedBy,
+                item.RaisedDate,
+                item.AssignedTo,
+                item.DueDate,
 
-                    item.AssignedTo,
+                Status =
+                    (int)item.Status,
 
-                    item.DueDate,
+                IsClosed =
+                    item.IsClosed ? 1 : 0,
 
-                    Status =
-                        (int)item.Status,
+                item.ClosedBy,
+                item.ClosedDate,
 
-                    IsClosed =
-                        item.IsClosed ? 1 : 0,
+                DispositionType =
+                    item.DispositionType.HasValue
+                        ? (int)item.DispositionType.Value
+                        : (int?)null,
 
-                    item.ClosedBy,
+                item.DispositionApprovedBy,
+                item.DispositionApprovedDate,
+                item.VerificationBy,
+                item.VerificationDate,
 
-                    item.ClosedDate,
+                RequiresCustomerApproval =
+                    item.RequiresCustomerApproval ? 1 : 0,
 
-                    Id =
-                        item.Id.ToString()
-                });
+                CustomerApproved =
+                    item.CustomerApproved ? 1 : 0,
+
+                item.CustomerApprovalReference
+            };
+        }
+
+        private static NcrRecord Map(
+            dynamic row)
+        {
+            return new NcrRecord
+            {
+                Id =
+                    Guid.Parse(
+                        (string)row.Id),
+
+                WeldId =
+                    Guid.Parse(
+                        (string)row.WeldId),
+
+                WeldNumber =
+                    row.WeldNumber?.ToString()
+                    ?? string.Empty,
+
+                NcrNumber =
+                    row.NcrNumber?.ToString()
+                    ?? string.Empty,
+
+                Description =
+                    row.Description?.ToString()
+                    ?? string.Empty,
+
+                RootCause =
+                    row.RootCause?.ToString()
+                    ?? string.Empty,
+
+                CorrectiveAction =
+                    row.CorrectiveAction?.ToString()
+                    ?? string.Empty,
+
+                PreventiveAction =
+                    row.PreventiveAction?.ToString()
+                    ?? string.Empty,
+
+                RaisedBy =
+                    row.RaisedBy?.ToString()
+                    ?? string.Empty,
+
+                RaisedDate =
+                    Convert.ToDateTime(
+                        row.RaisedDate),
+
+                AssignedTo =
+                    row.AssignedTo?.ToString()
+                    ?? string.Empty,
+
+                DueDate =
+                    row.DueDate == null
+                        ? null
+                        : Convert.ToDateTime(
+                            row.DueDate),
+
+                Status =
+                    (NcrStatus)
+                    Convert.ToInt32(
+                        row.Status),
+
+                IsClosed =
+                    Convert.ToBoolean(
+                        row.IsClosed),
+
+                ClosedBy =
+                    row.ClosedBy?.ToString()
+                    ?? string.Empty,
+
+                ClosedDate =
+                    row.ClosedDate == null
+                        ? null
+                        : Convert.ToDateTime(
+                            row.ClosedDate),
+
+                DispositionType =
+                    row.DispositionType == null
+                        ? null
+                        : (NcrDispositionType?)
+                            Convert.ToInt32(
+                                row.DispositionType),
+
+                DispositionApprovedBy =
+                    row.DispositionApprovedBy?.ToString(),
+
+                DispositionApprovedDate =
+                    row.DispositionApprovedDate == null
+                        ? null
+                        : Convert.ToDateTime(
+                            row.DispositionApprovedDate),
+
+                VerificationBy =
+                    row.VerificationBy?.ToString(),
+
+                VerificationDate =
+                    row.VerificationDate == null
+                        ? null
+                        : Convert.ToDateTime(
+                            row.VerificationDate),
+
+                RequiresCustomerApproval =
+                    row.RequiresCustomerApproval != null
+                    &&
+                    Convert.ToBoolean(
+                        row.RequiresCustomerApproval),
+
+                CustomerApproved =
+                    row.CustomerApproved != null
+                    &&
+                    Convert.ToBoolean(
+                        row.CustomerApproved),
+
+                CustomerApprovalReference =
+                    row.CustomerApprovalReference?.ToString()
+            };
         }
     }
 }

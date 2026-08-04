@@ -58,6 +58,10 @@ public static class PermissionKeys
         public const string PQR = "Quality.PQR";
         public const string WeldRegister = "Quality.WeldRegister";
         public const string Repairs = "Quality.Repairs";
+        public const string NCR = "Quality.NCR";
+        public const string NcrDisposition = "Quality.NCR.Disposition";
+        public const string NcrVerify = "Quality.NCR.Verify";
+        public const string NcrClose = "Quality.NCR.Close";
         public const string NDT = "Quality.NDT";
         public const string HoldPointApproval = "Quality.HoldPointApproval";
         public const string Export = "Quality.Export";
