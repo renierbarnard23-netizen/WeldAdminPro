@@ -11,7 +11,7 @@ namespace WeldAdminPro.Core.Quality.Models
             set;
         }
 
-        public Guid WeldId
+        public Guid? WeldId
         {
             get;
             set;
@@ -28,6 +28,24 @@ namespace WeldAdminPro.Core.Quality.Models
             get;
             set;
         } = "";
+
+        public string Category
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string CustomReason
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public bool IsWeldingRelated
+        {
+            get;
+            set;
+        }
 
         public string Description
         {

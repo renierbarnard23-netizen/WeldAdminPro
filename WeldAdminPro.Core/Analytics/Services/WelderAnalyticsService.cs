@@ -40,8 +40,9 @@ namespace WeldAdminPro.Core.Analytics.Services
 
                 var ncrCount =
                     ncrs.Count(x =>
+                        x.WeldId.HasValue &&
                         weldIds.Contains(
-                            x.WeldId));
+                            x.WeldId.Value));
 
                 result.Add(
                     new WelderPerformanceRecord

@@ -52,7 +52,10 @@ namespace WeldAdminPro.Data.Repositories
                     VerificationDate,
                     RequiresCustomerApproval,
                     CustomerApproved,
-                    CustomerApprovalReference
+                    CustomerApprovalReference,
+                    Category,
+                    CustomReason,
+                    IsWeldingRelated
                 )
                 VALUES
                 (
@@ -79,7 +82,10 @@ namespace WeldAdminPro.Data.Repositories
                     @VerificationDate,
                     @RequiresCustomerApproval,
                     @CustomerApproved,
-                    @CustomerApprovalReference
+                    @CustomerApprovalReference,
+                    @Category,
+                    @CustomReason,
+                    @IsWeldingRelated
                 )",
                 ToParameters(item));
         }
@@ -156,7 +162,10 @@ namespace WeldAdminPro.Data.Repositories
                     VerificationDate = @VerificationDate,
                     RequiresCustomerApproval = @RequiresCustomerApproval,
                     CustomerApproved = @CustomerApproved,
-                    CustomerApprovalReference = @CustomerApprovalReference
+                    CustomerApprovalReference = @CustomerApprovalReference,
+                    Category = @Category,
+                    CustomReason = @CustomReason,
+                    IsWeldingRelated = @IsWeldingRelated
                   WHERE Id = @Id",
                 ToParameters(item));
         }
@@ -170,7 +179,9 @@ namespace WeldAdminPro.Data.Repositories
                     item.Id.ToString(),
 
                 WeldId =
-                    item.WeldId.ToString(),
+                    item.WeldId.HasValue
+                        ? item.WeldId.Value.ToString()
+                        : null,
 
                 item.WeldNumber,
                 item.Description,
@@ -208,7 +219,13 @@ namespace WeldAdminPro.Data.Repositories
                 CustomerApproved =
                     item.CustomerApproved ? 1 : 0,
 
-                item.CustomerApprovalReference
+                item.CustomerApprovalReference,
+
+                item.Category,
+                item.CustomReason,
+
+                IsWeldingRelated =
+                    item.IsWeldingRelated ? 1 : 0
             };
         }
 
@@ -278,8 +295,13 @@ WHERE NcrNumber IS NOT NULL
                         (string)row.Id),
 
                 WeldId =
-                    Guid.Parse(
-                        (string)row.WeldId),
+                    row.WeldId == null
+                    || row.WeldId is DBNull
+                    || string.IsNullOrWhiteSpace(
+                        row.WeldId.ToString())
+                        ? null
+                        : Guid.Parse(
+                            row.WeldId.ToString()),
 
                 WeldNumber =
                     row.WeldNumber?.ToString()
@@ -380,7 +402,21 @@ WHERE NcrNumber IS NOT NULL
                         row.CustomerApproved),
 
                 CustomerApprovalReference =
-                    row.CustomerApprovalReference?.ToString()
+                    row.CustomerApprovalReference?.ToString(),
+
+                Category =
+                    row.Category?.ToString()
+                    ?? string.Empty,
+
+                CustomReason =
+                    row.CustomReason?.ToString()
+                    ?? string.Empty,
+
+                IsWeldingRelated =
+                    row.IsWeldingRelated != null
+                    &&
+                    Convert.ToBoolean(
+                        row.IsWeldingRelated)
             };
         }
     }

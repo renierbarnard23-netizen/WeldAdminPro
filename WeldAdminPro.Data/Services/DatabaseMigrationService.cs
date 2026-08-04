@@ -71,6 +71,10 @@ namespace WeldAdminPro.Data.Services
             {
                 ApplyVersion7(connection);
             }
+            if (currentVersion < 8)
+            {
+                ApplyVersion8(connection);
+            }
 
             // =====================================
             // SECURITY CATALOG SYNCHRONIZATION
@@ -737,6 +741,292 @@ WHERE Name IN
                 7,
                 "1.6.0",
                 "Removed obsolete security roles");
+        }
+
+        // =====================================
+        // VERSION 8
+        // General company-wide NCR support
+        // =====================================
+
+        private void ApplyVersion8(
+            SqliteConnection connection)
+        {
+            if (!TableExists(
+                connection,
+                "NcrRecords"))
+            {
+                throw new InvalidOperationException(
+                    "Version 8 migration failed: " +
+                    "NcrRecords table does not exist.");
+            }
+
+            var originalCount =
+                connection.ExecuteScalar<int>(
+                    "SELECT COUNT(*) FROM NcrRecords;");
+
+            using var transaction =
+                connection.BeginTransaction();
+
+            try
+            {
+                // =====================================
+                // CLEAN FAILED TEMP TABLE IF PRESENT
+                // =====================================
+
+                connection.Execute(
+                    "DROP TABLE IF EXISTS NcrRecords_V8;",
+                    transaction: transaction);
+
+                // =====================================
+                // CREATE GENERAL NCR TABLE
+                // =====================================
+                //
+                // WeldId is nullable because a company
+                // NCR does not have to concern welding.
+                //
+
+                connection.Execute(
+                    @"
+CREATE TABLE NcrRecords_V8
+(
+    Id TEXT PRIMARY KEY,
+
+    WeldId TEXT NULL,
+    WeldNumber TEXT,
+
+    Description TEXT,
+    NcrNumber TEXT,
+
+    RootCause TEXT,
+    CorrectiveAction TEXT,
+    PreventiveAction TEXT,
+
+    RaisedBy TEXT,
+    RaisedDate TEXT,
+
+    AssignedTo TEXT,
+    DueDate TEXT,
+
+    Status INTEGER,
+    IsClosed INTEGER,
+
+    ClosedBy TEXT,
+    ClosedDate TEXT,
+
+    DispositionType INTEGER,
+    DispositionApprovedBy TEXT,
+    DispositionApprovedDate TEXT,
+
+    VerificationBy TEXT,
+    VerificationDate TEXT,
+
+    RequiresCustomerApproval INTEGER DEFAULT 0,
+    CustomerApproved INTEGER DEFAULT 0,
+    CustomerApprovalReference TEXT,
+
+    Category TEXT,
+    CustomReason TEXT,
+
+    IsWeldingRelated INTEGER
+        NOT NULL
+        DEFAULT 0,
+
+    FOREIGN KEY(WeldId)
+        REFERENCES Welds(Id)
+);",
+                    transaction: transaction);
+
+                // =====================================
+                // COPY EXISTING NCR RECORDS
+                // =====================================
+                //
+                // All NCRs in the old design required
+                // WeldId, so existing records are
+                // classified as welding-related.
+                //
+
+                connection.Execute(
+                    @"
+INSERT INTO NcrRecords_V8
+(
+    Id,
+    WeldId,
+    WeldNumber,
+    Description,
+    NcrNumber,
+    RootCause,
+    CorrectiveAction,
+    PreventiveAction,
+    RaisedBy,
+    RaisedDate,
+    AssignedTo,
+    DueDate,
+    Status,
+    IsClosed,
+    ClosedBy,
+    ClosedDate,
+    DispositionType,
+    DispositionApprovedBy,
+    DispositionApprovedDate,
+    VerificationBy,
+    VerificationDate,
+    RequiresCustomerApproval,
+    CustomerApproved,
+    CustomerApprovalReference,
+    Category,
+    CustomReason,
+    IsWeldingRelated
+)
+SELECT
+    Id,
+    WeldId,
+    WeldNumber,
+    Description,
+    NcrNumber,
+    RootCause,
+    CorrectiveAction,
+    PreventiveAction,
+    RaisedBy,
+    RaisedDate,
+    AssignedTo,
+    DueDate,
+    Status,
+    IsClosed,
+    ClosedBy,
+    ClosedDate,
+    DispositionType,
+    DispositionApprovedBy,
+    DispositionApprovedDate,
+    VerificationBy,
+    VerificationDate,
+    RequiresCustomerApproval,
+    CustomerApproved,
+    CustomerApprovalReference,
+    'Welding',
+    NULL,
+    1
+FROM NcrRecords;",
+                    transaction: transaction);
+
+                // =====================================
+                // VERIFY COPY
+                // =====================================
+
+                var copiedCount =
+                    connection.ExecuteScalar<int>(
+                        "SELECT COUNT(*) FROM NcrRecords_V8;",
+                        transaction: transaction);
+
+                if (copiedCount != originalCount)
+                {
+                    throw new InvalidOperationException(
+                        "Version 8 migration failed: " +
+                        $"expected {originalCount} NCR records " +
+                        $"but copied {copiedCount}.");
+                }
+
+                // =====================================
+                // REPLACE OLD TABLE
+                // =====================================
+
+                connection.Execute(
+                    "DROP TABLE NcrRecords;",
+                    transaction: transaction);
+
+                connection.Execute(
+                    "ALTER TABLE NcrRecords_V8 " +
+                    "RENAME TO NcrRecords;",
+                    transaction: transaction);
+
+                // =====================================
+                // RECREATE WELD LOOKUP INDEX
+                // =====================================
+
+                connection.Execute(
+                    @"
+CREATE INDEX IF NOT EXISTS
+IX_NcrRecords_WeldId
+ON NcrRecords(WeldId);",
+                    transaction: transaction);
+
+                // =====================================
+                // FINAL RECORD VALIDATION
+                // =====================================
+
+                var finalCount =
+                    connection.ExecuteScalar<int>(
+                        "SELECT COUNT(*) FROM NcrRecords;",
+                        transaction: transaction);
+
+                if (finalCount != originalCount)
+                {
+                    throw new InvalidOperationException(
+                        "Version 8 migration failed: " +
+                        $"expected {originalCount} NCR records " +
+                        $"after rebuild but found {finalCount}.");
+                }
+
+                // =====================================
+                // VERIFY NEW SCHEMA
+                // =====================================
+
+                var weldIdNotNull =
+                    connection.Query(
+                        "PRAGMA table_info(NcrRecords);",
+                        transaction: transaction)
+                    .First(x =>
+                        x.name.ToString() == "WeldId")
+                    .notnull
+                    .ToString();
+
+                if (weldIdNotNull != "0")
+                {
+                    throw new InvalidOperationException(
+                        "Version 8 migration failed: " +
+                        "WeldId is still NOT NULL.");
+                }
+
+                var requiredColumns =
+                    new[]
+                    {
+                        "Category",
+                        "CustomReason",
+                        "IsWeldingRelated"
+                    };
+
+                var actualColumns =
+                    connection.Query(
+                        "PRAGMA table_info(NcrRecords);",
+                        transaction: transaction)
+                    .Select(x =>
+                        x.name.ToString())
+                    .ToList();
+
+                foreach (var requiredColumn
+                    in requiredColumns)
+                {
+                    if (!actualColumns.Contains(
+                        requiredColumn))
+                    {
+                        throw new InvalidOperationException(
+                            "Version 8 migration failed: " +
+                            $"column {requiredColumn} is missing.");
+                    }
+                }
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+
+            RecordVersion(
+                connection,
+                8,
+                "1.7.0",
+                "Generalized NCR system with optional weld association");
         }
 
         // =====================================

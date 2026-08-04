@@ -844,12 +844,13 @@ FOREIGN KEY(WeldId)
 (
     Id TEXT PRIMARY KEY,
 
-    WeldId TEXT NOT NULL,
+    WeldId TEXT NULL,
     WeldNumber TEXT,
 
     Description TEXT,
-    RootCause TEXT,
+    NcrNumber TEXT,
 
+    RootCause TEXT,
     CorrectiveAction TEXT,
     PreventiveAction TEXT,
 
@@ -860,15 +861,31 @@ FOREIGN KEY(WeldId)
     DueDate TEXT,
 
     Status INTEGER,
-
     IsClosed INTEGER,
 
     ClosedBy TEXT,
     ClosedDate TEXT,
 
+    DispositionType INTEGER,
+    DispositionApprovedBy TEXT,
+    DispositionApprovedDate TEXT,
+
+    VerificationBy TEXT,
+    VerificationDate TEXT,
+
+    RequiresCustomerApproval INTEGER DEFAULT 0,
+    CustomerApproved INTEGER DEFAULT 0,
+    CustomerApprovalReference TEXT,
+
+    Category TEXT,
+    CustomReason TEXT,
+
+    IsWeldingRelated INTEGER
+        NOT NULL
+        DEFAULT 0,
+
     FOREIGN KEY(WeldId)
         REFERENCES Welds(Id)
-        ON DELETE CASCADE
 );";
             cmd.ExecuteNonQuery();
 

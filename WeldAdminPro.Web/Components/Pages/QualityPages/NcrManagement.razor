@@ -204,14 +204,6 @@
                             Create New NCR
                         </MudText>
 
-                        @if (_welds.Count == 0)
-                        {
-                            <MudAlert Severity="Severity.Warning"
-                                      Variant="Variant.Outlined"
-                                      Class="mb-3">
-                                No welds are available. Create a weld before raising an NCR.
-                            </MudAlert>
-                        }
 
                         <MudGrid>
 
@@ -223,29 +215,97 @@
                                               Variant="Variant.Outlined" />
                             </MudItem>
 
-                            <MudItem xs="12" md="8">
+                            <MudItem xs="12" md="4">
 
-                                <MudSelect T="Guid"
-                                           Label="Weld"
-                                           @bind-Value="_selectedWeldId"
+                                <MudSelect T="string"
+                                           Label="Reason / Category"
+                                           @bind-Value="_newCategory"
                                            Variant="Variant.Outlined">
 
-                                    <MudSelectItem T="Guid"
-                                                   Value="@Guid.Empty">
-                                        Select weld...
+                                    <MudSelectItem T="string" Value="@("Welding")">
+                                        Welding
                                     </MudSelectItem>
 
-                                    @foreach (var weld in _welds)
-                                    {
-                                        <MudSelectItem T="Guid"
-                                                       Value="@weld.Id">
-                                            @GetWeldDisplay(weld)
-                                        </MudSelectItem>
-                                    }
+                                    <MudSelectItem T="string" Value="@("Material")">
+                                        Material
+                                    </MudSelectItem>
+
+                                    <MudSelectItem T="string" Value="@("Dimensional")">
+                                        Dimensional
+                                    </MudSelectItem>
+
+                                    <MudSelectItem T="string" Value="@("Documentation")">
+                                        Documentation
+                                    </MudSelectItem>
+
+                                    <MudSelectItem T="string" Value="@("Quality")">
+                                        Quality
+                                    </MudSelectItem>
+
+                                    <MudSelectItem T="string" Value="@("Other")">
+                                        Other
+                                    </MudSelectItem>
 
                                 </MudSelect>
 
                             </MudItem>
+
+                            <MudItem xs="12" md="4">
+
+                                <MudCheckBox T="bool"
+                                             Label="Welding Related"
+                                             @bind-Value="_newIsWeldingRelated" />
+
+                            </MudItem>
+
+                            @if (_newCategory == "Other")
+                            {
+                                <MudItem xs="12">
+
+                                    <MudTextField T="string"
+                                                  Label="Custom Reason"
+                                                  @bind-Value="_newCustomReason"
+                                                  Variant="Variant.Outlined"
+                                                  Placeholder="Enter the NCR reason..." />
+
+                                </MudItem>
+                            }
+
+                            @if (_newIsWeldingRelated)
+                            {
+                                <MudItem xs="12">
+
+                                    @if (_welds.Count == 0)
+                                    {
+                                        <MudAlert Severity="Severity.Warning"
+                                                  Variant="Variant.Outlined"
+                                                  Class="mb-3">
+                                            No welds are available. Untick Welding Related to create a general NCR.
+                                        </MudAlert>
+                                    }
+
+                                    <MudSelect T="Guid"
+                                               Label="Associated Weld"
+                                               @bind-Value="_selectedWeldId"
+                                               Variant="Variant.Outlined">
+
+                                        <MudSelectItem T="Guid"
+                                                       Value="@Guid.Empty">
+                                            Select weld...
+                                        </MudSelectItem>
+
+                                        @foreach (var weld in _welds)
+                                        {
+                                            <MudSelectItem T="Guid"
+                                                           Value="@weld.Id">
+                                                @GetWeldDisplay(weld)
+                                            </MudSelectItem>
+                                        }
+
+                                    </MudSelect>
+
+                                </MudItem>
+                            }
 
                             <MudItem xs="12">
                                 <MudTextField T="string"
@@ -294,7 +354,7 @@
 
                             <MudButton Variant="Variant.Filled"
                                        Color="Color.Primary"
-                                       Disabled="@(_welds.Count == 0 || _isCreating)"
+                                       Disabled="@_isCreating"
                                        OnClick="CreateNcr">
                                 Create NCR
                             </MudButton>
@@ -518,7 +578,7 @@
                                         _selectedNcr.DispositionApprovedBy))
                                     {
                                         <span>
-                                            â€” approved by
+                                            - approved by
                                             @_selectedNcr.DispositionApprovedBy
                                         </span>
                                     }
@@ -646,6 +706,10 @@
 
     private Guid _selectedWeldId = Guid.Empty;
 
+    private string _newCategory = "Welding";
+    private string _newCustomReason = string.Empty;
+    private bool _newIsWeldingRelated = true;
+
     private string _newNcrNumber = string.Empty;
     private string _newDescription = string.Empty;
     private string _newRaisedBy = string.Empty;
@@ -682,6 +746,9 @@
             NcrService.GetNextNcrNumber();
 
         _selectedWeldId = Guid.Empty;
+        _newCategory = "Welding";
+        _newCustomReason = string.Empty;
+        _newIsWeldingRelated = true;
         _newDescription = string.Empty;
         _newRaisedBy = string.Empty;
         _newAssignedTo = string.Empty;
@@ -698,6 +765,9 @@
         _createError = string.Empty;
 
         _selectedWeldId = Guid.Empty;
+        _newCategory = "Welding";
+        _newCustomReason = string.Empty;
+        _newIsWeldingRelated = true;
         _newNcrNumber = string.Empty;
         _newDescription = string.Empty;
         _newRaisedBy = string.Empty;
@@ -710,10 +780,26 @@
     {
         _createError = string.Empty;
 
-        if (_selectedWeldId == Guid.Empty)
+        if (string.IsNullOrWhiteSpace(_newCategory))
         {
             _createError =
-                "Select the weld associated with this NCR.";
+                "Select the NCR reason / category.";
+            return;
+        }
+
+        if (_newCategory == "Other" &&
+            string.IsNullOrWhiteSpace(_newCustomReason))
+        {
+            _createError =
+                "Enter the custom NCR reason.";
+            return;
+        }
+
+        if (_newIsWeldingRelated &&
+            _selectedWeldId == Guid.Empty)
+        {
+            _createError =
+                "Select the weld associated with this welding-related NCR.";
             return;
         }
 
@@ -731,15 +817,20 @@
             return;
         }
 
-        var weld =
-            _welds.FirstOrDefault(
-                w => w.Id == _selectedWeldId);
+        Weld? weld = null;
 
-        if (weld == null)
+        if (_newIsWeldingRelated)
         {
-            _createError =
-                "The selected weld could not be found.";
-            return;
+            weld =
+                _welds.FirstOrDefault(
+                    w => w.Id == _selectedWeldId);
+
+            if (weld == null)
+            {
+                _createError =
+                    "The selected weld could not be found.";
+                return;
+            }
         }
 
         try
@@ -749,9 +840,15 @@
             var ncr =
                 new NcrRecord
                 {
-                    WeldId = weld.Id,
-                    WeldNumber = weld.WeldNumber,
+                    WeldId = weld?.Id,
+                    WeldNumber = weld?.WeldNumber ?? string.Empty,
                     NcrNumber = _newNcrNumber,
+                    Category = _newCategory,
+                    CustomReason =
+                        _newCategory == "Other"
+                            ? _newCustomReason.Trim()
+                            : string.Empty,
+                    IsWeldingRelated = _newIsWeldingRelated,
                     Description = _newDescription.Trim(),
                     RaisedBy = _newRaisedBy.Trim(),
                     RaisedDate = DateTime.Now,
@@ -770,6 +867,9 @@
             _showNewNcrForm = false;
 
             _selectedWeldId = Guid.Empty;
+            _newCategory = "Welding";
+            _newCustomReason = string.Empty;
+            _newIsWeldingRelated = true;
             _newNcrNumber = string.Empty;
             _newDescription = string.Empty;
             _newRaisedBy = string.Empty;
@@ -934,7 +1034,7 @@
                     _search,
                     StringComparison.OrdinalIgnoreCase)
                 ||
-                ncr.WeldNumber.Contains(
+                (ncr.WeldNumber ?? string.Empty).Contains(
                     _search,
                     StringComparison.OrdinalIgnoreCase)
                 ||
