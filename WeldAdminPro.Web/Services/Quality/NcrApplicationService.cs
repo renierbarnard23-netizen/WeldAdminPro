@@ -185,4 +185,9 @@ public class NcrApplicationService
 
         return true;
     }
+
+    public string GetNextNcrNumber()
+    {
+        return _repository.GetNextNcrNumber();
+    }
 }

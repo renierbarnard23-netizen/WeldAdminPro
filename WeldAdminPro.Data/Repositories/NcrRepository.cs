@@ -212,6 +212,62 @@ namespace WeldAdminPro.Data.Repositories
             };
         }
 
+        public string GetNextNcrNumber()
+        {
+            using var connection =
+                new SqliteConnection(_connectionString);
+
+            connection.Open();
+
+            var cmd =
+                connection.CreateCommand();
+
+            cmd.CommandText = @"
+SELECT NcrNumber
+FROM NcrRecords
+WHERE NcrNumber IS NOT NULL
+  AND NcrNumber <> '';";
+
+            using var reader =
+                cmd.ExecuteReader();
+
+            var maxNumber = 0;
+
+            while (reader.Read())
+            {
+                var ncrNumber =
+                    reader["NcrNumber"]
+                        ?.ToString();
+
+                if (string.IsNullOrWhiteSpace(
+                    ncrNumber))
+                {
+                    continue;
+                }
+
+                if (!ncrNumber.StartsWith(
+                    "NCR-",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var numberPart =
+                    ncrNumber.Substring(4);
+
+                if (int.TryParse(
+                    numberPart,
+                    out var number)
+                    &&
+                    number > maxNumber)
+                {
+                    maxNumber = number;
+                }
+            }
+
+            return $"NCR-{(maxNumber + 1):000}";
+        }
+
         private static NcrRecord Map(
             dynamic row)
         {

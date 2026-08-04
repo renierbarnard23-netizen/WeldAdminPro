@@ -3,11 +3,14 @@
 @attribute [Authorize(Policy = "Permission:Quality.NCR")]
 
 @using MudBlazor
+@using WeldAdminPro.Core.Models
 @using WeldAdminPro.Core.Quality.Models
 @using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Data.Repositories
 @using WeldAdminPro.Web.Services.Quality
 
 @inject NcrApplicationService NcrService
+@inject WeldRepository WeldRepository
 @inject ISnackbar Snackbar
 
 <PageTitle>NCR Management</PageTitle>
@@ -30,14 +33,28 @@
             </MudText>
         </div>
 
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Refresh"
-                   OnClick="LoadNcrs">
+        <MudStack Row="true"
+                  Spacing="2">
 
-            Refresh
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="ToggleNewNcrForm">
 
-        </MudButton>
+                New NCR
+
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="LoadNcrs">
+
+                Refresh
+
+            </MudButton>
+
+        </MudStack>
 
     </MudStack>
 
@@ -174,6 +191,123 @@
                          Class="mb-3">
                     NCR Register
                 </MudText>
+
+                @* NCR_CREATE_PANEL *@
+                @if (_showNewNcrForm)
+                {
+                    <MudPaper Class="pa-4 mb-4"
+                              Elevation="1">
+
+                        <MudText Typo="Typo.h6"
+                                 Class="mb-3">
+                            Create New NCR
+                        </MudText>
+
+                        @if (_welds.Count == 0)
+                        {
+                            <MudAlert Severity="Severity.Warning"
+                                      Variant="Variant.Outlined"
+                                      Class="mb-3">
+                                No welds are available. Create a weld before raising an NCR.
+                            </MudAlert>
+                        }
+
+                        <MudGrid>
+
+                            <MudItem xs="12" md="4">
+                                <MudTextField T="string"
+                                              Label="NCR Number"
+                                              Value="@_newNcrNumber"
+                                              ReadOnly="true"
+                                              Variant="Variant.Outlined" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="8">
+
+                                <MudSelect T="Guid"
+                                           Label="Weld"
+                                           @bind-Value="_selectedWeldId"
+                                           Variant="Variant.Outlined">
+
+                                    <MudSelectItem T="Guid"
+                                                   Value="@Guid.Empty">
+                                        Select weld...
+                                    </MudSelectItem>
+
+                                    @foreach (var weld in _welds)
+                                    {
+                                        <MudSelectItem T="Guid"
+                                                       Value="@weld.Id">
+                                            @GetWeldDisplay(weld)
+                                        </MudSelectItem>
+                                    }
+
+                                </MudSelect>
+
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudTextField T="string"
+                                              Label="Description / Non-Conformance"
+                                              @bind-Value="_newDescription"
+                                              Variant="Variant.Outlined"
+                                              Lines="4"
+                                              Placeholder="Describe the non-conformance..." />
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+                                <MudTextField T="string"
+                                              Label="Raised By"
+                                              @bind-Value="_newRaisedBy"
+                                              Variant="Variant.Outlined" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+                                <MudTextField T="string"
+                                              Label="Assigned To"
+                                              @bind-Value="_newAssignedTo"
+                                              Variant="Variant.Outlined" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+                                <MudDatePicker Label="Due Date"
+                                               @bind-Date="_newDueDate"
+                                               Variant="Variant.Outlined"
+                                               Clearable="true" />
+                            </MudItem>
+
+                        </MudGrid>
+
+                        @if (!string.IsNullOrWhiteSpace(_createError))
+                        {
+                            <MudAlert Severity="Severity.Error"
+                                      Variant="Variant.Outlined"
+                                      Class="mt-3">
+                                @_createError
+                            </MudAlert>
+                        }
+
+                        <MudStack Row="true"
+                                  Spacing="2"
+                                  Class="mt-4">
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       Disabled="@(_welds.Count == 0 || _isCreating)"
+                                       OnClick="CreateNcr">
+                                Create NCR
+                            </MudButton>
+
+                            <MudButton Variant="Variant.Outlined"
+                                       Disabled="@_isCreating"
+                                       OnClick="CancelNewNcr">
+                                Cancel
+                            </MudButton>
+
+                        </MudStack>
+
+                    </MudPaper>
+                }
 
                 <MudTable T="NcrRecord"
                           Items="FilteredNcrs"
@@ -349,6 +483,30 @@
 
                         </MudAlert>
                     }
+
+                    @if (CanAdvanceBasicWorkflow(_selectedNcr))
+                    {
+                        <MudDivider Class="my-4" />
+
+                        <MudText Typo="Typo.subtitle2"
+                                 Class="mb-2">
+                            Workflow
+                        </MudText>
+
+                        <MudAlert Severity="Severity.Info"
+                                  Dense="true"
+                                  Class="mb-3">
+                            Next status:
+                            <b>@GetBasicNextStatus(_selectedNcr)!.Value</b>
+                        </MudAlert>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.ArrowForward"
+                                   OnClick="AdvanceWorkflow">
+                            Advance Workflow
+                        </MudButton>
+                    }
                 }
 
             </MudPaper>
@@ -361,6 +519,188 @@
 
 @code
 {
+    // =====================================================
+    // NCR CREATION
+    // =====================================================
+
+    private List<Weld> _welds = new();
+
+    private bool _showNewNcrForm;
+    private bool _isCreating;
+
+    private Guid _selectedWeldId = Guid.Empty;
+
+    private string _newNcrNumber = string.Empty;
+    private string _newDescription = string.Empty;
+    private string _newRaisedBy = string.Empty;
+    private string _newAssignedTo = string.Empty;
+
+    private DateTime? _newDueDate;
+
+    private string _createError = string.Empty;
+
+
+    private void ToggleNewNcrForm()
+    {
+        if (_showNewNcrForm)
+        {
+            CancelNewNcr();
+            return;
+        }
+
+        PrepareNewNcr();
+    }
+
+
+    private void PrepareNewNcr()
+    {
+        _createError = string.Empty;
+
+        _welds =
+            WeldRepository
+                .GetAll()
+                .OrderBy(w => w.WeldNumber)
+                .ToList();
+
+        _newNcrNumber =
+            NcrService.GetNextNcrNumber();
+
+        _selectedWeldId = Guid.Empty;
+        _newDescription = string.Empty;
+        _newRaisedBy = string.Empty;
+        _newAssignedTo = string.Empty;
+        _newDueDate = null;
+
+        _showNewNcrForm = true;
+    }
+
+
+    private void CancelNewNcr()
+    {
+        _showNewNcrForm = false;
+        _isCreating = false;
+        _createError = string.Empty;
+
+        _selectedWeldId = Guid.Empty;
+        _newNcrNumber = string.Empty;
+        _newDescription = string.Empty;
+        _newRaisedBy = string.Empty;
+        _newAssignedTo = string.Empty;
+        _newDueDate = null;
+    }
+
+
+    private async Task CreateNcr()
+    {
+        _createError = string.Empty;
+
+        if (_selectedWeldId == Guid.Empty)
+        {
+            _createError =
+                "Select the weld associated with this NCR.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_newDescription))
+        {
+            _createError =
+                "Enter the non-conformance description.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_newRaisedBy))
+        {
+            _createError =
+                "Enter the person raising the NCR.";
+            return;
+        }
+
+        var weld =
+            _welds.FirstOrDefault(
+                w => w.Id == _selectedWeldId);
+
+        if (weld == null)
+        {
+            _createError =
+                "The selected weld could not be found.";
+            return;
+        }
+
+        try
+        {
+            _isCreating = true;
+
+            var ncr =
+                new NcrRecord
+                {
+                    WeldId = weld.Id,
+                    WeldNumber = weld.WeldNumber,
+                    NcrNumber = _newNcrNumber,
+                    Description = _newDescription.Trim(),
+                    RaisedBy = _newRaisedBy.Trim(),
+                    RaisedDate = DateTime.Now,
+                    AssignedTo = _newAssignedTo.Trim(),
+                    DueDate = _newDueDate
+                };
+
+            NcrService.Create(ncr);
+
+            LoadNcrs();
+
+            _selectedNcr =
+                _ncrs.FirstOrDefault(
+                    x => x.Id == ncr.Id);
+
+            _showNewNcrForm = false;
+
+            _selectedWeldId = Guid.Empty;
+            _newNcrNumber = string.Empty;
+            _newDescription = string.Empty;
+            _newRaisedBy = string.Empty;
+            _newAssignedTo = string.Empty;
+            _newDueDate = null;
+
+            Snackbar.Add(
+                $"{ncr.NcrNumber} created successfully.",
+                Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _createError =
+                $"Unable to create NCR: {ex.Message}";
+        }
+        finally
+        {
+            _isCreating = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+
+    private static string GetWeldDisplay(Weld weld)
+    {
+        var parts =
+            new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(weld.WeldNumber))
+            parts.Add(weld.WeldNumber);
+
+        if (!string.IsNullOrWhiteSpace(weld.JointNumber))
+            parts.Add($"Joint {weld.JointNumber}");
+
+        if (!string.IsNullOrWhiteSpace(weld.DrawingNumber))
+            parts.Add($"Drawing {weld.DrawingNumber}");
+
+        if (!string.IsNullOrWhiteSpace(weld.WpsNumber))
+            parts.Add($"WPS {weld.WpsNumber}");
+
+        return parts.Count > 0
+            ? string.Join(" | ", parts)
+            : weld.Id.ToString();
+    }
+
+
     private List<NcrRecord> _ncrs = new();
 
     private NcrRecord? _selectedNcr;
@@ -447,6 +787,96 @@
     {
         _search = string.Empty;
         _selectedStatus = null;
+    }
+
+
+    private static NcrStatus? GetBasicNextStatus(
+        NcrRecord ncr)
+    {
+        return ncr.Status switch
+        {
+            NcrStatus.Open =>
+                NcrStatus.UnderInvestigation,
+
+            NcrStatus.UnderInvestigation =>
+                NcrStatus.AwaitingDisposition,
+
+            _ =>
+                null
+        };
+    }
+
+
+    private bool CanAdvanceBasicWorkflow(
+        NcrRecord ncr)
+    {
+        var target =
+            GetBasicNextStatus(ncr);
+
+        return target.HasValue &&
+               NcrService.CanMoveTo(
+                   ncr,
+                   target.Value);
+    }
+
+
+    private void AdvanceWorkflow()
+    {
+        if (_selectedNcr == null)
+        {
+            return;
+        }
+
+        var target =
+            GetBasicNextStatus(
+                _selectedNcr);
+
+        if (!target.HasValue)
+        {
+            Snackbar.Add(
+                "No basic workflow transition is available for this NCR.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (!NcrService.CanMoveTo(
+                _selectedNcr,
+                target.Value))
+        {
+            Snackbar.Add(
+                $"Workflow transition from {_selectedNcr.Status} to {target.Value} is not permitted.",
+                Severity.Warning);
+
+            return;
+        }
+
+        var ncrId =
+            _selectedNcr.Id;
+
+        var moved =
+            NcrService.MoveTo(
+                ncrId,
+                target.Value);
+
+        if (!moved)
+        {
+            Snackbar.Add(
+                "Unable to advance the NCR workflow.",
+                Severity.Error);
+
+            return;
+        }
+
+        Snackbar.Add(
+            $"NCR advanced to {target.Value}.",
+            Severity.Success);
+
+        LoadNcrs();
+
+        _selectedNcr =
+            _ncrs.FirstOrDefault(
+                x => x.Id == ncrId);
     }
 
 

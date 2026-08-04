@@ -1,0 +1,483 @@
+﻿@page "/quality/welders"
+@page "/quality/welderqualifications"
+
+@using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Web.Services.Quality
+
+@inject WelderQualificationApplicationService WelderService
+@inject ISnackbar Snackbar
+
+<PageTitle>Welder Qualifications</PageTitle>
+
+<MudPaper Class="pa-4">
+
+    <MudStack Row="true"
+              Justify="Justify.SpaceBetween"
+              AlignItems="AlignItems.Center">
+
+        <div>
+            <MudText Typo="Typo.h4">
+                Welder Qualifications
+            </MudText>
+
+            <MudText Typo="Typo.body2"
+                     Color="Color.Secondary">
+                Welder qualification register and certification control
+            </MudText>
+        </div>
+
+        <MudStack Row="true" Spacing="2">
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="NewQualification">
+                New Qualification
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="Load">
+                Refresh
+            </MudButton>
+
+        </MudStack>
+
+    </MudStack>
+
+</MudPaper>
+
+
+@if (_showEditor)
+{
+    <MudPaper Class="pa-4 mt-4">
+
+        <MudText Typo="Typo.h6">
+            @(_editingId == 0
+                ? "New Welder Qualification"
+                : "Edit Welder Qualification")
+        </MudText>
+
+        <MudGrid Class="mt-2">
+
+            <MudItem xs="12" md="4">
+                <MudTextField T="string"
+                              Label="Welder Number"
+                              @bind-Value="_editor.WelderNumber"
+                              Required="true" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudSelect T="string"
+                           Label="Process"
+                           @bind-Value="_editor.Process"
+                           Required="true">
+
+                    <MudSelectItem T="string" Value="@("GTAW")">
+                        GTAW / TIG
+                    </MudSelectItem>
+
+                    <MudSelectItem T="string" Value="@("GMAW")">
+                        GMAW / MIG
+                    </MudSelectItem>
+
+                    <MudSelectItem T="string" Value="@("SMAW")">
+                        SMAW / Stick
+                    </MudSelectItem>
+
+                    <MudSelectItem T="string" Value="@("FCAW")">
+                        FCAW
+                    </MudSelectItem>
+
+                    <MudSelectItem T="string" Value="@("SAW")">
+                        SAW
+                    </MudSelectItem>
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudTextField T="string"
+                              Label="Position"
+                              @bind-Value="_editor.Position"
+                              Required="true"
+                              Placeholder="e.g. 1G, 2G, 3G, 6G" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudTextField T="string"
+                              Label="Material Group"
+                              @bind-Value="_editor.MaterialGroup"
+                              Placeholder="e.g. 1.1" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudNumericField T="double"
+                                 Label="Minimum Thickness (mm)"
+                                 @bind-Value="_editor.ThicknessMin"
+                                 Min="0" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudNumericField T="double"
+                                 Label="Maximum Thickness (mm)"
+                                 @bind-Value="_editor.ThicknessMax"
+                                 Min="0" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudDatePicker Label="Qualification Date"
+                               @bind-Date="_qualificationDate" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudDatePicker Label="Expiry Date"
+                               @bind-Date="_expiryDate" />
+            </MudItem>
+
+        </MudGrid>
+
+        <MudStack Row="true"
+                  Spacing="2"
+                  Class="mt-4">
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Success"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="Save">
+                Save Qualification
+            </MudButton>
+
+            <MudButton Variant="Variant.Outlined"
+                       OnClick="Cancel">
+                Cancel
+            </MudButton>
+
+        </MudStack>
+
+    </MudPaper>
+}
+
+
+<MudPaper Class="pa-4 mt-4">
+
+    <MudText Typo="Typo.h6" Class="mb-3">
+        Qualification Register
+    </MudText>
+
+    <MudTable Items="_qualifications"
+              Hover="true"
+              Dense="true"
+              Striped="true">
+
+        <HeaderContent>
+            <MudTh>Welder</MudTh>
+            <MudTh>Process</MudTh>
+            <MudTh>Material</MudTh>
+            <MudTh>Position</MudTh>
+            <MudTh>Thickness</MudTh>
+            <MudTh>Qualified</MudTh>
+            <MudTh>Expiry</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd DataLabel="Welder">
+                @context.WelderNumber
+            </MudTd>
+
+            <MudTd DataLabel="Process">
+                @context.Process
+            </MudTd>
+
+            <MudTd DataLabel="Material">
+                @context.MaterialGroup
+            </MudTd>
+
+            <MudTd DataLabel="Position">
+                @context.Position
+            </MudTd>
+
+            <MudTd DataLabel="Thickness">
+                @context.ThicknessDisplay
+            </MudTd>
+
+            <MudTd DataLabel="Qualified">
+                @context.QualificationDate.ToString("yyyy-MM-dd")
+            </MudTd>
+
+            <MudTd DataLabel="Expiry">
+                @context.ExpiryDate.ToString("yyyy-MM-dd")
+            </MudTd>
+
+            <MudTd DataLabel="Status">
+
+                <MudChip T="string"
+                         Size="Size.Small"
+                         Color="@GetStatusColor(context)">
+                    @GetStatus(context)
+                </MudChip>
+
+            </MudTd>
+
+            <MudTd DataLabel="Actions">
+
+                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               OnClick="@(() => Edit(context))" />
+
+                <MudIconButton Icon="@Icons.Material.Filled.Autorenew"
+                               Color="Color.Warning"
+                               Size="Size.Small"
+                               OnClick="@(() => Renew(context))" />
+
+                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                               Color="Color.Error"
+                               Size="Size.Small"
+                               OnClick="@(() => Delete(context))" />
+
+            </MudTd>
+
+        </RowTemplate>
+
+        <NoRecordsContent>
+            <MudText Class="pa-4">
+                No welder qualifications have been created yet.
+            </MudText>
+        </NoRecordsContent>
+
+    </MudTable>
+
+</MudPaper>
+
+
+@code
+{
+    private List<WelderQualification> _qualifications = new();
+
+    private WelderQualification _editor = NewEditor();
+
+    private int _editingId;
+
+    private bool _showEditor;
+
+    private DateTime? _qualificationDate =
+        DateTime.Today;
+
+    private DateTime? _expiryDate =
+        DateTime.Today.AddMonths(6);
+
+
+    protected override void OnInitialized()
+    {
+        Load();
+    }
+
+
+    private void Load()
+    {
+        _qualifications =
+            WelderService
+                .GetAll()
+                .OrderBy(x => x.WelderNumber)
+                .ThenBy(x => x.Process)
+                .ToList();
+    }
+
+
+    private void NewQualification()
+    {
+        _editingId = 0;
+
+        _editor = NewEditor();
+
+        _qualificationDate =
+            DateTime.Today;
+
+        _expiryDate =
+            DateTime.Today.AddMonths(6);
+
+        _showEditor = true;
+    }
+
+
+    private void Edit(
+        WelderQualification qualification)
+    {
+        _editingId = qualification.Id;
+
+        _editor = new WelderQualification
+        {
+            Id = qualification.Id,
+            WelderNumber = qualification.WelderNumber,
+            Process = qualification.Process,
+            MaterialGroup = qualification.MaterialGroup,
+            Position = qualification.Position,
+            ThicknessMin = qualification.ThicknessMin,
+            ThicknessMax = qualification.ThicknessMax,
+            QualificationDate = qualification.QualificationDate,
+            InitialQualificationDate =
+                qualification.InitialQualificationDate,
+            RenewalDate = qualification.RenewalDate,
+            ExpiryDate = qualification.ExpiryDate,
+            IsActive = qualification.IsActive
+        };
+
+        _qualificationDate =
+            qualification.QualificationDate;
+
+        _expiryDate =
+            qualification.ExpiryDate;
+
+        _showEditor = true;
+    }
+
+
+    private void Save()
+    {
+        try
+        {
+            _editor.QualificationDate =
+                _qualificationDate ?? DateTime.Today;
+
+            _editor.ExpiryDate =
+                _expiryDate ??
+                _editor.QualificationDate.AddMonths(6);
+
+            if (_editingId == 0)
+            {
+                _editor.InitialQualificationDate =
+                    _editor.QualificationDate;
+
+                WelderService.Create(_editor);
+
+                Snackbar.Add(
+                    "Welder qualification created.",
+                    Severity.Success);
+            }
+            else
+            {
+                _editor.Id = _editingId;
+
+                WelderService.Update(_editor);
+
+                Snackbar.Add(
+                    "Welder qualification updated.",
+                    Severity.Success);
+            }
+
+            _showEditor = false;
+
+            Load();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+    }
+
+
+    private void Renew(
+        WelderQualification qualification)
+    {
+        try
+        {
+            WelderService.Renew(qualification);
+
+            Snackbar.Add(
+                $"Qualification for {qualification.WelderNumber} renewed for 6 months.",
+                Severity.Success);
+
+            Load();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+    }
+
+
+    private void Delete(
+        WelderQualification qualification)
+    {
+        try
+        {
+            WelderService.Delete(
+                qualification.Id);
+
+            Snackbar.Add(
+                $"Qualification for {qualification.WelderNumber} deleted.",
+                Severity.Success);
+
+            Load();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+    }
+
+
+    private void Cancel()
+    {
+        _showEditor = false;
+    }
+
+
+    private static string GetStatus(
+        WelderQualification qualification)
+    {
+        if (qualification.ExpiryDate < DateTime.Today)
+        {
+            return "Expired";
+        }
+
+        if (qualification.ExpiryDate <=
+            DateTime.Today.AddDays(30))
+        {
+            return "Expiring Soon";
+        }
+
+        return "Valid";
+    }
+
+
+    private static Color GetStatusColor(
+        WelderQualification qualification)
+    {
+        if (qualification.ExpiryDate < DateTime.Today)
+        {
+            return Color.Error;
+        }
+
+        if (qualification.ExpiryDate <=
+            DateTime.Today.AddDays(30))
+        {
+            return Color.Warning;
+        }
+
+        return Color.Success;
+    }
+
+
+    private static WelderQualification NewEditor()
+    {
+        return new WelderQualification
+        {
+            QualificationDate = DateTime.Today,
+            InitialQualificationDate = DateTime.Today,
+            ExpiryDate = DateTime.Today.AddMonths(6),
+            IsActive = true
+        };
+    }
+}
