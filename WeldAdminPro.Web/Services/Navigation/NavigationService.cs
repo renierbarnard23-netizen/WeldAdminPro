@@ -231,6 +231,13 @@ public class NavigationService
                     {
                         Text = "Repairs",
                         Url = "/quality/repairs"
+                    },
+
+                    new()
+                    {
+                        Text = "NCR Management",
+                        Url = "/quality/ncr",
+                        Permission = PermissionKeys.Quality.NCR
                     }
                 ]
             },

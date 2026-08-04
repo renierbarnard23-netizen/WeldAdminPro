@@ -292,6 +292,8 @@ builder.Services.AddScoped<NdtApplicationService>();
 
 builder.Services.AddScoped<DocumentApplicationService>();
 
+builder.Services.AddScoped<NcrApplicationService>();
+
 builder.Services.AddScoped<QualityComplianceService>();
 
 builder.Services.AddScoped<QualityAlertService>();
