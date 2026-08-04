@@ -1,4 +1,5 @@
-﻿@page "/quality/ncr"
+@page "/quality/ncr"
+@using WeldAdminPro.Web.Components.Security
 
 @attribute [Authorize(Policy = "Permission:Quality.NCR")]
 
@@ -315,7 +316,8 @@
                           Dense="true"
                           Striped="true"
                           Breakpoint="Breakpoint.Sm"
-                          @bind-SelectedItem="_selectedNcr">
+                          SelectedItem="_selectedNcr"
+                          SelectedItemChanged="SelectNcr">
 
                     <HeaderContent>
 
@@ -484,6 +486,120 @@
                         </MudAlert>
                     }
 
+                    @if (_selectedNcr.Status == NcrStatus.AwaitingDisposition)
+                    {
+                        <PermissionView Permission="Quality.NCR.Disposition">
+
+                            <MudDivider Class="my-4" />
+
+                            <MudText Typo="Typo.subtitle2"
+                                     Class="mb-3">
+                                NCR Disposition
+                            </MudText>
+
+                            @if (!string.IsNullOrWhiteSpace(_dispositionError))
+                            {
+                                <MudAlert Severity="Severity.Error"
+                                          Dense="true"
+                                          Class="mb-3">
+                                    @_dispositionError
+                                </MudAlert>
+                            }
+
+                            @if (_selectedNcr.DispositionType.HasValue)
+                            {
+                                <MudAlert Severity="Severity.Info"
+                                          Dense="true"
+                                          Class="mb-3">
+                                    Existing disposition:
+                                    <b>@_selectedNcr.DispositionType.Value</b>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        _selectedNcr.DispositionApprovedBy))
+                                    {
+                                        <span>
+                                            â€” approved by
+                                            @_selectedNcr.DispositionApprovedBy
+                                        </span>
+                                    }
+                                </MudAlert>
+                            }
+
+                            <MudTextField T="string"
+                                          Label="Root Cause"
+                                          Variant="Variant.Outlined"
+                                          Lines="3"
+                                          @bind-Value="_dispositionRootCause"
+                                          Class="mb-3" />
+
+                            <MudTextField T="string"
+                                          Label="Corrective Action"
+                                          Variant="Variant.Outlined"
+                                          Lines="3"
+                                          @bind-Value="_dispositionCorrectiveAction"
+                                          Class="mb-3" />
+
+                            <MudTextField T="string"
+                                          Label="Preventive Action"
+                                          Variant="Variant.Outlined"
+                                          Lines="3"
+                                          @bind-Value="_dispositionPreventiveAction"
+                                          Class="mb-3" />
+
+                            <MudSelect T="NcrDispositionType?"
+                                       Label="Disposition"
+                                       Variant="Variant.Outlined"
+                                       @bind-Value="_dispositionType"
+                                       Class="mb-3">
+
+                                @foreach (var disposition in
+                                    Enum.GetValues<NcrDispositionType>())
+                                {
+                                    <MudSelectItem T="NcrDispositionType?"
+                                                   Value="@((NcrDispositionType?)disposition)">
+                                        @disposition
+                                    </MudSelectItem>
+                                }
+
+                            </MudSelect>
+
+                            <MudTextField T="string"
+                                          Label="Approved By"
+                                          Variant="Variant.Outlined"
+                                          @bind-Value="_dispositionApprovedBy"
+                                          Class="mb-3" />
+
+                            <MudCheckBox T="bool"
+                                         Label="Requires Customer Approval"
+                                         @bind-Value="_requiresCustomerApproval"
+                                         Class="mb-2" />
+
+                            @if (_requiresCustomerApproval)
+                            {
+                                <MudCheckBox T="bool"
+                                             Label="Customer Approved"
+                                             @bind-Value="_customerApproved"
+                                             Class="mb-2" />
+
+                                <MudTextField T="string"
+                                              Label="Customer Approval Reference"
+                                              Variant="Variant.Outlined"
+                                              @bind-Value="_customerApprovalReference"
+                                              Class="mb-3" />
+                            }
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Save"
+                                       Disabled="@_isSavingDisposition"
+                                       OnClick="SaveNcrDisposition">
+                                @(_isSavingDisposition
+                                    ? "Saving..."
+                                    : "Save Disposition")
+                            </MudButton>
+
+                        </PermissionView>
+                    }
                     @if (CanAdvanceBasicWorkflow(_selectedNcr))
                     {
                         <MudDivider Class="my-4" />
@@ -708,6 +824,26 @@
     private string _search = string.Empty;
 
     private NcrStatus? _selectedStatus;
+    // =====================================================
+    // NCR DISPOSITION
+    // =====================================================
+
+    private NcrDispositionType? _dispositionType;
+
+    private string _dispositionRootCause = string.Empty;
+    private string _dispositionCorrectiveAction = string.Empty;
+    private string _dispositionPreventiveAction = string.Empty;
+
+    private string _dispositionApprovedBy = string.Empty;
+
+    private bool _requiresCustomerApproval;
+    private bool _customerApproved;
+
+    private string _customerApprovalReference = string.Empty;
+
+    private string _dispositionError = string.Empty;
+
+    private bool _isSavingDisposition;
 
 
     protected override void OnInitialized()
@@ -731,6 +867,12 @@
                 _selectedNcr =
                     _ncrs.FirstOrDefault(
                         x => x.Id == _selectedNcr.Id);
+
+                if (_selectedNcr != null)
+                {
+                    LoadDispositionEditor(
+                        _selectedNcr);
+                }
             }
         }
         catch (Exception ex)
@@ -741,6 +883,47 @@
         }
     }
 
+
+    private void SelectNcr(
+        NcrRecord? ncr)
+    {
+        _selectedNcr =
+            ncr;
+
+        if (_selectedNcr != null)
+        {
+            LoadDispositionEditor(
+                _selectedNcr);
+        }
+        else
+        {
+            _dispositionType = null;
+
+            _dispositionRootCause =
+                string.Empty;
+
+            _dispositionCorrectiveAction =
+                string.Empty;
+
+            _dispositionPreventiveAction =
+                string.Empty;
+
+            _dispositionApprovedBy =
+                string.Empty;
+
+            _requiresCustomerApproval =
+                false;
+
+            _customerApproved =
+                false;
+
+            _customerApprovalReference =
+                string.Empty;
+
+            _dispositionError =
+                string.Empty;
+        }
+    }
 
     private IEnumerable<NcrRecord> FilteredNcrs =>
         _ncrs.Where(ncr =>
@@ -789,6 +972,216 @@
         _selectedStatus = null;
     }
 
+
+    private void LoadDispositionEditor(
+        NcrRecord ncr)
+    {
+        _dispositionType =
+            ncr.DispositionType;
+
+        _dispositionRootCause =
+            ncr.RootCause ?? string.Empty;
+
+        _dispositionCorrectiveAction =
+            ncr.CorrectiveAction ?? string.Empty;
+
+        _dispositionPreventiveAction =
+            ncr.PreventiveAction ?? string.Empty;
+
+        _dispositionApprovedBy =
+            ncr.DispositionApprovedBy ?? string.Empty;
+
+        _requiresCustomerApproval =
+            ncr.RequiresCustomerApproval;
+
+        _customerApproved =
+            ncr.CustomerApproved;
+
+        _customerApprovalReference =
+            ncr.CustomerApprovalReference ?? string.Empty;
+
+        _dispositionError =
+            string.Empty;
+    }
+
+
+    private async Task SaveNcrDisposition()
+    {
+        _dispositionError =
+            string.Empty;
+
+        if (_selectedNcr == null)
+        {
+            return;
+        }
+
+        if (_selectedNcr.Status !=
+            NcrStatus.AwaitingDisposition)
+        {
+            _dispositionError =
+                "Disposition can only be recorded while the NCR is awaiting disposition.";
+
+            return;
+        }
+
+        if (!_dispositionType.HasValue)
+        {
+            _dispositionError =
+                "Select an NCR disposition.";
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+            _dispositionRootCause))
+        {
+            _dispositionError =
+                "Enter the root cause.";
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+            _dispositionCorrectiveAction))
+        {
+            _dispositionError =
+                "Enter the corrective action.";
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+            _dispositionApprovedBy))
+        {
+            _dispositionError =
+                "Enter the person approving the disposition.";
+
+            return;
+        }
+
+        if (_requiresCustomerApproval &&
+            _customerApproved &&
+            string.IsNullOrWhiteSpace(
+                _customerApprovalReference))
+        {
+            _dispositionError =
+                "Enter the customer approval reference.";
+
+            return;
+        }
+
+        try
+        {
+            _isSavingDisposition =
+                true;
+
+            var ncrId =
+                _selectedNcr.Id;
+
+            _selectedNcr.RootCause =
+                _dispositionRootCause.Trim();
+
+            _selectedNcr.CorrectiveAction =
+                _dispositionCorrectiveAction.Trim();
+
+            _selectedNcr.PreventiveAction =
+                _dispositionPreventiveAction.Trim();
+
+            NcrService.Update(
+                _selectedNcr);
+
+            var saved =
+                NcrService.SetDisposition(
+                    ncrId,
+                    _dispositionType.Value,
+                    _dispositionApprovedBy.Trim(),
+                    _requiresCustomerApproval,
+                    _requiresCustomerApproval &&
+                        _customerApproved,
+                    string.IsNullOrWhiteSpace(
+                        _customerApprovalReference)
+                            ? null
+                            : _customerApprovalReference.Trim());
+
+            if (!saved)
+            {
+                _dispositionError =
+                    "Unable to save the NCR disposition.";
+
+                return;
+            }
+
+            // -------------------------------------------------
+            // REPAIR DISPOSITION WORKFLOW
+            //
+            // A successfully recorded Repair disposition may
+            // advance from AwaitingDisposition to the existing
+            // ApprovedForRepair workflow state.
+            //
+            // Customer approval must already be satisfied when
+            // the disposition requires it.
+            // -------------------------------------------------
+
+            if (_dispositionType.Value ==
+                NcrDispositionType.Repair)
+            {
+                if (_requiresCustomerApproval &&
+                    !_customerApproved)
+                {
+                    _dispositionError =
+                        "Customer approval is required before this NCR can be approved for repair.";
+
+                    LoadNcrs();
+
+                    return;
+                }
+
+                var movedToRepairApproval =
+                    NcrService.MoveTo(
+                        ncrId,
+                        NcrStatus.ApprovedForRepair);
+
+                if (!movedToRepairApproval)
+                {
+                    _dispositionError =
+                        "The disposition was saved, but the NCR could not advance to Approved For Repair.";
+
+                    LoadNcrs();
+
+                    return;
+                }
+            }
+
+            LoadNcrs();
+
+            _selectedNcr =
+                _ncrs.FirstOrDefault(
+                    x => x.Id == ncrId);
+
+            if (_selectedNcr != null)
+            {
+                LoadDispositionEditor(
+                    _selectedNcr);
+            }
+
+            Snackbar.Add(
+                "NCR disposition saved successfully.",
+                Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _dispositionError =
+                $"Unable to save disposition: {ex.Message}";
+        }
+        finally
+        {
+            _isSavingDisposition =
+                false;
+        }
+
+        await InvokeAsync(
+            StateHasChanged);
+    }
 
     private static NcrStatus? GetBasicNextStatus(
         NcrRecord ncr)
