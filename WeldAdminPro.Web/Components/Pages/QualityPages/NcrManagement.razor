@@ -7,10 +7,14 @@
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Core.Quality.Models
 @using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Core.Quality.Services
+@using Microsoft.JSInterop
 @using WeldAdminPro.Data.Repositories
 @using WeldAdminPro.Web.Services.Quality
 
 @inject NcrApplicationService NcrService
+@inject NcrDossierPdfService NcrPdfService
+@inject IJSRuntime JS
 @inject WeldRepository WeldRepository
 @inject ISnackbar Snackbar
 
@@ -459,9 +463,29 @@
                 }
                 else
                 {
-                    <MudText Typo="Typo.subtitle1">
-                        <b>@_selectedNcr.NcrNumber</b>
-                    </MudText>
+                    <MudStack Row="true"
+                              Justify="Justify.SpaceBetween"
+                              AlignItems="AlignItems.Center"
+                              Class="mb-3">
+
+                        <MudText Typo="Typo.subtitle1">
+                            <b>@_selectedNcr.NcrNumber</b>
+                        </MudText>
+
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                                   Disabled="@_isExportingPdf"
+                                   OnClick="ExportNcrPdf">
+
+                            @(_isExportingPdf
+                                ? "Generating PDF..."
+                                : "Export NCR PDF")
+
+                        </MudButton>
+
+                    </MudStack>
 
                     <MudDivider Class="my-3" />
 
@@ -695,6 +719,7 @@
 
 @code
 {
+    private bool _isExportingPdf;
     // =====================================================
     // NCR CREATION
     // =====================================================
@@ -1281,6 +1306,104 @@
 
         await InvokeAsync(
             StateHasChanged);
+    }
+
+    private async Task ExportNcrPdf()
+    {
+        if (_selectedNcr == null ||
+            _isExportingPdf)
+        {
+            return;
+        }
+
+        _isExportingPdf = true;
+
+        try
+        {
+            var current =
+                NcrService.GetById(
+                    _selectedNcr.Id);
+
+            if (current == null)
+            {
+                Snackbar.Add(
+                    "The selected NCR could not be loaded.",
+                    Severity.Error);
+
+                return;
+            }
+
+            var history =
+                NcrService.GetHistory(
+                    current.Id);
+
+            var exportModel =
+                new NcrDossierExportModel
+                {
+                    Ncr = current,
+                    History = history,
+                    GeneratedDate = DateTime.Now
+                };
+
+            var pdf =
+                NcrPdfService.Generate(
+                    exportModel);
+
+            if (pdf.Length == 0)
+            {
+                Snackbar.Add(
+                    "The NCR PDF could not be generated.",
+                    Severity.Error);
+
+                return;
+            }
+
+            var fileNumber =
+                string.IsNullOrWhiteSpace(
+                    current.NcrNumber)
+                    ? "NCR"
+                    : current.NcrNumber.Trim();
+
+            foreach (var invalidCharacter in
+                     Path.GetInvalidFileNameChars())
+            {
+                fileNumber =
+                    fileNumber.Replace(
+                        invalidCharacter,
+                        '-');
+            }
+
+            var fileName =
+                $"{fileNumber}-Dossier.pdf";
+
+            var base64 =
+                Convert.ToBase64String(pdf);
+
+            await JS.InvokeVoidAsync(
+                "weldAdminDownload.saveBase64File",
+                fileName,
+                "application/pdf",
+                base64);
+
+            Snackbar.Add(
+                current.IsClosed
+                    ? "Final NCR dossier exported."
+                    : "Interim NCR dossier exported.",
+                Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"PDF export failed: {ex.Message}",
+                Severity.Error);
+        }
+        finally
+        {
+            _isExportingPdf = false;
+
+            await InvokeAsync(
+                StateHasChanged);
+        }
     }
 
     private static NcrStatus? GetBasicNextStatus(

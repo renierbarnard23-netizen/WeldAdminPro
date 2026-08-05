@@ -297,6 +297,9 @@ builder.Services.AddScoped<DocumentApplicationService>();
 
 builder.Services.AddScoped<NcrApplicationService>();
 
+builder.Services.AddScoped<
+    WeldAdminPro.Core.Quality.Services.NcrDossierPdfService>();
+
 builder.Services.AddScoped<QualityComplianceService>();
 
 builder.Services.AddScoped<QualityAlertService>();
