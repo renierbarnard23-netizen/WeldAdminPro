@@ -75,6 +75,10 @@ namespace WeldAdminPro.Data.Services
             {
                 ApplyVersion8(connection);
             }
+            if (currentVersion < 9)
+            {
+                ApplyVersion9(connection);
+            }
 
             // =====================================
             // SECURITY CATALOG SYNCHRONIZATION
@@ -1027,6 +1031,59 @@ ON NcrRecords(WeldId);",
                 8,
                 "1.7.0",
                 "Generalized NCR system with optional weld association");
+        }
+
+        // =====================================
+        // VERSION 9
+        // NCR workflow history / audit trail
+        // =====================================
+
+        private void ApplyVersion9(
+            SqliteConnection connection)
+        {
+            connection.Execute(
+                @"
+CREATE TABLE IF NOT EXISTS NcrWorkflowHistory
+(
+    Id TEXT PRIMARY KEY,
+
+    NcrId TEXT NOT NULL,
+
+    FromStatus INTEGER NULL,
+
+    ToStatus INTEGER NOT NULL,
+
+    Action TEXT NOT NULL,
+
+    PerformedBy TEXT,
+
+    PerformedDate TEXT NOT NULL,
+
+    Details TEXT,
+
+    FOREIGN KEY(NcrId)
+        REFERENCES NcrRecords(Id)
+        ON DELETE CASCADE
+);
+");
+
+            connection.Execute(
+                @"
+CREATE INDEX IF NOT EXISTS IX_NcrWorkflowHistory_NcrId
+ON NcrWorkflowHistory(NcrId);
+");
+
+            connection.Execute(
+                @"
+CREATE INDEX IF NOT EXISTS IX_NcrWorkflowHistory_PerformedDate
+ON NcrWorkflowHistory(PerformedDate);
+");
+
+            RecordVersion(
+                connection,
+                9,
+                "1.8.0",
+                "NCR workflow history and audit trail");
         }
 
         // =====================================

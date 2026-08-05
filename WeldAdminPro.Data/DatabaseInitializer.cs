@@ -910,6 +910,44 @@ FOREIGN KEY(WeldId)
             // CAPA RECORDS TABLE
             // =========================
 
+            // =========================
+            // NCR WORKFLOW HISTORY TABLE
+            // =========================
+
+            connection.Execute(
+@"
+CREATE TABLE IF NOT EXISTS NcrWorkflowHistory
+(
+    Id TEXT PRIMARY KEY,
+
+    NcrId TEXT NOT NULL,
+
+    FromStatus INTEGER NULL,
+
+    ToStatus INTEGER NOT NULL,
+
+    Action TEXT NOT NULL,
+
+    PerformedBy TEXT,
+
+    PerformedDate TEXT NOT NULL,
+
+    Details TEXT,
+
+    FOREIGN KEY(NcrId)
+        REFERENCES NcrRecords(Id)
+        ON DELETE CASCADE
+)");
+
+            connection.Execute(@"
+CREATE INDEX IF NOT EXISTS IX_NcrWorkflowHistory_NcrId
+ON NcrWorkflowHistory(NcrId);");
+
+            connection.Execute(@"
+CREATE INDEX IF NOT EXISTS IX_NcrWorkflowHistory_PerformedDate
+ON NcrWorkflowHistory(PerformedDate);");
+
+
             connection.Execute(
 @"
 CREATE TABLE IF NOT EXISTS CapaRecords

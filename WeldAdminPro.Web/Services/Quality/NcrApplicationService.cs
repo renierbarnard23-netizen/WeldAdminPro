@@ -1,4 +1,4 @@
-﻿using WeldAdminPro.Core.Quality.Enums;
+using WeldAdminPro.Core.Quality.Enums;
 using WeldAdminPro.Core.Quality.Models;
 using WeldAdminPro.Core.Quality.Services;
 using WeldAdminPro.Data.Repositories;
@@ -9,10 +9,15 @@ public class NcrApplicationService
 {
     private readonly NcrRepository _repository;
 
+    private readonly NcrWorkflowHistoryRepository
+        _historyRepository;
+
     public NcrApplicationService(
-        NcrRepository repository)
+        NcrRepository repository,
+        NcrWorkflowHistoryRepository historyRepository)
     {
         _repository = repository;
+        _historyRepository = historyRepository;
     }
 
     // =====================================================
@@ -38,6 +43,12 @@ public class NcrApplicationService
             .FirstOrDefault(x => x.Id == id);
     }
 
+    public List<NcrWorkflowHistoryEntry> GetHistory(
+        Guid ncrId)
+    {
+        return _historyRepository.GetByNcr(ncrId);
+    }
+
     // =====================================================
     // Commands
     // =====================================================
@@ -61,6 +72,14 @@ public class NcrApplicationService
         ncr.ClosedDate = null;
 
         _repository.Add(ncr);
+
+        AddHistory(
+            ncr.Id,
+            null,
+            ncr.Status,
+            "Created",
+            ncr.RaisedBy,
+            BuildCreatedDetails(ncr));
     }
 
     public void Update(
@@ -96,9 +115,20 @@ public class NcrApplicationService
             return false;
         }
 
+        var previousStatus =
+            ncr.Status;
+
         ncr.Status = target;
 
         _repository.Update(ncr);
+
+        AddHistory(
+            ncr.Id,
+            previousStatus,
+            target,
+            "Status Changed",
+            ResolveActor(ncr),
+            $"Status changed from {previousStatus} to {target}.");
 
         return true;
     }
@@ -130,6 +160,34 @@ public class NcrApplicationService
 
         _repository.Update(ncr);
 
+        var details =
+            $"Disposition: {disposition}. " +
+            $"Customer approval required: " +
+            $"{(requiresCustomerApproval ? "Yes" : "No")}.";
+
+        if (requiresCustomerApproval)
+        {
+            details +=
+                $" Customer approved: " +
+                $"{(customerApproved ? "Yes" : "No")}.";
+
+            if (!string.IsNullOrWhiteSpace(
+                    customerApprovalReference))
+            {
+                details +=
+                    $" Approval reference: " +
+                    $"{customerApprovalReference}.";
+            }
+        }
+
+        AddHistory(
+            ncr.Id,
+            ncr.Status,
+            ncr.Status,
+            "Disposition Recorded",
+            approvedBy,
+            details);
+
         return true;
     }
 
@@ -148,6 +206,14 @@ public class NcrApplicationService
         ncr.VerificationDate = DateTime.Now;
 
         _repository.Update(ncr);
+
+        AddHistory(
+            ncr.Id,
+            ncr.Status,
+            ncr.Status,
+            "Verification Recorded",
+            verifiedBy,
+            $"Verification completed by {verifiedBy}.");
 
         return true;
     }
@@ -176,6 +242,9 @@ public class NcrApplicationService
             return false;
         }
 
+        var previousStatus =
+            ncr.Status;
+
         ncr.Status = NcrStatus.Closed;
         ncr.IsClosed = true;
         ncr.ClosedBy = closedBy;
@@ -183,11 +252,95 @@ public class NcrApplicationService
 
         _repository.Update(ncr);
 
+        AddHistory(
+            ncr.Id,
+            previousStatus,
+            NcrStatus.Closed,
+            "Closed",
+            closedBy,
+            $"NCR closed by {closedBy}.");
+
         return true;
     }
 
     public string GetNextNcrNumber()
     {
         return _repository.GetNextNcrNumber();
+    }
+
+    // =====================================================
+    // History
+    // =====================================================
+
+    private void AddHistory(
+        Guid ncrId,
+        NcrStatus? fromStatus,
+        NcrStatus toStatus,
+        string action,
+        string? performedBy,
+        string? details)
+    {
+        _historyRepository.Add(
+            new NcrWorkflowHistoryEntry
+            {
+                Id = Guid.NewGuid(),
+                NcrId = ncrId,
+                FromStatus = fromStatus,
+                ToStatus = toStatus,
+                Action = action,
+                PerformedBy =
+                    performedBy ?? string.Empty,
+                PerformedDate = DateTime.Now,
+                Details =
+                    details ?? string.Empty
+            });
+    }
+
+    private static string ResolveActor(
+        NcrRecord ncr)
+    {
+        if (!string.IsNullOrWhiteSpace(
+                ncr.AssignedTo))
+        {
+            return ncr.AssignedTo;
+        }
+
+        if (!string.IsNullOrWhiteSpace(
+                ncr.RaisedBy))
+        {
+            return ncr.RaisedBy;
+        }
+
+        return "System";
+    }
+
+    private static string BuildCreatedDetails(
+        NcrRecord ncr)
+    {
+        var category =
+            string.IsNullOrWhiteSpace(ncr.Category)
+                ? "Not specified"
+                : ncr.Category;
+
+        var details =
+            $"NCR {ncr.NcrNumber} created. " +
+            $"Category: {category}. " +
+            $"Welding related: " +
+            $"{(ncr.IsWeldingRelated ? "Yes" : "No")}.";
+
+        if (!string.IsNullOrWhiteSpace(
+                ncr.CustomReason))
+        {
+            details +=
+                $" Custom reason: {ncr.CustomReason}.";
+        }
+
+        if (ncr.WeldId.HasValue)
+        {
+            details +=
+                $" Associated weld: {ncr.WeldNumber}.";
+        }
+
+        return details;
     }
 }

@@ -218,6 +218,9 @@ builder.Services.AddScoped<ProjectDocumentRepository>();
 builder.Services.AddScoped<NcrRepository>(_ =>
     new NcrRepository(
         DatabasePath.GetConnectionString()));
+builder.Services.AddScoped<NcrWorkflowHistoryRepository>(_ =>
+    new NcrWorkflowHistoryRepository(
+        DatabasePath.GetConnectionString()));
 
 builder.Services.AddSingleton<ProjectProfitabilityService>();
 
