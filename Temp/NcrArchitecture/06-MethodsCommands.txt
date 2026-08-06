@@ -1,0 +1,24 @@
+﻿C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:7: public static bool CanMoveTo(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:15: public NcrRepository(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:22: public void Add(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:87: public List<NcrRecord> GetAll()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:104: public List<NcrRecord> GetByWeld(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:128: public void Update(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:164: private static object ToParameters(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:215: private static NcrRecord Map(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:30: public NcrManagementViewModel()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:39: public void Load()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:52: [RelayCommand]
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:53: private void CloseNcr()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:106: [RelayCommand]
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:107: private void StartInvestigation()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:136: [RelayCommand]
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:137: private void AssignCorrectiveAction()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:178: [RelayCommand]
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:179: private void Verify()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:36: public NcrDashboardViewModel()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:45: public void Load()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:72: [RelayCommand]
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:73: private void Refresh()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:78: [RelayCommand]
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:79: private void CloseNcr()

@@ -1,0 +1,482 @@
+﻿@page "/quality/weld-register/{ProjectId:guid}"
+
+@attribute [Authorize(Policy = "Permission:Quality.WeldRegister")]
+@using MudBlazor
+@using WeldAdminPro.Web.Components.Shared.WeldRegister
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Quality
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Core.Quality.Enums
+
+@using WeldAdminPro.Web.Components.Shared.Dialogs
+
+@using WeldAdminPro.Data.Repositories
+
+@inject WeldRepository WeldRepository
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+
+@inject WeldRegisterApplicationService WeldService
+
+@inject WeldTraceabilityRepository TraceabilityRepository
+
+@inject ISnackbar Snackbar
+
+<PageTitle>Weld Register</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+
+    <WeldAnalyticsCards Welds="FilteredWelds.ToList()" />
+
+    <MudPaper Class="pa-4 mt-4">
+
+        <MudGrid>
+
+            <MudItem xs="12" md="3">
+                <MudTextField T="string"
+                              Label="Search"
+                              Variant="Variant.Outlined"
+                              Placeholder="Search Weld..."
+                              Immediate="true"
+                              @bind-Value="_search" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudSelect T="WeldWorkflowStatus?"
+                           Label="Workflow"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           @bind-Value="_selectedWorkflow">
+
+                    @foreach (var workflow in WorkflowOptions)
+                    {
+                        <MudSelectItem T="WeldWorkflowStatus?"
+                                       Value="@workflow">
+
+                            @workflow
+
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudSelect T="string"
+                           Label="Welder"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           @bind-Value="_selectedWelder">
+
+                    @foreach (var welder in WelderOptions)
+                    {
+                        <MudSelectItem Value="@welder">
+                            @welder
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudSelect T="string"
+                           Label="WPS"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           @bind-Value="_selectedWps">
+
+                    @foreach (var wps in WpsOptions)
+                    {
+                        <MudSelectItem Value="@wps">
+                            @wps
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+        </MudGrid>
+
+    </MudPaper>
+
+    <MudStack Row="true"
+              Justify="Justify.SpaceBetween"
+              AlignItems="AlignItems.Center"
+              Class="mb-4">
+
+        <MudText Typo="Typo.h5">
+
+            Weld Register
+
+        </MudText>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="NewWeld">
+
+            New Weld
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Secondary"
+                   StartIcon="@Icons.Material.Filled.Edit"
+                   Disabled="@(_selectedWeld == null)"
+                   OnClick="EditWeld">
+
+            Edit Weld
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Delete"
+                   Disabled="@(_selectedWeld == null)"
+                   OnClick="DeleteWeld">
+
+            Delete Weld
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Info"
+                   StartIcon="@Icons.Material.Filled.FactCheck"
+                   Disabled="@(_selectedWeld == null)"
+                   OnClick="CaptureNdt">
+
+            Capture NDT
+
+        </MudButton>
+
+    </MudStack>
+
+    <MudGrid Class="mt-4">
+
+        <MudItem xs="12" md="8">
+
+            <WeldRegisterGrid Welds="FilteredWelds.ToList()"
+                              SelectedWeld="_selectedWeld"
+                              SelectedWeldChanged="SelectedWeldChanged" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+
+            <WeldDetailsCard Weld="_selectedWeld" />
+
+            <MudDivider Class="my-4" />
+            <WeldTraceabilityCard Records="_traceability"
+                                  Edit="EditTraceability" />
+
+        </MudItem>
+
+    </MudGrid>
+
+    <MudGrid Class="mt-4">
+
+        <MudItem xs="12">
+
+            <WeldNdtHistoryCard Results="_ndtHistory" />
+
+        </MudItem>
+
+    </MudGrid>
+
+    <MudGrid Class="mt-4">
+
+        <MudItem xs="12">
+
+            <WeldHistoryCard History="_history" />
+
+        </MudItem>
+
+    </MudGrid>
+
+</MudContainer>
+
+@code
+{
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    private Weld? _selectedWeld;
+
+    private List<Weld> _welds = new();
+
+    private string _search = string.Empty;
+
+    private WeldWorkflowStatus? _selectedWorkflow;
+
+    private string? _selectedWelder;
+
+    private string? _selectedWps;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _welds = await WeldService.GetProjectWelds(ProjectId);
+    }
+
+    private void NewWeld()
+    {
+        Navigation.NavigateTo(
+            $"/quality/weld-new/{ProjectId}");
+    }
+
+    private List<WeldNdtResult> _ndtHistory = new();
+
+    private List<WeldHistoryEntry> _history = new();
+
+    private List<WeldTraceabilityRecord> _traceability = new();
+
+    private Task SelectedWeldChanged(Weld? weld)
+    {
+        _selectedWeld = weld;
+
+        if (weld == null)
+        {
+            _ndtHistory.Clear();
+            _history.Clear();
+            _traceability.Clear();
+
+            return Task.CompletedTask;
+        }
+
+        _ndtHistory = WeldService.GetNdt(weld.Id);
+        _history = WeldService.GetHistory(weld.Id);
+        _traceability = TraceabilityRepository.GetByWeld(weld.Id);
+
+        return Task.CompletedTask;
+    }
+
+    private async Task EditWeld()
+    {
+        if (_selectedWeld == null)
+            return;
+
+        var parameters = new DialogParameters
+    {
+        { nameof(EditWeldDialog.Weld), _selectedWeld }
+    };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditWeldDialog>(
+            "Edit Weld",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            _welds =
+                await WeldRepository.GetByProjectAsync(ProjectId);
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteWeld()
+    {
+        var weld = _selectedWeld;
+
+        if (weld == null)
+            return;
+
+        var parameters = new DialogParameters
+    {
+        { nameof(ConfirmDialog.Title), "Delete Weld" },
+        { nameof(ConfirmDialog.Message), $"Delete weld '{weld.WeldNumber}'?" }
+    };
+
+        var dialog =
+            await DialogService.ShowAsync<ConfirmDialog>(
+                "Confirm Delete",
+                parameters);
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await WeldRepository.DeleteAsync(weld.Id);
+
+            _welds =
+                await WeldRepository.GetByProjectAsync(ProjectId);
+        }
+
+        _selectedWeld = null;
+
+        StateHasChanged();
+    }
+
+    private async Task CaptureNdt()
+    {
+        if (_selectedWeld == null)
+            return;
+
+        var parameters = new DialogParameters
+    {
+        { nameof(CaptureNdtDialog.Weld), _selectedWeld }
+    };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<CaptureNdtDialog>(
+            "Capture NDT",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result?.Canceled != false)
+            return;
+
+        var ndt = (WeldNdtResult)result.Data!;
+
+        var selectedWeld = _selectedWeld;
+
+        if (selectedWeld == null)
+            return;
+
+        await WeldService.CaptureNdtAsync(selectedWeld, ndt);
+
+        _welds = await WeldService.GetProjectWelds(ProjectId);
+
+        _ndtHistory = WeldService.GetNdt(selectedWeld.Id);
+
+        _history = WeldService.GetHistory(selectedWeld.Id);
+
+        StateHasChanged();
+    }
+
+    private async Task EditTraceability()
+    {
+        var selectedWeld = _selectedWeld;
+
+        if (selectedWeld == null)
+            return;
+
+        var latest = _traceability.LastOrDefault();
+
+        if (latest == null)
+        {
+            latest = new WeldTraceabilityRecord
+            {
+                Id = Guid.NewGuid(),
+                WeldId = selectedWeld.Id,
+                WpsNumber = selectedWeld.WpsNumber,
+                WelderQualification = selectedWeld.WelderNumber,
+                MaterialHeatNumber = selectedWeld.MaterialHeat1
+            };
+        }
+
+        var parameters = new DialogParameters
+    {
+        {
+            nameof(EditTraceabilityDialog.Record),
+            latest
+        }
+    };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog =
+            await DialogService.ShowAsync<EditTraceabilityDialog>(
+                "Edit Traceability",
+                parameters,
+                options);
+
+        var result = await dialog.Result;
+
+        if (result?.Canceled != false)
+            return;
+
+        _traceability =
+            TraceabilityRepository.GetByWeld(selectedWeld.Id);
+
+        StateHasChanged();
+    }
+
+    private IEnumerable<Weld> FilteredWelds =>
+    _welds.Where(w =>
+
+        // Search
+        (
+            string.IsNullOrWhiteSpace(_search)
+            ||
+            (w.WeldNumber?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+            ||
+            (w.DrawingNumber?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+            ||
+            (w.JointNumber?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+            ||
+            (w.WelderNumber?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+            ||
+            (w.WpsNumber?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+        )
+
+        &&
+
+        // Workflow
+        (
+            !_selectedWorkflow.HasValue
+            ||
+            w.WorkflowStatus == _selectedWorkflow.Value
+        )
+
+        &&
+
+        // Welder
+        (
+            string.IsNullOrWhiteSpace(_selectedWelder)
+            ||
+            w.WelderNumber == _selectedWelder
+        )
+
+        &&
+
+        // WPS
+        (
+            string.IsNullOrWhiteSpace(_selectedWps)
+            ||
+            w.WpsNumber == _selectedWps
+        ));
+
+    private IEnumerable<WeldWorkflowStatus> WorkflowOptions =>
+    _welds
+        .Select(w => w.WorkflowStatus)
+        .Distinct()
+        .OrderBy(s => s);
+
+    private IEnumerable<string> WelderOptions =>
+    _welds
+        .Select(w => w.WelderNumber)
+        .Where(w => !string.IsNullOrWhiteSpace(w))
+        .Distinct()
+        .OrderBy(w => w)!;
+
+    private IEnumerable<string> WpsOptions =>
+    _welds
+        .Select(w => w.WpsNumber)
+        .Where(w => !string.IsNullOrWhiteSpace(w))
+        .Distinct()
+        .OrderBy(w => w)!;
+
+}

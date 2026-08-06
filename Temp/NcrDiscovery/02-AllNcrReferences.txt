@@ -1,0 +1,134 @@
+﻿C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Analytics\Services\WelderAnalyticsService.cs:14: IEnumerable<NcrRecord> ncrs)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:6: public class NcrRecord
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\QualityKpiModel.cs:21: // NCR KPIs
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\QualityKpiModel.cs:85: // NCR LIFECYCLE
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\ProjectMrbPdfService.cs:181: // NCR TABLE
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\ProjectMrbPdfService.cs:186: .Text("NCR History")
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\ProjectMrbPdfService.cs:207: .Text("NCR Number")
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\ProjectMrbPdfService.cs:281: AddDocument("NCR Records");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:14: List<NcrRecord> ncrs,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:284: // NCR LIFECYCLE
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:287: foreach (var ncr in ncrs)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:290: (DateTime.UtcNow - ncr.RaisedDate)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:294: !ncr.IsClosed
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:308: ncr.NcrNumber,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:311: ncr.Status.ToString(),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:479: : "Maintain NCR monitoring."
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:237: // NCR HISTORY
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:245: .Text("NCR History")
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:275: HeaderCell("NCR");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:213: PermissionKeys.Quality.NCR,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:215: "NCR",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:216: "Manage non-conformance reports"),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:220: "NCR Disposition",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:221: "Approve NCR dispositions"),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:225: "NCR Verification",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:226: "Verify NCR corrective actions"),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:230: "NCR Close",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:77: PermissionKeys.Quality.NCR,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:106: PermissionKeys.Quality.NCR,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:158: PermissionKeys.Quality.NCR,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:184: PermissionKeys.Quality.NCR,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\PermissionKeys.cs:61: public const string NCR = "Quality.NCR";
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\PermissionKeys.cs:62: public const string NcrDisposition = "Quality.NCR.Disposition";
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\PermissionKeys.cs:63: public const string NcrVerify = "Quality.NCR.Verify";
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\PermissionKeys.cs:64: public const string NcrClose = "Quality.NCR.Close";
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:839: // NCR RECORDS TABLE
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:843: @"CREATE TABLE IF NOT EXISTS NcrRecords
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:877: IX_NcrRecords_WeldId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:878: ON NcrRecords(WeldId);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:880: AddColumnIfNotExists(connection, "NcrRecords", "RootCause", "TEXT");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:882: AddColumnIfNotExists(connection, "NcrRecords", "CorrectiveAction", "TEXT");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:884: AddColumnIfNotExists(connection, "NcrRecords", "PreventiveAction", "TEXT");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:886: AddColumnIfNotExists(connection, "NcrRecords", "AssignedTo", "TEXT");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:888: AddColumnIfNotExists(connection, "NcrRecords", "DueDate", "TEXT");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:890: AddColumnIfNotExists(connection, "NcrRecords", "Status", "INTEGER");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:11: public class NcrRepository
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:15: public NcrRepository(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:23: NcrRecord item)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:30: @"INSERT INTO NcrRecords
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:87: public List<NcrRecord> GetAll()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:96: FROM NcrRecords
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:104: public List<NcrRecord> GetByWeld(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:114: FROM NcrRecords
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:129: NcrRecord item)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:136: @"UPDATE NcrRecords
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:165: NcrRecord item)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:215: private static NcrRecord Map(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:218: return new NcrRecord
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:220: "NcrRecords",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:226: "NcrRecords",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:232: "NcrRecords",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:238: "NcrRecords",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:244: "NcrRecords",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:250: "NcrRecords",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:256: "NcrRecords",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:262: "NcrRecords",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:268: "NcrRecords",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:274: "NcrRecords",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:280: "NcrRecords",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:286: "NcrRecords",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:292: "NcrRecords",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:298: "NcrRecords",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:306: "Expanded NCR system");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Analytics\WelderAnalyticsViewModel.cs:29: var ncrRepository =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Analytics\WelderAnalyticsViewModel.cs:30: new NcrRepository(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Analytics\WelderAnalyticsViewModel.cs:39: ncrRepository.GetAll());
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:17: private readonly NcrRepository
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:21: private ObservableCollection<NcrRecord>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:25: private NcrRecord? selectedNcr;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:39: new NcrRepository(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:101: "NCR closed.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:20: private readonly NcrRepository
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:24: private ObservableCollection<NcrRecord>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:28: private NcrRecord? selectedNcr;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:33: new NcrRepository(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:75: "NCR cannot be closed until verification is complete.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:96: "CLOSE NCR",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:98: $"Closed NCR: {SelectedNcr.NcrNumber}");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:103: "NCR closed successfully.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:117: "Invalid NCR workflow transition.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:129: "START NCR INVESTIGATION",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:131: $"NCR: {SelectedNcr.NcrNumber}");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:146: "You do not have permission to approve NCR dispositions.",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:159: "Invalid NCR workflow transition.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:171: "ASSIGN NCR DISPOSITION",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:173: $"NCR: {SelectedNcr.NcrNumber}");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:201: "Invalid NCR workflow transition.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:213: "VERIFY NCR",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:215: $"NCR: {SelectedNcr.NcrNumber}");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\QualityAnalyticsViewModel.cs:15: private readonly NcrRepository
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\QualityAnalyticsViewModel.cs:16: _ncrRepository;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\QualityAnalyticsViewModel.cs:34: _ncrRepository =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\QualityAnalyticsViewModel.cs:35: new NcrRepository(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\QualityAnalyticsViewModel.cs:51: _ncrRepository.GetAll();
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:490: // NCR
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:867: var ncrRepository =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:868: new NcrRepository(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:871: var ncr =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:872: new NcrRecord
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:877: $"NCR-{DateTime.Now:yyyy}-{DateTime.Now.Ticks % 10000:D4}",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:915: ncrRepository.Add(ncr);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:927: ncr.Id,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1446: Title = "NCR Management",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\MainWindow.xaml:48: <MenuItem Header="NCR Dashboard"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:15: <!-- NCR Grid -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:24: <!-- OPEN NCR -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:103: <Button Content="Close NCR"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:119: <DataGridTextColumn Header="NCR"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:20: <DataGridTextColumn Header="NCR"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:83: <Button Content="Close NCR"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:62: <!-- OPEN NCR -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:348: <GroupBox Header="NCR Lifecycle Monitoring"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:359: <DataGridTextColumn Header="NCR"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\TurnoverGovernanceView.xaml:103: <DataGridCheckBoxColumn Header="NCR"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml:22: <!-- NCR -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml:119: <!-- NCR -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml:120: <GroupBox Header="NCR History"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:59: NcrNumber = "NCR-001",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:124: <Button Content="NCR Management"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:164: <CheckBox Content="NCR Only"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:158: NcrNumber = "NCR-001",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:159: Description = "Sample NCR",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Web\Program.cs:218: builder.Services.AddScoped<NcrRepository>(_ =>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Web\Program.cs:219: new NcrRepository(

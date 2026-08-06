@@ -1,0 +1,18 @@
+﻿C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:6: public class NcrRecord
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\QualityKpiModel.cs:21: // NCR KPIs
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\QualityKpiModel.cs:85: // NCR LIFECYCLE
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\ProjectMrbPdfService.cs:181: // NCR TABLE
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\ProjectMrbPdfService.cs:186: .Text("NCR History")
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\ProjectMrbPdfService.cs:207: .Text("NCR Number")
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\ProjectMrbPdfService.cs:281: AddDocument("NCR Records");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:14: List<NcrRecord> ncrs,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:284: // NCR LIFECYCLE
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:287: foreach (var ncr in ncrs)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:290: (DateTime.UtcNow - ncr.RaisedDate)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:294: !ncr.IsClosed
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:308: ncr.NcrNumber,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:311: ncr.Status.ToString(),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:479: : "Maintain NCR monitoring."
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:237: // NCR HISTORY
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:245: .Text("NCR History")
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:275: HeaderCell("NCR");

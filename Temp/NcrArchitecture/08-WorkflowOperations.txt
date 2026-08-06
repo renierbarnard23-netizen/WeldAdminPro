@@ -1,0 +1,49 @@
+﻿C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:8: NcrStatus current,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:9: NcrStatus target)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:13: NcrStatus.Open =>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:15: NcrStatus.UnderInvestigation,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:17: NcrStatus.UnderInvestigation =>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:19: NcrStatus.AwaitingDisposition,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:21: NcrStatus.AwaitingDisposition =>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:23: NcrStatus.ApprovedForRepair
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:25: NcrStatus.Rejected,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:27: NcrStatus.ApprovedForRepair =>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:29: NcrStatus.RepairInProgress,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:31: NcrStatus.RepairInProgress =>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:33: NcrStatus.PendingVerification,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:35: NcrStatus.PendingVerification =>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs:37: NcrStatus.Closed,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:53: private void CloseNcr()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:59: SystemPermission.CloseNcrs))
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:62: "You do not have permission to close NCRs.",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:71: SelectedNcr.Status,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:72: NcrStatus.Closed))
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:75: "NCR cannot be closed until verification is complete.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:80: SelectedNcr.Status =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:81: NcrStatus.Closed;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:83: SelectedNcr.IsClosed =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:86: SelectedNcr.ClosedBy =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:89: SelectedNcr.ClosedDate =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:96: "CLOSE NCR",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:98: $"Closed NCR: {SelectedNcr.NcrNumber}");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:103: "NCR closed successfully.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:113: SelectedNcr.Status,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:114: NcrStatus.UnderInvestigation))
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:122: SelectedNcr.Status =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:123: NcrStatus.UnderInvestigation;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:137: private void AssignCorrectiveAction()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:143: SystemPermission.ApproveNcrDisposition))
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:146: "You do not have permission to approve NCR dispositions.",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:155: SelectedNcr.Status,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:156: NcrStatus.AwaitingDisposition))
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:164: SelectedNcr.Status =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:165: NcrStatus.AwaitingDisposition;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:171: "ASSIGN NCR DISPOSITION",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:179: private void Verify()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:185: SystemPermission.VerifyNcr))
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:188: "You do not have permission to verify NCRs.",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:197: SelectedNcr.Status,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:198: NcrStatus.PendingVerification))
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:206: SelectedNcr.Status =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:207: NcrStatus.PendingVerification;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:213: "VERIFY NCR",

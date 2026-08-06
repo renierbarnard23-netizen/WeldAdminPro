@@ -1,0 +1,109 @@
+﻿C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Analytics\Services\WelderAnalyticsService.cs:36: var weldIds =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Analytics\Services\WelderAnalyticsService.cs:43: weldIds.Contains(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Analytics\Services\WelderAnalyticsService.cs:44: x.WeldId));
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:14: public Guid WeldId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:20: public string WeldNumber
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\ProjectMrbPdfService.cs:63: $"Weld: {weld.WeldNumber}");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\ProjectMrbPdfService.cs:102: $"Weld Number: {weld.WeldNumber}");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:27: $"{vm.WeldNumber}_Dossier.pdf");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:44: .Text($"Weld Dossier - {vm.WeldNumber}")
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:119: Cell(row.WeldNumber);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:164: Row("Weld Number", vm.WeldNumber);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:203: PermissionKeys.Quality.WeldRegister,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:75: PermissionKeys.Quality.WeldRegister,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:104: PermissionKeys.Quality.WeldRegister,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:136: PermissionKeys.Quality.WeldRegister,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:156: PermissionKeys.Quality.WeldRegister,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:182: PermissionKeys.Quality.WeldRegister,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:236: PermissionKeys.Quality.WeldRegister
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\PermissionKeys.cs:59: public const string WeldRegister = "Quality.WeldRegister";
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:433: WeldId TEXT NOT NULL,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:445: IX_WeldHistory_WeldId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:446: ON WeldHistory(WeldId);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:611: WeldId TEXT NOT NULL,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:625: FOREIGN KEY(WeldId)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:635: IX_WeldNdtResults_WeldId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:636: ON WeldNdtResults(WeldId);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:653: WeldNumber TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:710: IX_Welds_WeldNumber
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:711: ON Welds(WeldNumber);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:768: WeldId TEXT NOT NULL,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:778: FOREIGN KEY(WeldId)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:786: IX_WeldHoldPoints_WeldId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:787: ON WeldHoldPoints(WeldId);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:802: WeldId TEXT NOT NULL,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:826: FOREIGN KEY(WeldId)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:835: IX_RepairRecords_WeldId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:836: ON RepairRecords(WeldId);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:847: WeldId TEXT NOT NULL,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:848: WeldNumber TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:869: FOREIGN KEY(WeldId)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:877: IX_NcrRecords_WeldId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:878: ON NcrRecords(WeldId);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:967: WeldId TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:989: IX_WeldTraceability_WeldId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:990: ON WeldTraceability(WeldId);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:1053: WeldId TEXT NULL,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:1070: IX_DocumentVaultFiles_WeldId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:1071: ON DocumentVaultFiles(WeldId);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:33: WeldId,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:34: WeldNumber,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:60: @WeldId,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:61: @WeldNumber,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:105: Guid weldId)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:115: WHERE WeldId = @WeldId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:119: WeldId =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:120: weldId.ToString()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:138: WeldNumber = @WeldNumber,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:172: WeldId =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:173: item.WeldId.ToString(),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:175: item.WeldNumber,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:224: WeldId =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:226: (string)row.WeldId),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:228: WeldNumber =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:229: row.WeldNumber?.ToString()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:32: public partial class WeldRegisterViewModel : ObservableObject, IRecipient<WeldNavigationMessage>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:136: public WeldRegisterViewModel(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:429: WeldNumber =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:430: weld.WeldNumber,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:458: x.WeldNumber.Contains(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:534: message.WeldId);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:568: .GetNextWeldNumberAsync(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:672: WeldId = weld.Id,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:730: WeldId = weld.Id,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:751: x.WeldNumber == weld.WeldNumber);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:783: $"Weld {weld.WeldNumber} created.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:851: WeldId =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:879: WeldId =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:882: WeldNumber =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:883: SelectedWeld.WeldNumber,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:886: $"NDT rejection on weld {SelectedWeld.WeldNumber}",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:959: $"CAPA for weld {SelectedWeld.WeldNumber}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1057: $"Repair completed for weld {SelectedWeld.WeldNumber}.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1317: $"Weld {SelectedWeld.WeldNumber} released."
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1323: $"Released weld: {SelectedWeld.WeldNumber}");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1333: $"Weld {SelectedWeld.WeldNumber} released for turnover.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1409: $"Weld {SelectedWeld.WeldNumber} closed.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\MainWindow.xaml:43: Click="WeldRegister_Click"/>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:124: Binding="{Binding WeldNumber}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:25: Binding="{Binding WeldNumber}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\TurnoverGovernanceView.xaml:88: Binding="{Binding WeldNumber}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml:53: <TextBlock Text="{Binding WeldNumber}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:23: viewModel.WeldId,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:107: WeldNumber =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:108: vm.WeldNumber,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:1: <UserControl x:Class="WeldAdminPro.UI.Views.WeldRegisterView"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:268: Binding="{Binding WeldNumber}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:468: Binding="{Binding WeldNumber}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:18: public partial class WeldRegisterView : UserControl
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:20: public WeldRegisterView(Guid projectId)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:34: new WeldRegisterViewModel(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:71: $"Weld History - {weld.WeldNumber}",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:89: is not WeldRegisterViewModel vm)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:100: WeldId =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:103: WeldNumber =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:104: vm.SelectedWeld.WeldNumber
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:119: is not WeldRegisterViewModel vm)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:139: WeldNumber =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:140: weld.WeldNumber
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Web\Program.cs:238: builder.Services.AddScoped<WeldRegisterApplicationService>();

@@ -1,0 +1,796 @@
+﻿@page "/quality/repairs"
+
+@using MudBlazor
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Data.Services.Quality
+@using WeldAdminPro.Web.Components.Shared.Quality
+@using WeldAdminPro.Web.Services.Quality
+
+@inject RepairApplicationService RepairService
+@inject NcrApplicationService NcrService
+@inject ISnackbar Snackbar
+
+<PageTitle>Repair Management</PageTitle>
+
+<MudStack Spacing="3">
+
+    <MudStack Row="true"
+              Justify="Justify.SpaceBetween"
+              AlignItems="AlignItems.Center">
+
+        <div>
+            <MudText Typo="Typo.h4">
+                Repair Management
+            </MudText>
+
+            <MudText Typo="Typo.body2"
+                     Color="Color.Secondary">
+                Welding repair register, lifecycle control, performance and aging
+            </MudText>
+        </div>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="_actionBusy"
+                   OnClick="LoadData">
+            Refresh
+        </MudButton>
+
+    </MudStack>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true"
+                           Color="Color.Primary" />
+    }
+    else
+    {
+        <RepairKpiCards Analytics="_analytics" />
+
+        @if (_repairs.Count > 0)
+        {
+            <MudPaper Class="pa-4">
+
+                <MudStack Spacing="3">
+
+                    <div>
+                        <MudText Typo="Typo.h5">
+                            Repair Lifecycle Control
+                        </MudText>
+
+                        <MudText Typo="Typo.body2"
+                                 Color="Color.Secondary">
+                            Select a repair and perform only the action permitted by its current workflow status.
+                        </MudText>
+                    </div>
+
+                    <MudDivider />
+
+                    <MudSelect T="Guid?"
+                               Label="Repair"
+                               Variant="Variant.Outlined"
+                               Value="_selectedRepairId"
+                               ValueChanged="OnRepairSelected"
+                               Disabled="_actionBusy">
+
+                        @foreach (var repair in _repairs.OrderBy(r => r.RepairNumber))
+                        {
+                            <MudSelectItem T="Guid?"
+                                           Value="@((Guid?)repair.Id)">
+                                @GetRepairDisplayName(repair)
+                            </MudSelectItem>
+                        }
+
+                    </MudSelect>
+
+                    @if (_selectedRepair != null)
+                    {
+                        <MudGrid>
+
+                            <MudItem xs="12" md="4">
+
+                                <MudText Typo="Typo.caption"
+                                         Color="Color.Secondary">
+                                    Repair
+                                </MudText>
+
+                                <MudText Typo="Typo.body1">
+                                    @GetRepairNumber(_selectedRepair)
+                                </MudText>
+
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+
+                                <MudText Typo="Typo.caption"
+                                         Color="Color.Secondary">
+                                    Status
+                                </MudText>
+
+                                <MudChip T="string"
+                                         Color="@GetStatusColor(_selectedRepair.Status)"
+                                         Variant="Variant.Filled">
+                                    @FormatStatus(_selectedRepair.Status)
+                                </MudChip>
+
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+
+                                <MudText Typo="Typo.caption"
+                                         Color="Color.Secondary">
+                                    Requested
+                                </MudText>
+
+                                <MudText Typo="Typo.body1">
+                                    @_selectedRepair.RequestedDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                </MudText>
+
+                            </MudItem>
+
+                            <MudItem xs="12">
+
+                                <MudText Typo="Typo.caption"
+                                         Color="Color.Secondary">
+                                    Reason
+                                </MudText>
+
+                                <MudText Typo="Typo.body1">
+                                    @(_selectedRepair.Reason ?? "-")
+                                </MudText>
+
+                            </MudItem>
+
+                        </MudGrid>
+
+                        <MudDivider />
+
+                        @if (_selectedRepair.Status == RepairStatus.Requested)
+                        {
+                            <MudTextField T="string"
+                                          Label="Authorized By"
+                                          Variant="Variant.Outlined"
+                                          @bind-Value="_authorizedBy"
+                                          Disabled="_actionBusy" />
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.VerifiedUser"
+                                       Disabled="_actionBusy"
+                                       OnClick="AuthorizeSelectedRepair">
+                                Authorize Repair
+                            </MudButton>
+                        }
+                        else if (_selectedRepair.Status == RepairStatus.Authorized)
+                        {
+                            <MudTextField T="string"
+                                          Label="Excavation Method"
+                                          HelperText="Example: Grinding, machining or approved gouging method"
+                                          Variant="Variant.Outlined"
+                                          @bind-Value="_excavationMethod"
+                                          Disabled="_actionBusy" />
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Warning"
+                                       StartIcon="@Icons.Material.Filled.Construction"
+                                       Disabled="_actionBusy"
+                                       OnClick="StartSelectedExcavation">
+                                Start Excavation
+                            </MudButton>
+                        }
+                        else if (_selectedRepair.Status == RepairStatus.ExcavationInProgress)
+                        {
+                            <MudTextField T="string"
+                                          Label="Repair Welder"
+                                          Variant="Variant.Outlined"
+                                          @bind-Value="_repairWelder"
+                                          Disabled="_actionBusy" />
+
+                            <MudTextField T="string"
+                                          Label="Repair WPS Number"
+                                          Variant="Variant.Outlined"
+                                          @bind-Value="_repairWpsNumber"
+                                          Disabled="_actionBusy" />
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Warning"
+                                       StartIcon="@Icons.Material.Filled.Build"
+                                       Disabled="_actionBusy"
+                                       OnClick="StartSelectedRepairWelding">
+                                Start Repair Welding
+                            </MudButton>
+                        }
+                        else if (_selectedRepair.Status == RepairStatus.RepairWeldingInProgress)
+                        {
+                            <MudAlert Severity="Severity.Info"
+                                      Variant="Variant.Outlined">
+                                Repair welding is in progress. When welding is complete,
+                                send the repair for formal reinspection.
+                            </MudAlert>
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Info"
+                                       StartIcon="@Icons.Material.Filled.FactCheck"
+                                       Disabled="_actionBusy"
+                                       OnClick="SendSelectedForReinspection">
+                                Send For Reinspection
+                            </MudButton>
+                        }
+                        else if (_selectedRepair.Status == RepairStatus.PendingReinspection)
+                        {
+                            <MudTextField T="string"
+                                          Label="Reinspection Result / Reference"
+                                          HelperText="Record the inspection result or report reference."
+                                          Variant="Variant.Outlined"
+                                          Lines="3"
+                                          @bind-Value="_reinspectionResult"
+                                          Disabled="_actionBusy" />
+
+                            <MudStack Row="true"
+                                      Spacing="2">
+
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Success"
+                                           StartIcon="@Icons.Material.Filled.CheckCircle"
+                                           Disabled="_actionBusy"
+                                           OnClick="AcceptSelectedRepair">
+                                    Accept Repair
+                                </MudButton>
+
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Error"
+                                           StartIcon="@Icons.Material.Filled.Cancel"
+                                           Disabled="_actionBusy"
+                                           OnClick="RejectSelectedRepair">
+                                    Reject Repair
+                                </MudButton>
+
+                            </MudStack>
+                        }
+                        else if (_selectedRepair.Status == RepairStatus.Accepted)
+                        {
+                            <MudAlert Severity="Severity.Success"
+                                      Variant="Variant.Outlined">
+                                Repair has passed reinspection and is ready for closure.
+                            </MudAlert>
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.Lock"
+                                       Disabled="_actionBusy"
+                                       OnClick="CloseSelectedRepair">
+                                Close Repair
+                            </MudButton>
+                        }
+                        else if (_selectedRepair.Status == RepairStatus.Rejected)
+                        {
+                            <MudAlert Severity="Severity.Error"
+                                      Variant="Variant.Outlined">
+                                Repair failed reinspection. The repair cannot be closed
+                                in its current state.
+                            </MudAlert>
+                        }
+                        else if (_selectedRepair.Status == RepairStatus.Closed)
+                        {
+                            <MudAlert Severity="Severity.Success"
+                                      Variant="Variant.Outlined">
+                                Repair lifecycle is complete and closed.
+                            </MudAlert>
+                        }
+
+                        @if (_actionBusy)
+                        {
+                            <MudProgressLinear Indeterminate="true"
+                                               Color="Color.Primary" />
+                        }
+                    }
+
+                </MudStack>
+
+            </MudPaper>
+        }
+
+        <MudGrid>
+
+            <MudItem xs="12" lg="8">
+
+                <RepairRegister Repairs="_repairs" />
+
+            </MudItem>
+
+            <MudItem xs="12" lg="4">
+
+                <MudPaper Class="pa-4">
+
+                    <MudStack Spacing="2">
+
+                        <MudText Typo="Typo.h5">
+                            Repair Performance
+                        </MudText>
+
+                        <MudDivider />
+
+                        <MudStack Row="true"
+                                  Justify="Justify.SpaceBetween">
+
+                            <MudText Typo="Typo.body2">
+                                Closed Repairs
+                            </MudText>
+
+                            <MudText Typo="Typo.body1">
+                                @_analytics.ClosedRepairs
+                            </MudText>
+
+                        </MudStack>
+
+                        <MudStack Row="true"
+                                  Justify="Justify.SpaceBetween">
+
+                            <MudText Typo="Typo.body2">
+                                Open Repair Rate
+                            </MudText>
+
+                            <MudText Typo="Typo.body1">
+                                @_analytics.RepairRatePercent.ToString("0.0")%
+                            </MudText>
+
+                        </MudStack>
+
+                        <MudStack Row="true"
+                                  Justify="Justify.SpaceBetween">
+
+                            <MudText Typo="Typo.body2">
+                                Highest Repair Welder
+                            </MudText>
+
+                            <MudText Typo="Typo.body1">
+                                @_analytics.WorstWelder
+                            </MudText>
+
+                        </MudStack>
+
+                        <MudStack Row="true"
+                                  Justify="Justify.SpaceBetween">
+
+                            <MudText Typo="Typo.body2">
+                                Highest Repair WPS
+                            </MudText>
+
+                            <MudText Typo="Typo.body1">
+                                @_analytics.WorstWps
+                            </MudText>
+
+                        </MudStack>
+
+                    </MudStack>
+
+                </MudPaper>
+
+            </MudItem>
+
+        </MudGrid>
+
+        <MudPaper Class="pa-4">
+
+            <MudStack Spacing="2">
+
+                <div>
+                    <MudText Typo="Typo.h5">
+                        Repair Aging
+                    </MudText>
+
+                    <MudText Typo="Typo.body2"
+                             Color="Color.Secondary">
+                        Open repairs older than 7 days are highlighted as overdue.
+                    </MudText>
+                </div>
+
+                <RepairAgingGrid Repairs="_repairs"
+                                 OverdueAfterDays="7" />
+
+            </MudStack>
+
+        </MudPaper>
+    }
+
+</MudStack>
+
+@code
+{
+    private List<RepairRecord> _repairs = new();
+
+    private RepairAnalytics _analytics = new();
+
+    private bool _loading = true;
+    private bool _actionBusy;
+
+    private Guid? _selectedRepairId;
+    private RepairRecord? _selectedRepair;
+
+    private string _authorizedBy = string.Empty;
+    private string _excavationMethod = string.Empty;
+    private string _repairWelder = string.Empty;
+    private string _repairWpsNumber = string.Empty;
+    private string _reinspectionResult = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            _loading = true;
+
+            var previousSelection =
+                _selectedRepairId;
+
+            _repairs =
+                await RepairService
+                    .GetEnterpriseRepairs();
+
+            _analytics =
+                await RepairService
+                    .GetEnterpriseAnalytics();
+
+            if (_repairs.Count == 0)
+            {
+                _selectedRepairId = null;
+                _selectedRepair = null;
+
+                return;
+            }
+
+            if (previousSelection.HasValue)
+            {
+                _selectedRepair =
+                    _repairs.FirstOrDefault(
+                        r => r.Id == previousSelection.Value);
+            }
+
+            _selectedRepair ??=
+                _repairs
+                    .OrderBy(r => r.RepairNumber)
+                    .First();
+
+            _selectedRepairId =
+                _selectedRepair.Id;
+
+            LoadFieldsFromSelectedRepair();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to load repair information: {ex.Message}",
+                Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Task OnRepairSelected(
+        Guid? repairId)
+    {
+        _selectedRepairId =
+            repairId;
+
+        _selectedRepair =
+            repairId.HasValue
+                ? _repairs.FirstOrDefault(
+                    r => r.Id == repairId.Value)
+                : null;
+
+        LoadFieldsFromSelectedRepair();
+
+        return Task.CompletedTask;
+    }
+
+    private void LoadFieldsFromSelectedRepair()
+    {
+        if (_selectedRepair == null)
+        {
+            _authorizedBy = string.Empty;
+            _excavationMethod = string.Empty;
+            _repairWelder = string.Empty;
+            _repairWpsNumber = string.Empty;
+            _reinspectionResult = string.Empty;
+
+            return;
+        }
+
+        _authorizedBy =
+            _selectedRepair.AuthorizedBy
+            ?? string.Empty;
+
+        _excavationMethod =
+            _selectedRepair.ExcavationMethod
+            ?? string.Empty;
+
+        _repairWelder =
+            _selectedRepair.RepairedByWelder
+            ?? string.Empty;
+
+        _repairWpsNumber =
+            _selectedRepair.RepairWpsNumber
+            ?? string.Empty;
+
+        _reinspectionResult =
+            _selectedRepair.ReinspectionResult
+            ?? string.Empty;
+    }
+
+    private async Task AuthorizeSelectedRepair()
+    {
+        if (_selectedRepair == null)
+            return;
+
+        await ExecuteAction(
+            () => RepairService.AuthorizeRepair(
+                _selectedRepair,
+                _authorizedBy,
+                out var error)
+                    ? (true, string.Empty)
+                    : (false, error),
+            "Repair authorized.");
+    }
+
+    private async Task StartSelectedExcavation()
+    {
+        if (_selectedRepair == null)
+            return;
+
+        await ExecuteAction(
+            () => RepairService.StartExcavation(
+                _selectedRepair,
+                _excavationMethod,
+                out var error)
+                    ? (true, string.Empty)
+                    : (false, error),
+            "Excavation started.");
+    }
+
+    private async Task StartSelectedRepairWelding()
+    {
+        if (_selectedRepair == null)
+            return;
+
+        await ExecuteAction(
+            () => RepairService.StartRepairWelding(
+                _selectedRepair,
+                _repairWelder,
+                _repairWpsNumber,
+                out var error)
+                    ? (true, string.Empty)
+                    : (false, error),
+            "Repair welding started.");
+    }
+
+    private async Task SendSelectedForReinspection()
+    {
+        if (_selectedRepair == null)
+            return;
+
+        await ExecuteAction(
+            () => RepairService.SendForReinspection(
+                _selectedRepair,
+                out var error)
+                    ? (true, string.Empty)
+                    : (false, error),
+            "Repair sent for reinspection.");
+    }
+
+    private async Task AcceptSelectedRepair()
+    {
+        if (_selectedRepair == null)
+            return;
+
+        await ExecuteAction(
+            () => RepairService.AcceptRepair(
+                _selectedRepair,
+                _reinspectionResult,
+                out var error)
+                    ? (true, string.Empty)
+                    : (false, error),
+            "Repair accepted.");
+    }
+
+    private async Task RejectSelectedRepair()
+    {
+        if (_selectedRepair == null)
+            return;
+
+        await ExecuteAction(
+            () => RepairService.RejectRepair(
+                _selectedRepair,
+                _reinspectionResult,
+                out var error)
+                    ? (true, string.Empty)
+                    : (false, error),
+            "Repair rejected.");
+    }
+
+    private async Task CloseSelectedRepair()
+    {
+        if (_selectedRepair == null || _actionBusy)
+            return;
+
+        try
+        {
+            _actionBusy = true;
+
+            var repair = _selectedRepair;
+
+            if (!RepairService.CloseRepair(
+                repair,
+                out var repairError))
+            {
+                Snackbar.Add(
+                    repairError,
+                    Severity.Error);
+
+                return;
+            }
+
+            // If this repair originated from an NCR, synchronize the
+            // NCR only after the repair has successfully reached Closed.
+            if (repair.NcrId.HasValue)
+            {
+                var ncr =
+                    NcrService.GetById(
+                        repair.NcrId.Value);
+
+                if (ncr == null)
+                {
+                    Snackbar.Add(
+                        "Repair closed, but the linked NCR could not be found.",
+                        Severity.Warning);
+                }
+                else if (!NcrService.CompleteRepairExecution(
+                    ncr,
+                    out var ncrError))
+                {
+                    Snackbar.Add(
+                        $"Repair closed, but NCR synchronization failed: {ncrError}",
+                        Severity.Warning);
+                }
+                else
+                {
+                    Snackbar.Add(
+                        "Repair closed and linked NCR moved to Pending Verification.",
+                        Severity.Success);
+                }
+            }
+            else
+            {
+                Snackbar.Add(
+                    "Repair closed.",
+                    Severity.Success);
+            }
+
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Repair closure failed: {ex.Message}",
+                Severity.Error);
+        }
+        finally
+        {
+            _actionBusy = false;
+        }
+    }
+
+    private async Task ExecuteAction(
+        Func<(bool Success, string Error)> action,
+        string successMessage)
+    {
+        if (_actionBusy)
+            return;
+
+        try
+        {
+            _actionBusy = true;
+
+            var result =
+                action();
+
+            if (!result.Success)
+            {
+                Snackbar.Add(
+                    result.Error,
+                    Severity.Error);
+
+                return;
+            }
+
+            Snackbar.Add(
+                successMessage,
+                Severity.Success);
+
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Repair workflow action failed: {ex.Message}",
+                Severity.Error);
+        }
+        finally
+        {
+            _actionBusy = false;
+        }
+    }
+
+    private static string GetRepairNumber(
+        RepairRecord repair)
+    {
+        return $"REP-{repair.RepairNumber:0000}";
+    }
+
+    private static string GetRepairDisplayName(
+        RepairRecord repair)
+    {
+        return
+            $"{GetRepairNumber(repair)} - {FormatStatus(repair.Status)}";
+    }
+
+    private static string FormatStatus(
+        RepairStatus status)
+    {
+        return status switch
+        {
+            RepairStatus.ExcavationInProgress =>
+                "Excavation In Progress",
+
+            RepairStatus.RepairWeldingInProgress =>
+                "Repair Welding In Progress",
+
+            RepairStatus.PendingReinspection =>
+                "Pending Reinspection",
+
+            _ =>
+                status.ToString()
+        };
+    }
+
+    private static Color GetStatusColor(
+        RepairStatus status)
+    {
+        return status switch
+        {
+            RepairStatus.Requested =>
+                Color.Info,
+
+            RepairStatus.Authorized =>
+                Color.Primary,
+
+            RepairStatus.ExcavationInProgress =>
+                Color.Warning,
+
+            RepairStatus.RepairWeldingInProgress =>
+                Color.Warning,
+
+            RepairStatus.PendingReinspection =>
+                Color.Info,
+
+            RepairStatus.Accepted =>
+                Color.Success,
+
+            RepairStatus.Rejected =>
+                Color.Error,
+
+            RepairStatus.Closed =>
+                Color.Success,
+
+            _ =>
+                Color.Default
+        };
+    }
+}

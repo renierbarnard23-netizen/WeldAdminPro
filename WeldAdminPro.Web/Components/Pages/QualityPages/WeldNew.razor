@@ -1,4 +1,4 @@
-@page "/quality/weld-new/{ProjectId:guid}"
+﻿@page "/quality/weld-new/{ProjectId:guid}"
 
 @attribute [Authorize(Policy = "Permission:Quality.WeldRegister")]
 @using MudBlazor
@@ -187,21 +187,11 @@
 
         <MudItem xs="12" md="4">
 
-            <MudSelect T="WeldStatusType"
-                       Label="Status"
-                       @bind-Value="_weld.Status">
-
-                @foreach (var status in Enum.GetValues<WeldStatusType>())
-                {
-                    <MudSelectItem T="WeldStatusType"
-                                   Value="@status">
-
-                        @status
-
-                    </MudSelectItem>
-                }
-
-            </MudSelect>
+            <MudTextField T="string"
+                          Label="Status"
+                          Value="@_weld.Status.ToString()"
+                          Disabled="true"
+                          HelperText="Initial status is controlled by the weld workflow." />
 
         </MudItem>
 
@@ -258,6 +248,14 @@
 
         _weld.ProjectId = ProjectId;
 
+        // Initial lifecycle state is system controlled.
+        // A new weld may not be created directly in a later lifecycle state.
+        _weld.Status =
+            WeldStatusType.Pending;
+
+        _weld.WorkflowStatus =
+            WeldWorkflowStatus.Draft;
+
         _weld.WeldNumber =
             await WeldRepository.GetNextWeldNumberAsync(ProjectId);
     }
@@ -265,6 +263,14 @@
     private async Task Save()
     {
     _weld.ProjectId = ProjectId;
+
+        // Defence-in-depth: creation always starts from the
+        // governed initial lifecycle state regardless of UI state.
+        _weld.Status =
+            WeldStatusType.Pending;
+
+        _weld.WorkflowStatus =
+            WeldWorkflowStatus.Draft;
 
         if (string.IsNullOrWhiteSpace(_weld.WpsNumber))
         {

@@ -1,0 +1,1155 @@
+
+==================================================
+FILE: C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Enums\NcrDispositionType.cs
+==================================================
+namespace WeldAdminPro.Core.Quality.Enums
+{
+    public enum NcrDispositionType
+    {
+        Repair = 0,
+
+        UseAsIs = 1,
+
+        Rework = 2,
+
+        Scrap = 3,
+
+        EngineeringReview = 4
+    }
+}
+
+==================================================
+FILE: C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Enums\NcrStatus.cs
+==================================================
+namespace WeldAdminPro.Core.Quality.Enums
+{
+    public enum NcrStatus
+    {
+        Open = 0,
+
+        UnderInvestigation = 1,
+
+        AwaitingDisposition = 2,
+
+        ApprovedForRepair = 3,
+
+        RepairInProgress = 4,
+
+        PendingVerification = 5,
+
+        Closed = 6,
+
+        Rejected = 7
+    }
+}
+
+==================================================
+FILE: C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrHistoryRow.cs
+==================================================
+namespace WeldAdminPro.Core.Quality.Models
+{
+    public class NcrHistoryRow
+    {
+        public string NcrNumber { get; set; }
+            = "";
+
+        public string Description { get; set; }
+            = "";
+
+        public string Status { get; set; }
+            = "";
+
+        public string CorrectiveAction { get; set; }
+            = "";
+
+        public string Closed { get; set; }
+            = "";
+    }
+}
+
+==================================================
+FILE: C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrLifecycleModel.cs
+==================================================
+namespace WeldAdminPro.Core.Quality.Models
+{
+    public class NcrLifecycleModel
+    {
+        public string NcrNumber
+        { get; set; }
+                = "";
+
+        public string Status
+        { get; set; }
+                = "";
+
+        public int AgeDays
+        { get; set; }
+
+        public bool IsOverdue
+        { get; set; }
+
+        public string RiskLevel
+        { get; set; }
+                = "LOW";
+    }
+}
+
+==================================================
+FILE: C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs
+==================================================
+using System;
+using WeldAdminPro.Core.Quality.Enums;
+
+namespace WeldAdminPro.Core.Quality.Models
+{
+    public class NcrRecord
+    {
+        public Guid Id
+        {
+            get;
+            set;
+        }
+
+        public Guid WeldId
+        {
+            get;
+            set;
+        }
+
+        public string WeldNumber
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string NcrNumber
+        {
+            get;
+            set;
+        } = "";
+
+        public string Description
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string RootCause
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string CorrectiveAction
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string PreventiveAction
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string RaisedBy
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public DateTime RaisedDate
+        {
+            get;
+            set;
+        }
+
+        public string AssignedTo
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public DateTime? DueDate
+        {
+            get;
+            set;
+        }
+
+        public NcrStatus Status
+        {
+            get;
+            set;
+        }
+
+        public bool IsClosed
+        {
+            get;
+            set;
+        }
+
+        public string ClosedBy
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public DateTime? ClosedDate
+        {
+            get;
+            set;
+        }
+
+        public NcrDispositionType? DispositionType { get; set; }
+
+        public string? DispositionApprovedBy { get; set; }
+
+        public DateTime? DispositionApprovedDate { get; set; }
+
+        public string? VerificationBy { get; set; }
+
+        public DateTime? VerificationDate { get; set; }
+
+        public bool RequiresCustomerApproval { get; set; }
+
+        public bool CustomerApproved { get; set; }
+
+        public string? CustomerApprovalReference { get; set; }
+
+    }
+}
+
+==================================================
+FILE: C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs
+==================================================
+using WeldAdminPro.Core.Quality.Enums;
+
+namespace WeldAdminPro.Core.Quality.Services
+{
+    public static class NcrWorkflowService
+    {
+        public static bool CanMoveTo(
+            NcrStatus current,
+            NcrStatus target)
+        {
+            return current switch
+            {
+                NcrStatus.Open =>
+                    target ==
+                    NcrStatus.UnderInvestigation,
+
+                NcrStatus.UnderInvestigation =>
+                    target ==
+                    NcrStatus.AwaitingDisposition,
+
+                NcrStatus.AwaitingDisposition =>
+                    target ==
+                    NcrStatus.ApprovedForRepair
+                    || target ==
+                    NcrStatus.Rejected,
+
+                NcrStatus.ApprovedForRepair =>
+                    target ==
+                    NcrStatus.RepairInProgress,
+
+                NcrStatus.RepairInProgress =>
+                    target ==
+                    NcrStatus.PendingVerification,
+
+                NcrStatus.PendingVerification =>
+                    target ==
+                    NcrStatus.Closed,
+
+                _ => false
+            };
+        }
+    }
+}
+
+==================================================
+FILE: C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs
+==================================================
+using Dapper;
+using Microsoft.Data.Sqlite;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using WeldAdminPro.Core.Quality.Enums;
+using WeldAdminPro.Core.Quality.Models;
+
+namespace WeldAdminPro.Data.Repositories
+{
+    public class NcrRepository
+    {
+        private readonly string _connectionString;
+
+        public NcrRepository(
+            string connectionString)
+        {
+            _connectionString =
+                connectionString;
+        }
+
+        public void Add(
+            NcrRecord item)
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            connection.Execute(
+                @"INSERT INTO NcrRecords
+                (
+                    Id,
+                    WeldId,
+                    WeldNumber,
+                    Description,
+                    NcrNumber,
+                    RootCause,
+                    CorrectiveAction,
+                    PreventiveAction,
+                    RaisedBy,
+                    RaisedDate,
+                    AssignedTo,
+                    DueDate,
+                    Status,
+                    IsClosed,
+                    ClosedBy,
+                    ClosedDate,
+                    DispositionType,
+                    DispositionApprovedBy,
+                    DispositionApprovedDate,
+                    VerificationBy,
+                    VerificationDate,
+                    RequiresCustomerApproval,
+                    CustomerApproved,
+                    CustomerApprovalReference
+                )
+                VALUES
+                (
+                    @Id,
+                    @WeldId,
+                    @WeldNumber,
+                    @Description,
+                    @NcrNumber,
+                    @RootCause,
+                    @CorrectiveAction,
+                    @PreventiveAction,
+                    @RaisedBy,
+                    @RaisedDate,
+                    @AssignedTo,
+                    @DueDate,
+                    @Status,
+                    @IsClosed,
+                    @ClosedBy,
+                    @ClosedDate,
+                    @DispositionType,
+                    @DispositionApprovedBy,
+                    @DispositionApprovedDate,
+                    @VerificationBy,
+                    @VerificationDate,
+                    @RequiresCustomerApproval,
+                    @CustomerApproved,
+                    @CustomerApprovalReference
+                )",
+                ToParameters(item));
+        }
+
+        public List<NcrRecord> GetAll()
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            var rows =
+                connection.Query(
+                    @"SELECT *
+                      FROM NcrRecords
+                      ORDER BY RaisedDate DESC");
+
+            return rows
+                .Select(Map)
+                .ToList();
+        }
+
+        public List<NcrRecord> GetByWeld(
+            Guid weldId)
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            var rows =
+                connection.Query(
+                    @"SELECT *
+                      FROM NcrRecords
+                      WHERE WeldId = @WeldId
+                      ORDER BY RaisedDate DESC",
+                    new
+                    {
+                        WeldId =
+                            weldId.ToString()
+                    });
+
+            return rows
+                .Select(Map)
+                .ToList();
+        }
+
+        public void Update(
+            NcrRecord item)
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            connection.Execute(
+                @"UPDATE NcrRecords
+                  SET
+                    WeldNumber = @WeldNumber,
+                    Description = @Description,
+                    NcrNumber = @NcrNumber,
+                    RootCause = @RootCause,
+                    CorrectiveAction = @CorrectiveAction,
+                    PreventiveAction = @PreventiveAction,
+                    RaisedBy = @RaisedBy,
+                    RaisedDate = @RaisedDate,
+                    AssignedTo = @AssignedTo,
+                    DueDate = @DueDate,
+                    Status = @Status,
+                    IsClosed = @IsClosed,
+                    ClosedBy = @ClosedBy,
+                    ClosedDate = @ClosedDate,
+                    DispositionType = @DispositionType,
+                    DispositionApprovedBy = @DispositionApprovedBy,
+                    DispositionApprovedDate = @DispositionApprovedDate,
+                    VerificationBy = @VerificationBy,
+                    VerificationDate = @VerificationDate,
+                    RequiresCustomerApproval = @RequiresCustomerApproval,
+                    CustomerApproved = @CustomerApproved,
+                    CustomerApprovalReference = @CustomerApprovalReference
+                  WHERE Id = @Id",
+                ToParameters(item));
+        }
+
+        private static object ToParameters(
+            NcrRecord item)
+        {
+            return new
+            {
+                Id =
+                    item.Id.ToString(),
+
+                WeldId =
+                    item.WeldId.ToString(),
+
+                item.WeldNumber,
+                item.Description,
+                item.NcrNumber,
+                item.RootCause,
+                item.CorrectiveAction,
+                item.PreventiveAction,
+                item.RaisedBy,
+                item.RaisedDate,
+                item.AssignedTo,
+                item.DueDate,
+
+                Status =
+                    (int)item.Status,
+
+                IsClosed =
+                    item.IsClosed ? 1 : 0,
+
+                item.ClosedBy,
+                item.ClosedDate,
+
+                DispositionType =
+                    item.DispositionType.HasValue
+                        ? (int)item.DispositionType.Value
+                        : (int?)null,
+
+                item.DispositionApprovedBy,
+                item.DispositionApprovedDate,
+                item.VerificationBy,
+                item.VerificationDate,
+
+                RequiresCustomerApproval =
+                    item.RequiresCustomerApproval ? 1 : 0,
+
+                CustomerApproved =
+                    item.CustomerApproved ? 1 : 0,
+
+                item.CustomerApprovalReference
+            };
+        }
+
+        private static NcrRecord Map(
+            dynamic row)
+        {
+            return new NcrRecord
+            {
+                Id =
+                    Guid.Parse(
+                        (string)row.Id),
+
+                WeldId =
+                    Guid.Parse(
+                        (string)row.WeldId),
+
+                WeldNumber =
+                    row.WeldNumber?.ToString()
+                    ?? string.Empty,
+
+                NcrNumber =
+                    row.NcrNumber?.ToString()
+                    ?? string.Empty,
+
+                Description =
+                    row.Description?.ToString()
+                    ?? string.Empty,
+
+                RootCause =
+                    row.RootCause?.ToString()
+                    ?? string.Empty,
+
+                CorrectiveAction =
+                    row.CorrectiveAction?.ToString()
+                    ?? string.Empty,
+
+                PreventiveAction =
+                    row.PreventiveAction?.ToString()
+                    ?? string.Empty,
+
+==================================================
+FILE: C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs
+==================================================
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Windows;
+using WeldAdminPro.Core.Quality.Enums;
+using WeldAdminPro.Core.Quality.Models;
+using WeldAdminPro.Data;
+using WeldAdminPro.Data.Repositories;
+
+namespace WeldAdminPro.UI.ViewModels.Quality
+{
+    public partial class NcrDashboardViewModel
+        : ObservableObject
+    {
+        private readonly NcrRepository
+            _repository;
+
+        [ObservableProperty]
+        private ObservableCollection<NcrRecord>
+            ncrs = new();
+
+        [ObservableProperty]
+        private NcrRecord? selectedNcr;
+
+        [ObservableProperty]
+        private int openNcrs;
+
+        [ObservableProperty]
+        private int closedNcrs;
+
+        [ObservableProperty]
+        private int overdueNcrs;
+
+        public NcrDashboardViewModel()
+        {
+            _repository =
+                new NcrRepository(
+                    DatabasePath.GetConnectionString());
+
+            Load();
+        }
+
+        public void Load()
+        {
+            Ncrs.Clear();
+
+            var all =
+                _repository.GetAll();
+
+            foreach (var item in all)
+            {
+                Ncrs.Add(item);
+            }
+
+            OpenNcrs =
+                Ncrs.Count(x =>
+                    !x.IsClosed);
+
+            ClosedNcrs =
+                Ncrs.Count(x =>
+                    x.IsClosed);
+
+            OverdueNcrs =
+                Ncrs.Count(x =>
+                    !x.IsClosed
+                    && x.DueDate != null
+                    && x.DueDate < DateTime.UtcNow);
+        }
+
+        [RelayCommand]
+        private void Refresh()
+        {
+            Load();
+        }
+
+        [RelayCommand]
+        private void CloseNcr()
+        {
+            if (SelectedNcr == null)
+                return;
+
+            SelectedNcr.IsClosed = true;
+
+            SelectedNcr.Status =
+                NcrStatus.Closed;
+
+            SelectedNcr.ClosedDate =
+                DateTime.UtcNow;
+
+            SelectedNcr.ClosedBy =
+                Environment.UserName;
+
+            _repository.Update(
+                SelectedNcr);
+
+            Load();
+
+            MessageBox.Show(
+                "NCR closed.");
+        }
+    }
+}
+
+==================================================
+FILE: C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs
+==================================================
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System;
+using System.Collections.ObjectModel;
+using System.Windows;
+using WeldAdminPro.Core.Enums;
+using WeldAdminPro.Core.Quality.Enums;
+using WeldAdminPro.Core.Quality.Models;
+using WeldAdminPro.Core.Quality.Services;
+using WeldAdminPro.Core.Services;
+using WeldAdminPro.Data;
+using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Data.Services;
+
+namespace WeldAdminPro.UI.ViewModels.Quality
+{
+    public partial class NcrManagementViewModel
+        : ObservableObject
+    {
+        private readonly NcrRepository
+            _repository;
+
+        [ObservableProperty]
+        private ObservableCollection<NcrRecord>
+            ncrs = new();
+
+        [ObservableProperty]
+        private NcrRecord? selectedNcr;
+
+        public NcrManagementViewModel()
+        {
+            _repository =
+                new NcrRepository(
+                    DatabasePath.GetConnectionString());
+
+            Load();
+        }
+
+        public void Load()
+        {
+            Ncrs.Clear();
+
+            var all =
+                _repository.GetAll();
+
+            foreach (var item in all)
+            {
+                Ncrs.Add(item);
+            }
+        }
+
+        [RelayCommand]
+        private void CloseNcr()
+        {
+            if (SelectedNcr == null)
+                return;
+
+            if (!PermissionService.HasPermission(
+                SystemPermission.CloseNcrs))
+            {
+                MessageBox.Show(
+                    "You do not have permission to close NCRs.",
+                    "Access Denied",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                return;
+            }
+
+            if (!NcrWorkflowService.CanMoveTo(
+                SelectedNcr.Status,
+                NcrStatus.Closed))
+            {
+                MessageBox.Show(
+                    "NCR cannot be closed until verification is complete.");
+
+                return;
+            }
+
+            SelectedNcr.Status =
+                NcrStatus.Closed;
+
+            SelectedNcr.IsClosed =
+                true;
+
+            SelectedNcr.ClosedBy =
+                CurrentUserContext.Username;
+
+            SelectedNcr.ClosedDate =
+                DateTime.UtcNow;
+
+            _repository.Update(
+                SelectedNcr);
+
+            AuditService.Log(
+                "CLOSE NCR",
+                "Quality",
+                $"Closed NCR: {SelectedNcr.NcrNumber}");
+
+            Load();
+
+            MessageBox.Show(
+                "NCR closed successfully.");
+        }
+
+        [RelayCommand]
+        private void StartInvestigation()
+        {
+            if (SelectedNcr == null)
+                return;
+
+            if (!NcrWorkflowService.CanMoveTo(
+                SelectedNcr.Status,
+                NcrStatus.UnderInvestigation))
+            {
+                MessageBox.Show(
+                    "Invalid NCR workflow transition.");
+
+                return;
+            }
+
+            SelectedNcr.Status =
+                NcrStatus.UnderInvestigation;
+
+            _repository.Update(
+                SelectedNcr);
+
+            AuditService.Log(
+                "START NCR INVESTIGATION",
+                "Quality",
+                $"NCR: {SelectedNcr.NcrNumber}");
+
+            Load();
+        }
+
+        [RelayCommand]
+        private void AssignCorrectiveAction()
+        {
+            if (SelectedNcr == null)
+                return;
+
+            if (!PermissionService.HasPermission(
+                SystemPermission.ApproveNcrDisposition))
+            {
+                MessageBox.Show(
+                    "You do not have permission to approve NCR dispositions.",
+                    "Access Denied",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                return;
+            }
+
+            if (!NcrWorkflowService.CanMoveTo(
+                SelectedNcr.Status,
+                NcrStatus.AwaitingDisposition))
+            {
+                MessageBox.Show(
+                    "Invalid NCR workflow transition.");
+
+                return;
+            }
+
+            SelectedNcr.Status =
+                NcrStatus.AwaitingDisposition;
+
+            _repository.Update(
+                SelectedNcr);
+
+            AuditService.Log(
+                "ASSIGN NCR DISPOSITION",
+                "Quality",
+                $"NCR: {SelectedNcr.NcrNumber}");
+
+            Load();
+        }
+
+        [RelayCommand]
+        private void Verify()
+        {
+            if (SelectedNcr == null)
+                return;
+
+            if (!PermissionService.HasPermission(
+                SystemPermission.VerifyNcr))
+            {
+                MessageBox.Show(
+                    "You do not have permission to verify NCRs.",
+                    "Access Denied",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                return;
+            }
+
+            if (!NcrWorkflowService.CanMoveTo(
+                SelectedNcr.Status,
+                NcrStatus.PendingVerification))
+            {
+                MessageBox.Show(
+                    "Invalid NCR workflow transition.");
+
+                return;
+            }
+
+            SelectedNcr.Status =
+                NcrStatus.PendingVerification;
+
+            _repository.Update(
+                SelectedNcr);
+
+            AuditService.Log(
+                "VERIFY NCR",
+                "Quality",
+                $"NCR: {SelectedNcr.NcrNumber}");
+
+            Load();
+        }
+    }
+}
+
+==================================================
+FILE: C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml
+==================================================
+<UserControl x:Class="WeldAdminPro.UI.Views.Quality.NcrDashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="10">
+
+        <Grid.RowDefinitions>
+
+            <!-- KPI -->
+            <RowDefinition Height="Auto"/>
+
+            <!-- Toolbar -->
+            <RowDefinition Height="Auto"/>
+
+            <!-- NCR Grid -->
+            <RowDefinition Height="*"/>
+
+        </Grid.RowDefinitions>
+
+        <!-- KPI CARDS -->
+        <WrapPanel Grid.Row="0"
+                   Margin="0,0,0,10">
+
+            <!-- OPEN NCR -->
+            <Border Background="#7F1D1D"
+                    Width="220"
+                    Height="90"
+                    Margin="0,0,10,0"
+                    CornerRadius="6">
+
+                <StackPanel Margin="15">
+
+                    <TextBlock Text="Open NCRs"
+                               Foreground="White"
+                               FontSize="14"/>
+
+                    <TextBlock Text="{Binding OpenNcrs}"
+                               Foreground="#FCA5A5"
+                               FontSize="28"
+                               FontWeight="Bold"/>
+
+                </StackPanel>
+
+            </Border>
+
+            <!-- CLOSED -->
+            <Border Background="#14532D"
+                    Width="220"
+                    Height="90"
+                    Margin="0,0,10,0"
+                    CornerRadius="6">
+
+                <StackPanel Margin="15">
+
+                    <TextBlock Text="Closed NCRs"
+                               Foreground="White"
+                               FontSize="14"/>
+
+                    <TextBlock Text="{Binding ClosedNcrs}"
+                               Foreground="#86EFAC"
+                               FontSize="28"
+                               FontWeight="Bold"/>
+
+                </StackPanel>
+
+            </Border>
+
+            <!-- OVERDUE -->
+            <Border Background="#991B1B"
+                    Width="220"
+                    Height="90"
+                    Margin="0,0,10,0"
+                    CornerRadius="6">
+
+                <StackPanel Margin="15">
+
+                    <TextBlock Text="Overdue NCRs"
+                               Foreground="White"
+                               FontSize="14"/>
+
+                    <TextBlock Text="{Binding OverdueNcrs}"
+                               Foreground="#FECACA"
+                               FontSize="28"
+                               FontWeight="Bold"/>
+
+                </StackPanel>
+
+            </Border>
+
+        </WrapPanel>
+
+        <!-- TOOLBAR -->
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    Margin="0,0,0,10">
+
+            <Button Content="Refresh"
+                    Width="120"
+                    Height="30"
+                    Margin="0,0,10,0"
+                    Command="{Binding RefreshCommand}"/>
+
+            <Button Content="Close NCR"
+                    Width="140"
+                    Height="30"
+                    Command="{Binding CloseNcrCommand}"/>
+
+        </StackPanel>
+
+        <!-- GRID -->
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding Ncrs}"
+                  SelectedItem="{Binding SelectedNcr}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True">
+
+            <DataGrid.Columns>
+
+                <DataGridTextColumn Header="NCR"
+                                    Binding="{Binding NcrNumber}"
+                                    Width="150"/>
+
+                <DataGridTextColumn Header="Weld"
+                                    Binding="{Binding WeldNumber}"
+                                    Width="120"/>
+
+                <DataGridTextColumn Header="Description"
+                                    Binding="{Binding Description}"
+                                    Width="300"/>
+
+                <DataGridTextColumn Header="Root Cause"
+                                    Binding="{Binding RootCause}"
+                                    Width="250"/>
+
+                <DataGridTextColumn Header="Corrective Action"
+                                    Binding="{Binding CorrectiveAction}"
+                                    Width="250"/>
+
+                <DataGridTextColumn Header="Assigned To"
+                                    Binding="{Binding AssignedTo}"
+                                    Width="180"/>
+
+                <DataGridTextColumn Header="Raised"
+                                    Binding="{Binding RaisedDate}"
+                                    Width="180"/>
+
+                <DataGridTextColumn Header="Due Date"
+                                    Binding="{Binding DueDate}"
+                                    Width="180"/>
+
+                <DataGridTextColumn Header="Status"
+                                    Binding="{Binding Status}"
+                                    Width="140"/>
+
+            </DataGrid.Columns>
+
+        </DataGrid>
+
+    </Grid>
+
+</UserControl>
+
+==================================================
+FILE: C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml.cs
+==================================================
+using System.Windows.Controls;
+using WeldAdminPro.UI.ViewModels.Quality;
+
+namespace WeldAdminPro.UI.Views.Quality
+{
+    public partial class NcrDashboardView
+        : UserControl
+    {
+        public NcrDashboardView()
+        {
+            InitializeComponent();
+
+            DataContext =
+                new NcrDashboardViewModel();
+        }
+    }
+}
+
+==================================================
+FILE: C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml
+==================================================
+<UserControl x:Class="WeldAdminPro.UI.Views.Quality.NcrManagementView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="10">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DataGrid Grid.Row="0"
+                  ItemsSource="{Binding Ncrs}"
+                  SelectedItem="{Binding SelectedNcr}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="False">
+
+			<DataGrid.Columns>
+
+				<DataGridTextColumn Header="NCR"
+                    							Binding="{Binding NcrNumber}"
+                    							Width="140"/>
+
+				<DataGridTextColumn Header="Weld"
+									Binding="{Binding WeldNumber}"
+									Width="120"/>
+
+				<DataGridTextColumn Header="Description"
+									Binding="{Binding Description}"
+									Width="220"/>
+
+				<DataGridTextColumn Header="Root Cause"
+									Binding="{Binding RootCause}"
+									Width="180"/>
+
+				<DataGridTextColumn Header="Corrective Action"
+									Binding="{Binding CorrectiveAction}"
+									Width="220"/>
+
+				<DataGridTextColumn Header="Preventive Action"
+									Binding="{Binding PreventiveAction}"
+									Width="220"/>
+
+				<DataGridTextColumn Header="Assigned To"
+									Binding="{Binding AssignedTo}"
+									Width="140"/>
+
+				<DataGridTextColumn Header="Due Date"
+									Binding="{Binding DueDate}"
+									Width="140"/>
+
+				<DataGridTextColumn Header="Status"
+									Binding="{Binding Status}"
+									Width="140"/>
+
+				<DataGridCheckBoxColumn Header="Closed"
+										Binding="{Binding IsClosed}"
+										Width="80"/>
+
+			</DataGrid.Columns>
+
+        </DataGrid>
+
+		<StackPanel Grid.Row="1"
+            Orientation="Horizontal"
+            Margin="0,10,0,0">
+
+			<Button Content="Investigate"
+					Width="120"
+					Margin="0,0,10,0"
+					Command="{Binding StartInvestigationCommand}"/>
+
+			<Button Content="Assign CAPA"
+					Width="140"
+					Margin="0,0,10,0"
+					Command="{Binding AssignCorrectiveActionCommand}"/>
+
+			<Button Content="Verify"
+					Width="120"
+					Margin="0,0,10,0"
+					Command="{Binding VerifyCommand}"/>
+
+			<Button Content="Close NCR"
+					Width="140"
+					Command="{Binding CloseNcrCommand}"/>
+
+		</StackPanel>
+
+    </Grid>
+
+</UserControl>
+
+==================================================
+FILE: C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml.cs
+==================================================
+using System.Windows.Controls;
+using WeldAdminPro.UI.ViewModels.Quality;
+
+namespace WeldAdminPro.UI.Views.Quality
+{
+    public partial class NcrManagementView
+        : UserControl
+    {
+        public NcrManagementView()
+        {
+            InitializeComponent();
+
+            DataContext =
+                new NcrManagementViewModel();
+        }
+    }
+}

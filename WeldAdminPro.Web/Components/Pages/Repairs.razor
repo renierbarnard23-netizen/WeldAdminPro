@@ -560,14 +560,11 @@
         if (_selectedRepair == null)
             return;
 
-        await ExecuteAction(
-            () => RepairService.StartRepairWelding(
+        await ExecuteActionAsync(
+            () => RepairService.StartRepairWeldingAsync(
                 _selectedRepair,
                 _repairWelder,
-                _repairWpsNumber,
-                out var error)
-                    ? (true, string.Empty)
-                    : (false, error),
+                _repairWpsNumber),
             "Repair welding started.");
     }
 
@@ -576,12 +573,9 @@
         if (_selectedRepair == null)
             return;
 
-        await ExecuteAction(
-            () => RepairService.SendForReinspection(
-                _selectedRepair,
-                out var error)
-                    ? (true, string.Empty)
-                    : (false, error),
+        await ExecuteActionAsync(
+            () => RepairService.SendForReinspectionAsync(
+                _selectedRepair),
             "Repair sent for reinspection.");
     }
 
@@ -700,6 +694,47 @@
 
             var result =
                 action();
+
+            if (!result.Success)
+            {
+                Snackbar.Add(
+                    result.Error,
+                    Severity.Error);
+
+                return;
+            }
+
+            Snackbar.Add(
+                successMessage,
+                Severity.Success);
+
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Repair workflow action failed: {ex.Message}",
+                Severity.Error);
+        }
+        finally
+        {
+            _actionBusy = false;
+        }
+    }
+
+    private async Task ExecuteActionAsync(
+        Func<Task<(bool Success, string Error)>> action,
+        string successMessage)
+    {
+        if (_actionBusy)
+            return;
+
+        try
+        {
+            _actionBusy = true;
+
+            var result =
+                await action();
 
             if (!result.Success)
             {

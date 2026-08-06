@@ -1,0 +1,59 @@
+﻿C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Analytics\WelderAnalyticsViewModel.cs:29: var ncrRepository =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Analytics\WelderAnalyticsViewModel.cs:30: new NcrRepository(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Analytics\WelderAnalyticsViewModel.cs:39: ncrRepository.GetAll());
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:17: private readonly NcrRepository
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:21: private ObservableCollection<NcrRecord>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:25: private NcrRecord? selectedNcr;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:39: new NcrRepository(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:101: "NCR closed.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:20: private readonly NcrRepository
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:24: private ObservableCollection<NcrRecord>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:28: private NcrRecord? selectedNcr;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:33: new NcrRepository(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:75: "NCR cannot be closed until verification is complete.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:96: "CLOSE NCR",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:98: $"Closed NCR: {SelectedNcr.NcrNumber}");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:103: "NCR closed successfully.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:117: "Invalid NCR workflow transition.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:129: "START NCR INVESTIGATION",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:131: $"NCR: {SelectedNcr.NcrNumber}");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:146: "You do not have permission to approve NCR dispositions.",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:159: "Invalid NCR workflow transition.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:171: "ASSIGN NCR DISPOSITION",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:173: $"NCR: {SelectedNcr.NcrNumber}");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:201: "Invalid NCR workflow transition.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:213: "VERIFY NCR",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:215: $"NCR: {SelectedNcr.NcrNumber}");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\QualityAnalyticsViewModel.cs:15: private readonly NcrRepository
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\QualityAnalyticsViewModel.cs:16: _ncrRepository;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\QualityAnalyticsViewModel.cs:34: _ncrRepository =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\QualityAnalyticsViewModel.cs:35: new NcrRepository(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\QualityAnalyticsViewModel.cs:51: _ncrRepository.GetAll();
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:490: // NCR
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:867: var ncrRepository =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:868: new NcrRepository(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:871: var ncr =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:872: new NcrRecord
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:877: $"NCR-{DateTime.Now:yyyy}-{DateTime.Now.Ticks % 10000:D4}",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:915: ncrRepository.Add(ncr);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:927: ncr.Id,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1446: Title = "NCR Management",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\MainWindow.xaml:48: <MenuItem Header="NCR Dashboard"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:15: <!-- NCR Grid -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:24: <!-- OPEN NCR -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:103: <Button Content="Close NCR"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:119: <DataGridTextColumn Header="NCR"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:20: <DataGridTextColumn Header="NCR"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:83: <Button Content="Close NCR"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:62: <!-- OPEN NCR -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:348: <GroupBox Header="NCR Lifecycle Monitoring"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:359: <DataGridTextColumn Header="NCR"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\TurnoverGovernanceView.xaml:103: <DataGridCheckBoxColumn Header="NCR"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml:22: <!-- NCR -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml:119: <!-- NCR -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml:120: <GroupBox Header="NCR History"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:59: NcrNumber = "NCR-001",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:124: <Button Content="NCR Management"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:164: <CheckBox Content="NCR Only"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:158: NcrNumber = "NCR-001",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:159: Description = "Sample NCR",

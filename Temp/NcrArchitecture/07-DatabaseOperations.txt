@@ -1,0 +1,9 @@
+﻿30: @"INSERT INTO NcrRecords
+95: @"SELECT *
+96: FROM NcrRecords
+100: .Select(Map)
+113: @"SELECT *
+114: FROM NcrRecords
+124: .Select(Map)
+128: public void Update(
+136: @"UPDATE NcrRecords

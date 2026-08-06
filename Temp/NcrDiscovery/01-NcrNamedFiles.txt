@@ -1,0 +1,16 @@
+﻿C:\Users\Renie\Source\Repos\WeldAdminPro\buildenv\Lib\site-packages\PySide6\concrt140.dll
+C:\Users\Renie\Source\Repos\WeldAdminPro\buildenv\Lib\site-packages\PySide6\include\pysideqmluncreatable.h
+C:\Users\Renie\Source\Repos\WeldAdminPro\buildenv\Lib\site-packages\shiboken6\concrt140.dll
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Enums\NcrDispositionType.cs
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Enums\NcrStatus.cs
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrHistoryRow.cs
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrLifecycleModel.cs
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml.cs
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml.cs

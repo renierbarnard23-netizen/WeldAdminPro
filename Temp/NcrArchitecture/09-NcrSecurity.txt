@@ -1,0 +1,144 @@
+
+FILE: .\WeldAdminPro.Core\Security\PermissionKeys.cs
+
+  WeldAdminPro.Core\Security\PermissionKeys.cs:56:        public const string View = "Quality.View";
+  WeldAdminPro.Core\Security\PermissionKeys.cs:57:        public const string WPS = "Quality.WPS";
+  WeldAdminPro.Core\Security\PermissionKeys.cs:58:        public const string PQR = "Quality.PQR";
+  WeldAdminPro.Core\Security\PermissionKeys.cs:59:        public const string WeldRegister = "Quality.WeldRegister";
+  WeldAdminPro.Core\Security\PermissionKeys.cs:60:        public const string Repairs = "Quality.Repairs";
+> WeldAdminPro.Core\Security\PermissionKeys.cs:61:        public const string NCR = "Quality.NCR";
+> WeldAdminPro.Core\Security\PermissionKeys.cs:62:        public const string NcrDisposition = 
+"Quality.NCR.Disposition";
+> WeldAdminPro.Core\Security\PermissionKeys.cs:63:        public const string NcrVerify = "Quality.NCR.Verify";
+> WeldAdminPro.Core\Security\PermissionKeys.cs:64:        public const string NcrClose = "Quality.NCR.Close";
+  WeldAdminPro.Core\Security\PermissionKeys.cs:65:        public const string NDT = "Quality.NDT";
+  WeldAdminPro.Core\Security\PermissionKeys.cs:66:        public const string HoldPointApproval = 
+"Quality.HoldPointApproval";
+  WeldAdminPro.Core\Security\PermissionKeys.cs:67:        public const string Export = "Quality.Export";
+  WeldAdminPro.Core\Security\PermissionKeys.cs:68:    }
+  WeldAdminPro.Core\Security\PermissionKeys.cs:69:
+  WeldAdminPro.Core\Security\PermissionKeys.cs:70:    public static class Administration
+  WeldAdminPro.Core\Security\PermissionKeys.cs:71:    {
+  WeldAdminPro.Core\Security\PermissionKeys.cs:72:        public const string Users = "Administration.Users";
+
+
+
+
+FILE: .\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs
+
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:208:            PermissionKeys.Quality.Repairs,
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:209:            PermissionGroups.Quality,
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:210:            "Repairs",
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:211:            "Manage repairs"),
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:212:        new(
+> WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:213:            PermissionKeys.Quality.NCR,
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:214:            PermissionGroups.Quality,
+> WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:215:            "NCR",
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:216:            "Manage non-conformance reports"),
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:217:        new(
+> WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:218:            PermissionKeys.Quality.NcrDisposition,
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:219:            PermissionGroups.Quality,
+> WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:220:            "NCR Disposition",
+> WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:221:            "Approve NCR dispositions"),
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:222:        new(
+> WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:223:            PermissionKeys.Quality.NcrVerify,
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:224:            PermissionGroups.Quality,
+> WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:225:            "NCR Verification",
+> WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:226:            "Verify NCR corrective actions"),
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:227:        new(
+> WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:228:            PermissionKeys.Quality.NcrClose,
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:229:            PermissionGroups.Quality,
+> WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:230:            "NCR Close",
+> WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:231:            "Close verified NCRs"),
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:232:        new(
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:233:            PermissionKeys.Quality.NDT,
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:234:            PermissionGroups.Quality,
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:235:            "NDT",
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:236:            "Manage NDT"),
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:237:        new(
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:238:            PermissionKeys.Quality.HoldPointApproval,
+  WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:239:            PermissionGroups.Quality,
+
+
+
+
+FILE: .\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs
+
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:72:                PermissionKeys.Quality.View,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:73:                PermissionKeys.Quality.WPS,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:74:                PermissionKeys.Quality.PQR,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:75:                PermissionKeys.Quality.WeldRegister,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:76:                PermissionKeys.Quality.Repairs,
+> WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:77:                PermissionKeys.Quality.NCR,
+> WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:78:                PermissionKeys.Quality.NcrDisposition,
+> WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:79:                PermissionKeys.Quality.NcrVerify,
+> WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:80:                PermissionKeys.Quality.NcrClose,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:81:                PermissionKeys.Quality.NDT,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:82:                PermissionKeys.Quality.Export,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:83:
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:84:                PermissionKeys.Reports.View,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:85:                PermissionKeys.Reports.Export,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:86:                
+PermissionKeys.Quality.HoldPointApproval
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:87:            ],
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:88:
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:101:                PermissionKeys.Quality.View,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:102:                PermissionKeys.Quality.WPS,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:103:                PermissionKeys.Quality.PQR,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:104:                PermissionKeys.Quality.WeldRegister,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:105:                PermissionKeys.Quality.Repairs,
+> WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:106:                PermissionKeys.Quality.NCR,
+> WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:107:                
+PermissionKeys.Quality.NcrDisposition,
+> WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:108:                PermissionKeys.Quality.NcrVerify,
+> WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:109:                PermissionKeys.Quality.NcrClose,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:110:                PermissionKeys.Quality.NDT,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:111:                PermissionKeys.Quality.Export,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:112:
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:113:                PermissionKeys.Reports.View,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:114:                
+PermissionKeys.Quality.HoldPointApproval
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:115:            ],
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:116:
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:117:            // 
+======================================================
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:153:                PermissionKeys.Quality.View,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:154:                PermissionKeys.Quality.WPS,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:155:                PermissionKeys.Quality.PQR,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:156:                PermissionKeys.Quality.WeldRegister,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:157:                PermissionKeys.Quality.Repairs,
+> WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:158:                PermissionKeys.Quality.NCR,
+> WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:159:                
+PermissionKeys.Quality.NcrDisposition,
+> WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:160:                PermissionKeys.Quality.NcrVerify,
+> WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:161:                PermissionKeys.Quality.NcrClose,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:162:                PermissionKeys.Quality.NDT,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:163:                PermissionKeys.Quality.Export,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:164:
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:165:                PermissionKeys.Reports.View,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:166:                
+PermissionKeys.Quality.HoldPointApproval
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:167:            ],
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:168:
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:169:            // 
+======================================================
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:179:
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:180:                PermissionKeys.Quality.View,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:181:                PermissionKeys.Quality.WPS,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:182:                PermissionKeys.Quality.WeldRegister,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:183:                PermissionKeys.Quality.Repairs,
+> WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:184:                PermissionKeys.Quality.NCR,
+> WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:185:                PermissionKeys.Quality.NcrVerify,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:186:                PermissionKeys.Quality.NDT,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:187:
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:188:                PermissionKeys.Reports.View,
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:189:                
+PermissionKeys.Quality.HoldPointApproval
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:190:            ],
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:191:
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:192:            // 
+======================================================
+  WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:193:            // STORE CONTROLLER
+
+
+

@@ -1,0 +1,26 @@
+﻿C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Analytics\Models\WelderPerformanceRecord.cs:35: public int NcrCount
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Analytics\Services\WelderAnalyticsService.cs:41: var ncrCount =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Analytics\Services\WelderAnalyticsService.cs:42: ncrs.Count(x =>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Analytics\Services\WelderAnalyticsService.cs:67: NcrCount =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Analytics\Services\WelderAnalyticsService.cs:68: ncrCount
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\QualityKpiModel.cs:21: // NCR KPIs
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:32: ncrs.Count;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:35: ncrs.Count(x =>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:14: public partial class NcrDashboardViewModel
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:36: public NcrDashboardViewModel()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:58: Ncrs.Count(x =>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:62: Ncrs.Count(x =>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:66: Ncrs.Count(x =>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Analytics\WelderAnalyticsView.xaml:30: Binding="{Binding NcrCount}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\MainWindow.xaml:48: <MenuItem Header="NCR Dashboard"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\MainWindow.xaml:49: Click="NcrDashboard_Click"/>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\MainWindow.xaml.cs:200: private void NcrDashboard_Click(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\MainWindow.xaml.cs:205: new NcrDashboardView();
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:1: <UserControl x:Class="WeldAdminPro.UI.Views.Quality.NcrDashboardView"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml.cs:6: public partial class NcrDashboardView
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml.cs:9: public NcrDashboardView()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml.cs:14: new NcrDashboardViewModel();
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:75: <TextBlock Text="{Binding Kpis.OpenNcrs}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:352: <DataGrid ItemsSource="{Binding Kpis.NcrLifecycle}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Web\Components\Shared\Inventory\MaterialTrendKpiCards.razor:11: <EnterpriseKpiCard Title="Increasing"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Web\Components\Shared\Inventory\MaterialTrendKpiCards.razor:44: <EnterpriseKpiCard Title="Largest Increase"

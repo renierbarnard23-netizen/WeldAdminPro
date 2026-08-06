@@ -1,4 +1,4 @@
-﻿using WeldAdminPro.Core.Interfaces;
+using WeldAdminPro.Core.Interfaces;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Core.Quality.Models;
 using WeldAdminPro.Core.Quality.Enums;
@@ -247,35 +247,73 @@ public class RepairApplicationService
         return true;
     }
 
-    public bool StartRepairWelding(
+    public async Task<(bool Success, string Error)>
+        StartRepairWeldingAsync(
         RepairRecord repair,
         string repairedByWelder,
-        string repairWpsNumber,
-        out string error)
+        string repairWpsNumber)
     {
         if (repair == null)
         {
-            error = "Repair record is required.";
-            return false;
+            return (
+                false,
+                "Repair record is required.");
         }
 
         if (string.IsNullOrWhiteSpace(repairedByWelder))
         {
-            error = "Repair welder is required.";
-            return false;
+            return (
+                false,
+                "Repair welder is required.");
         }
 
         if (string.IsNullOrWhiteSpace(repairWpsNumber))
         {
-            error = "Repair WPS number is required.";
-            return false;
+            return (
+                false,
+                "Repair WPS number is required.");
+        }
+
+        var weld =
+            await _weldService.GetByIdAsync(
+                repair.WeldId);
+
+        if (weld == null)
+        {
+            return (
+                false,
+                "The weld linked to this repair could not be found.");
+        }
+
+        if (weld.WorkflowStatus !=
+            WeldWorkflowStatus.RepairRequired)
+        {
+            return (
+                false,
+                $"Repair welding cannot start while weld " +
+                $"'{weld.WeldNumber}' is in workflow status " +
+                $"'{weld.WorkflowStatus}'.");
         }
 
         if (!_workflowService.StartRepairWelding(
                 repair,
-                out error))
+                out var repairError))
         {
-            return false;
+            return (
+                false,
+                repairError);
+        }
+
+        var weldTransition =
+            _weldWorkflowEngine.MarkUnderRepair(
+                weld,
+                out var weldError);
+
+        if (!weldTransition)
+        {
+            return (
+                false,
+                weldError);
         }
 
         repair.RepairedByWelder =
@@ -284,31 +322,88 @@ public class RepairApplicationService
         repair.RepairWpsNumber =
             repairWpsNumber.Trim();
 
-        _repairRepository.Update(repair);
+        _repairRepository.Update(
+            repair);
 
-        return true;
+        await _weldService.UpdateAsync(
+            weld);
+
+        return (
+            true,
+            string.Empty);
     }
 
-    public bool SendForReinspection(
-        RepairRecord repair,
-        out string error)
+    public async Task<(bool Success, string Error)>
+        SendForReinspectionAsync(
+        RepairRecord repair)
     {
         if (repair == null)
         {
-            error = "Repair record is required.";
-            return false;
+            return (
+                false,
+                "Repair record is required.");
+        }
+
+        var weld =
+            await _weldService.GetByIdAsync(
+                repair.WeldId);
+
+        if (weld == null)
+        {
+            return (
+                false,
+                "The weld linked to this repair could not be found.");
+        }
+
+        if (weld.WorkflowStatus !=
+            WeldWorkflowStatus.UnderRepair)
+        {
+            return (
+                false,
+                $"Reinspection cannot be requested while weld " +
+                $"'{weld.WeldNumber}' is in workflow status " +
+                $"'{weld.WorkflowStatus}'.");
         }
 
         if (!_workflowService.SendForReinspection(
                 repair,
-                out error))
+                out var repairError))
         {
-            return false;
+            return (
+                false,
+                repairError);
         }
 
-        _repairRepository.Update(repair);
+        if (!_weldWorkflowEngine.MarkReinspectionRequired(
+                weld,
+                out var reinspectionError))
+        {
+            return (
+                false,
+                reinspectionError);
+        }
 
-        return true;
+        var ndtPendingTransition =
+            _weldWorkflowEngine.TryTransition(
+                weld,
+                WeldWorkflowStatus.NdtPending);
+
+        if (!ndtPendingTransition.Success)
+        {
+            return (
+                false,
+                ndtPendingTransition.ErrorMessage);
+        }
+
+        _repairRepository.Update(
+            repair);
+
+        await _weldService.UpdateAsync(
+            weld);
+
+        return (
+            true,
+            string.Empty);
     }
 
     public bool AcceptRepair(
@@ -406,4 +501,3 @@ public class RepairApplicationService
         return true;
     }
 }
-

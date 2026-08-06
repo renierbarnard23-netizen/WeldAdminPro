@@ -1,0 +1,220 @@
+﻿   1: using CommunityToolkit.Mvvm.ComponentModel;
+   2: using CommunityToolkit.Mvvm.Input;
+   3: using System;
+   4: using System.Collections.ObjectModel;
+   5: using System.Windows;
+   6: using WeldAdminPro.Core.Enums;
+   7: using WeldAdminPro.Core.Quality.Enums;
+   8: using WeldAdminPro.Core.Quality.Models;
+   9: using WeldAdminPro.Core.Quality.Services;
+  10: using WeldAdminPro.Core.Services;
+  11: using WeldAdminPro.Data;
+  12: using WeldAdminPro.Data.Repositories;
+  13: using WeldAdminPro.Data.Services;
+  14: 
+  15: namespace WeldAdminPro.UI.ViewModels.Quality
+  16: {
+  17:     public partial class NcrManagementViewModel
+  18:         : ObservableObject
+  19:     {
+  20:         private readonly NcrRepository
+  21:             _repository;
+  22: 
+  23:         [ObservableProperty]
+  24:         private ObservableCollection<NcrRecord>
+  25:             ncrs = new();
+  26: 
+  27:         [ObservableProperty]
+  28:         private NcrRecord? selectedNcr;
+  29: 
+  30:         public NcrManagementViewModel()
+  31:         {
+  32:             _repository =
+  33:                 new NcrRepository(
+  34:                     DatabasePath.GetConnectionString());
+  35: 
+  36:             Load();
+  37:         }
+  38: 
+  39:         public void Load()
+  40:         {
+  41:             Ncrs.Clear();
+  42: 
+  43:             var all =
+  44:                 _repository.GetAll();
+  45: 
+  46:             foreach (var item in all)
+  47:             {
+  48:                 Ncrs.Add(item);
+  49:             }
+  50:         }
+  51: 
+  52:         [RelayCommand]
+  53:         private void CloseNcr()
+  54:         {
+  55:             if (SelectedNcr == null)
+  56:                 return;
+  57: 
+  58:             if (!PermissionService.HasPermission(
+  59:                 SystemPermission.CloseNcrs))
+  60:             {
+  61:                 MessageBox.Show(
+  62:                     "You do not have permission to close NCRs.",
+  63:                     "Access Denied",
+  64:                     MessageBoxButton.OK,
+  65:                     MessageBoxImage.Warning);
+  66: 
+  67:                 return;
+  68:             }
+  69: 
+  70:             if (!NcrWorkflowService.CanMoveTo(
+  71:                 SelectedNcr.Status,
+  72:                 NcrStatus.Closed))
+  73:             {
+  74:                 MessageBox.Show(
+  75:                     "NCR cannot be closed until verification is complete.");
+  76: 
+  77:                 return;
+  78:             }
+  79: 
+  80:             SelectedNcr.Status =
+  81:                 NcrStatus.Closed;
+  82: 
+  83:             SelectedNcr.IsClosed =
+  84:                 true;
+  85: 
+  86:             SelectedNcr.ClosedBy =
+  87:                 CurrentUserContext.Username;
+  88: 
+  89:             SelectedNcr.ClosedDate =
+  90:                 DateTime.UtcNow;
+  91: 
+  92:             _repository.Update(
+  93:                 SelectedNcr);
+  94: 
+  95:             AuditService.Log(
+  96:                 "CLOSE NCR",
+  97:                 "Quality",
+  98:                 $"Closed NCR: {SelectedNcr.NcrNumber}");
+  99: 
+ 100:             Load();
+ 101: 
+ 102:             MessageBox.Show(
+ 103:                 "NCR closed successfully.");
+ 104:         }
+ 105: 
+ 106:         [RelayCommand]
+ 107:         private void StartInvestigation()
+ 108:         {
+ 109:             if (SelectedNcr == null)
+ 110:                 return;
+ 111: 
+ 112:             if (!NcrWorkflowService.CanMoveTo(
+ 113:                 SelectedNcr.Status,
+ 114:                 NcrStatus.UnderInvestigation))
+ 115:             {
+ 116:                 MessageBox.Show(
+ 117:                     "Invalid NCR workflow transition.");
+ 118: 
+ 119:                 return;
+ 120:             }
+ 121: 
+ 122:             SelectedNcr.Status =
+ 123:                 NcrStatus.UnderInvestigation;
+ 124: 
+ 125:             _repository.Update(
+ 126:                 SelectedNcr);
+ 127: 
+ 128:             AuditService.Log(
+ 129:                 "START NCR INVESTIGATION",
+ 130:                 "Quality",
+ 131:                 $"NCR: {SelectedNcr.NcrNumber}");
+ 132: 
+ 133:             Load();
+ 134:         }
+ 135: 
+ 136:         [RelayCommand]
+ 137:         private void AssignCorrectiveAction()
+ 138:         {
+ 139:             if (SelectedNcr == null)
+ 140:                 return;
+ 141: 
+ 142:             if (!PermissionService.HasPermission(
+ 143:                 SystemPermission.ApproveNcrDisposition))
+ 144:             {
+ 145:                 MessageBox.Show(
+ 146:                     "You do not have permission to approve NCR dispositions.",
+ 147:                     "Access Denied",
+ 148:                     MessageBoxButton.OK,
+ 149:                     MessageBoxImage.Warning);
+ 150: 
+ 151:                 return;
+ 152:             }
+ 153: 
+ 154:             if (!NcrWorkflowService.CanMoveTo(
+ 155:                 SelectedNcr.Status,
+ 156:                 NcrStatus.AwaitingDisposition))
+ 157:             {
+ 158:                 MessageBox.Show(
+ 159:                     "Invalid NCR workflow transition.");
+ 160: 
+ 161:                 return;
+ 162:             }
+ 163: 
+ 164:             SelectedNcr.Status =
+ 165:                 NcrStatus.AwaitingDisposition;
+ 166: 
+ 167:             _repository.Update(
+ 168:                 SelectedNcr);
+ 169: 
+ 170:             AuditService.Log(
+ 171:                 "ASSIGN NCR DISPOSITION",
+ 172:                 "Quality",
+ 173:                 $"NCR: {SelectedNcr.NcrNumber}");
+ 174: 
+ 175:             Load();
+ 176:         }
+ 177: 
+ 178:         [RelayCommand]
+ 179:         private void Verify()
+ 180:         {
+ 181:             if (SelectedNcr == null)
+ 182:                 return;
+ 183: 
+ 184:             if (!PermissionService.HasPermission(
+ 185:                 SystemPermission.VerifyNcr))
+ 186:             {
+ 187:                 MessageBox.Show(
+ 188:                     "You do not have permission to verify NCRs.",
+ 189:                     "Access Denied",
+ 190:                     MessageBoxButton.OK,
+ 191:                     MessageBoxImage.Warning);
+ 192: 
+ 193:                 return;
+ 194:             }
+ 195: 
+ 196:             if (!NcrWorkflowService.CanMoveTo(
+ 197:                 SelectedNcr.Status,
+ 198:                 NcrStatus.PendingVerification))
+ 199:             {
+ 200:                 MessageBox.Show(
+ 201:                     "Invalid NCR workflow transition.");
+ 202: 
+ 203:                 return;
+ 204:             }
+ 205: 
+ 206:             SelectedNcr.Status =
+ 207:                 NcrStatus.PendingVerification;
+ 208: 
+ 209:             _repository.Update(
+ 210:                 SelectedNcr);
+ 211: 
+ 212:             AuditService.Log(
+ 213:                 "VERIFY NCR",
+ 214:                 "Quality",
+ 215:                 $"NCR: {SelectedNcr.NcrNumber}");
+ 216: 
+ 217:             Load();
+ 218:         }
+ 219:     }
+ 220: }

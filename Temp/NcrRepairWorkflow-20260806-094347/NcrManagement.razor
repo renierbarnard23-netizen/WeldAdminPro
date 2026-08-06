@@ -1,0 +1,1876 @@
+@page "/quality/ncr"
+@using WeldAdminPro.Web.Components.Security
+
+@attribute [Authorize(Policy = "Permission:Quality.NCR")]
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Core.Quality.Services
+@using Microsoft.JSInterop
+@using WeldAdminPro.Data.Repositories
+@using WeldAdminPro.Web.Services.Quality
+
+@inject NcrApplicationService NcrService
+@inject NcrDossierPdfService NcrPdfService
+@inject IJSRuntime JS
+@inject WeldRepository WeldRepository
+@inject ISnackbar Snackbar
+
+<PageTitle>NCR Management</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+
+    <MudStack Row="true"
+              Justify="Justify.SpaceBetween"
+              AlignItems="AlignItems.Center"
+              Class="mb-4">
+
+        <div>
+            <MudText Typo="Typo.h4">
+                NCR Management
+            </MudText>
+
+            <MudText Typo="Typo.subtitle1"
+                     Color="Color.Secondary">
+                Non-conformance register and workflow control
+            </MudText>
+        </div>
+
+        <MudStack Row="true"
+                  Spacing="2">
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="ToggleNewNcrForm">
+
+                New NCR
+
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="LoadNcrs">
+
+                Refresh
+
+            </MudButton>
+
+        </MudStack>
+
+    </MudStack>
+
+    <MudGrid Class="mb-4">
+
+        <MudItem xs="12" sm="6" md="3">
+
+            <MudPaper Class="pa-4">
+
+                <MudText Typo="Typo.caption">
+                    Total NCRs
+                </MudText>
+
+                <MudText Typo="Typo.h4">
+                    @_ncrs.Count
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+
+            <MudPaper Class="pa-4">
+
+                <MudText Typo="Typo.caption">
+                    Open
+                </MudText>
+
+                <MudText Typo="Typo.h4">
+                    @OpenCount
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+
+            <MudPaper Class="pa-4">
+
+                <MudText Typo="Typo.caption">
+                    Pending Verification
+                </MudText>
+
+                <MudText Typo="Typo.h4">
+                    @PendingVerificationCount
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+
+            <MudPaper Class="pa-4">
+
+                <MudText Typo="Typo.caption">
+                    Closed
+                </MudText>
+
+                <MudText Typo="Typo.h4">
+                    @ClosedCount
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+    </MudGrid>
+
+    <MudPaper Class="pa-4 mb-4">
+
+        <MudGrid>
+
+            <MudItem xs="12" md="6">
+
+                <MudTextField T="string"
+                              Label="Search NCR"
+                              Placeholder="NCR number, weld number or description..."
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Clearable="true"
+                              @bind-Value="_search" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+
+                <MudSelect T="NcrStatus?"
+                           Label="Status"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           @bind-Value="_selectedStatus">
+
+                    @foreach (var status in Enum.GetValues<NcrStatus>())
+                    {
+                        <MudSelectItem T="NcrStatus?"
+                                       Value="@((NcrStatus?)status)">
+                            @status
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+
+            </MudItem>
+
+            <MudItem xs="12" md="2">
+
+                <MudButton FullWidth="true"
+                           Variant="Variant.Outlined"
+                           Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.FilterAltOff"
+                           OnClick="ClearFilters"
+                           Class="mt-2">
+
+                    Clear
+
+                </MudButton>
+
+            </MudItem>
+
+        </MudGrid>
+
+    </MudPaper>
+
+    <MudGrid>
+
+        <MudItem xs="12" lg="8">
+
+            <MudPaper Class="pa-4">
+
+                <MudText Typo="Typo.h6"
+                         Class="mb-3">
+                    NCR Register
+                </MudText>
+
+                @* NCR_CREATE_PANEL *@
+                @if (_showNewNcrForm)
+                {
+                    <MudPaper Class="pa-4 mb-4"
+                              Elevation="1">
+
+                        <MudText Typo="Typo.h6"
+                                 Class="mb-3">
+                            Create New NCR
+                        </MudText>
+
+
+                        <MudGrid>
+
+                            <MudItem xs="12" md="4">
+                                <MudTextField T="string"
+                                              Label="NCR Number"
+                                              Value="@_newNcrNumber"
+                                              ReadOnly="true"
+                                              Variant="Variant.Outlined" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+
+                                <MudSelect T="string"
+                                           Label="Reason / Category"
+                                           @bind-Value="_newCategory"
+                                           Variant="Variant.Outlined">
+
+                                    <MudSelectItem T="string" Value="@("Welding")">
+                                        Welding
+                                    </MudSelectItem>
+
+                                    <MudSelectItem T="string" Value="@("Material")">
+                                        Material
+                                    </MudSelectItem>
+
+                                    <MudSelectItem T="string" Value="@("Dimensional")">
+                                        Dimensional
+                                    </MudSelectItem>
+
+                                    <MudSelectItem T="string" Value="@("Documentation")">
+                                        Documentation
+                                    </MudSelectItem>
+
+                                    <MudSelectItem T="string" Value="@("Quality")">
+                                        Quality
+                                    </MudSelectItem>
+
+                                    <MudSelectItem T="string" Value="@("Other")">
+                                        Other
+                                    </MudSelectItem>
+
+                                </MudSelect>
+
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+
+                                <MudCheckBox T="bool"
+                                             Label="Welding Related"
+                                             @bind-Value="_newIsWeldingRelated" />
+
+                            </MudItem>
+
+                            @if (_newCategory == "Other")
+                            {
+                                <MudItem xs="12">
+
+                                    <MudTextField T="string"
+                                                  Label="Custom Reason"
+                                                  @bind-Value="_newCustomReason"
+                                                  Variant="Variant.Outlined"
+                                                  Placeholder="Enter the NCR reason..." />
+
+                                </MudItem>
+                            }
+
+                            @if (_newIsWeldingRelated)
+                            {
+                                <MudItem xs="12">
+
+                                    @if (_welds.Count == 0)
+                                    {
+                                        <MudAlert Severity="Severity.Warning"
+                                                  Variant="Variant.Outlined"
+                                                  Class="mb-3">
+                                            No welds are available. Untick Welding Related to create a general NCR.
+                                        </MudAlert>
+                                    }
+
+                                    <MudSelect T="Guid"
+                                               Label="Associated Weld"
+                                               @bind-Value="_selectedWeldId"
+                                               Variant="Variant.Outlined">
+
+                                        <MudSelectItem T="Guid"
+                                                       Value="@Guid.Empty">
+                                            Select weld...
+                                        </MudSelectItem>
+
+                                        @foreach (var weld in _welds)
+                                        {
+                                            <MudSelectItem T="Guid"
+                                                           Value="@weld.Id">
+                                                @GetWeldDisplay(weld)
+                                            </MudSelectItem>
+                                        }
+
+                                    </MudSelect>
+
+                                </MudItem>
+                            }
+
+                            <MudItem xs="12">
+                                <MudTextField T="string"
+                                              Label="Description / Non-Conformance"
+                                              @bind-Value="_newDescription"
+                                              Variant="Variant.Outlined"
+                                              Lines="4"
+                                              Placeholder="Describe the non-conformance..." />
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+                                <MudTextField T="string"
+                                              Label="Raised By"
+                                              @bind-Value="_newRaisedBy"
+                                              Variant="Variant.Outlined" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+                                <MudTextField T="string"
+                                              Label="Assigned To"
+                                              @bind-Value="_newAssignedTo"
+                                              Variant="Variant.Outlined" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+                                <MudDatePicker Label="Due Date"
+                                               @bind-Date="_newDueDate"
+                                               Variant="Variant.Outlined"
+                                               Clearable="true" />
+                            </MudItem>
+
+                        </MudGrid>
+
+                        @if (!string.IsNullOrWhiteSpace(_createError))
+                        {
+                            <MudAlert Severity="Severity.Error"
+                                      Variant="Variant.Outlined"
+                                      Class="mt-3">
+                                @_createError
+                            </MudAlert>
+                        }
+
+                        <MudStack Row="true"
+                                  Spacing="2"
+                                  Class="mt-4">
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       Disabled="@_isCreating"
+                                       OnClick="CreateNcr">
+                                Create NCR
+                            </MudButton>
+
+                            <MudButton Variant="Variant.Outlined"
+                                       Disabled="@_isCreating"
+                                       OnClick="CancelNewNcr">
+                                Cancel
+                            </MudButton>
+
+                        </MudStack>
+
+                    </MudPaper>
+                }
+
+                <MudTable T="NcrRecord"
+                          Items="FilteredNcrs"
+                          Hover="true"
+                          Dense="true"
+                          Striped="true"
+                          Breakpoint="Breakpoint.Sm"
+                          SelectedItem="_selectedNcr"
+                          SelectedItemChanged="SelectNcr">
+
+                    <HeaderContent>
+
+                        <MudTh>NCR</MudTh>
+                        <MudTh>Weld</MudTh>
+                        <MudTh>Description</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Raised By</MudTh>
+                        <MudTh>Raised</MudTh>
+
+                    </HeaderContent>
+
+                    <RowTemplate>
+
+                        <MudTd DataLabel="NCR">
+                            @context.NcrNumber
+                        </MudTd>
+
+                        <MudTd DataLabel="Weld">
+                            @context.WeldNumber
+                        </MudTd>
+
+                        <MudTd DataLabel="Description">
+                            @context.Description
+                        </MudTd>
+
+                        <MudTd DataLabel="Status">
+
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Color="@GetStatusColor(context.Status)">
+                                @context.Status.ToString()
+                            </MudChip>
+
+                        </MudTd>
+
+                        <MudTd DataLabel="Raised By">
+                            @context.RaisedBy
+                        </MudTd>
+
+                        <MudTd DataLabel="Raised">
+                            @context.RaisedDate.ToString("yyyy-MM-dd")
+                        </MudTd>
+
+                    </RowTemplate>
+
+                    <NoRecordsContent>
+
+                        <MudText Class="pa-4">
+                            No NCR records match the current filter.
+                        </MudText>
+
+                    </NoRecordsContent>
+
+                    <PagerContent>
+                        <MudTablePager />
+                    </PagerContent>
+
+                </MudTable>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <MudItem xs="12" lg="4">
+
+            <MudPaper Class="pa-4">
+
+                <MudText Typo="Typo.h6"
+                         Class="mb-3">
+                    NCR Details
+                </MudText>
+
+                @if (_selectedNcr == null)
+                {
+                    <MudAlert Severity="Severity.Info">
+                        Select an NCR from the register to view its details.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudStack Row="true"
+                              Justify="Justify.SpaceBetween"
+                              AlignItems="AlignItems.Center"
+                              Class="mb-3">
+
+                        <MudText Typo="Typo.subtitle1">
+                            <b>@_selectedNcr.NcrNumber</b>
+                        </MudText>
+
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                                   Disabled="@_isExportingPdf"
+                                   OnClick="ExportNcrPdf">
+
+                            @(_isExportingPdf
+                                ? "Generating PDF..."
+                                : "Export NCR PDF")
+
+                        </MudButton>
+
+                    </MudStack>
+
+                    <MudDivider Class="my-3" />
+
+                    <MudText Typo="Typo.caption">
+                        Weld
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @_selectedNcr.WeldNumber
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        Status
+                    </MudText>
+
+                    <div class="mb-3">
+
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@GetStatusColor(_selectedNcr.Status)">
+                            @_selectedNcr.Status.ToString()
+                        </MudChip>
+
+                    </div>
+
+                    <MudText Typo="Typo.caption">
+                        Description
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @_selectedNcr.Description
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        Root Cause
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @DisplayValue(_selectedNcr.RootCause)
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        Corrective Action
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @DisplayValue(_selectedNcr.CorrectiveAction)
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        Preventive Action
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @DisplayValue(_selectedNcr.PreventiveAction)
+                    </MudText>
+
+                    @if (_selectedNcr.DispositionType.HasValue)
+                    {
+                        <MudText Typo="Typo.caption">
+                            Disposition
+                        </MudText>
+
+                        <MudText Class="mb-3">
+                            @_selectedNcr.DispositionType.Value
+                        </MudText>
+                    }
+
+                    @if (_selectedNcr.RequiresCustomerApproval)
+                    {
+                        <MudAlert Severity="@(_selectedNcr.CustomerApproved
+                            ? Severity.Success
+                            : Severity.Warning)"
+                                  Dense="true"
+                                  Class="mt-3">
+
+                            Customer approval:
+                            @(_selectedNcr.CustomerApproved
+                                ? "Approved"
+                                : "Required")
+
+                        </MudAlert>
+                    }
+
+                    @if (_selectedNcr.Status == NcrStatus.AwaitingDisposition)
+                    {
+                        <PermissionView Permission="Quality.NCR.Disposition">
+
+                            <MudDivider Class="my-4" />
+
+                            <MudText Typo="Typo.subtitle2"
+                                     Class="mb-3">
+                                NCR Disposition
+                            </MudText>
+
+                            @if (!string.IsNullOrWhiteSpace(_dispositionError))
+                            {
+                                <MudAlert Severity="Severity.Error"
+                                          Dense="true"
+                                          Class="mb-3">
+                                    @_dispositionError
+                                </MudAlert>
+                            }
+
+                            @if (_selectedNcr.DispositionType.HasValue)
+                            {
+                                <MudAlert Severity="Severity.Info"
+                                          Dense="true"
+                                          Class="mb-3">
+                                    Existing disposition:
+                                    <b>@_selectedNcr.DispositionType.Value</b>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        _selectedNcr.DispositionApprovedBy))
+                                    {
+                                        <span>
+                                            - approved by
+                                            @_selectedNcr.DispositionApprovedBy
+                                        </span>
+                                    }
+                                </MudAlert>
+                            }
+
+                            <MudTextField T="string"
+                                          Label="Root Cause"
+                                          Variant="Variant.Outlined"
+                                          Lines="3"
+                                          @bind-Value="_dispositionRootCause"
+                                          Class="mb-3" />
+
+                            <MudTextField T="string"
+                                          Label="Corrective Action"
+                                          Variant="Variant.Outlined"
+                                          Lines="3"
+                                          @bind-Value="_dispositionCorrectiveAction"
+                                          Class="mb-3" />
+
+                            <MudTextField T="string"
+                                          Label="Preventive Action"
+                                          Variant="Variant.Outlined"
+                                          Lines="3"
+                                          @bind-Value="_dispositionPreventiveAction"
+                                          Class="mb-3" />
+
+                            <MudSelect T="NcrDispositionType?"
+                                       Label="Disposition"
+                                       Variant="Variant.Outlined"
+                                       @bind-Value="_dispositionType"
+                                       Class="mb-3">
+
+                                @foreach (var disposition in
+                                    Enum.GetValues<NcrDispositionType>())
+                                {
+                                    <MudSelectItem T="NcrDispositionType?"
+                                                   Value="@((NcrDispositionType?)disposition)">
+                                        @disposition
+                                    </MudSelectItem>
+                                }
+
+                            </MudSelect>
+
+                            <MudTextField T="string"
+                                          Label="Approved By"
+                                          Variant="Variant.Outlined"
+                                          @bind-Value="_dispositionApprovedBy"
+                                          Class="mb-3" />
+
+                            <MudCheckBox T="bool"
+                                         Label="Requires Customer Approval"
+                                         @bind-Value="_requiresCustomerApproval"
+                                         Class="mb-2" />
+
+                            @if (_requiresCustomerApproval)
+                            {
+                                <MudCheckBox T="bool"
+                                             Label="Customer Approved"
+                                             @bind-Value="_customerApproved"
+                                             Class="mb-2" />
+
+                                <MudTextField T="string"
+                                              Label="Customer Approval Reference"
+                                              Variant="Variant.Outlined"
+                                              @bind-Value="_customerApprovalReference"
+                                              Class="mb-3" />
+                            }
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Save"
+                                       Disabled="@_isSavingDisposition"
+                                       OnClick="SaveNcrDisposition">
+                                @(_isSavingDisposition
+                                    ? "Saving..."
+                                    : "Save Disposition")
+                            </MudButton>
+
+                        </PermissionView>
+                    }
+                    @if (_selectedNcr.Status == NcrStatus.ApprovedForRepair ||
+                         _selectedNcr.Status == NcrStatus.RepairInProgress)
+                    {
+                        <MudDivider Class="my-4" />
+
+                        <MudText Typo="Typo.subtitle2"
+                                 Class="mb-2">
+                            Repair / Rework Execution
+                        </MudText>
+
+                        <MudAlert Severity="Severity.Info"
+                                  Dense="true"
+                                  Class="mb-3">
+                            @if (_selectedNcr.Status == NcrStatus.ApprovedForRepair)
+                            {
+                                <span>
+                                    The approved repair / rework is ready to start.
+                                </span>
+                            }
+                            else
+                            {
+                                <span>
+                                    Repair / rework is currently in progress.
+                                </span>
+                            }
+                        </MudAlert>
+
+                        <MudTextField T="string"
+                                      Label="Performed By"
+                                      @bind-Value="_executionPerformedBy"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Class="mb-3" />
+
+                        @if (_selectedNcr.Status == NcrStatus.ApprovedForRepair)
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.PlayArrow"
+                                       OnClick="StartRepairExecutionUi">
+                                Start Repair / Rework
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.CheckCircle"
+                                       OnClick="CompleteRepairExecutionUi">
+                                Complete Repair / Rework
+                            </MudButton>
+                        }
+                    }
+                    @if (_selectedNcr.Status == NcrStatus.PendingVerification)
+                    {
+                        <MudDivider Class="my-4" />
+
+                        <MudText Typo="Typo.subtitle2"
+                                 Class="mb-2">
+                            Final Verification & Closure
+                        </MudText>
+
+                        @if (string.IsNullOrWhiteSpace(
+                                _selectedNcr.VerificationBy) ||
+                             !_selectedNcr.VerificationDate.HasValue)
+                        {
+                            <MudAlert Severity="Severity.Warning"
+                                      Dense="true"
+                                      Class="mb-3">
+                                Final verification must be recorded before this NCR can be closed.
+                            </MudAlert>
+
+                            <MudTextField T="string"
+                                          Label="Verified By"
+                                          @bind-Value="_verificationBy"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Class="mb-3" />
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.FactCheck"
+                                       OnClick="RecordVerificationUi">
+                                Record Verification
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Success"
+                                      Dense="true"
+                                      Class="mb-3">
+                                Verification recorded by @_selectedNcr.VerificationBy
+                                on @_selectedNcr.VerificationDate.Value.ToString("yyyy-MM-dd HH:mm").
+                                The NCR is ready for controlled closure.
+                            </MudAlert>
+
+                            <MudTextField T="string"
+                                          Label="Closed By"
+                                          @bind-Value="_closureBy"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Class="mb-3" />
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.Lock"
+                                       OnClick="CloseNcrUi">
+                                Close NCR
+                            </MudButton>
+                        }
+                    }
+                    @if (CanAdvanceBasicWorkflow(_selectedNcr))
+                    {
+                        <MudDivider Class="my-4" />
+
+                        <MudText Typo="Typo.subtitle2"
+                                 Class="mb-2">
+                            Workflow
+                        </MudText>
+
+                        <MudAlert Severity="Severity.Info"
+                                  Dense="true"
+                                  Class="mb-3">
+                            Next status:
+                            <b>@GetBasicNextStatus(_selectedNcr)!.Value</b>
+                        </MudAlert>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.ArrowForward"
+                                   OnClick="AdvanceWorkflow">
+                            Advance Workflow
+                        </MudButton>
+                    }
+                }
+
+            </MudPaper>
+
+        </MudItem>
+
+    </MudGrid>
+
+</MudContainer>
+
+@code
+{
+    private bool _isExportingPdf;
+    // =====================================================
+    // NCR CREATION
+    // =====================================================
+
+    private List<Weld> _welds = new();
+
+    private bool _showNewNcrForm;
+    private bool _isCreating;
+
+    private Guid _selectedWeldId = Guid.Empty;
+
+    private string _newCategory = "Welding";
+    private string _newCustomReason = string.Empty;
+    private bool _newIsWeldingRelated = true;
+
+    private string _newNcrNumber = string.Empty;
+    private string _newDescription = string.Empty;
+    private string _newRaisedBy = string.Empty;
+    private string _newAssignedTo = string.Empty;
+
+    private DateTime? _newDueDate;
+
+    private string _createError = string.Empty;
+
+
+    private void ToggleNewNcrForm()
+    {
+        if (_showNewNcrForm)
+        {
+            CancelNewNcr();
+            return;
+        }
+
+        PrepareNewNcr();
+    }
+
+
+    private void PrepareNewNcr()
+    {
+        _createError = string.Empty;
+
+        _welds =
+            WeldRepository
+                .GetAll()
+                .OrderBy(w => w.WeldNumber)
+                .ToList();
+
+        _newNcrNumber =
+            NcrService.GetNextNcrNumber();
+
+        _selectedWeldId = Guid.Empty;
+        _newCategory = "Welding";
+        _newCustomReason = string.Empty;
+        _newIsWeldingRelated = true;
+        _newDescription = string.Empty;
+        _newRaisedBy = string.Empty;
+        _newAssignedTo = string.Empty;
+        _newDueDate = null;
+
+        _showNewNcrForm = true;
+    }
+
+
+    private void CancelNewNcr()
+    {
+        _showNewNcrForm = false;
+        _isCreating = false;
+        _createError = string.Empty;
+
+        _selectedWeldId = Guid.Empty;
+        _newCategory = "Welding";
+        _newCustomReason = string.Empty;
+        _newIsWeldingRelated = true;
+        _newNcrNumber = string.Empty;
+        _newDescription = string.Empty;
+        _newRaisedBy = string.Empty;
+        _newAssignedTo = string.Empty;
+        _newDueDate = null;
+    }
+
+
+    private async Task CreateNcr()
+    {
+        _createError = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(_newCategory))
+        {
+            _createError =
+                "Select the NCR reason / category.";
+            return;
+        }
+
+        if (_newCategory == "Other" &&
+            string.IsNullOrWhiteSpace(_newCustomReason))
+        {
+            _createError =
+                "Enter the custom NCR reason.";
+            return;
+        }
+
+        if (_newIsWeldingRelated &&
+            _selectedWeldId == Guid.Empty)
+        {
+            _createError =
+                "Select the weld associated with this welding-related NCR.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_newDescription))
+        {
+            _createError =
+                "Enter the non-conformance description.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_newRaisedBy))
+        {
+            _createError =
+                "Enter the person raising the NCR.";
+            return;
+        }
+
+        Weld? weld = null;
+
+        if (_newIsWeldingRelated)
+        {
+            weld =
+                _welds.FirstOrDefault(
+                    w => w.Id == _selectedWeldId);
+
+            if (weld == null)
+            {
+                _createError =
+                    "The selected weld could not be found.";
+                return;
+            }
+        }
+
+        try
+        {
+            _isCreating = true;
+
+            var ncr =
+                new NcrRecord
+                {
+                    WeldId = weld?.Id,
+                    WeldNumber = weld?.WeldNumber ?? string.Empty,
+                    NcrNumber = _newNcrNumber,
+                    Category = _newCategory,
+                    CustomReason =
+                        _newCategory == "Other"
+                            ? _newCustomReason.Trim()
+                            : string.Empty,
+                    IsWeldingRelated = _newIsWeldingRelated,
+                    Description = _newDescription.Trim(),
+                    RaisedBy = _newRaisedBy.Trim(),
+                    RaisedDate = DateTime.Now,
+                    AssignedTo = _newAssignedTo.Trim(),
+                    DueDate = _newDueDate
+                };
+
+            NcrService.Create(ncr);
+
+            LoadNcrs();
+
+            _selectedNcr =
+                _ncrs.FirstOrDefault(
+                    x => x.Id == ncr.Id);
+
+            _showNewNcrForm = false;
+
+            _selectedWeldId = Guid.Empty;
+            _newCategory = "Welding";
+            _newCustomReason = string.Empty;
+            _newIsWeldingRelated = true;
+            _newNcrNumber = string.Empty;
+            _newDescription = string.Empty;
+            _newRaisedBy = string.Empty;
+            _newAssignedTo = string.Empty;
+            _newDueDate = null;
+
+            Snackbar.Add(
+                $"{ncr.NcrNumber} created successfully.",
+                Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _createError =
+                $"Unable to create NCR: {ex.Message}";
+        }
+        finally
+        {
+            _isCreating = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+
+    private static string GetWeldDisplay(Weld weld)
+    {
+        var parts =
+            new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(weld.WeldNumber))
+            parts.Add(weld.WeldNumber);
+
+        if (!string.IsNullOrWhiteSpace(weld.JointNumber))
+            parts.Add($"Joint {weld.JointNumber}");
+
+        if (!string.IsNullOrWhiteSpace(weld.DrawingNumber))
+            parts.Add($"Drawing {weld.DrawingNumber}");
+
+        if (!string.IsNullOrWhiteSpace(weld.WpsNumber))
+            parts.Add($"WPS {weld.WpsNumber}");
+
+        return parts.Count > 0
+            ? string.Join(" | ", parts)
+            : weld.Id.ToString();
+    }
+
+
+    private List<NcrRecord> _ncrs = new();
+
+    private NcrRecord? _selectedNcr;
+
+    // =====================================================
+    // NCR REPAIR / REWORK EXECUTION
+    // =====================================================
+
+    private string _executionPerformedBy = string.Empty;
+
+    // =====================================================
+    // NCR VERIFICATION / CLOSURE
+    // =====================================================
+
+    private string _verificationBy = string.Empty;
+    private string _closureBy = string.Empty;
+
+    private string _search = string.Empty;
+
+    private NcrStatus? _selectedStatus;
+    // =====================================================
+    // NCR DISPOSITION
+    // =====================================================
+
+    private NcrDispositionType? _dispositionType;
+
+    private string _dispositionRootCause = string.Empty;
+    private string _dispositionCorrectiveAction = string.Empty;
+    private string _dispositionPreventiveAction = string.Empty;
+
+    private string _dispositionApprovedBy = string.Empty;
+
+    private bool _requiresCustomerApproval;
+    private bool _customerApproved;
+
+    private string _customerApprovalReference = string.Empty;
+
+    private string _dispositionError = string.Empty;
+
+    private bool _isSavingDisposition;
+
+
+    protected override void OnInitialized()
+    {
+        LoadNcrs();
+    }
+
+
+    private void LoadNcrs()
+    {
+        try
+        {
+            _ncrs =
+                NcrService
+                    .GetAll()
+                    .OrderByDescending(x => x.RaisedDate)
+                    .ToList();
+
+            if (_selectedNcr != null)
+            {
+                _selectedNcr =
+                    _ncrs.FirstOrDefault(
+                        x => x.Id == _selectedNcr.Id);
+
+                if (_selectedNcr != null)
+                {
+                    LoadDispositionEditor(
+                        _selectedNcr);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to load NCR register: {ex.Message}",
+                Severity.Error);
+        }
+    }
+
+
+    private void SelectNcr(
+        NcrRecord? ncr)
+    {
+        _selectedNcr =
+            ncr;
+
+        if (_selectedNcr != null)
+        {
+            LoadDispositionEditor(
+                _selectedNcr);
+        }
+        else
+        {
+            _dispositionType = null;
+
+            _dispositionRootCause =
+                string.Empty;
+
+            _dispositionCorrectiveAction =
+                string.Empty;
+
+            _dispositionPreventiveAction =
+                string.Empty;
+
+            _dispositionApprovedBy =
+                string.Empty;
+
+            _requiresCustomerApproval =
+                false;
+
+            _customerApproved =
+                false;
+
+            _customerApprovalReference =
+                string.Empty;
+
+            _dispositionError =
+                string.Empty;
+        }
+    }
+
+    private IEnumerable<NcrRecord> FilteredNcrs =>
+        _ncrs.Where(ncr =>
+            (
+                string.IsNullOrWhiteSpace(_search)
+                ||
+                ncr.NcrNumber.Contains(
+                    _search,
+                    StringComparison.OrdinalIgnoreCase)
+                ||
+                (ncr.WeldNumber ?? string.Empty).Contains(
+                    _search,
+                    StringComparison.OrdinalIgnoreCase)
+                ||
+                ncr.Description.Contains(
+                    _search,
+                    StringComparison.OrdinalIgnoreCase)
+            )
+            &&
+            (
+                !_selectedStatus.HasValue
+                ||
+                ncr.Status == _selectedStatus.Value
+            ));
+
+
+    private int OpenCount =>
+        _ncrs.Count(x =>
+            x.Status != NcrStatus.Closed &&
+            x.Status != NcrStatus.Rejected);
+
+
+    private int PendingVerificationCount =>
+        _ncrs.Count(x =>
+            x.Status == NcrStatus.PendingVerification);
+
+
+    private int ClosedCount =>
+        _ncrs.Count(x =>
+            x.Status == NcrStatus.Closed);
+
+
+    private void ClearFilters()
+    {
+        _search = string.Empty;
+        _selectedStatus = null;
+    }
+
+
+    private void LoadDispositionEditor(
+        NcrRecord ncr)
+    {
+        _dispositionType =
+            ncr.DispositionType;
+
+        _dispositionRootCause =
+            ncr.RootCause ?? string.Empty;
+
+        _dispositionCorrectiveAction =
+            ncr.CorrectiveAction ?? string.Empty;
+
+        _dispositionPreventiveAction =
+            ncr.PreventiveAction ?? string.Empty;
+
+        _dispositionApprovedBy =
+            ncr.DispositionApprovedBy ?? string.Empty;
+
+        _requiresCustomerApproval =
+            ncr.RequiresCustomerApproval;
+
+        _customerApproved =
+            ncr.CustomerApproved;
+
+        _customerApprovalReference =
+            ncr.CustomerApprovalReference ?? string.Empty;
+
+        _dispositionError =
+            string.Empty;
+    }
+
+
+    private async Task SaveNcrDisposition()
+    {
+        _dispositionError =
+            string.Empty;
+
+        if (_selectedNcr == null)
+        {
+            return;
+        }
+
+        if (_selectedNcr.Status !=
+            NcrStatus.AwaitingDisposition)
+        {
+            _dispositionError =
+                "Disposition can only be recorded while the NCR is awaiting disposition.";
+
+            return;
+        }
+
+        if (!_dispositionType.HasValue)
+        {
+            _dispositionError =
+                "Select an NCR disposition.";
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+            _dispositionRootCause))
+        {
+            _dispositionError =
+                "Enter the root cause.";
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+            _dispositionCorrectiveAction))
+        {
+            _dispositionError =
+                "Enter the corrective action.";
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+            _dispositionApprovedBy))
+        {
+            _dispositionError =
+                "Enter the person approving the disposition.";
+
+            return;
+        }
+
+        if (_requiresCustomerApproval &&
+            _customerApproved &&
+            string.IsNullOrWhiteSpace(
+                _customerApprovalReference))
+        {
+            _dispositionError =
+                "Enter the customer approval reference.";
+
+            return;
+        }
+
+        try
+        {
+            _isSavingDisposition =
+                true;
+
+            var ncrId =
+                _selectedNcr.Id;
+
+            _selectedNcr.RootCause =
+                _dispositionRootCause.Trim();
+
+            _selectedNcr.CorrectiveAction =
+                _dispositionCorrectiveAction.Trim();
+
+            _selectedNcr.PreventiveAction =
+                _dispositionPreventiveAction.Trim();
+
+            NcrService.Update(
+                _selectedNcr);
+
+            var saved =
+                NcrService.SetDisposition(
+                    ncrId,
+                    _dispositionType.Value,
+                    _dispositionApprovedBy.Trim(),
+                    _requiresCustomerApproval,
+                    _requiresCustomerApproval &&
+                        _customerApproved,
+                    string.IsNullOrWhiteSpace(
+                        _customerApprovalReference)
+                            ? null
+                            : _customerApprovalReference.Trim());
+
+            if (!saved)
+            {
+                _dispositionError =
+                    "Unable to save the NCR disposition.";
+
+                return;
+            }
+
+
+            LoadNcrs();
+
+            _selectedNcr =
+                _ncrs.FirstOrDefault(
+                    x => x.Id == ncrId);
+
+            if (_selectedNcr != null)
+            {
+                LoadDispositionEditor(
+                    _selectedNcr);
+            }
+
+            Snackbar.Add(
+                "NCR disposition saved successfully.",
+                Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _dispositionError =
+                $"Unable to save disposition: {ex.Message}";
+        }
+        finally
+        {
+            _isSavingDisposition =
+                false;
+        }
+
+        await InvokeAsync(
+            StateHasChanged);
+    }
+
+    private async Task ExportNcrPdf()
+    {
+        if (_selectedNcr == null ||
+            _isExportingPdf)
+        {
+            return;
+        }
+
+        _isExportingPdf = true;
+
+        try
+        {
+            var current =
+                NcrService.GetById(
+                    _selectedNcr.Id);
+
+            if (current == null)
+            {
+                Snackbar.Add(
+                    "The selected NCR could not be loaded.",
+                    Severity.Error);
+
+                return;
+            }
+
+            var history =
+                NcrService.GetHistory(
+                    current.Id);
+
+            var exportModel =
+                new NcrDossierExportModel
+                {
+                    Ncr = current,
+                    History = history,
+                    GeneratedDate = DateTime.Now
+                };
+
+            var pdf =
+                NcrPdfService.Generate(
+                    exportModel);
+
+            if (pdf.Length == 0)
+            {
+                Snackbar.Add(
+                    "The NCR PDF could not be generated.",
+                    Severity.Error);
+
+                return;
+            }
+
+            var fileNumber =
+                string.IsNullOrWhiteSpace(
+                    current.NcrNumber)
+                    ? "NCR"
+                    : current.NcrNumber.Trim();
+
+            foreach (var invalidCharacter in
+                     Path.GetInvalidFileNameChars())
+            {
+                fileNumber =
+                    fileNumber.Replace(
+                        invalidCharacter,
+                        '-');
+            }
+
+            var fileName =
+                $"{fileNumber}-Dossier.pdf";
+
+            var base64 =
+                Convert.ToBase64String(pdf);
+
+            await JS.InvokeVoidAsync(
+                "weldAdminDownload.saveBase64File",
+                fileName,
+                "application/pdf",
+                base64);
+
+            Snackbar.Add(
+                current.IsClosed
+                    ? "Final NCR dossier exported."
+                    : "Interim NCR dossier exported.",
+                Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"PDF export failed: {ex.Message}",
+                Severity.Error);
+        }
+        finally
+        {
+            _isExportingPdf = false;
+
+            await InvokeAsync(
+                StateHasChanged);
+        }
+    }
+
+    private static NcrStatus? GetBasicNextStatus(
+        NcrRecord ncr)
+    {
+        return ncr.Status switch
+        {
+            NcrStatus.Open =>
+                NcrStatus.UnderInvestigation,
+
+            NcrStatus.UnderInvestigation =>
+                NcrStatus.AwaitingDisposition,
+
+            _ =>
+                null
+        };
+    }
+
+
+    private void StartRepairExecutionUi()
+    {
+        if (_selectedNcr == null)
+        {
+            Snackbar.Add(
+                "Select an NCR before starting repair or rework.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                _executionPerformedBy))
+        {
+            Snackbar.Add(
+                "Performed By is required before repair or rework can start.",
+                Severity.Warning);
+
+            return;
+        }
+
+        var ncrId =
+            _selectedNcr.Id;
+
+        var performedBy =
+            _executionPerformedBy.Trim();
+
+        var succeeded =
+            NcrService.StartRepairExecution(
+                ncrId,
+                performedBy);
+
+        if (!succeeded)
+        {
+            Snackbar.Add(
+                "Unable to start repair / rework. Check the current NCR status.",
+                Severity.Error);
+
+            return;
+        }
+
+        _executionPerformedBy =
+            string.Empty;
+
+        LoadNcrs();
+
+        _selectedNcr =
+            _ncrs.FirstOrDefault(
+                x => x.Id == ncrId);
+
+        Snackbar.Add(
+            $"Repair / rework started by {performedBy}.",
+            Severity.Success);
+    }
+
+
+    private void CompleteRepairExecutionUi()
+    {
+        if (_selectedNcr == null)
+        {
+            Snackbar.Add(
+                "Select an NCR before completing repair or rework.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                _executionPerformedBy))
+        {
+            Snackbar.Add(
+                "Performed By is required before repair or rework can be completed.",
+                Severity.Warning);
+
+            return;
+        }
+
+        var ncrId =
+            _selectedNcr.Id;
+
+        var performedBy =
+            _executionPerformedBy.Trim();
+
+        var succeeded =
+            NcrService.CompleteRepairExecution(
+                ncrId,
+                performedBy);
+
+        if (!succeeded)
+        {
+            Snackbar.Add(
+                "Unable to complete repair / rework. Check the current NCR status.",
+                Severity.Error);
+
+            return;
+        }
+
+        _executionPerformedBy =
+            string.Empty;
+
+        LoadNcrs();
+
+        _selectedNcr =
+            _ncrs.FirstOrDefault(
+                x => x.Id == ncrId);
+
+        Snackbar.Add(
+            $"Repair / rework completed by {performedBy}. NCR is awaiting verification.",
+            Severity.Success);
+    }
+
+    private void RecordVerificationUi()
+    {
+        if (_selectedNcr == null)
+        {
+            Snackbar.Add(
+                "Select an NCR before recording verification.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (_selectedNcr.Status !=
+            NcrStatus.PendingVerification)
+        {
+            Snackbar.Add(
+                "Only an NCR awaiting verification can be verified.",
+                Severity.Error);
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                _verificationBy))
+        {
+            Snackbar.Add(
+                "Verified By is required.",
+                Severity.Warning);
+
+            return;
+        }
+
+        var ncrId =
+            _selectedNcr.Id;
+
+        var verifiedBy =
+            _verificationBy.Trim();
+
+        var succeeded =
+            NcrService.RecordVerification(
+                ncrId,
+                verifiedBy);
+
+        if (!succeeded)
+        {
+            Snackbar.Add(
+                "Unable to record verification. Check the NCR status and existing verification record.",
+                Severity.Error);
+
+            return;
+        }
+
+        _verificationBy =
+            string.Empty;
+
+        LoadNcrs();
+
+        _selectedNcr =
+            _ncrs.FirstOrDefault(
+                x => x.Id == ncrId);
+
+        Snackbar.Add(
+            $"Final verification recorded by {verifiedBy}.",
+            Severity.Success);
+    }
+
+
+    private void CloseNcrUi()
+    {
+        if (_selectedNcr == null)
+        {
+            Snackbar.Add(
+                "Select an NCR before closure.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (_selectedNcr.Status !=
+            NcrStatus.PendingVerification)
+        {
+            Snackbar.Add(
+                "Only an NCR awaiting verification can be closed.",
+                Severity.Error);
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                _selectedNcr.VerificationBy) ||
+            !_selectedNcr.VerificationDate.HasValue)
+        {
+            Snackbar.Add(
+                "Final verification must be recorded before closure.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                _closureBy))
+        {
+            Snackbar.Add(
+                "Closed By is required.",
+                Severity.Warning);
+
+            return;
+        }
+
+        var ncrId =
+            _selectedNcr.Id;
+
+        var closedBy =
+            _closureBy.Trim();
+
+        var succeeded =
+            NcrService.Close(
+                ncrId,
+                closedBy);
+
+        if (!succeeded)
+        {
+            Snackbar.Add(
+                "Unable to close NCR. Check verification and customer approval requirements.",
+                Severity.Error);
+
+            return;
+        }
+
+        _closureBy =
+            string.Empty;
+
+        LoadNcrs();
+
+        _selectedNcr =
+            _ncrs.FirstOrDefault(
+                x => x.Id == ncrId);
+
+        Snackbar.Add(
+            $"NCR closed by {closedBy}.",
+            Severity.Success);
+    }
+
+    private bool CanAdvanceBasicWorkflow(
+        NcrRecord ncr)
+    {
+        var target =
+            GetBasicNextStatus(ncr);
+
+        return target.HasValue &&
+               NcrService.CanMoveTo(
+                   ncr,
+                   target.Value);
+    }
+
+
+    private void AdvanceWorkflow()
+    {
+        if (_selectedNcr == null)
+        {
+            return;
+        }
+
+        var target =
+            GetBasicNextStatus(
+                _selectedNcr);
+
+        if (!target.HasValue)
+        {
+            Snackbar.Add(
+                "No basic workflow transition is available for this NCR.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (!NcrService.CanMoveTo(
+                _selectedNcr,
+                target.Value))
+        {
+            Snackbar.Add(
+                $"Workflow transition from {_selectedNcr.Status} to {target.Value} is not permitted.",
+                Severity.Warning);
+
+            return;
+        }
+
+        var ncrId =
+            _selectedNcr.Id;
+
+        var moved =
+            NcrService.MoveTo(
+                ncrId,
+                target.Value);
+
+        if (!moved)
+        {
+            Snackbar.Add(
+                "Unable to advance the NCR workflow.",
+                Severity.Error);
+
+            return;
+        }
+
+        Snackbar.Add(
+            $"NCR advanced to {target.Value}.",
+            Severity.Success);
+
+        LoadNcrs();
+
+        _selectedNcr =
+            _ncrs.FirstOrDefault(
+                x => x.Id == ncrId);
+    }
+
+
+    private static string DisplayValue(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? "Not recorded"
+            : value;
+    }
+
+
+    private static Color GetStatusColor(NcrStatus status)
+    {
+        return status switch
+        {
+            NcrStatus.Open =>
+                Color.Error,
+
+            NcrStatus.UnderInvestigation =>
+                Color.Warning,
+
+            NcrStatus.AwaitingDisposition =>
+                Color.Warning,
+
+            NcrStatus.ApprovedForRepair =>
+                Color.Info,
+
+            NcrStatus.RepairInProgress =>
+                Color.Info,
+
+            NcrStatus.PendingVerification =>
+                Color.Secondary,
+
+            NcrStatus.Closed =>
+                Color.Success,
+
+            NcrStatus.Rejected =>
+                Color.Dark,
+
+            _ =>
+                Color.Default
+        };
+    }
+}

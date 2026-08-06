@@ -598,6 +598,215 @@ ORDER BY WeldNumber;";
         // NEXT WELD NUMBER
         // =====================================================
 
+        // =====================================================
+        // GET WELD BY ID
+        // =====================================================
+
+        public async Task<Weld?> GetByIdAsync(
+            Guid weldId)
+        {
+            using var connection =
+                new SqliteConnection(_connectionString);
+
+            await connection.OpenAsync();
+
+            var cmd = connection.CreateCommand();
+
+            cmd.CommandText = @"
+SELECT *
+FROM Welds
+WHERE Id = $WeldId
+LIMIT 1;";
+
+            cmd.Parameters.AddWithValue(
+                "$WeldId",
+                weldId.ToString());
+
+            using var reader =
+                await cmd.ExecuteReaderAsync();
+
+            if (!await reader.ReadAsync())
+            {
+                return null;
+            }
+
+            return new Weld
+            {
+                Id = Guid.Parse(
+                    reader["Id"].ToString()!),
+
+                ProjectId = Guid.Parse(
+                    reader["ProjectId"].ToString()!),
+
+                WeldNumber =
+                    reader["WeldNumber"]?.ToString() ?? "",
+
+                JointNumber =
+                    reader["JointNumber"]?.ToString() ?? "",
+
+                DrawingNumber =
+                    reader["DrawingNumber"]?.ToString() ?? "",
+
+                MaterialSpecification =
+                    reader["MaterialSpecification"]?.ToString() ?? "",
+
+                Diameter =
+                    reader["Diameter"] == DBNull.Value
+                        ? 0
+                        : Convert.ToDouble(
+                            reader["Diameter"]),
+
+                JointType =
+                    reader["JointType"]?.ToString() ?? "",
+
+                WeldType =
+                    reader["WeldType"]?.ToString() ?? "",
+
+                WpsNumber =
+                    reader["WpsNumber"]?.ToString() ?? "",
+
+                WelderNumber =
+                    reader["WelderNumber"]?.ToString() ?? "",
+
+                MaterialHeat1 =
+                    reader["MaterialHeat1"]?.ToString() ?? "",
+
+                MaterialHeat2 =
+                    reader["MaterialHeat2"]?.ToString() ?? "",
+
+                Status =
+                    Enum.TryParse<WeldStatusType>(
+                        reader["Status"]?.ToString(),
+                        out var status)
+                            ? status
+                            : WeldStatusType.Pending,
+
+                WorkflowStatus =
+                    Enum.TryParse<WeldWorkflowStatus>(
+                        reader["WorkflowStatus"]?.ToString(),
+                        out var workflowStatus)
+                            ? workflowStatus
+                            : WeldWorkflowStatus.Draft,
+
+                NdtStatus =
+                    reader["NdtStatus"]?.ToString() ?? "",
+
+                RepairCount =
+                    reader["RepairCount"] == DBNull.Value
+                        ? 0
+                        : Convert.ToInt32(
+                            reader["RepairCount"]),
+
+                RepairCycle =
+                    reader["RepairCycle"] == DBNull.Value
+                        ? 0
+                        : Convert.ToInt32(
+                            reader["RepairCycle"]),
+
+                RequiresRepair =
+                    reader["RequiresRepair"] != DBNull.Value
+                    && Convert.ToInt32(
+                        reader["RequiresRepair"]) == 1,
+
+                LastNdtDate =
+                    reader["LastNdtDate"] == DBNull.Value
+                        ? null
+                        : DateTime.Parse(
+                            reader["LastNdtDate"].ToString()!),
+
+                LastNdtResult =
+                    reader["LastNdtResult"]?.ToString(),
+
+                CreatedDate =
+                    reader["CreatedDate"] == DBNull.Value
+                        ? DateTime.UtcNow
+                        : DateTime.Parse(
+                            reader["CreatedDate"].ToString()!),
+
+                RequiredNdt =
+                    HasColumn(reader, "RequiredNdt")
+                        ? reader["RequiredNdt"]?.ToString() ?? ""
+                        : "",
+
+                ReadinessScore =
+                    HasColumn(reader, "ReadinessScore")
+                    && reader["ReadinessScore"] != DBNull.Value
+                        ? Convert.ToInt32(
+                            reader["ReadinessScore"])
+                        : 0,
+
+                IsReady =
+                    HasColumn(reader, "IsReady")
+                    && reader["IsReady"] != DBNull.Value
+                    && Convert.ToInt32(
+                        reader["IsReady"]) == 1,
+
+                ReadinessSummary =
+                    reader["ReadinessSummary"]?.ToString() ?? "",
+
+                ReleaseReady =
+                    HasColumn(reader, "ReleaseReady")
+                    && reader["ReleaseReady"] != DBNull.Value
+                    && Convert.ToInt32(
+                        reader["ReleaseReady"]) == 1,
+
+                TurnoverReady =
+                    reader["TurnoverReady"] != DBNull.Value
+                    && Convert.ToInt32(
+                        reader["TurnoverReady"]) == 1,
+
+                BlockingCount =
+                    reader["BlockingCount"] == DBNull.Value
+                        ? 0
+                        : Convert.ToInt32(
+                            reader["BlockingCount"]),
+
+                ReleasedBy =
+                    reader["ReleasedBy"]?.ToString() ?? "",
+
+                ReleasedDate =
+                    reader["ReleasedDate"] == DBNull.Value
+                        ? null
+                        : DateTime.Parse(
+                            reader["ReleasedDate"].ToString()!),
+
+                IsReleased =
+                    reader["IsReleased"] != DBNull.Value
+                    && Convert.ToInt32(
+                        reader["IsReleased"]) == 1,
+
+                RequiredReleaseRole =
+                    reader["RequiredReleaseRole"] == DBNull.Value
+                        ? WeldReleaseRole.QA
+                        : (WeldReleaseRole)
+                            Convert.ToInt32(
+                                reader["RequiredReleaseRole"]),
+
+                Process =
+                    reader["Process"]?.ToString() ?? "",
+
+                MaterialGroup =
+                    reader["MaterialGroup"]?.ToString() ?? "",
+
+                Position =
+                    reader["Position"]?.ToString() ?? "",
+
+                Thickness =
+                    reader["Thickness"] == DBNull.Value
+                        ? 0
+                        : Convert.ToDouble(
+                            reader["Thickness"]),
+
+                IsValid =
+                    reader["IsValid"] != DBNull.Value
+                    && Convert.ToInt32(
+                        reader["IsValid"]) == 1,
+
+                ValidationMessage =
+                    reader["ValidationMessage"]?.ToString() ?? ""
+            };
+        }
+
         public async Task<string> GetNextWeldNumberAsync(
             Guid projectId)
         {
@@ -1114,4 +1323,3 @@ ON Welds(WelderNumber);";
             }
         }
     } }
-

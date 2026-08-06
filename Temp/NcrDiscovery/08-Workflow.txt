@@ -1,0 +1,412 @@
+﻿C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Analytics\Services\WelderAnalyticsService.cs:28: var rejected =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Analytics\Services\WelderAnalyticsService.cs:55: RejectedWelds =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Analytics\Services\WelderAnalyticsService.cs:56: rejected,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Analytics\Services\WelderAnalyticsService.cs:61: RejectRate =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Analytics\Services\WelderAnalyticsService.cs:64: : ((double)rejected
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Analytics\Services\WelderAnalyticsService.cs:74: x.RejectRate)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:38: public string RootCause
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:44: public string CorrectiveAction
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:50: public string PreventiveAction
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:68: public string AssignedTo
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:74: public DateTime? DueDate
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:86: public bool IsClosed
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:92: public string ClosedBy
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:98: public DateTime? ClosedDate
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:104: public NcrDispositionType? DispositionType { get; set; }
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:106: public string? DispositionApprovedBy { get; set; }
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:108: public DateTime? DispositionApprovedDate { get; set; }
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:110: public string? VerificationBy { get; set; }
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:112: public DateTime? VerificationDate { get; set; }
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:114: public bool RequiresCustomerApproval { get; set; }
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:116: public bool CustomerApproved { get; set; }
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\NcrRecord.cs:118: public string? CustomerApprovalReference { get; set; }
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\QualityKpiModel.cs:14: public int RejectedWelds { get; set; }
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\QualityKpiModel.cs:16: public double RejectRate { get; set; }
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\QualityKpiModel.cs:26: public int OpenNcrs { get; set; }
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Models\QualityKpiModel.cs:34: public int OpenCapas { get; set; }
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\ProjectMrbPdfService.cs:276: AddDocument("Approved WPS");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\ProjectMrbPdfService.cs:311: // Open the generated PDF
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:27: model.RejectedWelds =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:34: model.OpenNcrs =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:36: !x.IsClosed);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:41: model.OpenCapas =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:44: Enums.CapaStatus.Closed);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:50: model.RejectRate =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:54: model.RejectedWelds
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:71: x.DueDate < DateTime.UtcNow
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:74: Enums.CapaStatus.Closed);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:105: - model.RejectRate
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:106: - (model.OpenNcrs * 2)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:130: if (model.OpenNcrs > 5)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:133: "High number of open NCRs.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:142: if (model.RejectRate > 10)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:145: "Reject rate exceeds 10%.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:250: (capa.DueDate - DateTime.UtcNow)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:266: AssignedTo =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:294: !ncr.IsClosed
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:464: "Open NCRs",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:467: model.OpenNcrs,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:470: model.OpenNcrs > 15
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:472: : model.OpenNcrs > 5
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\QualityAnalyticsService.cs:477: model.OpenNcrs > 15
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:279: HeaderCell("Closed");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:297: Cell(row.CorrectiveAction);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:298: Cell(row.Closed);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:403: HeaderCell("Approver");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:405: HeaderCell("Approved Date");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:422: Cell(row.Approver);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\WeldDossierPdfService.cs:424: Cell(row.ApprovedDate);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:168: PermissionKeys.Procurement.ApprovePO,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:170: "Approve PO",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:171: "Approve purchase orders"),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:218: PermissionKeys.Quality.NcrDisposition,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:220: "NCR Disposition",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:221: "Approve NCR dispositions"),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:223: PermissionKeys.Quality.NcrVerify,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:225: "NCR Verification",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:226: "Verify NCR corrective actions"),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:228: PermissionKeys.Quality.NcrClose,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:230: "NCR Close",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:231: "Close verified NCRs"),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\PermissionCatalog.cs:241: "Approve and reject quality hold points"),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:49: PermissionKeys.Procurement.ApprovePO,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:78: PermissionKeys.Quality.NcrDisposition,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:79: PermissionKeys.Quality.NcrVerify,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:80: PermissionKeys.Quality.NcrClose,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:107: PermissionKeys.Quality.NcrDisposition,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:108: PermissionKeys.Quality.NcrVerify,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:109: PermissionKeys.Quality.NcrClose,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:159: PermissionKeys.Quality.NcrDisposition,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:160: PermissionKeys.Quality.NcrVerify,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:161: PermissionKeys.Quality.NcrClose,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\Catalog\RolePermissionCatalog.cs:185: PermissionKeys.Quality.NcrVerify,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\PermissionKeys.cs:49: public const string ApprovePO = "Procurement.ApprovePO";
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\PermissionKeys.cs:62: public const string NcrDisposition = "Quality.NCR.Disposition";
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\PermissionKeys.cs:63: public const string NcrVerify = "Quality.NCR.Verify";
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Security\PermissionKeys.cs:64: public const string NcrClose = "Quality.NCR.Close";
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:18: connection.Open();
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:152: AddColumnIfNotExists(connection, "Pqr", "IsApproved", "INTEGER DEFAULT 0");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:153: AddColumnIfNotExists(connection, "Pqr", "ApprovedOn", "TEXT");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:154: AddColumnIfNotExists(connection, "Pqr", "ApprovedBy", "TEXT");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:235: IsApproved INTEGER NOT NULL,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:240: AddColumnIfNotExists(connection, "WpsRecords", "IsApproved", "INTEGER DEFAULT 0");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:242: AddColumnIfNotExists(connection, "WpsRecords", "ApprovedOn", "TEXT");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:243: AddColumnIfNotExists(connection, "WpsRecords", "ApprovedBy", "TEXT");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:264: AssignedTo TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:387: "IsApproved",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:412: "ApprovedOn",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:417: "ApprovedBy",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:741: IsApproved INTEGER NOT NULL,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:771: RequiredApproverRole INTEGER,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:774: ApprovedBy TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:775: ApprovedDate TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:790: AddColumnIfNotExists(connection, "WeldHoldPoints", "RequiredApproverRole", "INTEGER DEFAULT 0");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:851: RootCause TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:853: CorrectiveAction TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:854: PreventiveAction TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:859: AssignedTo TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:860: DueDate TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:864: IsClosed INTEGER,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:866: ClosedBy TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:867: ClosedDate TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:880: AddColumnIfNotExists(connection, "NcrRecords", "RootCause", "TEXT");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:882: AddColumnIfNotExists(connection, "NcrRecords", "CorrectiveAction", "TEXT");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:884: AddColumnIfNotExists(connection, "NcrRecords", "PreventiveAction", "TEXT");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:886: AddColumnIfNotExists(connection, "NcrRecords", "AssignedTo", "TEXT");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:888: AddColumnIfNotExists(connection, "NcrRecords", "DueDate", "TEXT");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:908: RootCause TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:910: CorrectiveAction TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:912: PreventiveAction TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:914: AssignedTo TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:916: DueDate TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:924: VerifiedBy TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:926: VerifiedDate TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:1009: IsApproved INTEGER,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:1011: ApprovedBy TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:1013: ApprovedDate TEXT
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:1057: IsApproved INTEGER NOT NULL
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:37: RootCause,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:38: CorrectiveAction,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:39: PreventiveAction,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:42: AssignedTo,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:43: DueDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:45: IsClosed,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:46: ClosedBy,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:47: ClosedDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:48: DispositionType,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:49: DispositionApprovedBy,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:50: DispositionApprovedDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:51: VerificationBy,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:52: VerificationDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:53: RequiresCustomerApproval,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:54: CustomerApproved,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:55: CustomerApprovalReference
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:64: @RootCause,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:65: @CorrectiveAction,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:66: @PreventiveAction,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:69: @AssignedTo,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:70: @DueDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:72: @IsClosed,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:73: @ClosedBy,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:74: @ClosedDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:75: @DispositionType,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:76: @DispositionApprovedBy,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:77: @DispositionApprovedDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:78: @VerificationBy,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:79: @VerificationDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:80: @RequiresCustomerApproval,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:81: @CustomerApproved,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:82: @CustomerApprovalReference
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:141: RootCause = @RootCause,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:142: CorrectiveAction = @CorrectiveAction,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:143: PreventiveAction = @PreventiveAction,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:146: AssignedTo = @AssignedTo,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:147: DueDate = @DueDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:149: IsClosed = @IsClosed,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:150: ClosedBy = @ClosedBy,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:151: ClosedDate = @ClosedDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:152: DispositionType = @DispositionType,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:153: DispositionApprovedBy = @DispositionApprovedBy,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:154: DispositionApprovedDate = @DispositionApprovedDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:155: VerificationBy = @VerificationBy,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:156: VerificationDate = @VerificationDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:157: RequiresCustomerApproval = @RequiresCustomerApproval,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:158: CustomerApproved = @CustomerApproved,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:159: CustomerApprovalReference = @CustomerApprovalReference
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:178: item.RootCause,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:179: item.CorrectiveAction,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:180: item.PreventiveAction,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:183: item.AssignedTo,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:184: item.DueDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:189: IsClosed =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:190: item.IsClosed ? 1 : 0,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:192: item.ClosedBy,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:193: item.ClosedDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:195: DispositionType =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:196: item.DispositionType.HasValue
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:197: ? (int)item.DispositionType.Value
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:200: item.DispositionApprovedBy,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:201: item.DispositionApprovedDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:202: item.VerificationBy,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:203: item.VerificationDate,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:205: RequiresCustomerApproval =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:206: item.RequiresCustomerApproval ? 1 : 0,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:208: CustomerApproved =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:209: item.CustomerApproved ? 1 : 0,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:211: item.CustomerApprovalReference
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:240: RootCause =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:241: row.RootCause?.ToString()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:244: CorrectiveAction =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:245: row.CorrectiveAction?.ToString()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:248: PreventiveAction =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:249: row.PreventiveAction?.ToString()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:260: AssignedTo =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:261: row.AssignedTo?.ToString()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:264: DueDate =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:265: row.DueDate == null
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:268: row.DueDate),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:275: IsClosed =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:277: row.IsClosed),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:279: ClosedBy =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:280: row.ClosedBy?.ToString()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:283: ClosedDate =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:284: row.ClosedDate == null
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:287: row.ClosedDate),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:289: DispositionType =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:290: row.DispositionType == null
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:292: : (NcrDispositionType?)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:294: row.DispositionType),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:296: DispositionApprovedBy =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:297: row.DispositionApprovedBy?.ToString(),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:299: DispositionApprovedDate =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:300: row.DispositionApprovedDate == null
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:303: row.DispositionApprovedDate),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:305: VerificationBy =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:306: row.VerificationBy?.ToString(),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:308: VerificationDate =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:309: row.VerificationDate == null
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:312: row.VerificationDate),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:314: RequiresCustomerApproval =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:315: row.RequiresCustomerApproval != null
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:318: row.RequiresCustomerApproval),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:320: CustomerApproved =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:321: row.CustomerApproved != null
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:324: row.CustomerApproved),
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:326: CustomerApprovalReference =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Repositories\NcrRepository.cs:327: row.CustomerApprovalReference?.ToString()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:27: connection.Open();
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:130: "VerifiedBy",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:136: "VerifiedDate",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:227: "RootCause",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:233: "CorrectiveAction",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:239: "PreventiveAction",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:245: "AssignedTo",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:251: "DueDate",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:257: "DispositionType",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:263: "DispositionApprovedBy",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:269: "DispositionApprovedDate",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:275: "VerificationBy",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:281: "VerificationDate",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:287: "RequiresCustomerApproval",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:293: "CustomerApproved",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:299: "CustomerApprovalReference",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:329: "ApprovedBy",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:335: "ApprovedDate",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:646: // they are still assigned to system users.
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:649: var assignedObsoleteUsers =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:665: if (assignedObsoleteUsers > 0)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\Services\DatabaseMigrationService.cs:669: $"{assignedObsoleteUsers} SystemUsers are still assigned " +
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Analytics\WelderAnalyticsViewModel.cs:2: using DocumentFormat.OpenXml.Spreadsheet;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:28: private int openNcrs;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:31: private int closedNcrs;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:57: OpenNcrs =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:59: !x.IsClosed);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:61: ClosedNcrs =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:63: x.IsClosed);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:67: !x.IsClosed
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:68: && x.DueDate != null
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:69: && x.DueDate < DateTime.UtcNow);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:79: private void CloseNcr()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:84: SelectedNcr.IsClosed = true;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:87: NcrStatus.Closed;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:89: SelectedNcr.ClosedDate =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:92: SelectedNcr.ClosedBy =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrDashboardViewModel.cs:101: "NCR closed.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:53: private void CloseNcr()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:59: SystemPermission.CloseNcrs))
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:62: "You do not have permission to close NCRs.",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:72: NcrStatus.Closed))
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:75: "NCR cannot be closed until verification is complete.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:81: NcrStatus.Closed;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:83: SelectedNcr.IsClosed =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:86: SelectedNcr.ClosedBy =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:89: SelectedNcr.ClosedDate =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:96: "CLOSE NCR",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:98: $"Closed NCR: {SelectedNcr.NcrNumber}");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:103: "NCR closed successfully.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:137: private void AssignCorrectiveAction()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:143: SystemPermission.ApproveNcrDisposition))
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:146: "You do not have permission to approve NCR dispositions.",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:156: NcrStatus.AwaitingDisposition))
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:165: NcrStatus.AwaitingDisposition;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:171: "ASSIGN NCR DISPOSITION",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:179: private void Verify()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:185: SystemPermission.VerifyNcr))
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:188: "You do not have permission to verify NCRs.",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:198: NcrStatus.PendingVerification))
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:207: NcrStatus.PendingVerification;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\Quality\NcrManagementViewModel.cs:213: "VERIFY NCR",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:364: bool hasOpenRepairs =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:366: x.Status != RepairStatus.Closed);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:833: == NdtResultType.Reject)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:858: $"NDT rejection: {window.SavedResult.NdtMethod}",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:886: $"NDT rejection on weld {SelectedWeld.WeldNumber}",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:888: RootCause =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:891: CorrectiveAction =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:894: PreventiveAction =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:903: AssignedTo =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:906: DueDate =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:910: NcrStatus.Open,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:912: IsClosed = false
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:929: RootCause =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:932: CorrectiveAction =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:935: PreventiveAction =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:938: AssignedTo =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:941: DueDate =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:945: CapaStatus.Open,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:975: // CLOSE OPEN REPAIRS
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:984: x.Status != RepairStatus.Closed))
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:987: RepairStatus.Closed;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1015: "Repair verified successfully by NDT.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1094: var hasOpenRepairs =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1097: RepairStatus.Closed);
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1119: HasApprovedWps = true,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1122: HasOpenRepairs = hasOpenRepairs,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1256: hasOpenRepairs,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1351: private void OpenTraceabilityEditor()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1378: private async Task CloseWeld()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1386: if (!rules.CanClose(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1396: WeldWorkflowStatus.Closed;
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1408: "Weld Closed",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1409: $"Weld {SelectedWeld.WeldNumber} closed.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1414: "Weld successfully closed.");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1419: private void OpenTraceability()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1441: private void OpenNcrManagement()
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1494: ApprovedBy =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1614: ApprovedBy =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1660: // AUTO LOAD APPROVED DOCUMENTS
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1667: var approvedWps =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1668: vaultRepository.GetApprovedByCategory(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1671: var approvedWpqr =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1672: vaultRepository.GetApprovedByCategory(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1675: var approvedNdt =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1676: vaultRepository.GetApprovedByCategory(
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1683: foreach (var doc in approvedWps)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1718: foreach (var doc in approvedWpqr)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1753: foreach (var doc in approvedNdt)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\MainWindow.xaml:64: Click="OpenWeldControlTower_Click"/>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\MainWindow.xaml:70: Click="OpenDocumentVault_Click"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:24: <!-- OPEN NCR -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:33: <TextBlock Text="Open NCRs"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:37: <TextBlock Text="{Binding OpenNcrs}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:46: <!-- CLOSED -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:55: <TextBlock Text="Closed NCRs"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:59: <TextBlock Text="{Binding ClosedNcrs}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:103: <Button Content="Close NCR"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:106: Command="{Binding CloseNcrCommand}"/>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:132: Binding="{Binding RootCause}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:136: Binding="{Binding CorrectiveAction}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:139: <DataGridTextColumn Header="Assigned To"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:140: Binding="{Binding AssignedTo}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml:148: Binding="{Binding DueDate}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:33: Binding="{Binding RootCause}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:37: Binding="{Binding CorrectiveAction}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:41: Binding="{Binding PreventiveAction}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:44: <DataGridTextColumn Header="Assigned To"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:45: Binding="{Binding AssignedTo}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:49: Binding="{Binding DueDate}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:56: <DataGridCheckBoxColumn Header="Closed"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:57: Binding="{Binding IsClosed}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:76: Command="{Binding AssignCorrectiveActionCommand}"/>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:78: <Button Content="Verify"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:81: Command="{Binding VerifyCommand}"/>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:83: <Button Content="Close NCR"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml:85: Command="{Binding CloseNcrCommand}"/>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:40: <!-- REJECT RATE -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:49: <TextBlock Text="Reject Rate"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:53: <TextBlock Text="{Binding Kpis.RejectRate, StringFormat={}{0:F2}%}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:62: <!-- OPEN NCR -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:71: <TextBlock Text="Open NCRs"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:75: <TextBlock Text="{Binding Kpis.OpenNcrs}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:84: <!-- OPEN CAPAS -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:93: <TextBlock Text="Open CAPAs"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:97: <TextBlock Text="{Binding Kpis.OpenCapas}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:322: <DataGridTextColumn Header="Assigned To"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\QualityAnalyticsView.xaml:323: Binding="{Binding AssignedTo}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\TurnoverGovernanceView.xaml:100: Binding="{Binding NoOpenRepairs}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\TurnoverGovernanceView.xaml:104: Binding="{Binding NoOpenNcrs}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\TurnoverGovernanceView.xaml:108: Binding="{Binding HoldPointsApproved}"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:61: Status = "Closed",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:62: CorrectiveAction = "Excavate and repair",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:63: Closed = "Yes"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:76: Status = "Closed"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:85: Approver = "QA Inspector",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:87: ApprovedDate =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:89: Status = "Approved"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:95: Approver = "QC Supervisor",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:97: ApprovedDate =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:99: Status = "Approved"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:154: Status = "Approved",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\Quality\WeldDossierWindow.xaml.cs:164: Status = "Approved",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:5: xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:87: <Button Content="Close Weld"
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:91: Command="{Binding CloseWeldCommand}" />
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:116: Command="{Binding OpenTraceabilityEditorCommand}"/>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:122: Command="{Binding OpenTraceabilityCommand}"/>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:128: Command="{Binding OpenNcrManagementCommand}"/>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:309: <!-- Closed -->
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:312: Value="Closed">
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml:315: Value="CLOSED"/>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:160: Status = "Closed",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:161: CorrectiveAction = "Repair completed",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:162: Closed = "Yes"

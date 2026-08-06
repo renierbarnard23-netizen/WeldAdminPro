@@ -70,6 +70,27 @@ namespace WeldAdminPro.Core.Quality.Services
             };
         }
 
+        /// <summary>
+        /// Returns the structurally allowed next workflow
+        /// states for the supplied current status.
+        ///
+        /// The transition map remains authoritative in
+        /// CanTransition. This method does not duplicate
+        /// lifecycle rules.
+        /// </summary>
+        public IReadOnlyList<WeldWorkflowStatus>
+            GetAllowedTransitions(
+            WeldWorkflowStatus currentStatus)
+        {
+            return Enum
+                .GetValues<WeldWorkflowStatus>()
+                .Where(targetStatus =>
+                    CanTransition(
+                        currentStatus,
+                        targetStatus))
+                .ToList();
+        }
+
         public WeldStateTransitionResult
             TryTransition(
             Weld weld,

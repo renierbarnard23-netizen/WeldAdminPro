@@ -1,0 +1,267 @@
+
+==================================================
+FILE: .\WeldAdminPro.Core\Quality\Enums\NcrDispositionType.cs
+==================================================
+   1: namespace WeldAdminPro.Core.Quality.Enums
+   2: {
+   3:     public enum NcrDispositionType
+   4:     {
+   5:         Repair = 0,
+   6: 
+   7:         UseAsIs = 1,
+   8: 
+   9:         Rework = 2,
+  10: 
+  11:         Scrap = 3,
+  12: 
+  13:         EngineeringReview = 4
+  14:     }
+  15: }
+
+==================================================
+FILE: .\WeldAdminPro.Core\Quality\Enums\NcrStatus.cs
+==================================================
+   1: namespace WeldAdminPro.Core.Quality.Enums
+   2: {
+   3:     public enum NcrStatus
+   4:     {
+   5:         Open = 0,
+   6: 
+   7:         UnderInvestigation = 1,
+   8: 
+   9:         AwaitingDisposition = 2,
+  10: 
+  11:         ApprovedForRepair = 3,
+  12: 
+  13:         RepairInProgress = 4,
+  14: 
+  15:         PendingVerification = 5,
+  16: 
+  17:         Closed = 6,
+  18: 
+  19:         Rejected = 7
+  20:     }
+  21: }
+
+==================================================
+FILE: .\WeldAdminPro.Core\Quality\Models\NcrHistoryRow.cs
+==================================================
+   1: namespace WeldAdminPro.Core.Quality.Models
+   2: {
+   3:     public class NcrHistoryRow
+   4:     {
+   5:         public string NcrNumber { get; set; }
+   6:             = "";
+   7: 
+   8:         public string Description { get; set; }
+   9:             = "";
+  10: 
+  11:         public string Status { get; set; }
+  12:             = "";
+  13: 
+  14:         public string CorrectiveAction { get; set; }
+  15:             = "";
+  16: 
+  17:         public string Closed { get; set; }
+  18:             = "";
+  19:     }
+  20: }
+
+==================================================
+FILE: .\WeldAdminPro.Core\Quality\Models\NcrLifecycleModel.cs
+==================================================
+   1: namespace WeldAdminPro.Core.Quality.Models
+   2: {
+   3:     public class NcrLifecycleModel
+   4:     {
+   5:         public string NcrNumber
+   6:         { get; set; }
+   7:                 = "";
+   8: 
+   9:         public string Status
+  10:         { get; set; }
+  11:                 = "";
+  12: 
+  13:         public int AgeDays
+  14:         { get; set; }
+  15: 
+  16:         public bool IsOverdue
+  17:         { get; set; }
+  18: 
+  19:         public string RiskLevel
+  20:         { get; set; }
+  21:                 = "LOW";
+  22:     }
+  23: }
+
+==================================================
+FILE: .\WeldAdminPro.Core\Quality\Models\NcrRecord.cs
+==================================================
+   1: using System;
+   2: using WeldAdminPro.Core.Quality.Enums;
+   3: 
+   4: namespace WeldAdminPro.Core.Quality.Models
+   5: {
+   6:     public class NcrRecord
+   7:     {
+   8:         public Guid Id
+   9:         {
+  10:             get;
+  11:             set;
+  12:         }
+  13: 
+  14:         public Guid WeldId
+  15:         {
+  16:             get;
+  17:             set;
+  18:         }
+  19: 
+  20:         public string WeldNumber
+  21:         {
+  22:             get;
+  23:             set;
+  24:         } = string.Empty;
+  25: 
+  26:         public string NcrNumber
+  27:         {
+  28:             get;
+  29:             set;
+  30:         } = "";
+  31: 
+  32:         public string Description
+  33:         {
+  34:             get;
+  35:             set;
+  36:         } = string.Empty;
+  37: 
+  38:         public string RootCause
+  39:         {
+  40:             get;
+  41:             set;
+  42:         } = string.Empty;
+  43: 
+  44:         public string CorrectiveAction
+  45:         {
+  46:             get;
+  47:             set;
+  48:         } = string.Empty;
+  49: 
+  50:         public string PreventiveAction
+  51:         {
+  52:             get;
+  53:             set;
+  54:         } = string.Empty;
+  55: 
+  56:         public string RaisedBy
+  57:         {
+  58:             get;
+  59:             set;
+  60:         } = string.Empty;
+  61: 
+  62:         public DateTime RaisedDate
+  63:         {
+  64:             get;
+  65:             set;
+  66:         }
+  67: 
+  68:         public string AssignedTo
+  69:         {
+  70:             get;
+  71:             set;
+  72:         } = string.Empty;
+  73: 
+  74:         public DateTime? DueDate
+  75:         {
+  76:             get;
+  77:             set;
+  78:         }
+  79: 
+  80:         public NcrStatus Status
+  81:         {
+  82:             get;
+  83:             set;
+  84:         }
+  85: 
+  86:         public bool IsClosed
+  87:         {
+  88:             get;
+  89:             set;
+  90:         }
+  91: 
+  92:         public string ClosedBy
+  93:         {
+  94:             get;
+  95:             set;
+  96:         } = string.Empty;
+  97: 
+  98:         public DateTime? ClosedDate
+  99:         {
+ 100:             get;
+ 101:             set;
+ 102:         }
+ 103: 
+ 104:         public NcrDispositionType? DispositionType { get; set; }
+ 105: 
+ 106:         public string? DispositionApprovedBy { get; set; }
+ 107: 
+ 108:         public DateTime? DispositionApprovedDate { get; set; }
+ 109: 
+ 110:         public string? VerificationBy { get; set; }
+ 111: 
+ 112:         public DateTime? VerificationDate { get; set; }
+ 113: 
+ 114:         public bool RequiresCustomerApproval { get; set; }
+ 115: 
+ 116:         public bool CustomerApproved { get; set; }
+ 117: 
+ 118:         public string? CustomerApprovalReference { get; set; }
+ 119: 
+ 120:     }
+ 121: }
+
+==================================================
+FILE: .\WeldAdminPro.Core\Quality\Services\NcrWorkflowService.cs
+==================================================
+   1: using WeldAdminPro.Core.Quality.Enums;
+   2: 
+   3: namespace WeldAdminPro.Core.Quality.Services
+   4: {
+   5:     public static class NcrWorkflowService
+   6:     {
+   7:         public static bool CanMoveTo(
+   8:             NcrStatus current,
+   9:             NcrStatus target)
+  10:         {
+  11:             return current switch
+  12:             {
+  13:                 NcrStatus.Open =>
+  14:                     target ==
+  15:                     NcrStatus.UnderInvestigation,
+  16: 
+  17:                 NcrStatus.UnderInvestigation =>
+  18:                     target ==
+  19:                     NcrStatus.AwaitingDisposition,
+  20: 
+  21:                 NcrStatus.AwaitingDisposition =>
+  22:                     target ==
+  23:                     NcrStatus.ApprovedForRepair
+  24:                     || target ==
+  25:                     NcrStatus.Rejected,
+  26: 
+  27:                 NcrStatus.ApprovedForRepair =>
+  28:                     target ==
+  29:                     NcrStatus.RepairInProgress,
+  30: 
+  31:                 NcrStatus.RepairInProgress =>
+  32:                     target ==
+  33:                     NcrStatus.PendingVerification,
+  34: 
+  35:                 NcrStatus.PendingVerification =>
+  36:                     target ==
+  37:                     NcrStatus.Closed,
+  38: 
+  39:                 _ => false
+  40:             };
+  41:         }
+  42:     }
+  43: }

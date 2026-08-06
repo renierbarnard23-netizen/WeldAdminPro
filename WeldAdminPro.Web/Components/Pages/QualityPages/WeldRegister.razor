@@ -8,6 +8,7 @@
 @using WeldAdminPro.Data.Services.Quality
 @using WeldAdminPro.Core.Quality.Models
 @using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Core.Quality.Services
 
 @using WeldAdminPro.Web.Components.Shared.Dialogs
 
@@ -18,6 +19,7 @@
 @inject IDialogService DialogService
 
 @inject WeldRegisterApplicationService WeldService
+@inject WeldWorkflowEngine WorkflowEngine
 
 @inject WeldTraceabilityRepository TraceabilityRepository
 
@@ -43,7 +45,7 @@
             </MudItem>
 
             <MudItem xs="12" md="3">
-                <MudSelect T="WeldStatusType?"
+                <MudSelect T="WeldWorkflowStatus?"
                            Label="Workflow"
                            Variant="Variant.Outlined"
                            Clearable="true"
@@ -51,7 +53,7 @@
 
                     @foreach (var workflow in WorkflowOptions)
                     {
-                        <MudSelectItem T="WeldStatusType?"
+                        <MudSelectItem T="WeldWorkflowStatus?"
                                        Value="@workflow">
 
                             @workflow
@@ -150,6 +152,27 @@
 
         </MudButton>
 
+
+        @if (_selectedWeld != null)
+        {
+            <MudMenu Label="Advance Workflow"
+                     Variant="Variant.Filled"
+                     Color="Color.Success"
+                     StartIcon="@Icons.Material.Filled.AccountTree"
+                     Disabled="@(!AllowedWorkflowTransitions.Any())">
+
+                @foreach (var targetStatus in AllowedWorkflowTransitions)
+                {
+                    var transitionTarget = targetStatus;
+
+                    <MudMenuItem OnClick="@(() => TransitionSelectedWeldAsync(transitionTarget))">
+                        @transitionTarget
+                    </MudMenuItem>
+                }
+
+            </MudMenu>
+        }
+
     </MudStack>
 
     <MudGrid Class="mt-4">
@@ -207,7 +230,7 @@
 
     private string _search = string.Empty;
 
-    private WeldStatusType? _selectedWorkflow;
+    private WeldWorkflowStatus? _selectedWorkflow;
 
     private string? _selectedWelder;
 
@@ -248,6 +271,72 @@
         _traceability = TraceabilityRepository.GetByWeld(weld.Id);
 
         return Task.CompletedTask;
+    }
+
+    private IReadOnlyList<WeldWorkflowStatus>
+        AllowedWorkflowTransitions =>
+        _selectedWeld == null
+            ? Array.Empty<WeldWorkflowStatus>()
+            : WorkflowEngine.GetAllowedTransitions(
+                _selectedWeld.WorkflowStatus);
+
+    private async Task TransitionSelectedWeldAsync(
+        WeldWorkflowStatus targetStatus)
+    {
+        var weld = _selectedWeld;
+
+        if (weld == null)
+        {
+            return;
+        }
+
+        try
+        {
+            await WeldService.TransitionWorkflowAsync(
+                weld,
+                targetStatus,
+                Environment.UserName);
+
+            _welds =
+                await WeldService.GetProjectWelds(
+                    ProjectId);
+
+            _selectedWeld =
+                _welds.FirstOrDefault(
+                    w => w.Id == weld.Id);
+
+            if (_selectedWeld != null)
+            {
+                _ndtHistory =
+                    WeldService.GetNdt(
+                        _selectedWeld.Id);
+
+                _history =
+                    WeldService.GetHistory(
+                        _selectedWeld.Id);
+
+                _traceability =
+                    TraceabilityRepository.GetByWeld(
+                        _selectedWeld.Id);
+            }
+
+            Snackbar.Add(
+                $"Weld '{weld.WeldNumber}' workflow changed to " +
+                $"'{targetStatus}'.",
+                Severity.Success);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Workflow transition failed: {ex.Message}",
+                Severity.Error);
+        }
     }
 
     private async Task EditWeld()
@@ -438,7 +527,7 @@
         (
             !_selectedWorkflow.HasValue
             ||
-            w.Status == _selectedWorkflow.Value
+            w.WorkflowStatus == _selectedWorkflow.Value
         )
 
         &&
@@ -459,9 +548,9 @@
             w.WpsNumber == _selectedWps
         ));
 
-    private IEnumerable<WeldStatusType> WorkflowOptions =>
+    private IEnumerable<WeldWorkflowStatus> WorkflowOptions =>
     _welds
-        .Select(w => w.Status)
+        .Select(w => w.WorkflowStatus)
         .Distinct()
         .OrderBy(s => s);
 

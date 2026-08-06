@@ -1,4 +1,4 @@
-@using MudBlazor
+﻿@using MudBlazor
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Core.Quality.Models
 @using WeldAdminPro.Core.Quality.Enums
@@ -84,27 +84,6 @@
 
             </MudItem>
 
-            <MudItem xs="12">
-
-                <MudCheckBox @bind-Value="_result.RequiresRepair"
-                             Label="Requires Repair" />
-
-            </MudItem>
-
-            <MudItem xs="12">
-
-                <MudCheckBox @bind-Value="_result.IsReinspection"
-                             Label="Reinspection" />
-
-            </MudItem>
-
-            <MudItem xs="12">
-
-                <MudNumericField T="int"
-                                 Label="Repair Cycle"
-                                 @bind-Value="_result.RepairCycle" />
-
-            </MudItem>
 
         </MudGrid>
 

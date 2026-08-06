@@ -1,3 +1,4 @@
+using WeldAdminPro.Core.Quality.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor.Services;
@@ -245,6 +246,10 @@ builder.Services.AddScoped<WeldTraceabilityApplicationService>();
 builder.Services.AddScoped<RepairApplicationService>();
 
 builder.Services.AddScoped<IWeldService, WeldService>();
+builder.Services.AddScoped<WeldWorkflowEngine>();
+builder.Services.AddScoped<WeldLifecycleRuleService>();
+builder.Services.AddScoped<WeldReleaseValidationService>();
+builder.Services.AddScoped<WeldReleaseContextBuilder>();
 
 builder.Services.AddSingleton<TesseractService>();
 

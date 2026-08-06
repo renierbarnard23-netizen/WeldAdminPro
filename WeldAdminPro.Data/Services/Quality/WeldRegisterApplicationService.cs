@@ -1,6 +1,7 @@
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Core.Quality.Enums;
 using WeldAdminPro.Core.Quality.Models;
+using WeldAdminPro.Core.Quality.Services;
 using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.Data.Services.Quality
@@ -10,6 +11,21 @@ namespace WeldAdminPro.Data.Services.Quality
         private readonly WeldRepository _weldRepository;
         private readonly WeldHistoryRepository _historyRepository;
         private readonly WeldNdtRepository _ndtRepository;
+
+        // ==========================================
+        // RELEASE GOVERNANCE EVIDENCE
+        // ==========================================
+
+        private readonly WpsRepository _wpsRepository;
+        private readonly WelderQualificationRepository
+            _welderQualificationRepository;
+        private readonly RepairRepository _repairRepository;
+
+        private readonly WeldReleaseContextBuilder
+            _releaseContextBuilder;
+
+        private readonly WelderQualificationValidationService
+            _welderQualificationValidationService;
 
         public WeldRegisterApplicationService()
         {
@@ -23,6 +39,22 @@ namespace WeldAdminPro.Data.Services.Quality
 
             _ndtRepository =
                 new WeldNdtRepository();
+
+            _wpsRepository =
+                new WpsRepository();
+
+            _welderQualificationRepository =
+                new WelderQualificationRepository();
+
+            _repairRepository =
+                new RepairRepository(
+                    DatabasePath.GetConnectionString());
+
+            _releaseContextBuilder =
+                new WeldReleaseContextBuilder();
+
+            _welderQualificationValidationService =
+                new WelderQualificationValidationService();
         }
 
         public async Task<List<Weld>> GetProjectWelds(Guid projectId)
@@ -45,62 +77,486 @@ namespace WeldAdminPro.Data.Services.Quality
             return _weldRepository.GetAll();
         }
 
-        public async Task CaptureNdtAsync(
-    Weld weld,
-    WeldNdtResult result)
+        /// <summary>
+        /// Performs a governed weld workflow transition,
+        /// persists the resulting state and records an
+        /// auditable weld-history entry.
+        /// </summary>
+        public async Task TransitionWorkflowAsync(
+            Weld weld,
+            WeldWorkflowStatus targetStatus,
+            string userName)
         {
-            // Save the NDT result
-            _ndtRepository.Add(result);
-
-            // Update weld status
-            weld.NdtStatus = result.Result.ToString();
-
-            switch (result.Result)
+            if (weld == null)
             {
-                case NdtResultType.Accept:
-                    weld.Status = WeldStatusType.Accepted;
-                    break;
-
-                case NdtResultType.Reject:
-                    weld.Status = WeldStatusType.Rejected;
-                    break;
-
-                case NdtResultType.Repair:
-                    weld.Status = WeldStatusType.RepairRequired;
-                    break;
-
-                case NdtResultType.Pending:
-                    weld.Status = WeldStatusType.NdtPending;
-                    break;
-
-                case NdtResultType.ConditionalAccept:
-                    weld.Status = WeldStatusType.Accepted;
-                    break;
+                throw new ArgumentNullException(
+                    nameof(weld));
             }
 
-            weld.RequiresRepair =
-                result.RequiresRepair ||
-                result.Result == NdtResultType.Repair ||
-                result.Result == NdtResultType.Reject;
-            
-            weld.RepairCycle = result.RepairCycle;
-            weld.LastNdtDate = result.InspectionDate;
-            weld.LastNdtResult = result.Result.ToString();
+            if (string.IsNullOrWhiteSpace(userName))
+            {
+                userName =
+                    Environment.UserName;
+            }
+
+            var previousStatus =
+                weld.WorkflowStatus;
+
+            if (previousStatus == targetStatus)
+            {
+                throw new InvalidOperationException(
+                    $"Weld '{weld.WeldNumber}' is already in " +
+                    $"workflow status '{targetStatus}'.");
+            }
+
+            var workflowEngine =
+                new WeldWorkflowEngine();
+
+            // ==========================================
+            // DATABASE-DERIVED RELEASE GOVERNANCE
+            // ==========================================
+            //
+            // Release evidence is derived at the
+            // application-service boundary.
+            //
+            // The UI cannot supply these values.
+            // ==========================================
+
+            var ndtResults =
+                _ndtRepository.GetByWeld(
+                    weld.Id);
+
+            var repairs =
+                _repairRepository.GetByWeld(
+                    weld.Id);
+
+            var wps =
+                string.IsNullOrWhiteSpace(
+                    weld.WpsNumber)
+                    ? null
+                    : _wpsRepository.GetByWpsNumber(
+                        weld.WpsNumber);
+
+            var hasApprovedWps =
+                wps != null &&
+                wps.IsApproved &&
+                wps.IsActive;
+
+            var hasQualifiedWelder =
+                false;
+
+            if (
+                wps != null &&
+                !string.IsNullOrWhiteSpace(
+                    weld.WelderNumber))
+            {
+                var qualification =
+                    _welderQualificationRepository
+                        .GetByWelderNumber(
+                            weld.WelderNumber);
+
+                if (
+                    qualification != null &&
+                    qualification.IsActive &&
+                    qualification.ExpiryDate >= DateTime.Today)
+                {
+                    hasQualifiedWelder =
+                        _welderQualificationValidationService
+                            .IsWelderQualifiedForWps(
+                                qualification,
+                                wps,
+                                weld.Thickness);
+                }
+            }
+
+            var releaseContext =
+                _releaseContextBuilder.Build(
+                    weld,
+                    ndtResults,
+                    repairs,
+                    hasApprovedWps,
+                    hasQualifiedWelder);
+
+            var transition =
+                workflowEngine.TryTransition(
+                    weld,
+                    targetStatus,
+                    releaseContext.HasApprovedWps,
+                    releaseContext.HasQualifiedWelder,
+                    releaseContext.HasAcceptedNdt,
+                    releaseContext.HasOpenRepairs);
+
+            if (!transition.Success)
+            {
+                var message =
+                    string.IsNullOrWhiteSpace(
+                        transition.ErrorMessage)
+                        ? $"Workflow transition from " +
+                          $"'{previousStatus}' to " +
+                          $"'{targetStatus}' was rejected."
+                        : transition.ErrorMessage;
+
+                throw new InvalidOperationException(
+                    message);
+            }
+
+            // ==========================================
+            // PERSIST GOVERNED WORKFLOW STATE
+            // ==========================================
 
             await _weldRepository.UpdateAsync(weld);
 
-            // Write history
+            // ==========================================
+            // AUDIT HISTORY
+            // ==========================================
+
             _historyRepository.Add(
                 new WeldHistoryEntry
                 {
                     Id = Guid.NewGuid(),
                     WeldId = weld.Id,
                     EventDate = DateTime.Now,
-                    EventType = "NDT",
+                    EventType = "Workflow",
                     Description =
-                        $"{result.NdtMethod} inspection : {result.Result}",
-                    UserName = result.InspectorName,
-                    StatusSnapshot = weld.Status.ToString()
+                        $"Workflow transition: " +
+                        $"{previousStatus} -> " +
+                        $"{weld.WorkflowStatus}",
+                    UserName = userName,
+                    StatusSnapshot =
+                        weld.WorkflowStatus.ToString()
+                });
+        }
+        public async Task CaptureNdtAsync(
+            Weld weld,
+            WeldNdtResult result)
+        {
+            if (weld == null)
+            {
+                throw new ArgumentNullException(
+                    nameof(weld));
+            }
+
+            if (result == null)
+            {
+                throw new ArgumentNullException(
+                    nameof(result));
+            }
+
+            // ==========================================
+            // NDT IDENTITY OWNERSHIP
+            // ==========================================
+            //
+            // The application service is the trusted
+            // persistence boundary. Record ownership
+            // and lifecycle evidence are not supplied
+            // by the UI.
+            // ==========================================
+
+            if (result.Id == Guid.Empty)
+            {
+                result.Id =
+                    Guid.NewGuid();
+            }
+
+            result.WeldId =
+                weld.Id;
+
+            // ==========================================
+            // DATABASE-DERIVED NDT LIFECYCLE EVIDENCE
+            // ==========================================
+            //
+            // Repair and reinspection metadata are
+            // derived from persisted quality evidence.
+            //
+            // The UI cannot decide:
+            //
+            // - RequiresRepair
+            // - IsReinspection
+            // - RepairCycle
+            //
+            // Repair history is the authority for the
+            // repair cycle.
+            // ==========================================
+
+            var existingNdtResults =
+                _ndtRepository.GetByWeld(
+                    weld.Id);
+
+            var repairs =
+                _repairRepository.GetByWeld(
+                    weld.Id);
+
+            var latestRepair =
+                repairs
+                    .OrderByDescending(
+                        repair =>
+                            repair.RepairNumber)
+                    .FirstOrDefault();
+
+            var derivedRepairCycle =
+                latestRepair?.RepairNumber ?? 0;
+
+            var hasRepairHistory =
+                derivedRepairCycle > 0;
+
+            var isReinspection =
+                hasRepairHistory &&
+                existingNdtResults.Count > 0;
+
+            var requiresRepair =
+                result.Result ==
+                    NdtResultType.Reject ||
+                result.Result ==
+                    NdtResultType.Repair;
+
+            result.RepairCycle =
+                derivedRepairCycle;
+
+            result.IsReinspection =
+                isReinspection;
+
+            result.RequiresRepair =
+                requiresRepair;
+
+            var workflowEngine =
+                new WeldWorkflowEngine();
+
+            // ==========================================
+            // ENTER NDT EXECUTION THROUGH GOVERNANCE
+            // ==========================================
+
+            if (
+                weld.WorkflowStatus ==
+                WeldWorkflowStatus.NdtPending)
+            {
+                var startNdt =
+                    workflowEngine.TryTransition(
+                        weld,
+                        WeldWorkflowStatus.NdtInProgress);
+
+                if (!startNdt.Success)
+                {
+                    throw new InvalidOperationException(
+                        startNdt.ErrorMessage);
+                }
+            }
+
+            if (
+                weld.WorkflowStatus !=
+                WeldWorkflowStatus.NdtInProgress)
+            {
+                throw new InvalidOperationException(
+                    $"NDT cannot be captured while weld " +
+                    $"'{weld.WeldNumber}' is in workflow status " +
+                    $"'{weld.WorkflowStatus}'.");
+            }
+
+            // ==========================================
+            // DETERMINE GOVERNED RESULT TRANSITION
+            // ==========================================
+
+            WeldWorkflowStatus?
+                targetWorkflowStatus =
+                    result.Result switch
+                    {
+                        NdtResultType.Accept =>
+                            WeldWorkflowStatus.Accepted,
+
+                        NdtResultType.ConditionalAccept =>
+                            WeldWorkflowStatus.Accepted,
+
+                        NdtResultType.Reject =>
+                            WeldWorkflowStatus.RepairRequired,
+
+                        NdtResultType.Repair =>
+                            WeldWorkflowStatus.RepairRequired,
+
+                        NdtResultType.Pending =>
+                            null,
+
+                        _ =>
+                            throw new InvalidOperationException(
+                                $"Unsupported NDT result " +
+                                $"'{result.Result}'.")
+                    };
+
+            if (targetWorkflowStatus.HasValue)
+            {
+                var transition =
+                    workflowEngine.TryTransition(
+                        weld,
+                        targetWorkflowStatus.Value);
+
+                if (!transition.Success)
+                {
+                    throw new InvalidOperationException(
+                        transition.ErrorMessage);
+                }
+            }
+
+            // ==========================================
+            // PERSIST DATABASE-DERIVED NDT RESULT
+            // ==========================================
+
+            _ndtRepository.Add(
+                result);
+
+            // ==========================================
+            // REINSPECTION -> REPAIR SYNCHRONIZATION
+            // ==========================================
+            //
+            // Repair history is the authority for repair
+            // lifecycle state.
+            //
+            // When this NDT result is a reinspection,
+            // synchronize the latest repair through the
+            // governed RepairWorkflowService.
+            //
+            // The UI does not control this transition.
+            // ==========================================
+
+            if (
+                isReinspection &&
+                latestRepair != null &&
+                latestRepair.Status ==
+                    RepairStatus.PendingReinspection)
+            {
+                var repairWorkflow =
+                    new RepairWorkflowService();
+
+                string repairTransitionError;
+
+                var repairTransitionSucceeded =
+                    requiresRepair
+                        ? repairWorkflow.RejectRepair(
+                            latestRepair,
+                            out repairTransitionError)
+                        : repairWorkflow.AcceptRepair(
+                            latestRepair,
+                            out repairTransitionError);
+
+                if (!repairTransitionSucceeded)
+                {
+                    throw new InvalidOperationException(
+                        $"Unable to synchronize repair " +
+                        $"{latestRepair.RepairNumber} with " +
+                        $"NDT result '{result.Result}'. " +
+                        repairTransitionError);
+                }
+
+                latestRepair.ReinspectionResult =
+                    result.Result.ToString();
+
+                if (!requiresRepair)
+                {
+                    latestRepair.CompletedDate =
+                        DateTime.UtcNow;
+                }
+
+                _repairRepository.Update(
+                    latestRepair);
+            }
+
+            // ==========================================
+            // LEGACY STATUS PROJECTION
+            // ==========================================
+            //
+            // Status remains for compatibility with
+            // existing reports / screens.
+            // WorkflowStatus remains lifecycle authority.
+            // ==========================================
+
+            weld.NdtStatus =
+                result.Result.ToString();
+
+            switch (result.Result)
+            {
+                case NdtResultType.Accept:
+
+                    weld.Status =
+                        WeldStatusType.Accepted;
+
+                    break;
+
+                case NdtResultType.ConditionalAccept:
+
+                    weld.Status =
+                        WeldStatusType.Accepted;
+
+                    break;
+
+                case NdtResultType.Reject:
+
+                    weld.Status =
+                        WeldStatusType.Rejected;
+
+                    break;
+
+                case NdtResultType.Repair:
+
+                    weld.Status =
+                        WeldStatusType.RepairRequired;
+
+                    break;
+
+                case NdtResultType.Pending:
+
+                    weld.Status =
+                        WeldStatusType.NdtPending;
+
+                    break;
+            }
+
+            // ==========================================
+            // GOVERNED WELD PROJECTION
+            // ==========================================
+
+            weld.RequiresRepair =
+                requiresRepair;
+
+            weld.RepairCycle =
+                derivedRepairCycle;
+
+            weld.LastNdtDate =
+                result.InspectionDate;
+
+            weld.LastNdtResult =
+                result.Result.ToString();
+
+            await _weldRepository.UpdateAsync(
+                weld);
+
+            // ==========================================
+            // AUDIT HISTORY
+            // ==========================================
+
+            _historyRepository.Add(
+                new WeldHistoryEntry
+                {
+                    Id =
+                        Guid.NewGuid(),
+
+                    WeldId =
+                        weld.Id,
+
+                    EventDate =
+                        DateTime.Now,
+
+                    EventType =
+                        "NDT",
+
+                    Description =
+                        $"{result.NdtMethod} inspection : " +
+                        $"{result.Result} | " +
+                        $"Workflow: {weld.WorkflowStatus} | " +
+                        $"Reinspection: {result.IsReinspection} | " +
+                        $"Repair Cycle: {result.RepairCycle}",
+
+                    UserName =
+                        result.InspectorName,
+
+                    StatusSnapshot =
+                        weld.WorkflowStatus.ToString()
                 });
         }
     }

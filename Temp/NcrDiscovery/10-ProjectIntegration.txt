@@ -1,0 +1,39 @@
+﻿C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\ProjectMrbPdfService.cs:26: $"{model.ProjectNumber}_MRB.pdf");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Core\Quality\Services\ProjectMrbPdfService.cs:59: $"Project: {model.ProjectNumber} - {model.ProjectName}");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:255: JobNumber INTEGER NOT NULL UNIQUE,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:256: ProjectName TEXT NOT NULL,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:281: IX_Projects_JobNumber
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:282: ON Projects(JobNumber);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:314: ProjectId TEXT NULL,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:327: FOREIGN KEY (ProjectId)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:341: IX_StockTransactions_ProjectId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:342: ON StockTransactions(ProjectId);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:354: ProjectId TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:361: FOREIGN KEY(ProjectId)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:455: ProjectId TEXT NOT NULL,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:456: JobNumber INTEGER,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:463: FOREIGN KEY(ProjectId)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:471: IX_PurchaseOrders_ProjectId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:472: ON PurchaseOrders(ProjectId);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:523: ProjectId TEXT NOT NULL,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:531: FOREIGN KEY(ProjectId)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:544: IX_ProjectStockUsages_ProjectId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:545: ON ProjectStockUsages(ProjectId);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:651: ProjectId TEXT NOT NULL,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:695: FOREIGN KEY(ProjectId)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:705: IX_Welds_ProjectId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:706: ON Welds(ProjectId);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:752: IX_ProjectDocuments_ProjectId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:753: ON ProjectDocuments(ProjectId);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:1001: ProjectId TEXT,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:1019: IX_TurnoverPackages_ProjectId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:1020: ON TurnoverPackages(ProjectId);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:1055: ProjectId TEXT NULL,
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:1065: IX_DocumentVaultFiles_ProjectId
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Data\DatabaseInitializer.cs:1066: ON DocumentVaultFiles(ProjectId);");
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:654: weld.ProjectId =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1497: ProjectNumber =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\ViewModels\WeldRegisterViewModel.cs:1617: ProjectNumber =
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:20: public WeldRegisterView(Guid projectId)
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:130: ProjectNumber = "PRJ-001",
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.UI\Views\WeldRegisterView.xaml.cs:131: ProjectName = "Demo Fabrication Project"

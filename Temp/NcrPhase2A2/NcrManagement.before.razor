@@ -1,0 +1,607 @@
+﻿@page "/quality/ncr"
+
+@attribute [Authorize(Policy = "Permission:Quality.NCR")]
+
+@using MudBlazor
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Web.Services.Quality
+
+@inject NcrApplicationService NcrService
+@inject ISnackbar Snackbar
+
+<PageTitle>NCR Management</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+
+    <MudStack Row="true"
+              Justify="Justify.SpaceBetween"
+              AlignItems="AlignItems.Center"
+              Class="mb-4">
+
+        <div>
+            <MudText Typo="Typo.h4">
+                NCR Management
+            </MudText>
+
+            <MudText Typo="Typo.subtitle1"
+                     Color="Color.Secondary">
+                Non-conformance register and workflow control
+            </MudText>
+        </div>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="LoadNcrs">
+
+            Refresh
+
+        </MudButton>
+
+    </MudStack>
+
+    <MudGrid Class="mb-4">
+
+        <MudItem xs="12" sm="6" md="3">
+
+            <MudPaper Class="pa-4">
+
+                <MudText Typo="Typo.caption">
+                    Total NCRs
+                </MudText>
+
+                <MudText Typo="Typo.h4">
+                    @_ncrs.Count
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+
+            <MudPaper Class="pa-4">
+
+                <MudText Typo="Typo.caption">
+                    Open
+                </MudText>
+
+                <MudText Typo="Typo.h4">
+                    @OpenCount
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+
+            <MudPaper Class="pa-4">
+
+                <MudText Typo="Typo.caption">
+                    Pending Verification
+                </MudText>
+
+                <MudText Typo="Typo.h4">
+                    @PendingVerificationCount
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+
+            <MudPaper Class="pa-4">
+
+                <MudText Typo="Typo.caption">
+                    Closed
+                </MudText>
+
+                <MudText Typo="Typo.h4">
+                    @ClosedCount
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+    </MudGrid>
+
+    <MudPaper Class="pa-4 mb-4">
+
+        <MudGrid>
+
+            <MudItem xs="12" md="6">
+
+                <MudTextField T="string"
+                              Label="Search NCR"
+                              Placeholder="NCR number, weld number or description..."
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Clearable="true"
+                              @bind-Value="_search" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+
+                <MudSelect T="NcrStatus?"
+                           Label="Status"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           @bind-Value="_selectedStatus">
+
+                    @foreach (var status in Enum.GetValues<NcrStatus>())
+                    {
+                        <MudSelectItem T="NcrStatus?"
+                                       Value="@((NcrStatus?)status)">
+                            @status
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+
+            </MudItem>
+
+            <MudItem xs="12" md="2">
+
+                <MudButton FullWidth="true"
+                           Variant="Variant.Outlined"
+                           Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.FilterAltOff"
+                           OnClick="ClearFilters"
+                           Class="mt-2">
+
+                    Clear
+
+                </MudButton>
+
+            </MudItem>
+
+        </MudGrid>
+
+    </MudPaper>
+
+    <MudGrid>
+
+        <MudItem xs="12" lg="8">
+
+            <MudPaper Class="pa-4">
+
+                <MudText Typo="Typo.h6"
+                         Class="mb-3">
+                    NCR Register
+                </MudText>
+
+                <MudTable T="NcrRecord"
+                          Items="FilteredNcrs"
+                          Hover="true"
+                          Dense="true"
+                          Striped="true"
+                          Breakpoint="Breakpoint.Sm"
+                          @bind-SelectedItem="_selectedNcr">
+
+                    <HeaderContent>
+
+                        <MudTh>NCR</MudTh>
+                        <MudTh>Weld</MudTh>
+                        <MudTh>Description</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Raised By</MudTh>
+                        <MudTh>Raised</MudTh>
+
+                    </HeaderContent>
+
+                    <RowTemplate>
+
+                        <MudTd DataLabel="NCR">
+                            @context.NcrNumber
+                        </MudTd>
+
+                        <MudTd DataLabel="Weld">
+                            @context.WeldNumber
+                        </MudTd>
+
+                        <MudTd DataLabel="Description">
+                            @context.Description
+                        </MudTd>
+
+                        <MudTd DataLabel="Status">
+
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Color="@GetStatusColor(context.Status)">
+                                @context.Status.ToString()
+                            </MudChip>
+
+                        </MudTd>
+
+                        <MudTd DataLabel="Raised By">
+                            @context.RaisedBy
+                        </MudTd>
+
+                        <MudTd DataLabel="Raised">
+                            @context.RaisedDate.ToString("yyyy-MM-dd")
+                        </MudTd>
+
+                    </RowTemplate>
+
+                    <NoRecordsContent>
+
+                        <MudText Class="pa-4">
+                            No NCR records match the current filter.
+                        </MudText>
+
+                    </NoRecordsContent>
+
+                    <PagerContent>
+                        <MudTablePager />
+                    </PagerContent>
+
+                </MudTable>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <MudItem xs="12" lg="4">
+
+            <MudPaper Class="pa-4">
+
+                <MudText Typo="Typo.h6"
+                         Class="mb-3">
+                    NCR Details
+                </MudText>
+
+                @if (_selectedNcr == null)
+                {
+                    <MudAlert Severity="Severity.Info">
+                        Select an NCR from the register to view its details.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudText Typo="Typo.subtitle1">
+                        <b>@_selectedNcr.NcrNumber</b>
+                    </MudText>
+
+                    <MudDivider Class="my-3" />
+
+                    <MudText Typo="Typo.caption">
+                        Weld
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @_selectedNcr.WeldNumber
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        Status
+                    </MudText>
+
+                    <div class="mb-3">
+
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@GetStatusColor(_selectedNcr.Status)">
+                            @_selectedNcr.Status.ToString()
+                        </MudChip>
+
+                    </div>
+
+                    <MudText Typo="Typo.caption">
+                        Description
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @_selectedNcr.Description
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        Root Cause
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @DisplayValue(_selectedNcr.RootCause)
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        Corrective Action
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @DisplayValue(_selectedNcr.CorrectiveAction)
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        Preventive Action
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @DisplayValue(_selectedNcr.PreventiveAction)
+                    </MudText>
+
+                    @if (_selectedNcr.DispositionType.HasValue)
+                    {
+                        <MudText Typo="Typo.caption">
+                            Disposition
+                        </MudText>
+
+                        <MudText Class="mb-3">
+                            @_selectedNcr.DispositionType.Value
+                        </MudText>
+                    }
+
+                    @if (_selectedNcr.RequiresCustomerApproval)
+                    {
+                        <MudAlert Severity="@(_selectedNcr.CustomerApproved
+                            ? Severity.Success
+                            : Severity.Warning)"
+                                  Dense="true"
+                                  Class="mt-3">
+
+                            Customer approval:
+                            @(_selectedNcr.CustomerApproved
+                                ? "Approved"
+                                : "Required")
+
+                        </MudAlert>
+                    }
+
+                    @if (CanAdvanceBasicWorkflow(_selectedNcr))
+                    {
+                        <MudDivider Class="my-4" />
+
+                        <MudText Typo="Typo.subtitle2"
+                                 Class="mb-2">
+                            Workflow
+                        </MudText>
+
+                        <MudAlert Severity="Severity.Info"
+                                  Dense="true"
+                                  Class="mb-3">
+                            Next status:
+                            <b>@GetBasicNextStatus(_selectedNcr)!.Value</b>
+                        </MudAlert>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.ArrowForward"
+                                   OnClick="AdvanceWorkflow">
+                            Advance Workflow
+                        </MudButton>
+                    }
+                }
+
+            </MudPaper>
+
+        </MudItem>
+
+    </MudGrid>
+
+</MudContainer>
+
+@code
+{
+    private List<NcrRecord> _ncrs = new();
+
+    private NcrRecord? _selectedNcr;
+
+    private string _search = string.Empty;
+
+    private NcrStatus? _selectedStatus;
+
+
+    protected override void OnInitialized()
+    {
+        LoadNcrs();
+    }
+
+
+    private void LoadNcrs()
+    {
+        try
+        {
+            _ncrs =
+                NcrService
+                    .GetAll()
+                    .OrderByDescending(x => x.RaisedDate)
+                    .ToList();
+
+            if (_selectedNcr != null)
+            {
+                _selectedNcr =
+                    _ncrs.FirstOrDefault(
+                        x => x.Id == _selectedNcr.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to load NCR register: {ex.Message}",
+                Severity.Error);
+        }
+    }
+
+
+    private IEnumerable<NcrRecord> FilteredNcrs =>
+        _ncrs.Where(ncr =>
+            (
+                string.IsNullOrWhiteSpace(_search)
+                ||
+                ncr.NcrNumber.Contains(
+                    _search,
+                    StringComparison.OrdinalIgnoreCase)
+                ||
+                ncr.WeldNumber.Contains(
+                    _search,
+                    StringComparison.OrdinalIgnoreCase)
+                ||
+                ncr.Description.Contains(
+                    _search,
+                    StringComparison.OrdinalIgnoreCase)
+            )
+            &&
+            (
+                !_selectedStatus.HasValue
+                ||
+                ncr.Status == _selectedStatus.Value
+            ));
+
+
+    private int OpenCount =>
+        _ncrs.Count(x =>
+            x.Status != NcrStatus.Closed &&
+            x.Status != NcrStatus.Rejected);
+
+
+    private int PendingVerificationCount =>
+        _ncrs.Count(x =>
+            x.Status == NcrStatus.PendingVerification);
+
+
+    private int ClosedCount =>
+        _ncrs.Count(x =>
+            x.Status == NcrStatus.Closed);
+
+
+    private void ClearFilters()
+    {
+        _search = string.Empty;
+        _selectedStatus = null;
+    }
+
+
+    private static NcrStatus? GetBasicNextStatus(
+        NcrRecord ncr)
+    {
+        return ncr.Status switch
+        {
+            NcrStatus.Open =>
+                NcrStatus.UnderInvestigation,
+
+            NcrStatus.UnderInvestigation =>
+                NcrStatus.AwaitingDisposition,
+
+            _ =>
+                null
+        };
+    }
+
+
+    private bool CanAdvanceBasicWorkflow(
+        NcrRecord ncr)
+    {
+        var target =
+            GetBasicNextStatus(ncr);
+
+        return target.HasValue &&
+               NcrService.CanMoveTo(
+                   ncr,
+                   target.Value);
+    }
+
+
+    private void AdvanceWorkflow()
+    {
+        if (_selectedNcr == null)
+        {
+            return;
+        }
+
+        var target =
+            GetBasicNextStatus(
+                _selectedNcr);
+
+        if (!target.HasValue)
+        {
+            Snackbar.Add(
+                "No basic workflow transition is available for this NCR.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (!NcrService.CanMoveTo(
+                _selectedNcr,
+                target.Value))
+        {
+            Snackbar.Add(
+                $"Workflow transition from {_selectedNcr.Status} to {target.Value} is not permitted.",
+                Severity.Warning);
+
+            return;
+        }
+
+        var ncrId =
+            _selectedNcr.Id;
+
+        var moved =
+            NcrService.MoveTo(
+                ncrId,
+                target.Value);
+
+        if (!moved)
+        {
+            Snackbar.Add(
+                "Unable to advance the NCR workflow.",
+                Severity.Error);
+
+            return;
+        }
+
+        Snackbar.Add(
+            $"NCR advanced to {target.Value}.",
+            Severity.Success);
+
+        LoadNcrs();
+
+        _selectedNcr =
+            _ncrs.FirstOrDefault(
+                x => x.Id == ncrId);
+    }
+
+
+    private static string DisplayValue(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? "Not recorded"
+            : value;
+    }
+
+
+    private static Color GetStatusColor(NcrStatus status)
+    {
+        return status switch
+        {
+            NcrStatus.Open =>
+                Color.Error,
+
+            NcrStatus.UnderInvestigation =>
+                Color.Warning,
+
+            NcrStatus.AwaitingDisposition =>
+                Color.Warning,
+
+            NcrStatus.ApprovedForRepair =>
+                Color.Info,
+
+            NcrStatus.RepairInProgress =>
+                Color.Info,
+
+            NcrStatus.PendingVerification =>
+                Color.Secondary,
+
+            NcrStatus.Closed =>
+                Color.Success,
+
+            NcrStatus.Rejected =>
+                Color.Dark,
+
+            _ =>
+                Color.Default
+        };
+    }
+}

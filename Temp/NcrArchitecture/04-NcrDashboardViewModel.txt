@@ -1,0 +1,104 @@
+﻿   1: using CommunityToolkit.Mvvm.ComponentModel;
+   2: using CommunityToolkit.Mvvm.Input;
+   3: using System;
+   4: using System.Collections.ObjectModel;
+   5: using System.Linq;
+   6: using System.Windows;
+   7: using WeldAdminPro.Core.Quality.Enums;
+   8: using WeldAdminPro.Core.Quality.Models;
+   9: using WeldAdminPro.Data;
+  10: using WeldAdminPro.Data.Repositories;
+  11: 
+  12: namespace WeldAdminPro.UI.ViewModels.Quality
+  13: {
+  14:     public partial class NcrDashboardViewModel
+  15:         : ObservableObject
+  16:     {
+  17:         private readonly NcrRepository
+  18:             _repository;
+  19: 
+  20:         [ObservableProperty]
+  21:         private ObservableCollection<NcrRecord>
+  22:             ncrs = new();
+  23: 
+  24:         [ObservableProperty]
+  25:         private NcrRecord? selectedNcr;
+  26: 
+  27:         [ObservableProperty]
+  28:         private int openNcrs;
+  29: 
+  30:         [ObservableProperty]
+  31:         private int closedNcrs;
+  32: 
+  33:         [ObservableProperty]
+  34:         private int overdueNcrs;
+  35: 
+  36:         public NcrDashboardViewModel()
+  37:         {
+  38:             _repository =
+  39:                 new NcrRepository(
+  40:                     DatabasePath.GetConnectionString());
+  41: 
+  42:             Load();
+  43:         }
+  44: 
+  45:         public void Load()
+  46:         {
+  47:             Ncrs.Clear();
+  48: 
+  49:             var all =
+  50:                 _repository.GetAll();
+  51: 
+  52:             foreach (var item in all)
+  53:             {
+  54:                 Ncrs.Add(item);
+  55:             }
+  56: 
+  57:             OpenNcrs =
+  58:                 Ncrs.Count(x =>
+  59:                     !x.IsClosed);
+  60: 
+  61:             ClosedNcrs =
+  62:                 Ncrs.Count(x =>
+  63:                     x.IsClosed);
+  64: 
+  65:             OverdueNcrs =
+  66:                 Ncrs.Count(x =>
+  67:                     !x.IsClosed
+  68:                     && x.DueDate != null
+  69:                     && x.DueDate < DateTime.UtcNow);
+  70:         }
+  71: 
+  72:         [RelayCommand]
+  73:         private void Refresh()
+  74:         {
+  75:             Load();
+  76:         }
+  77: 
+  78:         [RelayCommand]
+  79:         private void CloseNcr()
+  80:         {
+  81:             if (SelectedNcr == null)
+  82:                 return;
+  83: 
+  84:             SelectedNcr.IsClosed = true;
+  85: 
+  86:             SelectedNcr.Status =
+  87:                 NcrStatus.Closed;
+  88: 
+  89:             SelectedNcr.ClosedDate =
+  90:                 DateTime.UtcNow;
+  91: 
+  92:             SelectedNcr.ClosedBy =
+  93:                 Environment.UserName;
+  94: 
+  95:             _repository.Update(
+  96:                 SelectedNcr);
+  97: 
+  98:             Load();
+  99: 
+ 100:             MessageBox.Show(
+ 101:                 "NCR closed.");
+ 102:         }
+ 103:     }
+ 104: }

@@ -1,0 +1,2 @@
+﻿C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Web\Program.cs:218: builder.Services.AddScoped<NcrRepository>(_ =>
+C:\Users\Renie\Source\Repos\WeldAdminPro\WeldAdminPro.Web\Program.cs:219: new NcrRepository(

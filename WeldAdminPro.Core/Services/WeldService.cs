@@ -1,4 +1,4 @@
-using WeldAdminPro.Core.Interfaces;
+﻿using WeldAdminPro.Core.Interfaces;
 using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Core.Services
@@ -18,6 +18,13 @@ namespace WeldAdminPro.Core.Services
         {
             return await _repository
                 .GetByProjectAsync(projectId);
+        }
+
+        public async Task<Weld?> GetByIdAsync(
+            Guid weldId)
+        {
+            return await _repository
+                .GetByIdAsync(weldId);
         }
 
         public async Task AddAsync(Weld weld)

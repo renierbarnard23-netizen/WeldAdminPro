@@ -1,0 +1,260 @@
+
+==================================================
+FILE: .\WeldAdminPro.UI\Views\Quality\NcrManagementView.xaml
+==================================================
+   1: <UserControl x:Class="WeldAdminPro.UI.Views.Quality.NcrManagementView"
+   2:              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+   3:              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+   4: 
+   5:     <Grid Margin="10">
+   6: 
+   7:         <Grid.RowDefinitions>
+   8:             <RowDefinition Height="*"/>
+   9:             <RowDefinition Height="Auto"/>
+  10:         </Grid.RowDefinitions>
+  11: 
+  12:         <DataGrid Grid.Row="0"
+  13:                   ItemsSource="{Binding Ncrs}"
+  14:                   SelectedItem="{Binding SelectedNcr}"
+  15:                   AutoGenerateColumns="False"
+  16:                   IsReadOnly="False">
+  17: 
+  18: 			<DataGrid.Columns>
+  19: 
+  20: 				<DataGridTextColumn Header="NCR"
+  21:                     							Binding="{Binding NcrNumber}"
+  22:                     							Width="140"/>
+  23: 
+  24: 				<DataGridTextColumn Header="Weld"
+  25: 									Binding="{Binding WeldNumber}"
+  26: 									Width="120"/>
+  27: 
+  28: 				<DataGridTextColumn Header="Description"
+  29: 									Binding="{Binding Description}"
+  30: 									Width="220"/>
+  31: 
+  32: 				<DataGridTextColumn Header="Root Cause"
+  33: 									Binding="{Binding RootCause}"
+  34: 									Width="180"/>
+  35: 
+  36: 				<DataGridTextColumn Header="Corrective Action"
+  37: 									Binding="{Binding CorrectiveAction}"
+  38: 									Width="220"/>
+  39: 
+  40: 				<DataGridTextColumn Header="Preventive Action"
+  41: 									Binding="{Binding PreventiveAction}"
+  42: 									Width="220"/>
+  43: 
+  44: 				<DataGridTextColumn Header="Assigned To"
+  45: 									Binding="{Binding AssignedTo}"
+  46: 									Width="140"/>
+  47: 
+  48: 				<DataGridTextColumn Header="Due Date"
+  49: 									Binding="{Binding DueDate}"
+  50: 									Width="140"/>
+  51: 
+  52: 				<DataGridTextColumn Header="Status"
+  53: 									Binding="{Binding Status}"
+  54: 									Width="140"/>
+  55: 
+  56: 				<DataGridCheckBoxColumn Header="Closed"
+  57: 										Binding="{Binding IsClosed}"
+  58: 										Width="80"/>
+  59: 
+  60: 			</DataGrid.Columns>
+  61: 
+  62:         </DataGrid>
+  63: 
+  64: 		<StackPanel Grid.Row="1"
+  65:             Orientation="Horizontal"
+  66:             Margin="0,10,0,0">
+  67: 
+  68: 			<Button Content="Investigate"
+  69: 					Width="120"
+  70: 					Margin="0,0,10,0"
+  71: 					Command="{Binding StartInvestigationCommand}"/>
+  72: 
+  73: 			<Button Content="Assign CAPA"
+  74: 					Width="140"
+  75: 					Margin="0,0,10,0"
+  76: 					Command="{Binding AssignCorrectiveActionCommand}"/>
+  77: 
+  78: 			<Button Content="Verify"
+  79: 					Width="120"
+  80: 					Margin="0,0,10,0"
+  81: 					Command="{Binding VerifyCommand}"/>
+  82: 
+  83: 			<Button Content="Close NCR"
+  84: 					Width="140"
+  85: 					Command="{Binding CloseNcrCommand}"/>
+  86: 
+  87: 		</StackPanel>
+  88: 
+  89:     </Grid>
+  90: 
+  91: </UserControl>
+
+==================================================
+FILE: .\WeldAdminPro.UI\Views\Quality\NcrDashboardView.xaml
+==================================================
+   1: <UserControl x:Class="WeldAdminPro.UI.Views.Quality.NcrDashboardView"
+   2:              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+   3:              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+   4: 
+   5:     <Grid Margin="10">
+   6: 
+   7:         <Grid.RowDefinitions>
+   8: 
+   9:             <!-- KPI -->
+  10:             <RowDefinition Height="Auto"/>
+  11: 
+  12:             <!-- Toolbar -->
+  13:             <RowDefinition Height="Auto"/>
+  14: 
+  15:             <!-- NCR Grid -->
+  16:             <RowDefinition Height="*"/>
+  17: 
+  18:         </Grid.RowDefinitions>
+  19: 
+  20:         <!-- KPI CARDS -->
+  21:         <WrapPanel Grid.Row="0"
+  22:                    Margin="0,0,0,10">
+  23: 
+  24:             <!-- OPEN NCR -->
+  25:             <Border Background="#7F1D1D"
+  26:                     Width="220"
+  27:                     Height="90"
+  28:                     Margin="0,0,10,0"
+  29:                     CornerRadius="6">
+  30: 
+  31:                 <StackPanel Margin="15">
+  32: 
+  33:                     <TextBlock Text="Open NCRs"
+  34:                                Foreground="White"
+  35:                                FontSize="14"/>
+  36: 
+  37:                     <TextBlock Text="{Binding OpenNcrs}"
+  38:                                Foreground="#FCA5A5"
+  39:                                FontSize="28"
+  40:                                FontWeight="Bold"/>
+  41: 
+  42:                 </StackPanel>
+  43: 
+  44:             </Border>
+  45: 
+  46:             <!-- CLOSED -->
+  47:             <Border Background="#14532D"
+  48:                     Width="220"
+  49:                     Height="90"
+  50:                     Margin="0,0,10,0"
+  51:                     CornerRadius="6">
+  52: 
+  53:                 <StackPanel Margin="15">
+  54: 
+  55:                     <TextBlock Text="Closed NCRs"
+  56:                                Foreground="White"
+  57:                                FontSize="14"/>
+  58: 
+  59:                     <TextBlock Text="{Binding ClosedNcrs}"
+  60:                                Foreground="#86EFAC"
+  61:                                FontSize="28"
+  62:                                FontWeight="Bold"/>
+  63: 
+  64:                 </StackPanel>
+  65: 
+  66:             </Border>
+  67: 
+  68:             <!-- OVERDUE -->
+  69:             <Border Background="#991B1B"
+  70:                     Width="220"
+  71:                     Height="90"
+  72:                     Margin="0,0,10,0"
+  73:                     CornerRadius="6">
+  74: 
+  75:                 <StackPanel Margin="15">
+  76: 
+  77:                     <TextBlock Text="Overdue NCRs"
+  78:                                Foreground="White"
+  79:                                FontSize="14"/>
+  80: 
+  81:                     <TextBlock Text="{Binding OverdueNcrs}"
+  82:                                Foreground="#FECACA"
+  83:                                FontSize="28"
+  84:                                FontWeight="Bold"/>
+  85: 
+  86:                 </StackPanel>
+  87: 
+  88:             </Border>
+  89: 
+  90:         </WrapPanel>
+  91: 
+  92:         <!-- TOOLBAR -->
+  93:         <StackPanel Grid.Row="1"
+  94:                     Orientation="Horizontal"
+  95:                     Margin="0,0,0,10">
+  96: 
+  97:             <Button Content="Refresh"
+  98:                     Width="120"
+  99:                     Height="30"
+ 100:                     Margin="0,0,10,0"
+ 101:                     Command="{Binding RefreshCommand}"/>
+ 102: 
+ 103:             <Button Content="Close NCR"
+ 104:                     Width="140"
+ 105:                     Height="30"
+ 106:                     Command="{Binding CloseNcrCommand}"/>
+ 107: 
+ 108:         </StackPanel>
+ 109: 
+ 110:         <!-- GRID -->
+ 111:         <DataGrid Grid.Row="2"
+ 112:                   ItemsSource="{Binding Ncrs}"
+ 113:                   SelectedItem="{Binding SelectedNcr}"
+ 114:                   AutoGenerateColumns="False"
+ 115:                   IsReadOnly="True">
+ 116: 
+ 117:             <DataGrid.Columns>
+ 118: 
+ 119:                 <DataGridTextColumn Header="NCR"
+ 120:                                     Binding="{Binding NcrNumber}"
+ 121:                                     Width="150"/>
+ 122: 
+ 123:                 <DataGridTextColumn Header="Weld"
+ 124:                                     Binding="{Binding WeldNumber}"
+ 125:                                     Width="120"/>
+ 126: 
+ 127:                 <DataGridTextColumn Header="Description"
+ 128:                                     Binding="{Binding Description}"
+ 129:                                     Width="300"/>
+ 130: 
+ 131:                 <DataGridTextColumn Header="Root Cause"
+ 132:                                     Binding="{Binding RootCause}"
+ 133:                                     Width="250"/>
+ 134: 
+ 135:                 <DataGridTextColumn Header="Corrective Action"
+ 136:                                     Binding="{Binding CorrectiveAction}"
+ 137:                                     Width="250"/>
+ 138: 
+ 139:                 <DataGridTextColumn Header="Assigned To"
+ 140:                                     Binding="{Binding AssignedTo}"
+ 141:                                     Width="180"/>
+ 142: 
+ 143:                 <DataGridTextColumn Header="Raised"
+ 144:                                     Binding="{Binding RaisedDate}"
+ 145:                                     Width="180"/>
+ 146: 
+ 147:                 <DataGridTextColumn Header="Due Date"
+ 148:                                     Binding="{Binding DueDate}"
+ 149:                                     Width="180"/>
+ 150: 
+ 151:                 <DataGridTextColumn Header="Status"
+ 152:                                     Binding="{Binding Status}"
+ 153:                                     Width="140"/>
+ 154: 
+ 155:             </DataGrid.Columns>
+ 156: 
+ 157:         </DataGrid>
+ 158: 
+ 159:     </Grid>
+ 160: 
+ 161: </UserControl>

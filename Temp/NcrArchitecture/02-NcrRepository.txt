@@ -1,0 +1,331 @@
+﻿   1: using Dapper;
+   2: using Microsoft.Data.Sqlite;
+   3: using System;
+   4: using System.Collections.Generic;
+   5: using System.Linq;
+   6: using WeldAdminPro.Core.Quality.Enums;
+   7: using WeldAdminPro.Core.Quality.Models;
+   8: 
+   9: namespace WeldAdminPro.Data.Repositories
+  10: {
+  11:     public class NcrRepository
+  12:     {
+  13:         private readonly string _connectionString;
+  14: 
+  15:         public NcrRepository(
+  16:             string connectionString)
+  17:         {
+  18:             _connectionString =
+  19:                 connectionString;
+  20:         }
+  21: 
+  22:         public void Add(
+  23:             NcrRecord item)
+  24:         {
+  25:             using var connection =
+  26:                 new SqliteConnection(
+  27:                     _connectionString);
+  28: 
+  29:             connection.Execute(
+  30:                 @"INSERT INTO NcrRecords
+  31:                 (
+  32:                     Id,
+  33:                     WeldId,
+  34:                     WeldNumber,
+  35:                     Description,
+  36:                     NcrNumber,
+  37:                     RootCause,
+  38:                     CorrectiveAction,
+  39:                     PreventiveAction,
+  40:                     RaisedBy,
+  41:                     RaisedDate,
+  42:                     AssignedTo,
+  43:                     DueDate,
+  44:                     Status,
+  45:                     IsClosed,
+  46:                     ClosedBy,
+  47:                     ClosedDate,
+  48:                     DispositionType,
+  49:                     DispositionApprovedBy,
+  50:                     DispositionApprovedDate,
+  51:                     VerificationBy,
+  52:                     VerificationDate,
+  53:                     RequiresCustomerApproval,
+  54:                     CustomerApproved,
+  55:                     CustomerApprovalReference
+  56:                 )
+  57:                 VALUES
+  58:                 (
+  59:                     @Id,
+  60:                     @WeldId,
+  61:                     @WeldNumber,
+  62:                     @Description,
+  63:                     @NcrNumber,
+  64:                     @RootCause,
+  65:                     @CorrectiveAction,
+  66:                     @PreventiveAction,
+  67:                     @RaisedBy,
+  68:                     @RaisedDate,
+  69:                     @AssignedTo,
+  70:                     @DueDate,
+  71:                     @Status,
+  72:                     @IsClosed,
+  73:                     @ClosedBy,
+  74:                     @ClosedDate,
+  75:                     @DispositionType,
+  76:                     @DispositionApprovedBy,
+  77:                     @DispositionApprovedDate,
+  78:                     @VerificationBy,
+  79:                     @VerificationDate,
+  80:                     @RequiresCustomerApproval,
+  81:                     @CustomerApproved,
+  82:                     @CustomerApprovalReference
+  83:                 )",
+  84:                 ToParameters(item));
+  85:         }
+  86: 
+  87:         public List<NcrRecord> GetAll()
+  88:         {
+  89:             using var connection =
+  90:                 new SqliteConnection(
+  91:                     _connectionString);
+  92: 
+  93:             var rows =
+  94:                 connection.Query(
+  95:                     @"SELECT *
+  96:                       FROM NcrRecords
+  97:                       ORDER BY RaisedDate DESC");
+  98: 
+  99:             return rows
+ 100:                 .Select(Map)
+ 101:                 .ToList();
+ 102:         }
+ 103: 
+ 104:         public List<NcrRecord> GetByWeld(
+ 105:             Guid weldId)
+ 106:         {
+ 107:             using var connection =
+ 108:                 new SqliteConnection(
+ 109:                     _connectionString);
+ 110: 
+ 111:             var rows =
+ 112:                 connection.Query(
+ 113:                     @"SELECT *
+ 114:                       FROM NcrRecords
+ 115:                       WHERE WeldId = @WeldId
+ 116:                       ORDER BY RaisedDate DESC",
+ 117:                     new
+ 118:                     {
+ 119:                         WeldId =
+ 120:                             weldId.ToString()
+ 121:                     });
+ 122: 
+ 123:             return rows
+ 124:                 .Select(Map)
+ 125:                 .ToList();
+ 126:         }
+ 127: 
+ 128:         public void Update(
+ 129:             NcrRecord item)
+ 130:         {
+ 131:             using var connection =
+ 132:                 new SqliteConnection(
+ 133:                     _connectionString);
+ 134: 
+ 135:             connection.Execute(
+ 136:                 @"UPDATE NcrRecords
+ 137:                   SET
+ 138:                     WeldNumber = @WeldNumber,
+ 139:                     Description = @Description,
+ 140:                     NcrNumber = @NcrNumber,
+ 141:                     RootCause = @RootCause,
+ 142:                     CorrectiveAction = @CorrectiveAction,
+ 143:                     PreventiveAction = @PreventiveAction,
+ 144:                     RaisedBy = @RaisedBy,
+ 145:                     RaisedDate = @RaisedDate,
+ 146:                     AssignedTo = @AssignedTo,
+ 147:                     DueDate = @DueDate,
+ 148:                     Status = @Status,
+ 149:                     IsClosed = @IsClosed,
+ 150:                     ClosedBy = @ClosedBy,
+ 151:                     ClosedDate = @ClosedDate,
+ 152:                     DispositionType = @DispositionType,
+ 153:                     DispositionApprovedBy = @DispositionApprovedBy,
+ 154:                     DispositionApprovedDate = @DispositionApprovedDate,
+ 155:                     VerificationBy = @VerificationBy,
+ 156:                     VerificationDate = @VerificationDate,
+ 157:                     RequiresCustomerApproval = @RequiresCustomerApproval,
+ 158:                     CustomerApproved = @CustomerApproved,
+ 159:                     CustomerApprovalReference = @CustomerApprovalReference
+ 160:                   WHERE Id = @Id",
+ 161:                 ToParameters(item));
+ 162:         }
+ 163: 
+ 164:         private static object ToParameters(
+ 165:             NcrRecord item)
+ 166:         {
+ 167:             return new
+ 168:             {
+ 169:                 Id =
+ 170:                     item.Id.ToString(),
+ 171: 
+ 172:                 WeldId =
+ 173:                     item.WeldId.ToString(),
+ 174: 
+ 175:                 item.WeldNumber,
+ 176:                 item.Description,
+ 177:                 item.NcrNumber,
+ 178:                 item.RootCause,
+ 179:                 item.CorrectiveAction,
+ 180:                 item.PreventiveAction,
+ 181:                 item.RaisedBy,
+ 182:                 item.RaisedDate,
+ 183:                 item.AssignedTo,
+ 184:                 item.DueDate,
+ 185: 
+ 186:                 Status =
+ 187:                     (int)item.Status,
+ 188: 
+ 189:                 IsClosed =
+ 190:                     item.IsClosed ? 1 : 0,
+ 191: 
+ 192:                 item.ClosedBy,
+ 193:                 item.ClosedDate,
+ 194: 
+ 195:                 DispositionType =
+ 196:                     item.DispositionType.HasValue
+ 197:                         ? (int)item.DispositionType.Value
+ 198:                         : (int?)null,
+ 199: 
+ 200:                 item.DispositionApprovedBy,
+ 201:                 item.DispositionApprovedDate,
+ 202:                 item.VerificationBy,
+ 203:                 item.VerificationDate,
+ 204: 
+ 205:                 RequiresCustomerApproval =
+ 206:                     item.RequiresCustomerApproval ? 1 : 0,
+ 207: 
+ 208:                 CustomerApproved =
+ 209:                     item.CustomerApproved ? 1 : 0,
+ 210: 
+ 211:                 item.CustomerApprovalReference
+ 212:             };
+ 213:         }
+ 214: 
+ 215:         private static NcrRecord Map(
+ 216:             dynamic row)
+ 217:         {
+ 218:             return new NcrRecord
+ 219:             {
+ 220:                 Id =
+ 221:                     Guid.Parse(
+ 222:                         (string)row.Id),
+ 223: 
+ 224:                 WeldId =
+ 225:                     Guid.Parse(
+ 226:                         (string)row.WeldId),
+ 227: 
+ 228:                 WeldNumber =
+ 229:                     row.WeldNumber?.ToString()
+ 230:                     ?? string.Empty,
+ 231: 
+ 232:                 NcrNumber =
+ 233:                     row.NcrNumber?.ToString()
+ 234:                     ?? string.Empty,
+ 235: 
+ 236:                 Description =
+ 237:                     row.Description?.ToString()
+ 238:                     ?? string.Empty,
+ 239: 
+ 240:                 RootCause =
+ 241:                     row.RootCause?.ToString()
+ 242:                     ?? string.Empty,
+ 243: 
+ 244:                 CorrectiveAction =
+ 245:                     row.CorrectiveAction?.ToString()
+ 246:                     ?? string.Empty,
+ 247: 
+ 248:                 PreventiveAction =
+ 249:                     row.PreventiveAction?.ToString()
+ 250:                     ?? string.Empty,
+ 251: 
+ 252:                 RaisedBy =
+ 253:                     row.RaisedBy?.ToString()
+ 254:                     ?? string.Empty,
+ 255: 
+ 256:                 RaisedDate =
+ 257:                     Convert.ToDateTime(
+ 258:                         row.RaisedDate),
+ 259: 
+ 260:                 AssignedTo =
+ 261:                     row.AssignedTo?.ToString()
+ 262:                     ?? string.Empty,
+ 263: 
+ 264:                 DueDate =
+ 265:                     row.DueDate == null
+ 266:                         ? null
+ 267:                         : Convert.ToDateTime(
+ 268:                             row.DueDate),
+ 269: 
+ 270:                 Status =
+ 271:                     (NcrStatus)
+ 272:                     Convert.ToInt32(
+ 273:                         row.Status),
+ 274: 
+ 275:                 IsClosed =
+ 276:                     Convert.ToBoolean(
+ 277:                         row.IsClosed),
+ 278: 
+ 279:                 ClosedBy =
+ 280:                     row.ClosedBy?.ToString()
+ 281:                     ?? string.Empty,
+ 282: 
+ 283:                 ClosedDate =
+ 284:                     row.ClosedDate == null
+ 285:                         ? null
+ 286:                         : Convert.ToDateTime(
+ 287:                             row.ClosedDate),
+ 288: 
+ 289:                 DispositionType =
+ 290:                     row.DispositionType == null
+ 291:                         ? null
+ 292:                         : (NcrDispositionType?)
+ 293:                             Convert.ToInt32(
+ 294:                                 row.DispositionType),
+ 295: 
+ 296:                 DispositionApprovedBy =
+ 297:                     row.DispositionApprovedBy?.ToString(),
+ 298: 
+ 299:                 DispositionApprovedDate =
+ 300:                     row.DispositionApprovedDate == null
+ 301:                         ? null
+ 302:                         : Convert.ToDateTime(
+ 303:                             row.DispositionApprovedDate),
+ 304: 
+ 305:                 VerificationBy =
+ 306:                     row.VerificationBy?.ToString(),
+ 307: 
+ 308:                 VerificationDate =
+ 309:                     row.VerificationDate == null
+ 310:                         ? null
+ 311:                         : Convert.ToDateTime(
+ 312:                             row.VerificationDate),
+ 313: 
+ 314:                 RequiresCustomerApproval =
+ 315:                     row.RequiresCustomerApproval != null
+ 316:                     &&
+ 317:                     Convert.ToBoolean(
+ 318:                         row.RequiresCustomerApproval),
+ 319: 
+ 320:                 CustomerApproved =
+ 321:                     row.CustomerApproved != null
+ 322:                     &&
+ 323:                     Convert.ToBoolean(
+ 324:                         row.CustomerApproved),
+ 325: 
+ 326:                 CustomerApprovalReference =
+ 327:                     row.CustomerApprovalReference?.ToString()
+ 328:             };
+ 329:         }
+ 330:     }
+ 331: }

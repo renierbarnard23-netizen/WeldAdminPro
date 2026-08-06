@@ -1,0 +1,332 @@
+@page "/quality/weld-new/{ProjectId:guid}"
+
+@attribute [Authorize(Policy = "Permission:Quality.WeldRegister")]
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Repositories
+@using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Core.Quality.Enums
+
+@inject ISnackbar Snackbar
+
+@inject WelderQualificationRepository QualificationRepository
+@inject WpsRepository WpsRepository
+
+@inject WeldRepository WeldRepository
+@inject NavigationManager Navigation
+
+<PageTitle>New Weld</PageTitle>
+
+<MudPaper Class="pa-4">
+
+    <MudText Typo="Typo.h5" Class="mb-4">
+
+        New Weld
+
+    </MudText>
+
+    <MudGrid>
+
+        <MudItem xs="12" md="6">
+
+            <MudTextField T="string"
+                          Label="Weld Number"
+                          Value="@_weld.WeldNumber"
+                          Disabled="true" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudTextField T="string"
+                          Label="Drawing Number"
+                          @bind-Value="_weld.DrawingNumber" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudTextField T="string"
+                          Label="Joint Number"
+                          @bind-Value="_weld.JointNumber" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudSelect T="string"
+                       Label="WPS"
+                       @bind-Value="_weld.WpsNumber">
+
+                @foreach (var wps in _wpsList)
+                {
+                    <MudSelectItem T="string"
+                                   Value="@wps.WpsNumber">
+
+                        @wps.WpsNumber
+
+                    </MudSelectItem>
+                }
+
+            </MudSelect>
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudSelect T="string"
+                       Label="Qualified Welder"
+                       Value="_weld.WelderNumber"
+                       ValueChanged="OnWelderChanged">
+
+                @foreach (var welder in _qualifiedWelders)
+                {
+                    <MudSelectItem T="string"
+                                   Value="@welder.WelderNumber">
+
+                        @($"{welder.WelderNumber} ({welder.Process} / {welder.Position})")
+
+                    </MudSelectItem>
+                }
+
+            </MudSelect>
+
+            @if (_selectedQualification != null)
+            {
+                <MudAlert Severity="Severity.Info"
+                          Dense="true"
+                          Class="mt-2">
+
+                    <b>Qualified Process:</b> @_selectedQualification.Process
+                    <br />
+
+                    <b>Qualified Position:</b> @_selectedQualification.Position
+                    <br />
+
+                    <b>Material Group:</b> @_selectedQualification.MaterialGroup
+                    <br />
+
+                    <b>Qualified Thickness:</b> @_selectedQualification.ThicknessDisplay
+
+                </MudAlert>
+            }
+
+            @if (_selectedQualification != null && !ThicknessQualified)
+            {
+                <MudAlert Severity="Severity.Warning"
+                          Dense="true"
+                          Class="mt-2">
+
+                    <b>Welder is not qualified.</b>
+
+                    <br />
+
+                    Qualified Thickness:
+
+                    @_selectedQualification.ThicknessDisplay
+
+                    <br />
+
+                    Entered Thickness:
+
+                    @_weld.Thickness.ToString("N2") mm
+
+                </MudAlert>
+            }
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudTextField T="string"
+                          Label="Material"
+                          @bind-Value="_weld.MaterialSpecification" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+
+            <MudTextField T="string"
+                          Label="Material Group"
+                          Value="@_weld.MaterialGroup"
+                          Disabled="true" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudTextField T="string"
+                          Label="Heat Number 1"
+                          @bind-Value="_weld.MaterialHeat1" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
+            <MudTextField T="string"
+                          Label="Heat Number 2"
+                          @bind-Value="_weld.MaterialHeat2" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+
+            <MudNumericField T="double"
+                             Label="Diameter"
+                             @bind-Value="_weld.Diameter" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+
+            <MudNumericField T="double"
+                             Label="Thickness"
+                             @bind-Value="_weld.Thickness" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+
+            <MudSelect T="WeldStatusType"
+                       Label="Status"
+                       @bind-Value="_weld.Status">
+
+                @foreach (var status in Enum.GetValues<WeldStatusType>())
+                {
+                    <MudSelectItem T="WeldStatusType"
+                                   Value="@status">
+
+                        @status
+
+                    </MudSelectItem>
+                }
+
+            </MudSelect>
+
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+
+            <MudTextField T="string"
+                          Label="Position"
+                          Value="@_weld.Position"
+                          Disabled="true" />
+
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+
+            <MudTextField T="string"
+                          Label="Process"
+                          Value="@_weld.Process"
+                          Disabled="true" />
+
+        </MudItem>
+
+        <MudItem xs="12">
+
+            <MudButton Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       OnClick="Save">
+
+                Save Weld
+
+            </MudButton>
+
+        </MudItem>
+
+    </MudGrid>
+
+</MudPaper>
+
+@code
+{
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    private Weld _weld = new();
+
+    private List<Wps> _wpsList = new();
+    private List<WelderQualification> _qualifiedWelders = new();
+    private WelderQualification? _selectedQualification;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _wpsList = WpsRepository.GetAll();
+
+        _qualifiedWelders = QualificationRepository.GetAll();
+
+        _weld.ProjectId = ProjectId;
+
+        _weld.WeldNumber =
+            await WeldRepository.GetNextWeldNumberAsync(ProjectId);
+    }
+
+    private async Task Save()
+    {
+    _weld.ProjectId = ProjectId;
+
+        if (string.IsNullOrWhiteSpace(_weld.WpsNumber))
+        {
+            Snackbar.Add("Please select a WPS.", Severity.Warning);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_weld.WelderNumber))
+        {
+            Snackbar.Add("Please select a qualified welder.", Severity.Warning);
+            return;
+        }
+
+        if (_selectedQualification != null && !ThicknessQualified)
+        {
+            Snackbar.Add(
+                "Selected welder is not qualified for this weld thickness.",
+                Severity.Warning);
+
+            return;
+        }
+
+        try
+        {
+            await WeldRepository.AddAsync(_weld);
+
+            Snackbar.Add(
+                "Weld successfully created.",
+                Severity.Success);
+
+            Navigation.NavigateTo(
+                $"/quality/weld-register/{ProjectId}");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+    }
+
+    private Task OnWelderChanged(string? welderNumber)
+{
+    _weld.WelderNumber = welderNumber ?? "";
+
+    _selectedQualification =
+        _qualifiedWelders.FirstOrDefault(x =>
+            x.WelderNumber == _weld.WelderNumber);
+
+    if (_selectedQualification != null)
+    {
+        _weld.Process = _selectedQualification.Process;
+        _weld.Position = _selectedQualification.Position;
+        _weld.MaterialGroup = _selectedQualification.MaterialGroup;
+    }
+
+    return Task.CompletedTask;
+    }
+
+    private bool ThicknessQualified =>
+    _selectedQualification != null &&
+    _weld.Thickness >= _selectedQualification.ThicknessMin &&
+    _weld.Thickness <= _selectedQualification.ThicknessMax;
+        
+}
