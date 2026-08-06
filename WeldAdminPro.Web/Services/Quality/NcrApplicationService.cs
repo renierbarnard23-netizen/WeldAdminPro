@@ -1,7 +1,9 @@
-using WeldAdminPro.Core.Quality.Enums;
+﻿using WeldAdminPro.Core.Quality.Enums;
 using WeldAdminPro.Core.Quality.Models;
 using WeldAdminPro.Core.Quality.Services;
 using WeldAdminPro.Data.Repositories;
+
+using WeldAdminPro.Data.Services.Quality;
 
 namespace WeldAdminPro.Web.Services.Quality;
 
@@ -12,12 +14,18 @@ public class NcrApplicationService
     private readonly NcrWorkflowHistoryRepository
         _historyRepository;
 
+    private readonly RepairApplicationService
+        _repairApplicationService;
+
     public NcrApplicationService(
         NcrRepository repository,
-        NcrWorkflowHistoryRepository historyRepository)
+        NcrWorkflowHistoryRepository historyRepository,
+        RepairApplicationService repairApplicationService)
     {
         _repository = repository;
         _historyRepository = historyRepository;
+        _repairApplicationService =
+            repairApplicationService;
     }
 
     // =====================================================
@@ -133,6 +141,118 @@ public class NcrApplicationService
         return true;
     }
 
+    public bool StartRepairExecution(
+        Guid id,
+        string performedBy)
+    {
+        if (string.IsNullOrWhiteSpace(performedBy))
+        {
+            return false;
+        }
+
+        var ncr = GetById(id);
+
+        if (ncr == null ||
+            ncr.Status != NcrStatus.ApprovedForRepair)
+        {
+            return false;
+        }
+
+        const NcrStatus target =
+            NcrStatus.RepairInProgress;
+
+        if (!NcrWorkflowService.CanMoveTo(
+                ncr.Status,
+                target))
+        {
+            return false;
+        }
+        // Create or reuse the repair linked to this NCR
+        // before moving the NCR into RepairInProgress.
+        _repairApplicationService
+            .EnsureRepairForNcr(
+                ncr,
+                performedBy.Trim());
+
+        var previousStatus =
+            ncr.Status;
+
+        ncr.Status =
+            target;
+
+        _repository.Update(ncr);
+
+        AddHistory(
+            ncr.Id,
+            previousStatus,
+            target,
+            "Repair / Rework Started",
+            performedBy.Trim(),
+            $"Repair / rework execution started by {performedBy.Trim()}.");
+
+        return true;
+    }
+
+
+    public bool CompleteRepairExecution(
+        Guid id,
+        string performedBy)
+    {
+        if (string.IsNullOrWhiteSpace(performedBy))
+        {
+            return false;
+        }
+
+        var ncr = GetById(id);
+
+        if (ncr == null ||
+            ncr.Status != NcrStatus.RepairInProgress)
+        {
+            return false;
+        }
+
+
+        // The NCR may only leave RepairInProgress after
+        // its linked controlled repair lifecycle is closed.
+        var linkedRepair =
+            _repairApplicationService
+                .GetByNcr(ncr.Id);
+
+        if (linkedRepair == null ||
+            linkedRepair.Status != RepairStatus.Closed)
+        {
+            return false;
+        }
+
+        const NcrStatus target =
+            NcrStatus.PendingVerification;
+
+        if (!NcrWorkflowService.CanMoveTo(
+                ncr.Status,
+                target))
+        {
+            return false;
+        }
+
+        var previousStatus =
+            ncr.Status;
+
+        ncr.Status =
+            target;
+
+        _repository.Update(ncr);
+
+        AddHistory(
+            ncr.Id,
+            previousStatus,
+            target,
+            "Repair / Rework Completed",
+            performedBy.Trim(),
+            $"Repair / rework execution completed by {performedBy.Trim()}.");
+
+        return true;
+    }
+
     public bool SetDisposition(
         Guid id,
         NcrDispositionType disposition,
@@ -144,6 +264,12 @@ public class NcrApplicationService
         var ncr = GetById(id);
 
         if (ncr == null)
+        {
+            return false;
+        }
+
+        if (ncr.Status !=
+            NcrStatus.AwaitingDisposition)
         {
             return false;
         }
@@ -188,6 +314,53 @@ public class NcrApplicationService
             approvedBy,
             details);
 
+        // Customer approval is a workflow gate.
+        // Record the disposition, but do not advance
+        // until the required approval has been obtained.
+        if (requiresCustomerApproval &&
+            !customerApproved)
+        {
+            return true;
+        }
+
+        var target =
+            NcrWorkflowService
+                .GetPostDispositionStatus(
+                    disposition);
+
+        // Engineering Review intentionally remains
+        // AwaitingDisposition until engineering reaches
+        // a final disposition decision.
+        if (!target.HasValue)
+        {
+            return true;
+        }
+
+        if (!NcrWorkflowService.CanMoveTo(
+                ncr.Status,
+                target.Value))
+        {
+            return false;
+        }
+
+        var previousStatus =
+            ncr.Status;
+
+        ncr.Status =
+            target.Value;
+
+        _repository.Update(ncr);
+
+        AddHistory(
+            ncr.Id,
+            previousStatus,
+            target.Value,
+            "Disposition Workflow Advanced",
+            approvedBy,
+            $"Disposition {disposition} advanced " +
+            $"the NCR from {previousStatus} " +
+            $"to {target.Value}.");
+
         return true;
     }
 
@@ -202,7 +375,27 @@ public class NcrApplicationService
             return false;
         }
 
-        ncr.VerificationBy = verifiedBy;
+        if (ncr.Status != NcrStatus.PendingVerification)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(verifiedBy))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(
+                ncr.VerificationBy) ||
+            ncr.VerificationDate.HasValue)
+        {
+            return false;
+        }
+
+        var actor =
+            verifiedBy.Trim();
+
+        ncr.VerificationBy = actor;
         ncr.VerificationDate = DateTime.Now;
 
         _repository.Update(ncr);
@@ -212,8 +405,8 @@ public class NcrApplicationService
             ncr.Status,
             ncr.Status,
             "Verification Recorded",
-            verifiedBy,
-            $"Verification completed by {verifiedBy}.");
+            actor,
+            $"Verification completed by {actor}.");
 
         return true;
     }
@@ -241,6 +434,21 @@ public class NcrApplicationService
         {
             return false;
         }
+
+        if (string.IsNullOrWhiteSpace(
+                ncr.VerificationBy) ||
+            !ncr.VerificationDate.HasValue)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(closedBy))
+        {
+            return false;
+        }
+
+        closedBy =
+            closedBy.Trim();
 
         var previousStatus =
             ncr.Status;
@@ -344,3 +552,4 @@ public class NcrApplicationService
         return details;
     }
 }
+

@@ -1,4 +1,4 @@
-namespace WeldAdminPro.Core.Quality.Models
+﻿namespace WeldAdminPro.Core.Quality.Models
 {
     public class QualitySnapshot
     {
@@ -17,6 +17,8 @@ namespace WeldAdminPro.Core.Quality.Models
         public int PendingNdt { get; set; }
 
         public int OpenRepairs { get; set; }
+
+        public List<RepairRecord> Repairs { get; set; } = new();
 
         public int MissingDocuments { get; set; }
 

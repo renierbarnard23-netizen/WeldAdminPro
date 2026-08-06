@@ -1,4 +1,4 @@
-@page "/quality"
+﻿@page "/quality"
 
 @attribute [Authorize(Policy = "Permission:Quality.View")]
 @using MudBlazor
@@ -106,7 +106,9 @@
         <DashboardSection Title="Repair Aging"
                           Icon="@Icons.Material.Filled.BuildCircle">
 
-            <RepairAgingGrid Snapshot="_snapshot" />
+            <RepairAgingGrid
+                Repairs="@(_snapshot?.Repairs ?? new List<RepairRecord>())"
+                OverdueAfterDays="7" />
 
         </DashboardSection>
 

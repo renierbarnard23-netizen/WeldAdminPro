@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 using WeldAdminPro.Core.Quality.Enums;
@@ -35,6 +35,7 @@ INSERT INTO RepairRecords
 (
     Id,
     WeldId,
+    NcrId,
     RepairNumber,
     Reason,
     AuthorizedBy,
@@ -52,6 +53,7 @@ VALUES
 (
     $Id,
     $WeldId,
+    $NcrId,
     $RepairNumber,
     $Reason,
     $AuthorizedBy,
@@ -73,6 +75,12 @@ VALUES
             command.Parameters.AddWithValue(
                 "$WeldId",
                 repair.WeldId.ToString());
+
+            command.Parameters.AddWithValue(
+                "$NcrId",
+                repair.NcrId.HasValue
+                    ? repair.NcrId.Value.ToString()
+                    : DBNull.Value);
 
             command.Parameters.AddWithValue(
                 "$RepairNumber",
@@ -155,8 +163,37 @@ ORDER BY RepairNumber";
 
             return ReadRepairs(reader);
         }
+        public List<RepairRecord> GetByNcr(
+            Guid ncrId)
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
 
-        public List<RepairRecord> GetAll()
+            connection.Open();
+
+            var command =
+                connection.CreateCommand();
+
+            command.CommandText =
+            @"
+SELECT *
+FROM RepairRecords
+WHERE NcrId = $NcrId
+ORDER BY RepairNumber;
+";
+
+            command.Parameters.AddWithValue(
+                "$NcrId",
+                ncrId.ToString());
+
+            using var reader =
+                command.ExecuteReader();
+
+            return ReadRepairs(reader);
+        }
+
+public List<RepairRecord> GetAll()
         {
             using var connection =
                 new SqliteConnection(
@@ -195,6 +232,8 @@ ORDER BY RequestedDate DESC";
             @"
 UPDATE RepairRecords
 SET
+    
+    NcrId = $NcrId,
     Reason = $Reason,
     AuthorizedBy = $AuthorizedBy,
     RequestedDate = $RequestedDate,
@@ -211,6 +250,12 @@ WHERE Id = $Id";
             command.Parameters.AddWithValue(
                 "$Id",
                 repair.Id.ToString());
+
+            command.Parameters.AddWithValue(
+                "$NcrId",
+                repair.NcrId.HasValue
+                    ? repair.NcrId.Value.ToString()
+                    : DBNull.Value);
 
             command.Parameters.AddWithValue(
                 "$Reason",
@@ -282,6 +327,14 @@ WHERE Id = $Id";
                                 reader["WeldId"]
                                     .ToString()!),
 
+                        NcrId =
+                            string.IsNullOrWhiteSpace(
+                                reader["NcrId"]?.ToString())
+                                ? null
+                                : Guid.Parse(
+                                    reader["NcrId"]
+                                        .ToString()!),
+
                         RepairNumber =
                             Convert.ToInt32(
                                 reader["RepairNumber"]),
@@ -348,3 +401,6 @@ WHERE Id = $Id";
         }
     }
 }
+
+
+

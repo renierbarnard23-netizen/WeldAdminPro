@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using WeldAdminPro.Core.Quality.Enums;
 
 namespace WeldAdminPro.Core.Quality.Models
@@ -7,6 +7,11 @@ namespace WeldAdminPro.Core.Quality.Models
     {
         public Guid Id { get; set; }
         public Guid WeldId { get; set; }
+
+        
+        // NCR that originated this repair.
+        // Null is valid for legacy or manually created repairs.
+        public Guid? NcrId { get; set; }
 
         public int RepairNumber { get; set; }
 
@@ -43,3 +48,6 @@ namespace WeldAdminPro.Core.Quality.Models
     }
 
 }
+
+
+

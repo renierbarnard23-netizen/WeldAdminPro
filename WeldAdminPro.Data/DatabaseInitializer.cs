@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using Microsoft.Data.Sqlite;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Core.Quality.Enums;
@@ -801,6 +801,8 @@ Id TEXT PRIMARY KEY,
 
 WeldId TEXT NOT NULL,
 
+NcrId TEXT NULL,
+
 RepairNumber INTEGER NOT NULL,
 
 Reason TEXT,
@@ -1173,3 +1175,5 @@ CREATE TABLE IF NOT EXISTS DocumentVaultFiles
 
     }
 }
+
+

@@ -1,4 +1,4 @@
-@page "/quality/ncr"
+﻿@page "/quality/ncr"
 @using WeldAdminPro.Web.Components.Security
 
 @attribute [Authorize(Policy = "Permission:Quality.NCR")]
@@ -684,6 +684,116 @@
 
                         </PermissionView>
                     }
+                    @if (_selectedNcr.Status == NcrStatus.ApprovedForRepair)
+                    {
+                        <MudDivider Class="my-4" />
+
+                        <MudText Typo="Typo.subtitle2"
+                                 Class="mb-2">
+                            Repair / Rework Handover
+                        </MudText>
+
+                        <MudAlert Severity="Severity.Info"
+                                  Dense="true"
+                                  Class="mb-3">
+                            The approved repair / rework is ready to be handed over to Repair Management.
+                        </MudAlert>
+
+                        <MudTextField T="string"
+                                      Label="Performed By"
+                                      @bind-Value="_executionPerformedBy"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Class="mb-3" />
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.PlayArrow"
+                                   OnClick="StartRepairExecutionUi">
+                            Start Repair / Rework
+                        </MudButton>
+                    }
+                    else if (_selectedNcr.Status == NcrStatus.RepairInProgress)
+                    {
+                        <MudDivider Class="my-4" />
+
+                        <MudText Typo="Typo.subtitle2"
+                                 Class="mb-2">
+                            Repair / Rework Execution
+                        </MudText>
+
+                        <MudAlert Severity="Severity.Info"
+                                  Dense="true"
+                                  Class="mb-3">
+                            This NCR has been handed over to Repair Management.
+                            Complete the controlled repair lifecycle there before final NCR verification.
+                        </MudAlert>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Build"
+                                   Href="/quality/repairs">
+                            Open Repair Management
+                        </MudButton>
+                    }
+                    @if (_selectedNcr.Status == NcrStatus.PendingVerification)
+                    {
+                        <MudDivider Class="my-4" />
+
+                        <MudText Typo="Typo.subtitle2"
+                                 Class="mb-2">
+                            Final Verification & Closure
+                        </MudText>
+
+                        @if (string.IsNullOrWhiteSpace(
+                                _selectedNcr.VerificationBy) ||
+                             !_selectedNcr.VerificationDate.HasValue)
+                        {
+                            <MudAlert Severity="Severity.Warning"
+                                      Dense="true"
+                                      Class="mb-3">
+                                Final verification must be recorded before this NCR can be closed.
+                            </MudAlert>
+
+                            <MudTextField T="string"
+                                          Label="Verified By"
+                                          @bind-Value="_verificationBy"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Class="mb-3" />
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.FactCheck"
+                                       OnClick="RecordVerificationUi">
+                                Record Verification
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Success"
+                                      Dense="true"
+                                      Class="mb-3">
+                                Verification recorded by @_selectedNcr.VerificationBy
+                                on @_selectedNcr.VerificationDate.Value.ToString("yyyy-MM-dd HH:mm").
+                                The NCR is ready for controlled closure.
+                            </MudAlert>
+
+                            <MudTextField T="string"
+                                          Label="Closed By"
+                                          @bind-Value="_closureBy"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Class="mb-3" />
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.Lock"
+                                       OnClick="CloseNcrUi">
+                                Close NCR
+                            </MudButton>
+                        }
+                    }
                     @if (CanAdvanceBasicWorkflow(_selectedNcr))
                     {
                         <MudDivider Class="my-4" />
@@ -945,6 +1055,19 @@
     private List<NcrRecord> _ncrs = new();
 
     private NcrRecord? _selectedNcr;
+
+    // =====================================================
+    // NCR REPAIR / REWORK EXECUTION
+    // =====================================================
+
+    private string _executionPerformedBy = string.Empty;
+
+    // =====================================================
+    // NCR VERIFICATION / CLOSURE
+    // =====================================================
+
+    private string _verificationBy = string.Empty;
+    private string _closureBy = string.Empty;
 
     private string _search = string.Empty;
 
@@ -1236,46 +1359,6 @@
                 return;
             }
 
-            // -------------------------------------------------
-            // REPAIR DISPOSITION WORKFLOW
-            //
-            // A successfully recorded Repair disposition may
-            // advance from AwaitingDisposition to the existing
-            // ApprovedForRepair workflow state.
-            //
-            // Customer approval must already be satisfied when
-            // the disposition requires it.
-            // -------------------------------------------------
-
-            if (_dispositionType.Value ==
-                NcrDispositionType.Repair)
-            {
-                if (_requiresCustomerApproval &&
-                    !_customerApproved)
-                {
-                    _dispositionError =
-                        "Customer approval is required before this NCR can be approved for repair.";
-
-                    LoadNcrs();
-
-                    return;
-                }
-
-                var movedToRepairApproval =
-                    NcrService.MoveTo(
-                        ncrId,
-                        NcrStatus.ApprovedForRepair);
-
-                if (!movedToRepairApproval)
-                {
-                    _dispositionError =
-                        "The disposition was saved, but the NCR could not advance to Approved For Repair.";
-
-                    LoadNcrs();
-
-                    return;
-                }
-            }
 
             LoadNcrs();
 
@@ -1422,6 +1505,259 @@
         };
     }
 
+
+    private void StartRepairExecutionUi()
+    {
+        if (_selectedNcr == null)
+        {
+            Snackbar.Add(
+                "Select an NCR before starting repair or rework.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                _executionPerformedBy))
+        {
+            Snackbar.Add(
+                "Performed By is required before repair or rework can start.",
+                Severity.Warning);
+
+            return;
+        }
+
+        var ncrId =
+            _selectedNcr.Id;
+
+        var performedBy =
+            _executionPerformedBy.Trim();
+
+        var succeeded =
+            NcrService.StartRepairExecution(
+                ncrId,
+                performedBy);
+
+        if (!succeeded)
+        {
+            Snackbar.Add(
+                "Unable to start repair / rework. Check the current NCR status.",
+                Severity.Error);
+
+            return;
+        }
+
+        _executionPerformedBy =
+            string.Empty;
+
+        LoadNcrs();
+
+        _selectedNcr =
+            _ncrs.FirstOrDefault(
+                x => x.Id == ncrId);
+
+        Snackbar.Add(
+            $"Repair / rework started by {performedBy}.",
+            Severity.Success);
+    }
+
+
+    private void CompleteRepairExecutionUi()
+    {
+        if (_selectedNcr == null)
+        {
+            Snackbar.Add(
+                "Select an NCR before completing repair or rework.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                _executionPerformedBy))
+        {
+            Snackbar.Add(
+                "Performed By is required before repair or rework can be completed.",
+                Severity.Warning);
+
+            return;
+        }
+
+        var ncrId =
+            _selectedNcr.Id;
+
+        var performedBy =
+            _executionPerformedBy.Trim();
+
+        var succeeded =
+            NcrService.CompleteRepairExecution(
+                ncrId,
+                performedBy);
+
+        if (!succeeded)
+        {
+            Snackbar.Add(
+                "Unable to complete repair / rework. Check the current NCR status.",
+                Severity.Error);
+
+            return;
+        }
+
+        _executionPerformedBy =
+            string.Empty;
+
+        LoadNcrs();
+
+        _selectedNcr =
+            _ncrs.FirstOrDefault(
+                x => x.Id == ncrId);
+
+        Snackbar.Add(
+            $"Repair / rework completed by {performedBy}. NCR is awaiting verification.",
+            Severity.Success);
+    }
+
+    private void RecordVerificationUi()
+    {
+        if (_selectedNcr == null)
+        {
+            Snackbar.Add(
+                "Select an NCR before recording verification.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (_selectedNcr.Status !=
+            NcrStatus.PendingVerification)
+        {
+            Snackbar.Add(
+                "Only an NCR awaiting verification can be verified.",
+                Severity.Error);
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                _verificationBy))
+        {
+            Snackbar.Add(
+                "Verified By is required.",
+                Severity.Warning);
+
+            return;
+        }
+
+        var ncrId =
+            _selectedNcr.Id;
+
+        var verifiedBy =
+            _verificationBy.Trim();
+
+        var succeeded =
+            NcrService.RecordVerification(
+                ncrId,
+                verifiedBy);
+
+        if (!succeeded)
+        {
+            Snackbar.Add(
+                "Unable to record verification. Check the NCR status and existing verification record.",
+                Severity.Error);
+
+            return;
+        }
+
+        _verificationBy =
+            string.Empty;
+
+        LoadNcrs();
+
+        _selectedNcr =
+            _ncrs.FirstOrDefault(
+                x => x.Id == ncrId);
+
+        Snackbar.Add(
+            $"Final verification recorded by {verifiedBy}.",
+            Severity.Success);
+    }
+
+
+    private void CloseNcrUi()
+    {
+        if (_selectedNcr == null)
+        {
+            Snackbar.Add(
+                "Select an NCR before closure.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (_selectedNcr.Status !=
+            NcrStatus.PendingVerification)
+        {
+            Snackbar.Add(
+                "Only an NCR awaiting verification can be closed.",
+                Severity.Error);
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                _selectedNcr.VerificationBy) ||
+            !_selectedNcr.VerificationDate.HasValue)
+        {
+            Snackbar.Add(
+                "Final verification must be recorded before closure.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                _closureBy))
+        {
+            Snackbar.Add(
+                "Closed By is required.",
+                Severity.Warning);
+
+            return;
+        }
+
+        var ncrId =
+            _selectedNcr.Id;
+
+        var closedBy =
+            _closureBy.Trim();
+
+        var succeeded =
+            NcrService.Close(
+                ncrId,
+                closedBy);
+
+        if (!succeeded)
+        {
+            Snackbar.Add(
+                "Unable to close NCR. Check verification and customer approval requirements.",
+                Severity.Error);
+
+            return;
+        }
+
+        _closureBy =
+            string.Empty;
+
+        LoadNcrs();
+
+        _selectedNcr =
+            _ncrs.FirstOrDefault(
+                x => x.Id == ncrId);
+
+        Snackbar.Add(
+            $"NCR closed by {closedBy}.",
+            Severity.Success);
+    }
 
     private bool CanAdvanceBasicWorkflow(
         NcrRecord ncr)

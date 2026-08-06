@@ -1,4 +1,4 @@
-using WeldAdminPro.Core.Quality.Models;
+﻿using WeldAdminPro.Core.Quality.Models;
 using WeldAdminPro.Core.Quality.Services;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services.Quality;
@@ -41,6 +41,8 @@ public class QualityDashboardService
 
         snapshot.OpenRepairs =
             repairAnalytics.OpenRepairs;
+        snapshot.Repairs =
+            await _repairService.GetEnterpriseRepairs();
 
         // Build quality alerts
         var alertSummary = _alertService.Build(snapshot);
@@ -99,3 +101,4 @@ public class QualityDashboardService
     }
 
 }
+

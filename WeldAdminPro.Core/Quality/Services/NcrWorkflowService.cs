@@ -22,6 +22,8 @@ namespace WeldAdminPro.Core.Quality.Services
                     target ==
                     NcrStatus.ApprovedForRepair
                     || target ==
+                    NcrStatus.PendingVerification
+                    || target ==
                     NcrStatus.Rejected,
 
                 NcrStatus.ApprovedForRepair =>
@@ -36,6 +38,58 @@ namespace WeldAdminPro.Core.Quality.Services
                     target ==
                     NcrStatus.Closed,
 
+                _ => false
+            };
+        }
+
+        public static NcrStatus?
+            GetPostDispositionStatus(
+                NcrDispositionType disposition)
+        {
+            return disposition switch
+            {
+                NcrDispositionType.Repair =>
+                    NcrStatus.ApprovedForRepair,
+
+                NcrDispositionType.Rework =>
+                    NcrStatus.ApprovedForRepair,
+
+                NcrDispositionType.UseAsIs =>
+                    NcrStatus.PendingVerification,
+
+                NcrDispositionType.Scrap =>
+                    NcrStatus.PendingVerification,
+
+                NcrDispositionType.EngineeringReview =>
+                    null,
+
+                _ =>
+                    null
+            };
+        }
+
+        public static bool
+            RequiresExecution(
+                NcrDispositionType disposition)
+        {
+            return disposition ==
+                   NcrDispositionType.Repair
+                   ||
+                   disposition ==
+                   NcrDispositionType.Rework;
+        }
+
+        public static bool
+            RequiresFinalVerification(
+                NcrDispositionType disposition)
+        {
+            return disposition switch
+            {
+                NcrDispositionType.Repair => true,
+                NcrDispositionType.Rework => true,
+                NcrDispositionType.UseAsIs => true,
+                NcrDispositionType.Scrap => true,
+                NcrDispositionType.EngineeringReview => false,
                 _ => false
             };
         }

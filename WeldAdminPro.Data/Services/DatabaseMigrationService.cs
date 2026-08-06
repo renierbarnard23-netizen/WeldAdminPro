@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using Microsoft.Data.Sqlite;
 using System;
 using System.Linq;
@@ -78,6 +78,11 @@ namespace WeldAdminPro.Data.Services
             if (currentVersion < 9)
             {
                 ApplyVersion9(connection);
+            }
+
+            if (currentVersion < 10)
+            {
+                ApplyVersion10(connection);
             }
 
             // =====================================
@@ -1086,7 +1091,57 @@ ON NcrWorkflowHistory(PerformedDate);
                 "NCR workflow history and audit trail");
         }
 
+                // =====================================
+        // VERSION 10
+        // NCR to Repair traceability
         // =====================================
+
+        private void ApplyVersion10(
+            SqliteConnection connection)
+        {
+            if (!TableExists(
+                connection,
+                "RepairRecords"))
+            {
+                throw new InvalidOperationException(
+                    "Version 10 migration failed: " +
+                    "RepairRecords table does not exist.");
+            }
+
+            TryAddColumn(
+                connection,
+                "RepairRecords",
+                "NcrId",
+                "TEXT");
+
+            connection.Execute(
+                @"
+CREATE INDEX IF NOT EXISTS
+IX_RepairRecords_NcrId
+ON RepairRecords(NcrId);
+");
+
+            var ncrIdExists =
+                connection.Query(
+                    "PRAGMA table_info(RepairRecords);")
+                .Any(x =>
+                    x.name.ToString() == "NcrId");
+
+            if (!ncrIdExists)
+            {
+                throw new InvalidOperationException(
+                    "Version 10 migration failed: " +
+                    "RepairRecords.NcrId was not created.");
+            }
+
+            RecordVersion(
+                connection,
+                10,
+                "1.9.0",
+                "NCR to Repair traceability");
+        }
+
+// =====================================
         // SAFE COLUMN ADDER
         // =====================================
 
@@ -1110,3 +1165,4 @@ ON NcrWorkflowHistory(PerformedDate);
         }
     }
 }
+

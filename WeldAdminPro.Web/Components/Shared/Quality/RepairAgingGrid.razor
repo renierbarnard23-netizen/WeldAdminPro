@@ -1,10 +1,12 @@
 @using MudBlazor
 @using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Core.Quality.Enums
 
-@if (Snapshot is null)
+@if (Repairs is null || Repairs.Count == 0)
 {
-    <MudAlert Severity="Severity.Info">
-        No repair information available.
+    <MudAlert Severity="Severity.Info"
+              Variant="Variant.Outlined">
+        No repair records are available.
     </MudAlert>
 }
 else
@@ -19,17 +21,36 @@ else
             <MudTh>Repair No</MudTh>
             <MudTh>Status</MudTh>
             <MudTh Class="text-end">Days Open</MudTh>
-            <MudTh>Overdue</MudTh>
+            <MudTh>Age Status</MudTh>
         </HeaderContent>
 
         <RowTemplate>
-            <MudTd>@context.Number</MudTd>
-            <MudTd>@context.Status</MudTd>
-            <MudTd Class="text-end">@context.DaysOpen</MudTd>
+
+            <MudTd>
+                REP-@context.RepairNumber.ToString("D4")
+            </MudTd>
+
+            <MudTd>
+                @context.Status
+            </MudTd>
+
+            <MudTd Class="text-end">
+                @context.AgeDays
+            </MudTd>
 
             <MudTd>
 
-                @if (context.Overdue)
+                @if (context.IsClosed)
+                {
+                    <MudChip T="string"
+                             Color="Color.Success"
+                             Variant="Variant.Outlined"
+                             Size="Size.Small"
+                             Icon="@Icons.Material.Filled.CheckCircle">
+                        Closed
+                    </MudChip>
+                }
+                else if (context.IsOverdue)
                 {
                     <MudChip T="string"
                              Color="Color.Error"
@@ -45,7 +66,7 @@ else
                              Color="Color.Success"
                              Variant="Variant.Outlined"
                              Size="Size.Small"
-                             Icon="@Icons.Material.Filled.CheckCircle">
+                             Icon="@Icons.Material.Filled.Schedule">
                         On Time
                     </MudChip>
                 }
@@ -60,27 +81,48 @@ else
 @code
 {
     [Parameter]
-    public QualitySnapshot? Snapshot { get; set; }
+    public List<RepairRecord> Repairs { get; set; } = new();
 
-    private readonly List<RepairRow> _repairs = new();
+    [Parameter]
+    public int OverdueAfterDays { get; set; } = 7;
+
+    private readonly List<RepairAgeRow> _repairs = new();
 
     protected override void OnParametersSet()
     {
         _repairs.Clear();
 
-        if (Snapshot is null)
-            return;
+        foreach (var repair in Repairs)
+        {
+            var endDate =
+                repair.CompletedDate
+                ?? DateTime.UtcNow;
 
-        // Temporary sample data
+            var ageDays =
+                Math.Max(
+                    0,
+                    (int)Math.Floor(
+                        (endDate - repair.RequestedDate)
+                        .TotalDays));
 
-        _repairs.Add(new("REP-0001", "Open", 14, true));
-        _repairs.Add(new("REP-0002", "Awaiting Inspection", 6, false));
-        _repairs.Add(new("REP-0003", "Closed", 2, false));
+            var isClosed =
+                repair.Status == RepairStatus.Closed;
+
+            _repairs.Add(
+                new RepairAgeRow(
+                    repair.RepairNumber,
+                    repair.Status.ToString(),
+                    ageDays,
+                    !isClosed &&
+                    ageDays > OverdueAfterDays,
+                    isClosed));
+        }
     }
 
-    private sealed record RepairRow(
-        string Number,
+    private sealed record RepairAgeRow(
+        int RepairNumber,
         string Status,
-        int DaysOpen,
-        bool Overdue);
+        int AgeDays,
+        bool IsOverdue,
+        bool IsClosed);
 }
