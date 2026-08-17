@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Diagnostics;
 using System.IO;
 using System.Collections.Generic;
 using WeldAdminPro.Core.Models;
+using WeldAdminPro.Core.Guards;
 using WeldAdminPro.Core.Quality;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
@@ -54,6 +55,7 @@ namespace WeldAdminPro.Data.Services.Projects
                 throw new ArgumentNullException(nameof(project));
 
             ValidateProject(project);
+            ProjectCompletionGuard.ValidateBeforeSave(project);
 
             if (project.Id == Guid.Empty)
             {
@@ -130,14 +132,21 @@ namespace WeldAdminPro.Data.Services.Projects
         }
 
         private void ApplyInvoiceRules(Project project)
+{
+    if (project.IsInvoiced)
+    {
+        if (string.IsNullOrWhiteSpace(project.InvoiceNumber))
         {
-            if (project.IsInvoiced &&
-                string.IsNullOrWhiteSpace(project.InvoiceNumber))
-            {
-                throw new InvalidOperationException(
-                    "Invoice number is required when a project is marked as invoiced.");
-            }
+            throw new InvalidOperationException(
+                "Invoice number is required when a project is marked as invoiced.");
         }
+
+        project.Status = ProjectStatus.Completed;
+
+        if (!project.CompletedOn.HasValue)
+            project.CompletedOn = DateTime.UtcNow;
+    }
+}
 
         // =============================
         // Stock
@@ -358,3 +367,5 @@ namespace WeldAdminPro.Data.Services.Projects
         }
     }
 }
+
+

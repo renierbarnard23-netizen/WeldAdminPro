@@ -1,4 +1,4 @@
-@using WeldAdminPro.Core.Models
+﻿@using WeldAdminPro.Core.Models
 
 <div class="card shadow-sm mb-4">
 
@@ -13,57 +13,57 @@
             <div class="col-md-6">
                 <label class="form-label">Project Name</label>
                 <input class="form-control"
-                       @bind="Project.ProjectName" />
+                       @bind="Project.ProjectName" disabled="@(!IsEditable)" />
             </div>
 
             <div class="col-md-6">
                 <label class="form-label">Client</label>
                 <input class="form-control"
-                       @bind="Project.Client" />
+                       @bind="Project.Client" disabled="@(!IsEditable)" />
             </div>
 
             <div class="col-md-6">
                 <label class="form-label">Representative</label>
                 <input class="form-control"
-                       @bind="Project.ClientRepresentative" />
+                       @bind="Project.ClientRepresentative" disabled="@(!IsEditable)" />
             </div>
 
             <div class="col-md-6">
                 <label class="form-label">Quote Number</label>
                 <input class="form-control"
-                       @bind="Project.QuoteNumber" />
+                       @bind="Project.QuoteNumber" disabled="@(!IsEditable)" />
             </div>
 
             <div class="col-md-6">
                 <label class="form-label">Order Number</label>
                 <input class="form-control"
-                       @bind="Project.OrderNumber" />
+                       @bind="Project.OrderNumber" disabled="@(!IsEditable)" />
             </div>
 
             <div class="col-md-6">
                 <label class="form-label">Budget</label>
                 <input class="form-control"
                        type="number"
-                       @bind="Project.Budget" />
+                       @bind="Project.Budget" disabled="@(!IsEditable)" />
             </div>
 
             <div class="col-md-6">
                 <label class="form-label">Material</label>
                 <input class="form-control"
-                       @bind="Project.Material" />
+                       @bind="Project.Material" disabled="@(!IsEditable)" />
             </div>
 
             <div class="col-md-6">
                 <label class="form-label">Assigned To</label>
                 <input class="form-control"
-                       @bind="Project.AssignedTo" />
+                       @bind="Project.AssignedTo" disabled="@(!IsEditable)" />
             </div>
 
             <div class="col-md-6">
                 <label class="form-label">Status</label>
 
                 <InputSelect class="form-select"
-                             @bind-Value="Project.Status">
+                             @bind-Value="Project.Status" disabled="@(!IsEditable)">
 
                     @foreach (var status in Enum.GetValues<ProjectStatus>())
                     {
@@ -76,20 +76,20 @@
             <div class="col-md-6">
                 <label class="form-label">Start Date</label>
                 <InputDate class="form-control"
-                           @bind-Value="Project.StartDate" />
+                           @bind-Value="Project.StartDate" disabled="@(!IsEditable)" />
             </div>
 
             <div class="col-md-6">
                 <label class="form-label">End Date</label>
                 <InputDate class="form-control"
-                           @bind-Value="Project.EndDate" />
+                           @bind-Value="Project.EndDate" disabled="@(!IsEditable)" />
             </div>
 
             <div class="col-md-6">
                 <div class="form-check mt-4">
 
                     <InputCheckbox class="form-check-input"
-                                   @bind-Value="Project.IsInvoiced" />
+                                   @bind-Value="Project.IsInvoiced" disabled="@(!IsEditable)" />
 
                     <label class="form-check-label">
                         Invoiced
@@ -101,15 +101,16 @@
             <div class="col-md-6">
                 <label class="form-label">Invoice Number</label>
                 <input class="form-control"
-                       @bind="Project.InvoiceNumber" />
+                       @bind="Project.InvoiceNumber" disabled="@(!IsEditable)" />
             </div>
 
         </div>
 
         <hr />
 
-        <button class="btn btn-success"
-                @onclick="Save">
+        <button class="btn btn-success"
+                disabled="@(!IsEditable)"
+                                @onclick="Save">
 
             Save Project
 
@@ -127,9 +128,14 @@
     [Parameter]
     public EventCallback OnSave { get; set; }
 
+    [Parameter]
+    public bool IsEditable { get; set; } = true;
     private async Task Save()
     {
-        Console.WriteLine("Editor Save button clicked");
+        
+        if (!IsEditable)
+            return;
+Console.WriteLine("Editor Save button clicked");
 
         await OnSave.InvokeAsync();
 
@@ -137,3 +143,5 @@
     }
 
 }
+
+
