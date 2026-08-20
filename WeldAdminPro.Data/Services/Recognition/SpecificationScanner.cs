@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
 
 namespace WeldAdminPro.Data.Services.Recognition;
@@ -24,6 +24,21 @@ public class SpecificationScanner
         }
 
         var matches = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Explicit PQR material specification declaration.
+        //
+        // Handles OCR forms such as:
+        // MATERIAL SPECIFICATION: ASME SA312 SA312M 304L
+        // MATERIAL SPECIFICATION: ASME SA312/SA312M 304L
+        //
+        // Keep the complete declaration available to the
+        // RecognitionEngine so specification and grade can
+        // be identified reliably.
+        Find(
+            matches,
+            text,
+            @"MATERIAL\s+SPECIFICATION\s*:\s*(?:ASME\s+)?(?:SA|SB|A|B)\s*[-]?\s*\d{2,5}(?:\s*/?\s*(?:SA|SB|A|B)\s*[-]?\s*\d{2,5}M?)?\s*(?:GRADE\s*)?[A-Z0-9][A-Z0-9\-]*"
+        );
 
         Find(matches, text, @"S30403|TP\s*304L");
         Find(matches, text, @"S31000|S31008|TP\s*310");
