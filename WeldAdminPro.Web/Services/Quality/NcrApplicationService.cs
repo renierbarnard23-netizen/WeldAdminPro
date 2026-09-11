@@ -1,4 +1,8 @@
-﻿using WeldAdminPro.Core.Quality.Enums;
+﻿using WeldAdminPro.Data;
+using WeldAdminPro.Core.Security;
+using WeldAdminPro.Core.Security.Abstractions;
+using WeldAdminPro.Core.Interfaces;
+using WeldAdminPro.Core.Quality.Enums;
 using WeldAdminPro.Core.Quality.Models;
 using WeldAdminPro.Core.Quality.Services;
 using WeldAdminPro.Data.Repositories;
@@ -17,15 +21,46 @@ public class NcrApplicationService
     private readonly RepairApplicationService
         _repairApplicationService;
 
+    private readonly ICurrentUserContext
+        _currentUser;
+
+    private readonly IPermissionAuthorizationService
+        _permissionAuthorization;
+
+    private readonly IProjectAccessAuthorizationService
+        _projectAccessAuthorization;
+
+    private readonly WeldRepository
+        _weldRepository;
+
+    private readonly ProjectRepository
+        _projectRepository;
+
     public NcrApplicationService(
         NcrRepository repository,
         NcrWorkflowHistoryRepository historyRepository,
-        RepairApplicationService repairApplicationService)
+        RepairApplicationService repairApplicationService,
+        ICurrentUserContext currentUser,
+        IPermissionAuthorizationService permissionAuthorization,
+        IProjectAccessAuthorizationService projectAccessAuthorization)
     {
         _repository = repository;
         _historyRepository = historyRepository;
         _repairApplicationService =
             repairApplicationService;
+
+        _currentUser = currentUser;
+        _permissionAuthorization = permissionAuthorization
+            ?? throw new ArgumentNullException(nameof(permissionAuthorization));
+        _projectAccessAuthorization = projectAccessAuthorization
+            ?? throw new ArgumentNullException(nameof(projectAccessAuthorization));
+
+        _weldRepository =
+            new WeldRepository(
+                DatabasePath.GetConnectionString());
+
+        _projectRepository =
+            new ProjectRepository();
     }
 
     // =====================================================
@@ -46,9 +81,7 @@ public class NcrApplicationService
     public NcrRecord? GetById(
         Guid id)
     {
-        return _repository
-            .GetAll()
-            .FirstOrDefault(x => x.Id == id);
+        return _repository.GetById(id);
     }
 
     public List<NcrWorkflowHistoryEntry> GetHistory(
@@ -61,9 +94,25 @@ public class NcrApplicationService
     // Commands
     // =====================================================
 
-    public void Create(
+    public async Task Create(
         NcrRecord ncr)
     {
+        var hasPermission =
+            await _permissionAuthorization.HasPermissionAsync(
+                _currentUser.UserId,
+                _currentUser.Role,
+                PermissionKeys.Quality.NCR);
+
+        if (!hasPermission)
+        {
+            throw new UnauthorizedAccessException(
+                $"You do not have permission to perform '{PermissionKeys.Quality.NCR}'.");
+        }
+
+
+
+        await EnsureNcrProjectAccessAsync(ncr);
+
         if (ncr.Id == Guid.Empty)
         {
             ncr.Id = Guid.NewGuid();
@@ -90,9 +139,31 @@ public class NcrApplicationService
             BuildCreatedDetails(ncr));
     }
 
-    public void Update(
+    public async Task Update(
         NcrRecord ncr)
     {
+        var hasPermission =
+            await _permissionAuthorization.HasPermissionAsync(
+                _currentUser.UserId,
+                _currentUser.Role,
+                PermissionKeys.Quality.NCR);
+
+        if (!hasPermission)
+        {
+            throw new UnauthorizedAccessException(
+                $"You do not have permission to perform '{PermissionKeys.Quality.NCR}'.");
+        }
+
+
+        var existingNcr = GetById(ncr.Id);
+
+        if (existingNcr == null)
+        {
+            return;
+        }
+
+        await EnsureNcrProjectAccessAsync(existingNcr);
+
         _repository.Update(ncr);
     }
 
@@ -105,7 +176,7 @@ public class NcrApplicationService
             target);
     }
 
-    public bool MoveTo(
+    public async Task<bool> MoveTo(
         Guid id,
         NcrStatus target)
     {
@@ -116,12 +187,57 @@ public class NcrApplicationService
             return false;
         }
 
+        await EnsureNcrProjectAccessAsync(ncr);
+
         if (!NcrWorkflowService.CanMoveTo(
                 ncr.Status,
                 target))
         {
             return false;
         }
+
+        var requiredPermission =
+            target switch
+            {
+                NcrStatus.ApprovedForRepair =>
+                    PermissionKeys.Quality.NcrDisposition,
+
+                NcrStatus.Rejected =>
+                    PermissionKeys.Quality.NcrDisposition,
+
+                NcrStatus.PendingVerification =>
+                    ncr.Status == NcrStatus.RepairInProgress
+                        ? PermissionKeys.Quality.Repairs
+                        : PermissionKeys.Quality.NcrDisposition,
+
+                NcrStatus.RepairInProgress =>
+                    PermissionKeys.Quality.Repairs,
+
+                NcrStatus.Closed =>
+                    PermissionKeys.Quality.NcrClose,
+
+                NcrStatus.UnderInvestigation =>
+                    PermissionKeys.Quality.NCR,
+
+                NcrStatus.AwaitingDisposition =>
+                    PermissionKeys.Quality.NCR,
+
+                _ =>
+                    PermissionKeys.Quality.NCR
+            };
+
+        var hasPermission =
+            await _permissionAuthorization.HasPermissionAsync(
+                _currentUser.UserId,
+                _currentUser.Role,
+                requiredPermission);
+
+        if (!hasPermission)
+        {
+            throw new UnauthorizedAccessException(
+                $"You do not have permission to perform '{requiredPermission}'.");
+        }
+
 
         var previousStatus =
             ncr.Status;
@@ -141,10 +257,22 @@ public class NcrApplicationService
         return true;
     }
 
-    public bool StartRepairExecution(
+    public async Task<bool> StartRepairExecution(
         Guid id,
         string performedBy)
     {
+        var hasPermission =
+            await _permissionAuthorization.HasPermissionAsync(
+                _currentUser.UserId,
+                _currentUser.Role,
+                PermissionKeys.Quality.Repairs);
+
+        if (!hasPermission)
+        {
+            throw new UnauthorizedAccessException(
+                $"You do not have permission to perform '{PermissionKeys.Quality.Repairs}'.");
+        }
+
         if (string.IsNullOrWhiteSpace(performedBy))
         {
             return false;
@@ -157,6 +285,8 @@ public class NcrApplicationService
         {
             return false;
         }
+
+        await EnsureNcrProjectAccessAsync(ncr);
 
         const NcrStatus target =
             NcrStatus.RepairInProgress;
@@ -194,7 +324,108 @@ public class NcrApplicationService
     }
 
 
-    public bool CompleteRepairExecution(
+    public async Task<bool> CompleteRepairExecutionAsync(
+        Guid id,
+        string performedBy)
+    {
+        if (!_currentUser.IsAuthenticated ||
+            string.IsNullOrWhiteSpace(_currentUser.UserId))
+        {
+            throw new UnauthorizedAccessException(
+                "Authentication is required.");
+        }
+
+        var hasPermission =
+            await _permissionAuthorization.HasPermissionAsync(
+                _currentUser.UserId,
+                _currentUser.Role,
+                PermissionKeys.Quality.Repairs);
+
+        if (!hasPermission)
+        {
+            throw new UnauthorizedAccessException(
+                $"You do not have permission to perform '{PermissionKeys.Quality.Repairs}'.");
+        }
+
+        var ncr = GetById(id);
+
+        if (ncr == null ||
+            !ncr.WeldId.HasValue)
+        {
+            throw new UnauthorizedAccessException(
+                "The requested NCR is not accessible.");
+        }
+
+        var weld =
+            await _weldRepository.GetByIdAsync(ncr.WeldId.Value);
+
+        if (weld == null)
+        {
+            throw new UnauthorizedAccessException(
+                "The NCR's weld could not be found.");
+        }
+
+        var project =
+            _projectRepository.GetById(weld.ProjectId);
+
+        if (project == null)
+        {
+            throw new UnauthorizedAccessException(
+                "The NCR's project could not be found.");
+        }
+
+        var hasProjectAccess =
+            await _projectAccessAuthorization.CanAccessProjectAsync(
+                _currentUser.UserId,
+                project);
+
+        if (!hasProjectAccess)
+        {
+            throw new UnauthorizedAccessException(
+                "The requested NCR is not accessible.");
+        }
+
+        return CompleteRepairExecution(
+            id,
+            performedBy);
+    }
+
+    private async Task EnsureNcrProjectAccessAsync(NcrRecord ncr)
+    {
+        if (!ncr.WeldId.HasValue)
+        {
+            return;
+        }
+        var weld =
+            await _weldRepository.GetByIdAsync(ncr.WeldId.Value);
+
+        if (weld == null)
+        {
+            throw new UnauthorizedAccessException(
+                "The NCR's weld could not be found.");
+        }
+
+        var project =
+            _projectRepository.GetById(weld.ProjectId);
+
+        if (project == null)
+        {
+            throw new UnauthorizedAccessException(
+                "The NCR's project could not be found.");
+        }
+
+        var hasProjectAccess =
+            await _projectAccessAuthorization.CanAccessProjectAsync(
+                _currentUser.UserId,
+                project);
+
+        if (!hasProjectAccess)
+        {
+            throw new UnauthorizedAccessException(
+                "The requested NCR is not accessible.");
+        }
+    }
+    private bool CompleteRepairExecution(
         Guid id,
         string performedBy)
     {
@@ -253,7 +484,7 @@ public class NcrApplicationService
         return true;
     }
 
-    public bool SetDisposition(
+    public async Task<bool> SetDisposition(
         Guid id,
         NcrDispositionType disposition,
         string approvedBy,
@@ -261,12 +492,26 @@ public class NcrApplicationService
         bool customerApproved = false,
         string? customerApprovalReference = null)
     {
+        var hasPermission =
+            await _permissionAuthorization.HasPermissionAsync(
+                _currentUser.UserId,
+                _currentUser.Role,
+                PermissionKeys.Quality.NcrDisposition);
+
+        if (!hasPermission)
+        {
+            throw new UnauthorizedAccessException(
+                $"You do not have permission to perform '{PermissionKeys.Quality.NcrDisposition}'.");
+        }
+
         var ncr = GetById(id);
 
         if (ncr == null)
         {
             return false;
         }
+
+        await EnsureNcrProjectAccessAsync(ncr);
 
         if (ncr.Status !=
             NcrStatus.AwaitingDisposition)
@@ -364,16 +609,30 @@ public class NcrApplicationService
         return true;
     }
 
-    public bool RecordVerification(
+    public async Task<bool> RecordVerification(
         Guid id,
         string verifiedBy)
     {
+        var hasPermission =
+            await _permissionAuthorization.HasPermissionAsync(
+                _currentUser.UserId,
+                _currentUser.Role,
+                PermissionKeys.Quality.NcrVerify);
+
+        if (!hasPermission)
+        {
+            throw new UnauthorizedAccessException(
+                $"You do not have permission to perform '{PermissionKeys.Quality.NcrVerify}'.");
+        }
+
         var ncr = GetById(id);
 
         if (ncr == null)
         {
             return false;
         }
+
+        await EnsureNcrProjectAccessAsync(ncr);
 
         if (ncr.Status != NcrStatus.PendingVerification)
         {
@@ -411,16 +670,30 @@ public class NcrApplicationService
         return true;
     }
 
-    public bool Close(
+    public async Task<bool> Close(
         Guid id,
         string closedBy)
     {
+        var hasPermission =
+            await _permissionAuthorization.HasPermissionAsync(
+                _currentUser.UserId,
+                _currentUser.Role,
+                PermissionKeys.Quality.NcrClose);
+
+        if (!hasPermission)
+        {
+            throw new UnauthorizedAccessException(
+                $"You do not have permission to perform '{PermissionKeys.Quality.NcrClose}'.");
+        }
+
         var ncr = GetById(id);
 
         if (ncr == null)
         {
             return false;
         }
+
+        await EnsureNcrProjectAccessAsync(ncr);
 
         if (!NcrWorkflowService.CanMoveTo(
                 ncr.Status,
@@ -552,4 +825,5 @@ public class NcrApplicationService
         return details;
     }
 }
+
 
