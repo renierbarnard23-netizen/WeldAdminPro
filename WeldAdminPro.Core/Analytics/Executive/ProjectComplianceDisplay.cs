@@ -2,6 +2,8 @@ namespace WeldAdminPro.Core.Analytics.Executive
 {
     public class ProjectComplianceDisplay
     {
+        public Guid ProjectId { get; set; }
+
         public int JobNumber { get; set; }
 
         public string ProjectName { get; set; } = "";

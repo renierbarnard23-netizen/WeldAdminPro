@@ -4,11 +4,11 @@
 @attribute [Authorize(Policy = "Permission:Projects.Compliance")]
 
 @using MudBlazor
+@using WeldAdminPro.Web.Services
 @using WeldAdminPro.Core.Analytics.Executive
-@using WeldAdminPro.Data.Repositories
-@using WeldAdminPro.Data.Services
 
 @inject NavigationManager Navigation
+@inject ProjectComplianceApplicationService ProjectComplianceService
 
 <MudPaper>
 
@@ -94,7 +94,8 @@
 
             <MudButton Color="Color.Primary"
                        Variant="Variant.Outlined"
-                       Size="Size.Small">
+                       Size="Size.Small"
+                       OnClick="@(() => Navigation.NavigateTo($"/projects/{context.ProjectId}"))">
 
                 Open
 
@@ -110,44 +111,11 @@
 
 @code
 {
-    private readonly ProjectRepository _projectRepo = new();
-
-    private readonly ProjectComplianceService _compliance = new();
-
-    private readonly UnifiedRiskService _risk = new();
-
     private List<ProjectComplianceDisplay> _projects = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        foreach (var project in _projectRepo.GetAll())
-        {
-            var compliance =
-                _compliance.Evaluate(project.Id);
-
-            var unified =
-                _risk.Evaluate(compliance, project.Id);
-
-            _projects.Add(new ProjectComplianceDisplay
-            {
-                JobNumber = project.JobNumber,
-                ProjectName = project.ProjectName,
-                Client = project.Client,
-
-                ComplianceScore = unified.ComplianceScore,
-                FinancialScore = unified.FinancialScore,
-
-                WpsPercent = compliance.WpsCompliancePercentage,
-                DocPercent = compliance.DocumentCompliancePercent,
-
-                IsCompliant = compliance.IsCompliant,
-
-                IssueCount = compliance.Issues.Count,
-
-                RiskScore = unified.Score,
-                RiskLevel = unified.Level,
-                RiskColor = unified.Color
-            });
-        }
+        _projects =
+            await ProjectComplianceService.GetAccessibleProjectsAsync();
     }
 }
