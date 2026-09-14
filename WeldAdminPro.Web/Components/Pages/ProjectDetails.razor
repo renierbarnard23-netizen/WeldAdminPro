@@ -14,6 +14,7 @@
 
 @inject ProjectCostingService ProjectCostingService
 @inject ProjectApplicationService ProjectService
+@inject NavigationManager Navigation
 @inject WeldTraceabilityApplicationService TraceabilityService
 @inject RepairApplicationService RepairService
 
@@ -124,7 +125,6 @@ else
     public Guid Id { get; set; }
 
     private Project? _project;
-
 
     private bool IsProjectEditable =>
         _project != null &&
@@ -147,24 +147,23 @@ else
 
     private RepairAnalytics _repairAnalytics = new();
 
-    private void SaveProject()
+    private async Task SaveProject()
     {
         if (_project == null)
             return;
 
-        ProjectService.SaveProject(_project);
+        await ProjectService.SaveProjectAsync(_project);
 
-        var updatedProject = ProjectService.GetProject(_project.Id);
+        var updatedProject = await ProjectService.GetProjectAsync(_project.Id);
 
         if (updatedProject != null)
         {
             _project = updatedProject;
-            _materialSummary = ProjectService.GetMaterialSummary(updatedProject.Id);
-            _transactions = ProjectService.GetStockUsage(Id);
+            _materialSummary = await ProjectService.GetMaterialSummary(updatedProject.Id);
+            _transactions = await ProjectService.GetStockUsage(Id);
             _stockItems = ProjectService.GetStockItems();
-            _returnableItems = ProjectService.GetReturnableItems(Id);
-            _materialSummary = ProjectService.GetMaterialSummary(updatedProject.Id);
-                        
+            _returnableItems = await ProjectService.GetReturnableItems(Id);
+
         }
 
 
@@ -172,7 +171,7 @@ else
         StateHasChanged();
     }
 
-    private void IssueMaterial((Guid StockId, decimal Quantity) args)
+    private async Task IssueMaterial((Guid StockId, decimal Quantity) args)
     {
         if (_project == null)
             return;
@@ -182,28 +181,24 @@ else
         if (stock == null)
             return;
 
-        ProjectService.IssueMaterial(
+        await ProjectService.IssueMaterial(
             _project,
             stock,
             args.Quantity,
             "Web User");
 
-        _materialSummary =
-            ProjectService.GetMaterialSummary(_project.Id);
+        _materialSummary = await ProjectService.GetMaterialSummary(_project.Id);
 
         _transactions =
-            ProjectService.GetStockUsage(_project.Id);
+            await ProjectService.GetStockUsage(_project.Id);
 
         _documents =
-            ProjectService.GetDocuments(_project.Id);
-
-        _materialSummary =
-            ProjectService.GetMaterialSummary(_project.Id);
+            await ProjectService.GetDocuments(_project.Id);
 
         StateHasChanged();
     }
 
-    private void ReturnMaterial((Guid StockId, decimal Quantity) args)
+    private async Task ReturnMaterial((Guid StockId, decimal Quantity) args)
     {
         if (_project == null)
             return;
@@ -220,77 +215,80 @@ else
         if (stock == null)
             return;
 
-        ProjectService.ReturnMaterial(
+        await ProjectService.ReturnMaterial(
             _project,
             stock,
             args.Quantity,
             item.UnitCost,
             "Web User");
 
-        RefreshProject();
+        await RefreshProject();
     }
 
-    private void RefreshProject()
+    private async Task RefreshProject()
     {
         if (_project == null)
             return;
 
         var projectId = _project.Id;
 
-        _project = ProjectService.GetProject(projectId);
+        _project = await ProjectService.GetProjectAsync(projectId);
 
         if (_project == null)
             return;
 
-        _materialSummary =
-            ProjectService.GetMaterialSummary(projectId);
+        _materialSummary = await ProjectService.GetMaterialSummary(projectId);
 
         _transactions =
-            ProjectService.GetStockUsage(projectId);
+            await ProjectService.GetStockUsage(projectId);
 
-        _documents = ProjectService.GetDocuments(projectId);
-            StateHasChanged();
+        _documents = await ProjectService.GetDocuments(projectId);
 
         _returnableItems =
-            ProjectService.GetReturnableItems(projectId);
-
-        _materialSummary =
-            ProjectService.GetMaterialSummary(projectId);
+            await ProjectService.GetReturnableItems(projectId);
 
         _traceabilityRows =
-            TraceabilityService.GetProjectRows(projectId).Result;
+            await TraceabilityService.GetProjectRows(projectId);
 
         _repairs =
-            RepairService.GetProjectRepairs(projectId).Result;
+            await RepairService.GetProjectRepairs(projectId);
 
-        _repairAnalytics = 
-            RepairService.GetAnalytics(projectId).Result;
+        _repairAnalytics =
+            await RepairService.GetAnalytics(projectId);
 
         StateHasChanged();
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _project = ProjectService.GetProject(Id);
+        try
+        {
+            _project = await ProjectService.GetProjectAsync(Id);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Navigation.NavigateTo("/access-denied");
+            return;
+        }
 
-        _materialSummary = ProjectService.GetMaterialSummary(Id);
+        _materialSummary = await ProjectService.GetMaterialSummary(Id);
 
-        _documents = ProjectService.GetDocuments(Id);
+        _documents = await ProjectService.GetDocuments(Id);
 
-        _transactions = ProjectService.GetStockUsage(Id);
+        _transactions = await ProjectService.GetStockUsage(Id);
 
         _stockItems = ProjectService.GetStockItems();
 
-        _returnableItems = ProjectService.GetReturnableItems(Id);
+        _returnableItems = await ProjectService.GetReturnableItems(Id);
 
         _materialBreakdown =
             ProjectCostingService.GetProjectMaterialBreakdown(Id);
 
-        _traceabilityRows = TraceabilityService.GetProjectRows(Id).Result;
+        _traceabilityRows = await TraceabilityService.GetProjectRows(Id);
 
-        _repairs = RepairService.GetProjectRepairs(Id).Result;
+        _repairs = await RepairService.GetProjectRepairs(Id);
 
-        _repairAnalytics = RepairService.GetAnalytics(Id).Result;
+        _repairAnalytics = await RepairService.GetAnalytics(Id);
     }
 
     private double CalculateCompliance()
@@ -311,4 +309,3 @@ else
     }
 
 }
-
