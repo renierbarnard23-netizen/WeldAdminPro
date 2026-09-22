@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
@@ -26,68 +26,102 @@ namespace WeldAdminPro.Data.Repositories
                 new SqliteConnection(
                     _connectionString);
 
-            connection.Execute(
-                @"INSERT INTO NcrRecords
-                (
-                    Id,
-                    WeldId,
-                    WeldNumber,
-                    Description,
-                    NcrNumber,
-                    RootCause,
-                    CorrectiveAction,
-                    PreventiveAction,
-                    RaisedBy,
-                    RaisedDate,
-                    AssignedTo,
-                    DueDate,
-                    Status,
-                    IsClosed,
-                    ClosedBy,
-                    ClosedDate,
-                    DispositionType,
-                    DispositionApprovedBy,
-                    DispositionApprovedDate,
-                    VerificationBy,
-                    VerificationDate,
-                    RequiresCustomerApproval,
-                    CustomerApproved,
-                    CustomerApprovalReference,
-                    Category,
-                    CustomReason,
-                    IsWeldingRelated
-                )
-                VALUES
-                (
-                    @Id,
-                    @WeldId,
-                    @WeldNumber,
-                    @Description,
-                    @NcrNumber,
-                    @RootCause,
-                    @CorrectiveAction,
-                    @PreventiveAction,
-                    @RaisedBy,
-                    @RaisedDate,
-                    @AssignedTo,
-                    @DueDate,
-                    @Status,
-                    @IsClosed,
-                    @ClosedBy,
-                    @ClosedDate,
-                    @DispositionType,
-                    @DispositionApprovedBy,
-                    @DispositionApprovedDate,
-                    @VerificationBy,
-                    @VerificationDate,
-                    @RequiresCustomerApproval,
-                    @CustomerApproved,
-                    @CustomerApprovalReference,
-                    @Category,
-                    @CustomReason,
-                    @IsWeldingRelated
-                )",
-                ToParameters(item));
+            connection.Open();
+
+            using var transaction =
+                connection.BeginTransaction(deferred: false);
+
+            try
+            {
+                var maxNumber =
+                    connection.ExecuteScalar<int?>(
+                        @"
+                        SELECT MAX(
+                            CAST(
+                                SUBSTR(NcrNumber, 5)
+                                AS INTEGER))
+                        FROM NcrRecords
+                        WHERE NcrNumber IS NOT NULL
+                          AND TRIM(NcrNumber) <> ''
+                          AND UPPER(NcrNumber) LIKE 'NCR-%'
+                          AND SUBSTR(NcrNumber, 5) GLOB '[0-9]*';",
+                        transaction: transaction)
+                    ?? 0;
+
+                item.NcrNumber =
+                    $"NCR-{(maxNumber + 1):000}";
+
+                connection.Execute(
+                    @"INSERT INTO NcrRecords
+                    (
+                        Id,
+                        WeldId,
+                        WeldNumber,
+                        Description,
+                        NcrNumber,
+                        RootCause,
+                        CorrectiveAction,
+                        PreventiveAction,
+                        RaisedBy,
+                        RaisedDate,
+                        AssignedTo,
+                        DueDate,
+                        Status,
+                        IsClosed,
+                        ClosedBy,
+                        ClosedDate,
+                        DispositionType,
+                        DispositionApprovedBy,
+                        DispositionApprovedDate,
+                        VerificationBy,
+                        VerificationDate,
+                        RequiresCustomerApproval,
+                        CustomerApproved,
+                        CustomerApprovalReference,
+                        Category,
+                        CustomReason,
+                        IsWeldingRelated
+                    )
+                    VALUES
+                    (
+                        @Id,
+                        @WeldId,
+                        @WeldNumber,
+                        @Description,
+                        @NcrNumber,
+                        @RootCause,
+                        @CorrectiveAction,
+                        @PreventiveAction,
+                        @RaisedBy,
+                        @RaisedDate,
+                        @AssignedTo,
+                        @DueDate,
+                        @Status,
+                        @IsClosed,
+                        @ClosedBy,
+                        @ClosedDate,
+                        @DispositionType,
+                        @DispositionApprovedBy,
+                        @DispositionApprovedDate,
+                        @VerificationBy,
+                        @VerificationDate,
+                        @RequiresCustomerApproval,
+                        @CustomerApproved,
+                        @CustomerApprovalReference,
+                        @Category,
+                        @CustomReason,
+                        @IsWeldingRelated
+                    )",
+                    ToParameters(item),
+                    transaction);
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
 
         public List<NcrRecord> GetAll()
@@ -107,6 +141,27 @@ namespace WeldAdminPro.Data.Repositories
                 .ToList();
         }
 
+        public NcrRecord? GetById(
+            Guid id)
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            var row =
+                connection.QueryFirstOrDefault(
+                    @"SELECT *
+                      FROM NcrRecords
+                      WHERE Id = @Id",
+                    new
+                    {
+                        Id = id.ToString()
+                    });
+
+            return row == null
+                ? null
+                : Map(row);
+        }
         public List<NcrRecord> GetByWeld(
             Guid weldId)
         {
@@ -131,7 +186,12 @@ namespace WeldAdminPro.Data.Repositories
                 .ToList();
         }
 
-        public void Update(
+        /// <summary>
+        /// Updates only ordinary NCR information. Lifecycle-controlled fields
+        /// are intentionally excluded and must be changed through dedicated
+        /// application-service operations.
+        /// </summary>
+        public void UpdateEditable(
             NcrRecord item)
         {
             using var connection =
@@ -141,33 +201,145 @@ namespace WeldAdminPro.Data.Repositories
             connection.Execute(
                 @"UPDATE NcrRecords
                   SET
-                    WeldNumber = @WeldNumber,
                     Description = @Description,
-                    NcrNumber = @NcrNumber,
                     RootCause = @RootCause,
                     CorrectiveAction = @CorrectiveAction,
                     PreventiveAction = @PreventiveAction,
-                    RaisedBy = @RaisedBy,
-                    RaisedDate = @RaisedDate,
                     AssignedTo = @AssignedTo,
                     DueDate = @DueDate,
-                    Status = @Status,
-                    IsClosed = @IsClosed,
-                    ClosedBy = @ClosedBy,
-                    ClosedDate = @ClosedDate,
-                    DispositionType = @DispositionType,
-                    DispositionApprovedBy = @DispositionApprovedBy,
-                    DispositionApprovedDate = @DispositionApprovedDate,
-                    VerificationBy = @VerificationBy,
-                    VerificationDate = @VerificationDate,
-                    RequiresCustomerApproval = @RequiresCustomerApproval,
-                    CustomerApproved = @CustomerApproved,
-                    CustomerApprovalReference = @CustomerApprovalReference,
                     Category = @Category,
                     CustomReason = @CustomReason,
                     IsWeldingRelated = @IsWeldingRelated
                   WHERE Id = @Id",
-                ToParameters(item));
+                ToEditableParameters(item));
+        }
+
+        /// <summary>
+        /// Persists a workflow status change after the application service has
+        /// validated the transition.
+        /// </summary>
+        public void UpdateStatus(
+            NcrRecord item)
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            connection.Execute(
+                @"UPDATE NcrRecords
+                  SET Status = @Status
+                  WHERE Id = @Id",
+                new
+                {
+                    Id = item.Id.ToString(),
+                    Status = (int)item.Status
+                });
+        }
+
+        /// <summary>
+        /// Persists disposition and customer-approval data through the
+        /// controlled disposition operation.
+        /// </summary>
+        public void UpdateDisposition(
+            NcrRecord item)
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            connection.Execute(
+                @"UPDATE NcrRecords
+                  SET
+                    DispositionType = @DispositionType,
+                    DispositionApprovedBy = @DispositionApprovedBy,
+                    DispositionApprovedDate = @DispositionApprovedDate,
+                    RequiresCustomerApproval = @RequiresCustomerApproval,
+                    CustomerApproved = @CustomerApproved,
+                    CustomerApprovalReference = @CustomerApprovalReference
+                  WHERE Id = @Id",
+                new
+                {
+                    Id = item.Id.ToString(),
+                    DispositionType = item.DispositionType.HasValue
+                        ? (int)item.DispositionType.Value
+                        : (int?)null,
+                    item.DispositionApprovedBy,
+                    item.DispositionApprovedDate,
+                    RequiresCustomerApproval = item.RequiresCustomerApproval ? 1 : 0,
+                    CustomerApproved = item.CustomerApproved ? 1 : 0,
+                    item.CustomerApprovalReference
+                });
+        }
+
+        /// <summary>
+        /// Persists final verification data through the controlled verification
+        /// operation.
+        /// </summary>
+        public void UpdateVerification(
+            NcrRecord item)
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            connection.Execute(
+                @"UPDATE NcrRecords
+                  SET
+                    VerificationBy = @VerificationBy,
+                    VerificationDate = @VerificationDate
+                  WHERE Id = @Id",
+                new
+                {
+                    Id = item.Id.ToString(),
+                    item.VerificationBy,
+                    item.VerificationDate
+                });
+        }
+
+        /// <summary>
+        /// Persists closure data through the controlled closure operation.
+        /// </summary>
+        public void UpdateClosure(
+            NcrRecord item)
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            connection.Execute(
+                @"UPDATE NcrRecords
+                  SET
+                    Status = @Status,
+                    IsClosed = @IsClosed,
+                    ClosedBy = @ClosedBy,
+                    ClosedDate = @ClosedDate
+                  WHERE Id = @Id",
+                new
+                {
+                    Id = item.Id.ToString(),
+                    Status = (int)item.Status,
+                    IsClosed = item.IsClosed ? 1 : 0,
+                    item.ClosedBy,
+                    item.ClosedDate
+                });
+        }
+
+        private static object ToEditableParameters(
+            NcrRecord item)
+        {
+            return new
+            {
+                Id = item.Id.ToString(),
+                item.Description,
+                item.RootCause,
+                item.CorrectiveAction,
+                item.PreventiveAction,
+                item.AssignedTo,
+                item.DueDate,
+                item.Category,
+                item.CustomReason,
+                IsWeldingRelated = item.IsWeldingRelated ? 1 : 0
+            };
         }
 
         private static object ToParameters(
@@ -229,61 +401,6 @@ namespace WeldAdminPro.Data.Repositories
             };
         }
 
-        public string GetNextNcrNumber()
-        {
-            using var connection =
-                new SqliteConnection(_connectionString);
-
-            connection.Open();
-
-            var cmd =
-                connection.CreateCommand();
-
-            cmd.CommandText = @"
-SELECT NcrNumber
-FROM NcrRecords
-WHERE NcrNumber IS NOT NULL
-  AND NcrNumber <> '';";
-
-            using var reader =
-                cmd.ExecuteReader();
-
-            var maxNumber = 0;
-
-            while (reader.Read())
-            {
-                var ncrNumber =
-                    reader["NcrNumber"]
-                        ?.ToString();
-
-                if (string.IsNullOrWhiteSpace(
-                    ncrNumber))
-                {
-                    continue;
-                }
-
-                if (!ncrNumber.StartsWith(
-                    "NCR-",
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                var numberPart =
-                    ncrNumber.Substring(4);
-
-                if (int.TryParse(
-                    numberPart,
-                    out var number)
-                    &&
-                    number > maxNumber)
-                {
-                    maxNumber = number;
-                }
-            }
-
-            return $"NCR-{(maxNumber + 1):000}";
-        }
 
         private static NcrRecord Map(
             dynamic row)
@@ -421,3 +538,5 @@ WHERE NcrNumber IS NOT NULL
         }
     }
 }
+
+
