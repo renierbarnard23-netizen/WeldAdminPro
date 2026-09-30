@@ -1,4 +1,4 @@
-using WeldAdminPro.Core.Quality.Services;
+﻿using WeldAdminPro.Core.Quality.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor.Services;
@@ -18,10 +18,13 @@ using WeldAdminPro.Data.Services.Recognition;
 using WeldAdminPro.Web.Components;
 using WeldAdminPro.Web.Security;
 using WeldAdminPro.Web.Services.Dashboard;
+using WeldAdminPro.Web.Services.Inventory;
 using WeldAdminPro.Web.Services.Import;
 using WeldAdminPro.Web.Services.Navigation;
 using WeldAdminPro.Web.Services.Quality;
+using WeldAdminPro.Web.Services.Reporting;
 using WeldAdminPro.Web.Services.Security;
+using WeldAdminPro.Web.Services;
 using WeldAdminPro.Data.Services.Security;
 using static WeldAdminPro.Web.Services.Quality.PqrApplicationService;
 using Microsoft.AspNetCore.Authorization;
@@ -119,6 +122,12 @@ builder.Services.AddSingleton<ProductionEngineService>();
 builder.Services.AddScoped<DashboardService>();
 
 builder.Services.AddScoped<ProductionApplicationService>();
+builder.Services.AddScoped<ProductionAdvisorService>();
+builder.Services.AddScoped<ProductionAIPlannerService>();
+builder.Services.AddScoped<ProductionScheduleService>();
+builder.Services.AddScoped<ProductionCapacityService>();
+builder.Services.AddScoped<ProductionDelayPredictionService>();
+builder.Services.AddScoped<TimelineEngine>();
 
 builder.Services.AddScoped<ProjectRiskService>();
 
@@ -130,11 +139,21 @@ builder.Services.AddScoped<StockForecastService>();
 
 builder.Services.AddScoped<MaterialDemandForecastService>();
 
+builder.Services.AddScoped<ProjectComplianceService>();
+builder.Services.AddScoped<UnifiedRiskService>();
 builder.Services.AddScoped<ProjectApplicationService>();
+builder.Services.AddScoped<ProjectComplianceApplicationService>();
 
 builder.Services.AddScoped<AdministrationApplicationService>();
 
 builder.Services.AddScoped<WorkOrderRepository>();
+
+builder.Services.AddScoped<WpqrRepository>();
+
+builder.Services.AddScoped<IWpqrRepository>(sp =>
+    sp.GetRequiredService<WpqrRepository>());
+
+builder.Services.AddScoped<WpqrApplicationService>();
 
 // Register the concrete repository
 builder.Services.AddScoped<WeldRepository>();
@@ -158,6 +177,7 @@ builder.Services.AddScoped<WorkOrderShortageDetectionService>();
 builder.Services.AddScoped<ProductionReadinessService>();
 
 builder.Services.AddScoped<StockApplicationService>();
+builder.Services.AddScoped<InventoryExportService>();
 
 builder.Services.AddScoped<AuditService>();
 
@@ -165,7 +185,6 @@ builder.Services.AddScoped<PurchaseOrderApplicationService>();
 
 builder.Services.AddMudServices();
 
-builder.Services.AddScoped<WorkOrderExecutionService>();
 
 builder.Services.AddScoped<WorkOrderMaterialRepository>();
 
@@ -180,6 +199,10 @@ builder.Services.AddScoped<BillOfMaterialRepository>();
 builder.Services.AddScoped<MaterialValidator>();
 
 builder.Services.AddScoped<ProjectRepository>();
+builder.Services.AddScoped<ProjectDocumentService>();
+builder.Services.AddScoped<ProjectMaterialService>();
+builder.Services.AddScoped<ProjectDocumentFileRepository>();
+builder.Services.AddScoped<CompanyRepository>();
 
 builder.Services.AddScoped<StockProjectTransactionService>();
 
@@ -188,6 +211,8 @@ builder.Services.AddScoped<SmartPurchaseOrderService>();
 builder.Services.AddScoped<QualityDashboardService>();
 
 builder.Services.AddScoped<WpsApplicationService>();
+builder.Services.AddScoped<WpsWorkflowService>();
+builder.Services.AddScoped<PqrWorkflowService>();
 
 builder.Services.AddScoped<PqrApplicationService>();
 
@@ -196,6 +221,7 @@ builder.Services.AddScoped<PqrParserService>();
 builder.Services.AddScoped<PqrOcrService>();
 
 builder.Services.AddSingleton<MaterialLibraryService>();
+builder.Services.AddScoped<MaterialResolutionService>();
 
 builder.Services.AddScoped<MaterialSearchService>();
 
@@ -214,8 +240,32 @@ builder.Services.AddScoped<PqrRepository>();
 builder.Services.AddScoped<WelderQualificationRepository>();
 
 builder.Services.AddScoped<WeldNdtRepository>();
+builder.Services.AddScoped<EquipmentRepository>(_ =>
+    new EquipmentRepository(
+        DatabasePath.GetConnectionString()));
+builder.Services.AddScoped<EquipmentCalibrationRepository>(_ =>
+    new EquipmentCalibrationRepository(
+        DatabasePath.GetConnectionString()));
+builder.Services.AddScoped<EquipmentApplicationService>();
 
 builder.Services.AddScoped<ProjectDocumentRepository>();
+
+builder.Services.AddScoped<ProjectQualityControlPlanRepository>(_ =>
+    new ProjectQualityControlPlanRepository(
+        DatabasePath.GetConnectionString()));
+builder.Services.AddScoped<QcpMasterActivityRepository>(_ =>
+    new QcpMasterActivityRepository(
+        DatabasePath.GetConnectionString()));
+
+builder.Services.AddScoped<ProjectQualityControlPlanItemRepository>();
+builder.Services.AddScoped<ProjectQualityControlPlanItemApprovalHistoryRepository>(_ =>
+    new ProjectQualityControlPlanItemApprovalHistoryRepository(
+        DatabasePath.GetConnectionString()));
+
+builder.Services.AddScoped<CustomerQualityRequirementRepository>(_ =>
+    new CustomerQualityRequirementRepository(
+        DatabasePath.GetConnectionString()));
+
 builder.Services.AddScoped<NcrRepository>(_ =>
     new NcrRepository(
         DatabasePath.GetConnectionString()));
@@ -239,7 +289,25 @@ builder.Services.AddScoped<MaterialCostIntelligenceService>();
 
 builder.Services.AddScoped<DocumentStorageService>();
 
+builder.Services.AddScoped<RepairRepository>(_ =>
+    new RepairRepository(
+        DatabasePath.GetConnectionString()));
+
+builder.Services.AddScoped<DocumentVaultRepository>(_ =>
+    new DocumentVaultRepository(
+        DatabasePath.GetConnectionString()));
+
+builder.Services.AddScoped<
+    WeldAdminPro.Core.Reporting.Interfaces.IDocumentVaultRepository>(
+    sp => sp.GetRequiredService<DocumentVaultRepository>());
+
+builder.Services.AddScoped<WelderQualificationValidationService>();
+
 builder.Services.AddScoped<WeldRegisterApplicationService>();
+builder.Services.AddScoped<CapaApplicationService>();
+builder.Services.AddScoped<CustomerQualityRequirementApplicationService>();
+builder.Services.AddScoped<ProjectQualityControlPlanApplicationService>();
+builder.Services.AddScoped<QcpMasterActivityApplicationService>();
 
 builder.Services.AddScoped<WeldTraceabilityApplicationService>();
 
@@ -247,7 +315,6 @@ builder.Services.AddScoped<RepairApplicationService>();
 
 builder.Services.AddScoped<IWeldService, WeldService>();
 builder.Services.AddScoped<WeldWorkflowEngine>();
-builder.Services.AddScoped<WeldLifecycleRuleService>();
 builder.Services.AddScoped<WeldReleaseValidationService>();
 builder.Services.AddScoped<WeldReleaseContextBuilder>();
 
@@ -299,11 +366,14 @@ builder.Services.AddScoped<WelderQualificationApplicationService>();
 builder.Services.AddScoped<NdtApplicationService>();
 
 builder.Services.AddScoped<DocumentApplicationService>();
+builder.Services.AddScoped<DocumentVaultApplicationService>();
 
 builder.Services.AddScoped<NcrApplicationService>();
 
 builder.Services.AddScoped<
     WeldAdminPro.Core.Quality.Services.NcrDossierPdfService>();
+
+    builder.Services.AddScoped<WeldAdminPro.Core.Quality.Services.PqrPdfService>();
 
 builder.Services.AddScoped<QualityComplianceService>();
 
@@ -325,6 +395,19 @@ builder.Services.AddSingleton(
 builder.Services.AddSingleton(
     new UserPermissionRepository(DatabasePath.GetConnectionString()));
 
+builder.Services.AddSingleton<IUserCompanyAccessRepository>(
+    new UserCompanyAccessRepository(
+        DatabasePath.GetConnectionString()));
+
+builder.Services.AddSingleton<IProjectUserAssignmentRepository>(
+    new ProjectUserAssignmentRepository(
+        DatabasePath.GetConnectionString()));
+
+builder.Services.AddScoped<IProjectAccessAuthorizationService>(
+    sp => new ProjectAccessAuthorizationService(
+        sp.GetRequiredService<ICurrentUserContext>(),
+        sp.GetRequiredService<IUserCompanyAccessRepository>(),
+        sp.GetRequiredService<IProjectUserAssignmentRepository>()));
 builder.Services.AddScoped<UserContextService>();
 
 builder.Services.AddScoped<ICurrentUserContext>(
@@ -397,3 +480,22 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

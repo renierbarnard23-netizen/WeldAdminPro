@@ -1,4 +1,4 @@
-namespace WeldAdminPro.Core.Security;
+﻿namespace WeldAdminPro.Core.Security;
 
 public static class PermissionKeys
 {
@@ -55,7 +55,10 @@ public static class PermissionKeys
     {
         public const string View = "Quality.View";
         public const string WPS = "Quality.WPS";
+        public const string WpsApproval = "Quality.WpsApproval";
         public const string PQR = "Quality.PQR";
+        public const string WPQR = "Quality.WPQR";
+        public const string WelderQualifications = "Quality.WelderQualifications";
         public const string WeldRegister = "Quality.WeldRegister";
         public const string Repairs = "Quality.Repairs";
         public const string NCR = "Quality.NCR";
@@ -63,8 +66,14 @@ public static class PermissionKeys
         public const string NcrVerify = "Quality.NCR.Verify";
         public const string NcrClose = "Quality.NCR.Close";
         public const string NDT = "Quality.NDT";
+        public const string Equipment = "Quality.Equipment";
+        public const string Calibration = "Quality.Calibration";
         public const string HoldPointApproval = "Quality.HoldPointApproval";
+        public const string WeldRelease = "Quality.WeldRelease";
         public const string Export = "Quality.Export";
+        public const string CustomerRequirements = "Quality.CustomerRequirements";
+        public const string QCP = "Quality.QCP";
+        public const string QCPMaster = "Quality.QCPMaster";
     }
 
     public static class Administration
@@ -73,6 +82,7 @@ public static class PermissionKeys
         public const string AuditLog = "Administration.AuditLog";
         public const string Security = "Administration.Security";
         public const string Settings = "Administration.Settings";
+        public const string Companies = "Administration.Companies";
     }
 
     public static class Reports
@@ -81,3 +91,6 @@ public static class PermissionKeys
         public const string Export = "Reports.Export";
     }
 }
+
+
+

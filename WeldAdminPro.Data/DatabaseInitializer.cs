@@ -146,6 +146,7 @@ CREATE TABLE IF NOT EXISTS Pqr (
             AddColumnIfNotExists(connection, "Pqr", "JointType", "TEXT");
             AddColumnIfNotExists(connection, "Pqr", "ThicknessQualifiedMin", "REAL");
             AddColumnIfNotExists(connection, "Pqr", "ThicknessQualifiedMax", "REAL");
+            AddColumnIfNotExists(connection, "Pqr", "DiameterTested", "REAL");
             AddColumnIfNotExists(connection, "Pqr", "DiameterMin", "REAL");
             AddColumnIfNotExists(connection, "Pqr", "DiameterMax", "REAL");
             AddColumnIfNotExists(connection, "Pqr", "WpsReferenceNumber", "TEXT");
@@ -178,6 +179,10 @@ CREATE TABLE IF NOT EXISTS Pqr (
             AddColumnIfNotExists(connection, "Pqr", "BaseMaterial2", "TEXT");
             AddColumnIfNotExists(connection, "Pqr", "BaseMaterial1Specification", "TEXT");
             AddColumnIfNotExists(connection, "Pqr", "BaseMaterial2Specification", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "BaseMaterial1Grade", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "BaseMaterial2Grade", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "BaseMaterial1UNS", "TEXT");
+            AddColumnIfNotExists(connection, "Pqr", "BaseMaterial2UNS", "TEXT");
 
             AddColumnIfNotExists(connection, "Pqr", "FillerClassification", "TEXT");
             AddColumnIfNotExists(connection, "Pqr", "ANumber", "TEXT");
@@ -422,6 +427,75 @@ CREATE TABLE IF NOT EXISTS StockTransactions (
                 "LastModifiedOn",
                 "TEXT");
 
+            // =========================================
+            // CUSTOMER QUALITY REQUIREMENTS
+            // =========================================
+
+            cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS CustomerQualityRequirements
+(
+    Id TEXT PRIMARY KEY,
+    ProjectId TEXT NOT NULL,
+    RequirementNumber TEXT NOT NULL,
+    Category TEXT,
+    Description TEXT NOT NULL,
+    SourceDocument TEXT,
+    SourceClause TEXT,
+    Revision TEXT,
+    Mandatory INTEGER NOT NULL DEFAULT 1,
+    AcceptanceCriteria TEXT,
+    VerificationMethod TEXT,
+    ResponsibleParty TEXT,
+    RequiredEvidence TEXT,
+    Status INTEGER NOT NULL DEFAULT 0,
+    CreatedOn TEXT NOT NULL,
+    CreatedBy TEXT,
+    ApprovedOn TEXT,
+    ApprovedBy TEXT,
+    EffectiveDate TEXT,
+    SupersededOn TEXT,
+
+    FOREIGN KEY(ProjectId)
+        REFERENCES Projects(Id)
+        ON DELETE CASCADE
+);";
+
+            cmd.ExecuteNonQuery();
+
+            AddColumnIfNotExists(
+                connection,
+                "CustomerQualityRequirements",
+                "PreviousRevisionId",
+                "TEXT");
+
+            AddColumnIfNotExists(
+                connection,
+                "CustomerQualityRequirements",
+                "IsActive",
+                "INTEGER NOT NULL DEFAULT 1");
+
+            connection.Execute(@"
+                CREATE INDEX IF NOT EXISTS
+                IX_CustomerQualityRequirements_ProjectId
+                ON CustomerQualityRequirements(ProjectId);");
+
+            connection.Execute(@"
+                CREATE INDEX IF NOT EXISTS
+                IX_CustomerQualityRequirements_Project_Status
+                ON CustomerQualityRequirements(ProjectId, Status);");
+
+            connection.Execute(@"
+                DROP INDEX IF EXISTS
+                IX_CustomerQualityRequirements_Project_RequirementNumber;");
+
+            connection.Execute(@"
+                DROP INDEX IF EXISTS
+                UX_CustomerQualityRequirements_Project_RequirementNumber;");
+
+            connection.Execute(@"
+                CREATE UNIQUE INDEX IF NOT EXISTS
+                UX_CustomerQualityRequirements_Project_RequirementNumber_Revision
+                ON CustomerQualityRequirements(ProjectId, RequirementNumber, Revision);");
             // =========================
             // WELD HISTORY
             // =========================
@@ -599,7 +673,82 @@ CREATE TABLE IF NOT EXISTS WelderQualification (
             AddColumnIfNotExists(connection, "WelderQualification", "ThicknessMax", "REAL");
             AddColumnIfNotExists(connection, "WelderQualification", "InitialQualificationDate", "TEXT");
             AddColumnIfNotExists(connection, "WelderQualification", "RenewalDate", "TEXT");
+            AddColumnIfNotExists(connection, "WelderQualification", "IsActive", "INTEGER NOT NULL DEFAULT 1");
+            AddColumnIfNotExists(
+                connection,
+                "WelderQualification",
+                "LastRenewedByUserId",
+                "TEXT");
 
+            AddColumnIfNotExists(
+                connection,
+                "WelderQualification",
+                "LastRenewedByName",
+                "TEXT");
+
+            AddColumnIfNotExists(
+                connection,
+                "WelderQualification",
+                "LastRenewedAt",
+                "TEXT");
+
+            AddColumnIfNotExists(
+                connection,
+                "WelderQualification",
+                "PreviousExpiryDate",
+                "TEXT");
+
+
+            // =========================
+            // WELDER QUALIFICATION RENEWAL HISTORY
+            // =========================
+
+            cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS WelderQualificationRenewalHistory
+(
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    WelderQualificationId INTEGER NOT NULL,
+
+    CompanyId TEXT,
+
+    WelderNumber TEXT NOT NULL,
+
+    PreviousExpiryDate TEXT,
+
+    NewExpiryDate TEXT NOT NULL,
+
+    RenewalDate TEXT NOT NULL,
+
+    RenewalPeriodMonths INTEGER NOT NULL,
+
+    RenewedByUserId TEXT NOT NULL,
+
+    RenewedByUsername TEXT,
+
+    RenewedByName TEXT NOT NULL,
+
+    Status TEXT NOT NULL DEFAULT 'Completed',
+
+    FOREIGN KEY(WelderQualificationId)
+        REFERENCES WelderQualification(Id)
+        ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS
+IX_WelderQualificationRenewalHistory_QualificationId
+ON WelderQualificationRenewalHistory(WelderQualificationId);
+
+CREATE INDEX IF NOT EXISTS
+IX_WelderQualificationRenewalHistory_CompanyId
+ON WelderQualificationRenewalHistory(CompanyId);
+
+CREATE INDEX IF NOT EXISTS
+IX_WelderQualificationRenewalHistory_RenewalDate
+ON WelderQualificationRenewalHistory(RenewalDate);
+";
+
+            cmd.ExecuteNonQuery();
             // =========================
             // WELD NDT RESULTS
             // =========================
@@ -639,6 +788,64 @@ ON WeldNdtResults(WeldId);");
             AddColumnIfNotExists(connection, "WeldNdtResults", "RequiresRepair", "INTEGER DEFAULT 0");
             AddColumnIfNotExists(connection, "WeldNdtResults", "RepairCycle", "INTEGER DEFAULT 0");
             AddColumnIfNotExists(connection, "WeldNdtResults", "IsReinspection", "INTEGER DEFAULT 0");
+            AddColumnIfNotExists(connection, "WeldNdtResults", "EquipmentId", "TEXT");
+            AddColumnIfNotExists(connection, "WeldNdtResults", "CalibrationRecordId", "TEXT");
+            AddColumnIfNotExists(connection, "WeldNdtResults", "EquipmentNumberSnapshot", "TEXT");
+            AddColumnIfNotExists(connection, "WeldNdtResults", "EquipmentSerialNumberSnapshot", "TEXT");
+            AddColumnIfNotExists(connection, "WeldNdtResults", "CalibrationCertificateSnapshot", "TEXT");
+
+            connection.Execute(@"CREATE INDEX IF NOT EXISTS IX_WeldNdtResults_EquipmentId ON WeldNdtResults(EquipmentId);");
+            connection.Execute(@"CREATE INDEX IF NOT EXISTS IX_WeldNdtResults_CalibrationRecordId ON WeldNdtResults(CalibrationRecordId);");
+
+            // =========================
+            // QUALITY INSPECTION EQUIPMENT
+            // =========================
+            cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS Equipment
+(
+    Id TEXT PRIMARY KEY, CompanyId TEXT NOT NULL, EquipmentNumber TEXT NOT NULL, Description TEXT NOT NULL,
+    EquipmentType TEXT, Manufacturer TEXT, Model TEXT, SerialNumber TEXT,
+    IsActive INTEGER NOT NULL DEFAULT 1, CalibrationRequired INTEGER NOT NULL DEFAULT 1,
+    CalibrationIntervalDays INTEGER NOT NULL DEFAULT 365, Notes TEXT, CreatedDate TEXT NOT NULL, LastModifiedDate TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS UX_Equipment_Company_Number ON Equipment(CompanyId, EquipmentNumber);
+CREATE INDEX IF NOT EXISTS IX_Equipment_CompanyId ON Equipment(CompanyId);
+
+CREATE TABLE IF NOT EXISTS EquipmentCalibrations
+(
+    Id TEXT PRIMARY KEY, EquipmentId TEXT NOT NULL, CompanyId TEXT NOT NULL, CertificateNumber TEXT NOT NULL,
+    CalibrationDate TEXT NOT NULL, ExpiryDate TEXT NOT NULL, IsActive INTEGER NOT NULL DEFAULT 1,
+    IsApproved INTEGER NOT NULL DEFAULT 0, ApprovedBy TEXT, ApprovedDate TEXT, Provider TEXT, Standard TEXT,
+    Notes TEXT, DocumentVaultFileId TEXT, CreatedDate TEXT NOT NULL,
+    FOREIGN KEY(EquipmentId) REFERENCES Equipment(Id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS UX_EquipmentCalibrations_Company_Certificate ON EquipmentCalibrations(CompanyId, CertificateNumber);
+CREATE INDEX IF NOT EXISTS IX_EquipmentCalibrations_EquipmentId ON EquipmentCalibrations(EquipmentId);
+CREATE INDEX IF NOT EXISTS IX_EquipmentCalibrations_ValidRange ON EquipmentCalibrations(EquipmentId, IsActive, IsApproved, CalibrationDate, ExpiryDate);
+";
+            cmd.ExecuteNonQuery();
+
+            // =========================
+            // MULTIPLE NDT EQUIPMENT TRACEABILITY
+            // =========================
+            cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS WeldNdtEquipmentUsages
+(
+    Id TEXT PRIMARY KEY,
+    WeldNdtResultId TEXT NOT NULL,
+    EquipmentId TEXT NOT NULL,
+    CalibrationRecordId TEXT,
+    EquipmentNumberSnapshot TEXT NOT NULL,
+    EquipmentSerialNumberSnapshot TEXT,
+    CalibrationCertificateSnapshot TEXT,
+    FOREIGN KEY(WeldNdtResultId) REFERENCES WeldNdtResults(Id) ON DELETE CASCADE,
+    FOREIGN KEY(EquipmentId) REFERENCES Equipment(Id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS UX_WeldNdtEquipmentUsages_Result_Equipment ON WeldNdtEquipmentUsages(WeldNdtResultId, EquipmentId);
+CREATE INDEX IF NOT EXISTS IX_WeldNdtEquipmentUsages_Result ON WeldNdtEquipmentUsages(WeldNdtResultId);
+CREATE INDEX IF NOT EXISTS IX_WeldNdtEquipmentUsages_Equipment ON WeldNdtEquipmentUsages(EquipmentId);
+";
+            cmd.ExecuteNonQuery();
 
             // =========================
             // WELD TABLE
@@ -654,6 +861,7 @@ CREATE TABLE IF NOT EXISTS Welds
     DrawingNumber TEXT,
     JointType TEXT,
 
+    WpsId TEXT,
     WpsNumber TEXT,
     WelderNumber TEXT,
 
@@ -709,6 +917,13 @@ CREATE TABLE IF NOT EXISTS Welds
                 CREATE INDEX IF NOT EXISTS
                 IX_Welds_WeldNumber
                 ON Welds(WeldNumber);");
+
+            AddColumnIfNotExists(connection, "Welds", "WpsId", "TEXT");
+
+            connection.Execute(@"
+                CREATE INDEX IF NOT EXISTS
+                IX_Welds_WpsId
+                ON Welds(WpsId);");
 
             AddColumnIfNotExists(connection, "Welds", "Process", "TEXT");
             AddColumnIfNotExists(connection, "Welds", "MaterialGroup", "TEXT");
@@ -990,6 +1205,131 @@ CREATE TABLE IF NOT EXISTS CapaRecords
 )");
 
             // =========================
+            // PROJECT QUALITY CONTROL PLANS TABLE
+            // =========================
+
+            cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS ProjectQualityControlPlans
+(
+    Id TEXT PRIMARY KEY,
+    ProjectId TEXT NOT NULL,
+
+    QcpNumber TEXT NOT NULL,
+    Revision TEXT NOT NULL,
+
+    Status INTEGER NOT NULL DEFAULT 0,
+
+    Title TEXT NOT NULL,
+    Description TEXT,
+
+    PreparedBy TEXT,
+    PreparedOn TEXT,
+
+    ApprovedBy TEXT,
+    ApprovedOn TEXT,
+
+    EffectiveDate TEXT,
+    SupersededOn TEXT,
+
+    PreviousRevisionId TEXT,
+    IsActive INTEGER NOT NULL DEFAULT 0,
+
+    FOREIGN KEY(ProjectId)
+        REFERENCES Projects(Id)
+        ON DELETE CASCADE
+);";
+
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
+CREATE INDEX IF NOT EXISTS IX_ProjectQualityControlPlans_ProjectId
+ON ProjectQualityControlPlans(ProjectId);";
+
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
+CREATE INDEX IF NOT EXISTS IX_ProjectQualityControlPlans_Project_QcpNumber
+ON ProjectQualityControlPlans(ProjectId, QcpNumber);";
+
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
+CREATE UNIQUE INDEX IF NOT EXISTS UX_ProjectQualityControlPlans_Project_QcpNumber_Revision
+ON ProjectQualityControlPlans(ProjectId, QcpNumber, Revision);";
+
+            cmd.ExecuteNonQuery();
+
+            // =========================
+            // QCP ITEM PERSISTENCE
+            // =========================
+
+            cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS ProjectQualityControlPlanItems
+(
+    Id TEXT PRIMARY KEY,
+    ProjectQualityControlPlanId TEXT NOT NULL,
+    SequenceNumber INTEGER NOT NULL,
+    Activity TEXT NOT NULL,
+    CustomerQualityRequirementId TEXT,
+    AcceptanceCriteria TEXT NOT NULL,
+    VerificationMethod TEXT NOT NULL,
+    ResponsibleParty TEXT NOT NULL,
+    InspectionStage TEXT NOT NULL,
+    HoldPointCategory INTEGER,
+    HoldPointType INTEGER,
+    RequiredNdtMethod INTEGER,
+    Mandatory INTEGER NOT NULL DEFAULT 0,
+    RequiredEvidence TEXT NOT NULL,
+    Notes TEXT NOT NULL,
+    FOREIGN KEY(ProjectQualityControlPlanId)
+        REFERENCES ProjectQualityControlPlans(Id)
+        ON DELETE CASCADE,
+    FOREIGN KEY(CustomerQualityRequirementId)
+        REFERENCES CustomerQualityRequirements(Id)
+        ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS IX_ProjectQualityControlPlanItems_PlanId
+    ON ProjectQualityControlPlanItems(ProjectQualityControlPlanId);
+
+CREATE INDEX IF NOT EXISTS IX_ProjectQualityControlPlanItems_RequirementId
+    ON ProjectQualityControlPlanItems(CustomerQualityRequirementId);
+
+CREATE UNIQUE INDEX IF NOT EXISTS UX_ProjectQualityControlPlanItems_Plan_Sequence
+    ON ProjectQualityControlPlanItems(ProjectQualityControlPlanId, SequenceNumber);
+";
+
+            cmd.ExecuteNonQuery();
+
+            // =========================
+            // QCP ITEM APPROVAL HISTORY TABLE
+            // =========================
+
+            cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS ProjectQualityControlPlanItemApprovalHistory
+(
+    Id TEXT PRIMARY KEY,
+    ProjectQualityControlPlanItemId TEXT NOT NULL,
+    Status INTEGER NOT NULL,
+    Action TEXT NOT NULL,
+    ApprovedBy TEXT,
+    ApprovedOn TEXT NOT NULL,
+    Remarks TEXT,
+    FOREIGN KEY(ProjectQualityControlPlanItemId)
+        REFERENCES ProjectQualityControlPlanItems(Id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS IX_ProjectQualityControlPlanItemApprovalHistory_ItemId
+    ON ProjectQualityControlPlanItemApprovalHistory(ProjectQualityControlPlanItemId);
+
+CREATE INDEX IF NOT EXISTS IX_ProjectQualityControlPlanItemApprovalHistory_ApprovedOn
+    ON ProjectQualityControlPlanItemApprovalHistory(ApprovedOn);
+";
+
+            cmd.ExecuteNonQuery();
+
+            // =========================
             // QCP INSPECTION RULES TABLE
             // =========================
 
@@ -1128,6 +1468,57 @@ CREATE TABLE IF NOT EXISTS DocumentVaultFiles
                 ON DocumentVaultFiles(WeldId);");
 
             
+
+        // =====================================
+        // QCP MASTER ACTIVITY LIBRARY
+        // =====================================
+
+        cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS QcpMasterActivities
+(
+    Id TEXT PRIMARY KEY,
+    Code TEXT NOT NULL,
+    Name TEXT NOT NULL,
+    Category TEXT NOT NULL,
+    Description TEXT,
+    AcceptanceCriteria TEXT,
+    VerificationMethod TEXT,
+    ResponsibleParty TEXT,
+    InspectionStage TEXT,
+    HoldPointCategory INTEGER,
+    HoldPointType INTEGER,
+    RequiredNdtMethod INTEGER,
+    Mandatory INTEGER NOT NULL DEFAULT 0,
+    RequiredEvidence TEXT,
+    Applicability TEXT,
+    ConditionType TEXT,
+    SourceReference TEXT,
+    Notes TEXT,
+    IsActive INTEGER NOT NULL DEFAULT 1,
+    CreatedBy TEXT,
+    CreatedOn TEXT NOT NULL,
+    ModifiedBy TEXT,
+    ModifiedOn TEXT
+);
+";
+
+        cmd.ExecuteNonQuery();
+
+        connection.Execute(@"
+            CREATE UNIQUE INDEX IF NOT EXISTS
+                UX_QcpMasterActivities_Code
+                ON QcpMasterActivities(Code);");
+
+        connection.Execute(@"
+            CREATE INDEX IF NOT EXISTS
+                IX_QcpMasterActivities_Category
+                ON QcpMasterActivities(Category);");
+
+        connection.Execute(@"
+            CREATE INDEX IF NOT EXISTS
+                IX_QcpMasterActivities_IsActive
+                ON QcpMasterActivities(IsActive);");
+
         }
 
         // =========================
@@ -1175,5 +1566,16 @@ CREATE TABLE IF NOT EXISTS DocumentVaultFiles
 
     }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 

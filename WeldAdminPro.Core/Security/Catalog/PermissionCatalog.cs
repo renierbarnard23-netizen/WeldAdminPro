@@ -1,4 +1,4 @@
-using WeldAdminPro.Core.Security;
+﻿using WeldAdminPro.Core.Security;
 using WeldAdminPro.Core.Security.Definitions;
 
 
@@ -195,10 +195,25 @@ public static class PermissionCatalog
             "WPS",
             "Manage WPS"),
         new(
+            PermissionKeys.Quality.WpsApproval,
+            PermissionGroups.Quality,
+            "WPS Approval",
+            "Approve WPS revisions"),
+        new(
             PermissionKeys.Quality.PQR,
             PermissionGroups.Quality,
             "PQR",
             "Manage PQR"),
+        new(
+            PermissionKeys.Quality.WPQR,
+            PermissionGroups.Quality,
+            "WPQR",
+            "Manage WPQR"),
+        new(
+            PermissionKeys.Quality.WelderQualifications,
+            PermissionGroups.Quality,
+            "Welder Qualifications",
+            "Manage welder qualifications"),
         new(
             PermissionKeys.Quality.WeldRegister,
             PermissionGroups.Quality,
@@ -235,16 +250,48 @@ public static class PermissionCatalog
             "NDT",
             "Manage NDT"),
         new(
+            PermissionKeys.Quality.Equipment,
+            PermissionGroups.Quality,
+            "Equipment",
+            "Manage quality inspection equipment"),
+        new(
+            PermissionKeys.Quality.Calibration,
+            PermissionGroups.Quality,
+            "Calibration",
+            "Manage equipment calibration records"),
+        new(
             PermissionKeys.Quality.HoldPointApproval,
             PermissionGroups.Quality,
             "Hold Point Approval",
             "Approve and reject quality hold points"),
         new(
+            PermissionKeys.Quality.WeldRelease,
+            PermissionGroups.Quality,
+            "Weld Release",
+            "Release welds after all quality requirements are satisfied"),
+        new(
             PermissionKeys.Quality.Export,
             PermissionGroups.Quality,
             "Export",
             "Export quality"),
+        new(
+            PermissionKeys.Quality.CustomerRequirements,
+            PermissionGroups.Quality,
+            "Customer Quality Requirements",
+            "Manage customer quality requirements"),
 
+        new(
+            PermissionKeys.Quality.QCP,
+            PermissionGroups.Quality,
+            "Quality Control Plan",
+            "Manage project Quality Control Plans"),
+
+
+        new(
+            PermissionKeys.Quality.QCPMaster,
+            PermissionGroups.Quality,
+            "QCP Master Activity Library",
+            "Manage the QCP Master Activity Library"),
         // ==========================================================
         // ADMINISTRATION
         // ==========================================================
@@ -269,6 +316,11 @@ public static class PermissionCatalog
             PermissionGroups.Administration,
             "Settings",
             "System settings"),
+        new(
+            PermissionKeys.Administration.Companies,
+            PermissionGroups.Administration,
+            "Companies",
+            "Manage companies"),
 
         // ==========================================================
         // REPORTS

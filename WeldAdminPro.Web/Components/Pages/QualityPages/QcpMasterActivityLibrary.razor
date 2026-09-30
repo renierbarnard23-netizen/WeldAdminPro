@@ -1,0 +1,374 @@
+﻿@page "/quality/qcp-master"
+@attribute [Authorize(Policy = "Permission:Quality.QCPMaster")]
+
+@using MudBlazor
+@using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Data.Services.Quality
+
+@inject QcpMasterActivityApplicationService MasterActivityService
+@inject ISnackbar Snackbar
+
+<PageTitle>QCP Master Activity Library</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    <MudText Typo="Typo.h4" GutterBottom="true">
+        QCP Master Activity Library
+    </MudText>
+
+    <MudText Typo="Typo.body1" Class="mb-4">
+        Controlled global reference library for standard Quality Control Plan activities.
+        Selecting a master activity copies its current values into a project QCP item.
+        Changes to the master library do not modify existing project QCP items.
+    </MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4">
+                <MudStack Row="true"
+                          Justify="Justify.SpaceBetween"
+                          AlignItems="AlignItems.Center"
+                          Class="mb-3">
+                    <MudText Typo="Typo.h6">Master Activities</MudText>
+
+                    <MudStack Row="true" AlignItems="AlignItems.Center">
+                        <MudSelect T="bool"
+                                   Label="Status"
+                                   Dense="true"
+                                   Value="_activeOnly"
+                                   ValueChanged="ActiveFilterChanged"
+                                   Class="mr-3">
+                            <MudSelectItem Value="true">Active</MudSelectItem>
+                            <MudSelectItem Value="false">All</MudSelectItem>
+                        </MudSelect>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="NewActivity">
+                            New Activity
+                        </MudButton>
+                    </MudStack>
+                </MudStack>
+
+                <MudTable Items="_activities"
+                          Hover="true"
+                          Dense="true"
+                          Striped="true">
+                    <HeaderContent>
+                        <MudTh>Code</MudTh>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Category</MudTh>
+                        <MudTh>Applicability</MudTh>
+                        <MudTh>Condition</MudTh>
+                        <MudTh>Mandatory</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Action</MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate>
+                        <MudTd DataLabel="Code">
+                            @context.Code
+                        </MudTd>
+
+                        <MudTd DataLabel="Name">
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Primary"
+                                       OnClick="@(() => EditActivity(context))">
+                                @context.Name
+                            </MudButton>
+                        </MudTd>
+
+                        <MudTd DataLabel="Category">
+                            @context.Category
+                        </MudTd>
+
+                        <MudTd DataLabel="Applicability">
+                            @context.Applicability
+                        </MudTd>
+
+                        <MudTd DataLabel="Condition">
+                            @context.ConditionType
+                        </MudTd>
+
+                        <MudTd DataLabel="Mandatory">
+                            @(context.Mandatory ? "Yes" : "No")
+                        </MudTd>
+
+                        <MudTd DataLabel="Status">
+                            @(context.IsActive ? "Active" : "Inactive")
+                        </MudTd>
+
+                        <MudTd DataLabel="Action">
+                            <MudStack Row="true">
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           OnClick="@(() => EditActivity(context))">
+                                    Edit
+                                </MudButton>
+
+                                @if (context.IsActive)
+                                {
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Outlined"
+                                               Color="Color.Warning"
+                                               OnClick="@(() => DeactivateActivity(context))">
+                                        Deactivate
+                                    </MudButton>
+                                }
+                            </MudStack>
+                        </MudTd>
+                    </RowTemplate>
+
+                    <NoRecordsContent>
+                        <MudText Class="pa-4">
+                            No QCP Master Activities found.
+                        </MudText>
+                    </NoRecordsContent>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" GutterBottom="true">
+                    @(_isEditing
+                        ? "Edit Master Activity"
+                        : "Add Master Activity")
+                </MudText>
+
+                <MudTextField Label="Code"
+                              @bind-Value="_editingActivity.Code"
+                              Required="true"
+                              HelperText="Unique controlled activity code." />
+
+                <MudTextField Label="Name"
+                              @bind-Value="_editingActivity.Name"
+                              Required="true" />
+
+                <MudTextField Label="Category"
+                              @bind-Value="_editingActivity.Category"
+                              Required="true"
+                              HelperText="Example: Pre-work, Material, Fabrication, NDT, PWHT, Testing, Final, Closeout." />
+
+                <MudTextField Label="Description"
+                              @bind-Value="_editingActivity.Description"
+                              Lines="3" />
+
+                <MudTextField Label="Acceptance Criteria"
+                              @bind-Value="_editingActivity.AcceptanceCriteria"
+                              Lines="4"
+                              Required="true" />
+
+                <MudTextField Label="Verification Method"
+                              @bind-Value="_editingActivity.VerificationMethod"
+                              Lines="2" />
+
+                <MudTextField Label="Responsible Party"
+                              @bind-Value="_editingActivity.ResponsibleParty" />
+
+                <MudTextField Label="Inspection Stage"
+                              @bind-Value="_editingActivity.InspectionStage" />
+
+                <MudSelect T="HoldPointCategory?"
+                           Label="Hold Point Category"
+                           Clearable="true"
+                           @bind-Value="_editingActivity.HoldPointCategory">
+                    @foreach (var value in Enum.GetValues<HoldPointCategory>())
+                    {
+                        <MudSelectItem T="HoldPointCategory?" Value="@((HoldPointCategory?)value)">
+                            @value
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudSelect T="HoldPointType?"
+                           Label="Hold Point Type"
+                           Clearable="true"
+                           @bind-Value="_editingActivity.HoldPointType">
+                    @foreach (var value in Enum.GetValues<HoldPointType>())
+                    {
+                        <MudSelectItem T="HoldPointType?" Value="@((HoldPointType?)value)">
+                            @value
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudSelect T="NdtMethodType?"
+                           Label="Required NDT Method"
+                           Clearable="true"
+                           @bind-Value="_editingActivity.RequiredNdtMethod">
+                    @foreach (var value in Enum.GetValues<NdtMethodType>())
+                    {
+                        <MudSelectItem T="NdtMethodType?" Value="@((NdtMethodType?)value)">
+                            @value
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudCheckBox T="bool"
+                             Label="Mandatory"
+                             @bind-Value="_editingActivity.Mandatory" />
+
+                <MudTextField Label="Required Evidence"
+                              @bind-Value="_editingActivity.RequiredEvidence"
+                              Lines="2" />
+
+                <MudSelect T="string"
+                           Label="Applicability"
+                           @bind-Value="_editingActivity.Applicability">
+                    <MudSelectItem Value="@("New Fabrication")">New Fabrication</MudSelectItem>
+                    <MudSelectItem Value="@("Repair")">Repair</MudSelectItem>
+                    <MudSelectItem Value="@("Both")">Both</MudSelectItem>
+                </MudSelect>
+
+                <MudSelect T="string"
+                           Label="Condition Type"
+                           @bind-Value="_editingActivity.ConditionType">
+                    <MudSelectItem Value="@("Always")">Always</MudSelectItem>
+                    <MudSelectItem Value="@("When Required")">When Required</MudSelectItem>
+                    <MudSelectItem Value="@("When Applicable")">When Applicable</MudSelectItem>
+                    <MudSelectItem Value="@("Code/Specification Driven")">Code/Specification Driven</MudSelectItem>
+                </MudSelect>
+
+                <MudTextField Label="Source Reference"
+                              @bind-Value="_editingActivity.SourceReference"
+                              Lines="2" />
+
+                <MudTextField Label="Notes"
+                              @bind-Value="_editingActivity.Notes"
+                              Lines="3" />
+
+                @if (_editingActivity.Id != Guid.Empty)
+                {
+                    <MudCheckBox T="bool"
+                                 Label="Active"
+                                 @bind-Value="_editingActivity.IsActive" />
+                }
+
+                <MudStack Row="true" Class="mt-4">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="SaveActivity">
+                        Save
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               OnClick="NewActivity">
+                        Clear
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private List<QcpMasterActivity> _activities = new();
+    private QcpMasterActivity _editingActivity = new();
+    private bool _activeOnly = true;
+    private bool _isEditing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadActivities();
+    }
+
+    private async Task ReloadActivities()
+    {
+        _activities = _activeOnly
+            ? await MasterActivityService.GetActiveAsync()
+            : await MasterActivityService.GetAllAsync();
+    }
+
+    private async Task ActiveFilterChanged(bool activeOnly)
+    {
+        _activeOnly = activeOnly;
+        await ReloadActivities();
+    }
+
+    private void NewActivity()
+    {
+        _isEditing = false;
+        _editingActivity = new QcpMasterActivity
+        {
+            IsActive = true,
+            Mandatory = true,
+            Applicability = "Both",
+            ConditionType = "Always"
+        };
+    }
+
+    private void EditActivity(QcpMasterActivity activity)
+    {
+        _isEditing = true;
+        _editingActivity = new QcpMasterActivity
+        {
+            Id = activity.Id,
+            Code = activity.Code,
+            Name = activity.Name,
+            Category = activity.Category,
+            Description = activity.Description,
+            AcceptanceCriteria = activity.AcceptanceCriteria,
+            VerificationMethod = activity.VerificationMethod,
+            ResponsibleParty = activity.ResponsibleParty,
+            InspectionStage = activity.InspectionStage,
+            HoldPointCategory = activity.HoldPointCategory,
+            HoldPointType = activity.HoldPointType,
+            RequiredNdtMethod = activity.RequiredNdtMethod,
+            Mandatory = activity.Mandatory,
+            RequiredEvidence = activity.RequiredEvidence,
+            Applicability = activity.Applicability,
+            ConditionType = activity.ConditionType,
+            SourceReference = activity.SourceReference,
+            Notes = activity.Notes,
+            IsActive = activity.IsActive,
+            CreatedBy = activity.CreatedBy,
+            CreatedOn = activity.CreatedOn,
+            ModifiedBy = activity.ModifiedBy,
+            ModifiedOn = activity.ModifiedOn
+        };
+    }
+
+    private async Task SaveActivity()
+    {
+        try
+        {
+            if (!_isEditing)
+            {
+                await MasterActivityService.AddAsync(_editingActivity);
+                Snackbar.Add("QCP Master Activity added.", Severity.Success);
+            }
+            else
+            {
+                await MasterActivityService.UpdateAsync(_editingActivity);
+                Snackbar.Add("QCP Master Activity updated.", Severity.Success);
+            }
+
+            await ReloadActivities();
+            NewActivity();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task DeactivateActivity(QcpMasterActivity activity)
+    {
+        try
+        {
+            await MasterActivityService.DeactivateAsync(activity.Id);
+            Snackbar.Add("QCP Master Activity deactivated.", Severity.Success);
+            await ReloadActivities();
+
+            if (_editingActivity.Id == activity.Id)
+                NewActivity();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}
+

@@ -1,4 +1,4 @@
-using WeldAdminPro.Core.Security;
+﻿using WeldAdminPro.Core.Security;
 
 namespace WeldAdminPro.Core.Security.Catalog;
 
@@ -71,7 +71,10 @@ public static class RolePermissionCatalog
 
                 PermissionKeys.Quality.View,
                 PermissionKeys.Quality.WPS,
+                PermissionKeys.Quality.WpsApproval,
                 PermissionKeys.Quality.PQR,
+                PermissionKeys.Quality.WPQR,
+                PermissionKeys.Quality.WelderQualifications,
                 PermissionKeys.Quality.WeldRegister,
                 PermissionKeys.Quality.Repairs,
                 PermissionKeys.Quality.NCR,
@@ -79,11 +82,17 @@ public static class RolePermissionCatalog
                 PermissionKeys.Quality.NcrVerify,
                 PermissionKeys.Quality.NcrClose,
                 PermissionKeys.Quality.NDT,
+                PermissionKeys.Quality.Equipment,
+                PermissionKeys.Quality.Calibration,
                 PermissionKeys.Quality.Export,
+                PermissionKeys.Quality.CustomerRequirements,
 
                 PermissionKeys.Reports.View,
                 PermissionKeys.Reports.Export,
-                PermissionKeys.Quality.HoldPointApproval
+                PermissionKeys.Quality.HoldPointApproval,
+                PermissionKeys.Quality.WeldRelease,
+                PermissionKeys.Quality.QCP,
+                PermissionKeys.Quality.QCPMaster,
             ],
 
             // ======================================================
@@ -101,6 +110,8 @@ public static class RolePermissionCatalog
                 PermissionKeys.Quality.View,
                 PermissionKeys.Quality.WPS,
                 PermissionKeys.Quality.PQR,
+                PermissionKeys.Quality.WPQR,
+                PermissionKeys.Quality.WelderQualifications,
                 PermissionKeys.Quality.WeldRegister,
                 PermissionKeys.Quality.Repairs,
                 PermissionKeys.Quality.NCR,
@@ -108,10 +119,16 @@ public static class RolePermissionCatalog
                 PermissionKeys.Quality.NcrVerify,
                 PermissionKeys.Quality.NcrClose,
                 PermissionKeys.Quality.NDT,
+                PermissionKeys.Quality.Equipment,
+                PermissionKeys.Quality.Calibration,
                 PermissionKeys.Quality.Export,
+                PermissionKeys.Quality.CustomerRequirements,
 
                 PermissionKeys.Reports.View,
-                PermissionKeys.Quality.HoldPointApproval
+                PermissionKeys.Quality.HoldPointApproval,
+                PermissionKeys.Quality.WeldRelease,
+                PermissionKeys.Quality.QCP,
+                PermissionKeys.Quality.QCPMaster,
             ],
 
             // ======================================================
@@ -153,6 +170,8 @@ public static class RolePermissionCatalog
                 PermissionKeys.Quality.View,
                 PermissionKeys.Quality.WPS,
                 PermissionKeys.Quality.PQR,
+                PermissionKeys.Quality.WPQR,
+                PermissionKeys.Quality.WelderQualifications,
                 PermissionKeys.Quality.WeldRegister,
                 PermissionKeys.Quality.Repairs,
                 PermissionKeys.Quality.NCR,
@@ -160,10 +179,15 @@ public static class RolePermissionCatalog
                 PermissionKeys.Quality.NcrVerify,
                 PermissionKeys.Quality.NcrClose,
                 PermissionKeys.Quality.NDT,
+                PermissionKeys.Quality.Equipment,
+                PermissionKeys.Quality.Calibration,
                 PermissionKeys.Quality.Export,
+                PermissionKeys.Quality.CustomerRequirements,
 
                 PermissionKeys.Reports.View,
-                PermissionKeys.Quality.HoldPointApproval
+                PermissionKeys.Quality.HoldPointApproval,
+                PermissionKeys.Quality.WeldRelease,
+                PermissionKeys.Quality.QCP,
             ],
 
             // ======================================================
@@ -179,14 +203,19 @@ public static class RolePermissionCatalog
 
                 PermissionKeys.Quality.View,
                 PermissionKeys.Quality.WPS,
+                PermissionKeys.Quality.WPQR,
+                PermissionKeys.Quality.WelderQualifications,
                 PermissionKeys.Quality.WeldRegister,
                 PermissionKeys.Quality.Repairs,
                 PermissionKeys.Quality.NCR,
                 PermissionKeys.Quality.NcrVerify,
                 PermissionKeys.Quality.NDT,
+                PermissionKeys.Quality.Equipment,
+                PermissionKeys.Quality.Calibration,
 
                 PermissionKeys.Reports.View,
-                PermissionKeys.Quality.HoldPointApproval
+                PermissionKeys.Quality.HoldPointApproval,
+                PermissionKeys.Quality.WeldRelease,
             ],
 
             // ======================================================
@@ -247,7 +276,6 @@ public static class RolePermissionCatalog
                 PermissionKeys.Production.View,
                 PermissionKeys.Production.WorkOrders,
                 PermissionKeys.Procurement.View,
-                PermissionKeys.Quality.View,
                 PermissionKeys.Reports.View
             ]
         };

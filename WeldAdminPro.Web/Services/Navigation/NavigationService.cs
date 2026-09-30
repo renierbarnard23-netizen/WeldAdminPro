@@ -1,4 +1,4 @@
-using WeldAdminPro.Core.Security;
+﻿using WeldAdminPro.Core.Security;
 using WeldAdminPro.Web.Models.Navigation;
 using WeldAdminPro.Web.Services.Security;
 using WeldAdminPro.Data.Services.Security;
@@ -28,14 +28,14 @@ public class NavigationService
             {
                 Text = "Dashboard",
                 Url = "/",
-                Icon = "🏠"
+                Icon = "\uD83C\uDFE0"
             },
 
             // Projects
             new NavigationNode
             {
                 Text = "Projects",
-                Icon = "📁",
+                Icon = "\uD83D\uDCCB",
                 Permission = PermissionKeys.Projects.View,
 
                 Children =
@@ -77,7 +77,7 @@ public class NavigationService
             new NavigationNode
             {
                 Text = "Inventory",
-                Icon = "📦",
+                Icon = "\uD83D\uDCE6",
                 Permission = PermissionKeys.Inventory.View,
 
                 Children =
@@ -150,7 +150,7 @@ public class NavigationService
             new NavigationNode
                     {
                         Text = "Production",
-                        Icon = "🏭",
+                        Icon = "\uD83C\uDFED",
                         Permission = PermissionKeys.Production.View,
 
                         Children =
@@ -179,7 +179,7 @@ public class NavigationService
             new NavigationNode
             {
                 Text = "Procurement",
-                Icon = "🛒",
+                Icon = "\uD83D\uDE92",
                 Permission = PermissionKeys.Procurement.View,
 
                 Children =
@@ -196,7 +196,7 @@ public class NavigationService
             new NavigationNode
             {
                 Text = "Quality",
-                Icon = "✔",
+                Icon = "\u2714\uFE0F",
                 Permission = PermissionKeys.Quality.View,
 
                 Children =
@@ -216,6 +216,27 @@ public class NavigationService
 
                     new()
                     {
+                        Text = "Customer Quality Requirements",
+                        Url = "/quality/customer-requirements",
+                        Permission = PermissionKeys.Quality.CustomerRequirements
+                    },
+
+                    new()
+                    {
+                        Text = "Quality Control Plans",
+                        Url = "/quality/qcp",
+                        Permission = PermissionKeys.Quality.QCP
+                    },
+
+                    new()
+                    {
+                        Text = "QCP Master Activity Library",
+                        Url = "/quality/qcp-master",
+                        Permission = PermissionKeys.Quality.QCPMaster
+                    },
+
+                    new()
+                    {
                         Text = "WPS",
                         Url = "/quality/wps",
                         Permission = PermissionKeys.Quality.WPS
@@ -229,6 +250,13 @@ public class NavigationService
 
                     new()
                     {
+                        Text = "Equipment & Calibration",
+                        Url = "/quality/equipment",
+                        Permission = PermissionKeys.Quality.Equipment
+                    },
+
+                    new()
+                    {
                         Text = "Repairs",
                         Url = "/quality/repairs"
                     },
@@ -238,6 +266,13 @@ public class NavigationService
                         Text = "NCR Management",
                         Url = "/quality/ncr",
                         Permission = PermissionKeys.Quality.NCR
+                    },
+
+                    new()
+                    {
+                        Text = "CAPA Management",
+                        Url = "/quality/capa",
+                        Permission = PermissionKeys.Quality.NCR
                     }
                 ]
             },
@@ -245,17 +280,24 @@ public class NavigationService
             new NavigationNode
             {
                 Text = "Reports",
-                Icon = "📊",
+                Icon = "\uD83D\uDCCA",
                 Url = "/reports"
             },
 
             new NavigationNode
             {
                 Text = "Administration",
-                Icon = "⚙",
+                Icon = "\u2699\uFE0F",
 
                 Children =
                 [
+                    new()
+                    {
+                        Text = "Companies",
+                        Url = "/administration/companies",
+                        Permission = PermissionKeys.Administration.Companies
+                    },
+
                     new()
                     {
                         Text = "User Management",
@@ -276,7 +318,7 @@ public class NavigationService
                         Url = "/production/settings"
                     }
                 ]
-            }
+            },
         ];
 
         return await FilterNodesAsync(nodes);
@@ -365,3 +407,6 @@ public class NavigationService
         return copy;
     }
 }
+
+
+
