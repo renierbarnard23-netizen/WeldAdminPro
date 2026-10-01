@@ -1,0 +1,877 @@
+@page "/quality/qcp/{ProjectId:guid}/plan/{PlanId:guid}"
+@attribute [Authorize(Policy = "Permission:Quality.QCP")]
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Data.Services.Projects
+@using WeldAdminPro.Data.Services.Quality
+
+@inject ProjectApplicationService ProjectService
+@inject CustomerQualityRequirementApplicationService CustomerQualityRequirementService
+@inject ProjectQualityControlPlanApplicationService QcpService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>QCP Detail</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_project is null || _plan is null)
+    {
+        <MudAlert Severity="Severity.Error">
+            Quality Control Plan could not be loaded.
+        </MudAlert>
+    }
+    else
+    {
+        <MudPaper Class="pa-4 mb-4">
+
+            <MudStack Row="true"
+                      Justify="Justify.SpaceBetween"
+                      AlignItems="AlignItems.Center">
+
+                <div>
+                    <MudText Typo="Typo.h4">
+                        Quality Control Plan
+                    </MudText>
+
+                    <MudText Typo="Typo.subtitle1">
+                        Job @_project.JobNumber � @_project.ProjectName
+                    </MudText>
+
+                    <MudText Typo="Typo.body2">
+                        Client: @_project.Client
+                    </MudText>
+
+                    <MudText Typo="Typo.body2">
+                        QCP: @_plan.QcpNumber
+                        &nbsp;|&nbsp;
+                        Revision: @_plan.Revision
+                        &nbsp;|&nbsp;
+                        Status: @_plan.Status
+                    </MudText>
+                </div>
+
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.ArrowBack"
+                           OnClick="BackToQcp">
+                    Back to QCPs
+                </MudButton>
+
+            </MudStack>
+
+        </MudPaper>
+
+        @if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">
+                @_errorMessage
+            </MudAlert>
+        }
+
+        <MudPaper Class="pa-4">
+
+            <MudStack Row="true"
+                      Justify="Justify.SpaceBetween"
+                      AlignItems="AlignItems.Center"
+                      Class="mb-3">
+
+                <MudText Typo="Typo.h5">
+                    QCP Inspection and Quality Activities
+                </MudText>
+
+                @if (_plan.Status == ProjectQualityControlPlanStatus.Draft)
+                {
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="BeginAddItem">
+                        Add QCP Item
+                    </MudButton>
+                }
+
+            </MudStack>
+
+            @if (_items.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info">
+                    No QCP activities have been defined for this revision.
+                </MudAlert>
+            }
+            else
+            {
+                <MudTable Items="_items"
+                          Hover="true"
+                          Dense="true"
+                          Bordered="true">
+
+                    <HeaderContent>
+                        <MudTh>#</MudTh>
+                        <MudTh>Activity</MudTh>
+                        <MudTh>Customer Requirement</MudTh>
+                        <MudTh>Acceptance Criteria</MudTh>
+                        <MudTh>Verification</MudTh>
+                        <MudTh>Responsible Party</MudTh>
+                        <MudTh>Inspection Stage</MudTh>
+                        <MudTh>H/W/S</MudTh>
+                        <MudTh>NDT</MudTh>
+                        <MudTh>Mandatory</MudTh>
+                        <MudTh>Evidence</MudTh>
+                        <MudTh>Actions</MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate>
+
+                        <MudTd DataLabel="#">
+                            @context.SequenceNumber
+                        </MudTd>
+
+                        <MudTd DataLabel="Activity">
+                            @context.Activity
+                        </MudTd>
+
+                        <MudTd DataLabel="Customer Requirement">
+                            @GetRequirementDisplay(context.CustomerQualityRequirementId)
+                        </MudTd>
+
+                        <MudTd DataLabel="Acceptance Criteria">
+                            @context.AcceptanceCriteria
+                        </MudTd>
+
+                        <MudTd DataLabel="Verification">
+                            @context.VerificationMethod
+                        </MudTd>
+
+                        <MudTd DataLabel="Responsible Party">
+                            @context.ResponsibleParty
+                        </MudTd>
+
+                        <MudTd DataLabel="Inspection Stage">
+                            @context.InspectionStage
+                        </MudTd>
+
+                        <MudTd DataLabel="H/W/S">
+                            @GetHoldPointDisplay(context)
+                        </MudTd>
+
+                        <MudTd DataLabel="NDT">
+                            @(context.RequiredNdtMethod?.ToString() ?? "-")
+                        </MudTd>
+
+                        <MudTd DataLabel="Mandatory">
+                            @(context.Mandatory ? "Yes" : "No")
+                        </MudTd>
+
+                        <MudTd DataLabel="Evidence">
+                            @context.RequiredEvidence
+                        </MudTd>
+
+                        <MudTd DataLabel="Actions">
+
+                            <MudStack Row="true" Spacing="1">
+
+                                @if (_plan.Status == ProjectQualityControlPlanStatus.Draft)
+                                {
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Outlined"
+                                               Class="mr-2"
+                                               OnClick="@(() => BeginEditItem(context))">
+                                        Edit
+                                    </MudButton>
+
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Outlined"
+                                               Color="Color.Error"
+                                               OnClick="@(() => DeleteItem(context))">
+                                        Delete
+                                    </MudButton>
+
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Outlined"
+                                               Color="Color.Primary"
+                                               OnClick="@(() => BeginItemApproval(context))">
+                                        Approve / Review
+                                    </MudButton>
+                                }
+
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           OnClick="@(() => ShowApprovalHistory(context))">
+                                    Approval History
+                                </MudButton>
+
+                            </MudStack>
+
+                        </MudTd>
+
+                    </RowTemplate>
+
+                </MudTable>
+            }
+
+        </MudPaper>
+
+                @if (_approvalDialogOpen)
+        {
+            <MudPaper Class="pa-4 mt-4">
+                <MudText Typo="Typo.h5" GutterBottom="true">
+                    QCP Item Approval / Review
+                </MudText>
+
+                @if (_approvalItem is not null)
+                {
+                    <MudText Typo="Typo.body1" Class="mb-3">
+                        Item @_approvalItem.SequenceNumber � @_approvalItem.Activity
+                    </MudText>
+
+                    <MudSelect T="QcpApprovalStatus"
+                               @bind-Value="_selectedApprovalStatus"
+                               Label="Approval Status"
+                               Variant="Variant.Outlined"
+                               Class="mb-3">
+                        <MudSelectItem Value="@QcpApprovalStatus.Approved">
+                            Approved
+                        </MudSelectItem>
+                        <MudSelectItem Value="@QcpApprovalStatus.ApprovedWithComments">
+                            Approved with Comments
+                        </MudSelectItem>
+                        <MudSelectItem Value="@QcpApprovalStatus.ReviseAndResubmit">
+                            Revise & Resubmit
+                        </MudSelectItem>
+                    </MudSelect>
+
+                    <MudTextField @bind-Value="_approvalRemarks"
+                                  Label="Remarks"
+                                  Lines="4"
+                                  Variant="Variant.Outlined"
+                                  Required="@(_selectedApprovalStatus != QcpApprovalStatus.Approved)"
+                                  HelperText="@(_selectedApprovalStatus == QcpApprovalStatus.Approved ? "Optional for Approved." : "Mandatory for this approval status.")"
+                                  Class="mb-3" />
+
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   Disabled="_approvalLoading"
+                                   OnClick="SubmitItemApproval">
+                            Submit
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Outlined"
+                                   Disabled="_approvalLoading"
+                                   OnClick="CloseItemApproval">
+                            Cancel
+                        </MudButton>
+                    </MudStack>
+                }
+            </MudPaper>
+        }
+
+        @if (_approvalHistoryDialogOpen)
+        {
+            <MudPaper Class="pa-4 mt-4">
+                <MudText Typo="Typo.h5" GutterBottom="true">
+                    QCP Item Approval History
+                </MudText>
+
+                @if (_approvalHistoryLoading)
+                {
+                    <MudProgressCircular Indeterminate="true" />
+                }
+                else if (_approvalHistory.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info">
+                        No approval history has been recorded for this QCP item.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudTable Items="_approvalHistory"
+                              Dense="true"
+                              Hover="true"
+                              Bordered="true">
+                        <HeaderContent>
+                            <MudTh>Date</MudTh>
+                            <MudTh>Action</MudTh>
+                            <MudTh>Approved By</MudTh>
+                            <MudTh>Remarks</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Date">
+                                @context.ApprovedOn.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                            </MudTd>
+                            <MudTd DataLabel="Action">
+                                @context.Action
+                            </MudTd>
+                            <MudTd DataLabel="Approved By">
+                                @context.ApprovedBy
+                            </MudTd>
+                            <MudTd DataLabel="Remarks">
+                                @(string.IsNullOrWhiteSpace(context.Remarks) ? "-" : context.Remarks)
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+
+                <MudButton Variant="Variant.Outlined"
+                           Class="mt-3"
+                           OnClick="CloseApprovalHistory">
+                    Close
+                </MudButton>
+            </MudPaper>
+        }
+@if (_editingItem)
+        {
+            <MudPaper Class="pa-4 mt-4">
+
+                <MudText Typo="Typo.h5" GutterBottom="true">
+                    @(_item.Id == Guid.Empty ? "Add QCP Item" : "Edit QCP Item")
+                </MudText>
+
+                <MudGrid>
+
+                    <MudItem xs="12" md="2">
+                        <MudNumericField T="int"
+                                         @bind-Value="_item.SequenceNumber"
+                                         Label="Sequence"
+                                         Required="true"
+                                         Min="1"
+                                         Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="10">
+                        @if (_item.Id == Guid.Empty)
+                        {
+                            <MudSelect T="Guid?"
+                                       @bind-Value="_selectedMasterActivityId" @bind-Value:after="() => OnMasterActivitySelected(_selectedMasterActivityId)"
+                                       Label="Master Activity"
+                                       Required="true"
+                                       Variant="Variant.Outlined"
+                                       Clearable="true">
+
+                                @foreach (var activity in _masterActivities)
+                                {
+                                    <MudSelectItem T="Guid?"
+                                                   Value="@((Guid?)activity.Id)">
+                                        @($"{activity.Code} � {activity.Name} [{activity.Category}] � {activity.Applicability} / {activity.ConditionType}")
+                                    </MudSelectItem>
+                                }
+
+                            </MudSelect>
+                        }
+                        else
+                        {
+                            <MudTextField @bind-Value="_item.Activity"
+                                          Label="Activity"
+                                          Required="true"
+                                          Variant="Variant.Outlined" />
+                        }
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="Guid?"
+                                   @bind-Value="_item.CustomerQualityRequirementId"
+                                   Label="Customer Quality Requirement"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true">
+
+                            @foreach (var requirement in _requirements)
+                            {
+                                <MudSelectItem T="Guid?"
+                                               Value="@((Guid?)requirement.Id)">
+                                    @($"{requirement.RequirementNumber} Rev {requirement.Revision} � {requirement.Description}")
+                                </MudSelectItem>
+                            }
+
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_item.InspectionStage"
+                                      Label="Inspection Stage"
+                                      Required="true"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_item.AcceptanceCriteria"
+                                      Label="Acceptance Criteria"
+                                      Required="true"
+                                      Lines="3"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_item.VerificationMethod"
+                                      Label="Verification Method"
+                                      Required="true"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_item.ResponsibleParty"
+                                      Label="Responsible Party"
+                                      Required="true"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudSelect T="HoldPointCategory?"
+                                   @bind-Value="_item.HoldPointCategory"
+                                   Label="Hold Point Category"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true">
+
+                            @foreach (var category in Enum.GetValues<HoldPointCategory>())
+                            {
+                                <MudSelectItem T="HoldPointCategory?"
+                                               Value="@((HoldPointCategory?)category)">
+                                    @GetEnumDisplay(category)
+                                </MudSelectItem>
+                            }
+
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudSelect T="HoldPointType?"
+                                   @bind-Value="_item.HoldPointType"
+                                   Label="Hold Point Type"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true">
+
+                            @foreach (var type in Enum.GetValues<HoldPointType>())
+                            {
+                                <MudSelectItem T="HoldPointType?"
+                                               Value="@((HoldPointType?)type)">
+                                    @GetEnumDisplay(type)
+                                </MudSelectItem>
+                            }
+
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudSelect T="NdtMethodType?"
+                                   @bind-Value="_item.RequiredNdtMethod"
+                                   Label="Required NDT Method"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true">
+
+                            @foreach (var method in Enum.GetValues<NdtMethodType>())
+                            {
+                                <MudSelectItem T="NdtMethodType?"
+                                               Value="@((NdtMethodType?)method)">
+                                    @method
+                                </MudSelectItem>
+                            }
+
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudCheckBox @bind-Value="_item.Mandatory"
+                                     Label="Mandatory" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="8">
+                        <MudTextField @bind-Value="_item.RequiredEvidence"
+                                      Label="Required Evidence"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_item.Notes"
+                                      Label="Notes"
+                                      Lines="3"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                </MudGrid>
+
+                <MudStack Row="true" Class="mt-4">
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="SaveItem">
+                        Save Item
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               OnClick="CancelItemEdit">
+                        Cancel
+                    </MudButton>
+
+                </MudStack>
+
+            </MudPaper>
+        }
+    }
+
+</MudContainer>
+
+@code {
+
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    [Parameter]
+    public Guid PlanId { get; set; }
+
+    private Project? _project;
+    private ProjectQualityControlPlan? _plan;
+
+    private List<ProjectQualityControlPlanItem> _items = new();
+    private List<CustomerQualityRequirement> _requirements = new();
+    private List<QcpMasterActivity> _masterActivities = new();
+
+    private Guid? _selectedMasterActivityId;
+
+    private ProjectQualityControlPlanItem _item = new()
+    {
+        HoldPointCategory = null,
+        HoldPointType = null,
+        RequiredNdtMethod = null
+    };
+
+    private bool _loading = true;
+    private bool _editingItem;
+    private bool _approvalDialogOpen;
+    private bool _approvalHistoryDialogOpen;
+    private ProjectQualityControlPlanItem? _approvalItem;
+    private List<ProjectQualityControlPlanItemApprovalHistory> _approvalHistory = new();
+    private QcpApprovalStatus _selectedApprovalStatus = QcpApprovalStatus.Approved;
+    private string _approvalRemarks = string.Empty;
+    private bool _approvalLoading;
+    private bool _approvalHistoryLoading;
+    private string? _errorMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _project = await ProjectService.GetProjectAsync(ProjectId);
+
+            if (_project is null)
+            {
+                return;
+            }
+
+            _plan = await QcpService.GetByIdAsync(PlanId);
+
+            if (_plan is null || _plan.ProjectId != ProjectId)
+            {
+                _errorMessage = "The selected Quality Control Plan does not belong to this project.";
+                return;
+            }
+
+            _items = await QcpService.GetItemsAsync(PlanId);
+
+            _requirements = await CustomerQualityRequirementService
+                .GetByProjectAsync(ProjectId);
+
+            _masterActivities = await QcpService
+                .GetActiveMasterActivitiesAsync();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Navigation.NavigateTo($"/quality/qcp/{ProjectId}");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnMasterActivitySelected(Guid? masterActivityId)
+    {
+        _selectedMasterActivityId = masterActivityId;
+
+        if (!masterActivityId.HasValue)
+            return;
+
+        var masterActivity = _masterActivities
+            .FirstOrDefault(x => x.Id == masterActivityId.Value);
+
+        if (masterActivity is null)
+            return;
+
+        _item.Activity = masterActivity.Name;
+        _item.AcceptanceCriteria = masterActivity.AcceptanceCriteria;
+        _item.VerificationMethod = masterActivity.VerificationMethod;
+        _item.ResponsibleParty = masterActivity.ResponsibleParty;
+        _item.InspectionStage = masterActivity.InspectionStage;
+        _item.HoldPointCategory = masterActivity.HoldPointCategory;
+        _item.HoldPointType = masterActivity.HoldPointType;
+        _item.RequiredNdtMethod = masterActivity.RequiredNdtMethod;
+        _item.Mandatory = masterActivity.Mandatory;
+        _item.RequiredEvidence = masterActivity.RequiredEvidence;
+        _item.Notes = masterActivity.Notes;
+    }
+
+    private void BeginItemApproval(ProjectQualityControlPlanItem item)
+    {
+        _approvalItem = item;
+        _selectedApprovalStatus = QcpApprovalStatus.Approved;
+        _approvalRemarks = string.Empty;
+        _approvalDialogOpen = true;
+        _approvalHistoryDialogOpen = false;
+    }
+
+    private async Task SubmitItemApproval()
+    {
+        if (_approvalItem is null)
+        {
+            Snackbar.Add(
+                "No QCP item is selected for approval.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (_selectedApprovalStatus != QcpApprovalStatus.Approved &&
+            string.IsNullOrWhiteSpace(_approvalRemarks))
+        {
+            Snackbar.Add(
+                "Remarks are mandatory for Approved with Comments and Revise & Resubmit.",
+                Severity.Warning);
+
+            return;
+        }
+
+        _approvalLoading = true;
+
+        try
+        {
+            await QcpService.ApproveItemAsync(
+                _approvalItem.Id,
+                _selectedApprovalStatus,
+                _approvalRemarks);
+
+            Snackbar.Add(
+                $"QCP item marked {_selectedApprovalStatus}.",
+                Severity.Success);
+
+            _approvalDialogOpen = false;
+            _approvalItem = null;
+            _approvalRemarks = string.Empty;
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _approvalLoading = false;
+        }
+    }
+
+    private void CloseItemApproval()
+    {
+        _approvalDialogOpen = false;
+        _approvalItem = null;
+        _approvalRemarks = string.Empty;
+        _selectedApprovalStatus = QcpApprovalStatus.Approved;
+    }
+
+    private async Task ShowApprovalHistory(ProjectQualityControlPlanItem item)
+    {
+        _approvalItem = item;
+        _approvalHistory = new();
+        _approvalHistoryDialogOpen = true;
+        _approvalDialogOpen = false;
+        _approvalHistoryLoading = true;
+
+        try
+        {
+            _approvalHistory =
+                await QcpService.GetItemApprovalHistoryAsync(item.Id);
+        }
+        catch (Exception ex)
+        {
+            _approvalHistoryDialogOpen = false;
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _approvalHistoryLoading = false;
+        }
+    }
+
+    private void CloseApprovalHistory()
+    {
+        _approvalHistoryDialogOpen = false;
+        _approvalItem = null;
+        _approvalHistory = new();
+    }
+    private void BeginAddItem()
+    {
+        _item = new ProjectQualityControlPlanItem
+        {
+            Id = Guid.Empty,
+            ProjectQualityControlPlanId = PlanId,
+            SequenceNumber = GetNextSequenceNumber()
+        };
+
+        _selectedMasterActivityId = null;
+        _editingItem = true;
+    }
+
+    private void BeginEditItem(ProjectQualityControlPlanItem item)
+    {
+        _item = new ProjectQualityControlPlanItem
+        {
+            Id = item.Id,
+            ProjectQualityControlPlanId = item.ProjectQualityControlPlanId,
+            SequenceNumber = item.SequenceNumber,
+            Activity = item.Activity,
+            CustomerQualityRequirementId = item.CustomerQualityRequirementId,
+            AcceptanceCriteria = item.AcceptanceCriteria,
+            VerificationMethod = item.VerificationMethod,
+            ResponsibleParty = item.ResponsibleParty,
+            InspectionStage = item.InspectionStage,
+            HoldPointCategory = item.HoldPointCategory,
+            HoldPointType = item.HoldPointType,
+            RequiredNdtMethod = item.RequiredNdtMethod,
+            Mandatory = item.Mandatory,
+            RequiredEvidence = item.RequiredEvidence,
+            Notes = item.Notes
+        };
+
+        _editingItem = true;
+    }
+
+    private async Task SaveItem()
+    {
+        try
+        {
+            if (_item.Id == Guid.Empty)
+            {
+                if (!_selectedMasterActivityId.HasValue ||
+                    _selectedMasterActivityId.Value == Guid.Empty)
+                {
+                    Snackbar.Add(
+                        "Select an active Master Activity before saving the QCP item.",
+                        Severity.Warning);
+
+                    return;
+                }
+
+                await QcpService.AddItemFromMasterAsync(
+                    PlanId,
+                    _selectedMasterActivityId.Value,
+                    _item.SequenceNumber,
+                    _item.CustomerQualityRequirementId);
+
+                Snackbar.Add("QCP item created from Master Activity.", Severity.Success);
+            }
+            else
+            {
+                await QcpService.UpdateItemAsync(_item);
+                Snackbar.Add("QCP item updated.", Severity.Success);
+            }
+
+            _selectedMasterActivityId = null;
+            _editingItem = false;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private void CancelItemEdit()
+    {
+        _editingItem = false;
+        _item = new ProjectQualityControlPlanItem();
+    }
+
+    private async Task DeleteItem(ProjectQualityControlPlanItem item)
+    {
+        try
+        {
+            await QcpService.DeleteItemAsync(item.Id);
+            Snackbar.Add("QCP item deleted.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private int GetNextSequenceNumber()
+    {
+        return _items.Count == 0
+            ? 1
+            : _items.Max(x => x.SequenceNumber) + 1;
+    }
+
+    private string GetRequirementDisplay(Guid? requirementId)
+    {
+        if (!requirementId.HasValue)
+        {
+            return "-";
+        }
+
+        var requirement = _requirements.FirstOrDefault(
+            x => x.Id == requirementId.Value);
+
+        return requirement == null
+            ? "Requirement unavailable"
+            : $"{requirement.RequirementNumber} Rev {requirement.Revision}";
+    }
+
+    private static string GetHoldPointDisplay(
+        ProjectQualityControlPlanItem item)
+    {
+        if (!item.HoldPointCategory.HasValue &&
+            !item.HoldPointType.HasValue)
+        {
+            return "-";
+        }
+
+        var category = item.HoldPointCategory.HasValue
+            ? GetEnumDisplay(item.HoldPointCategory.Value)
+            : "-";
+
+        var type = item.HoldPointType.HasValue
+            ? GetEnumDisplay(item.HoldPointType.Value)
+            : "-";
+
+        return $"{category} / {type}";
+    }
+
+    private static string GetEnumDisplay<TEnum>(TEnum value)
+        where TEnum : struct, Enum
+    {
+        return value.ToString()
+            .Replace("_", " ")
+            .Replace("Inspection", " Inspection");
+    }
+
+    private void BackToQcp()
+    {
+        Navigation.NavigateTo($"/quality/qcp/{ProjectId}");
+    }
+}
