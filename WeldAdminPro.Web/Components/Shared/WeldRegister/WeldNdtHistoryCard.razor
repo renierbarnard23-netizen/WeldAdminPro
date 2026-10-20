@@ -1,7 +1,27 @@
 @using MudBlazor
 @using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Web.Components.Shared.WeldRegister
 
 <MudPaper Class="pa-4">
+
+    @if (LegacyResults.Any())
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            One or more NDT records are legacy records without equipment traceability. Review and link equipment only when the source records substantiate what was actually used.
+            <div class="mt-2">
+                @foreach (var legacy in LegacyResults)
+                {
+                    <MudButton Size="Size.Small"
+                               Variant="Variant.Outlined"
+                               Color="Color.Warning"
+                               Class="mr-2 mb-1"
+                               OnClick="@(() => ReviewLegacyAsync(legacy))">
+                        Review @legacy.NdtMethod - @legacy.InspectionDate.ToShortDateString()
+                    </MudButton>
+                }
+            </div>
+        </MudAlert>
+    }
 
     <MudText Typo="Typo.h6" Class="mb-3">
         NDT History
@@ -26,6 +46,8 @@
                 <MudTh>Method</MudTh>
                 <MudTh>Result</MudTh>
                 <MudTh>Inspector</MudTh>
+                <MudTh>Equipment</MudTh>
+                <MudTh>Calibration</MudTh>
 
             </HeaderContent>
 
@@ -35,6 +57,46 @@
                 <MudTd>@context.NdtMethod</MudTd>
                 <MudTd>@context.Result</MudTd>
                 <MudTd>@context.InspectorName</MudTd>
+                <MudTd>
+                    @if (context.EquipmentUsages != null && context.EquipmentUsages.Any())
+                    {
+                        @foreach (var usage in context.EquipmentUsages)
+                        {
+                            <div>
+                                <strong>@usage.EquipmentNumberSnapshot</strong>
+                                @if (!string.IsNullOrWhiteSpace(usage.EquipmentSerialNumberSnapshot))
+                                {
+                                    <MudText Typo="Typo.caption">S/N @usage.EquipmentSerialNumberSnapshot</MudText>
+                                }
+                            </div>
+                        }
+                    }
+                    else if (!string.IsNullOrWhiteSpace(context.EquipmentNumberSnapshot))
+                    {
+                        <div>@context.EquipmentNumberSnapshot</div>
+                        @if (!string.IsNullOrWhiteSpace(context.EquipmentSerialNumberSnapshot))
+                        {
+                            <MudText Typo="Typo.caption">S/N @context.EquipmentSerialNumberSnapshot</MudText>
+                        }
+                    }
+                    else
+                    {
+                        <span>Legacy / not recorded</span>
+                    }
+                </MudTd>
+                <MudTd>
+                    @if (context.EquipmentUsages != null && context.EquipmentUsages.Any())
+                    {
+                        @foreach (var usage in context.EquipmentUsages)
+                        {
+                            <div>@usage.CalibrationCertificateSnapshot</div>
+                        }
+                    }
+                    else
+                    {
+                        @context.CalibrationCertificateSnapshot
+                    }
+                </MudTd>
 
             </RowTemplate>
 
@@ -45,7 +107,59 @@
 
 @code {
 
+    [Inject]
+    private IDialogService DialogService { get; set; } = default!;
+
     [Parameter]
     public List<WeldNdtResult> Results { get; set; } = new();
+
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    [Parameter]
+    public string WeldNumber { get; set; } = string.Empty;
+
+    private IEnumerable<WeldNdtResult> LegacyResults =>
+        Results.Where(x =>
+            (x.EquipmentUsages == null || !x.EquipmentUsages.Any()) &&
+            !x.EquipmentId.HasValue);
+
+    private async Task ReviewLegacyAsync(WeldNdtResult ndt)
+    {
+        var parameters = new DialogParameters
+        {
+            { nameof(LegacyNdtTraceabilityDialog.Ndt), ndt },
+            { nameof(LegacyNdtTraceabilityDialog.WeldNumber), WeldNumber },
+            { nameof(LegacyNdtTraceabilityDialog.ProjectId), ProjectId }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<LegacyNdtTraceabilityDialog>(
+            "Legacy NDT Traceability Review",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false } || result.Data is not LegacyNdtTraceabilityDialog.LegacyNdtTraceabilityReview review)
+            return;
+
+        // The parent service owns the authoritative mutation and validation.
+        await LegacyTraceabilityReviewed.InvokeAsync(
+            new LegacyTraceabilityReviewRequest(ndt, review));
+    }
+
+    [Parameter]
+    public EventCallback<LegacyTraceabilityReviewRequest> LegacyTraceabilityReviewed { get; set; }
+
+    public sealed record LegacyTraceabilityReviewRequest(
+        WeldNdtResult Ndt,
+        LegacyNdtTraceabilityDialog.LegacyNdtTraceabilityReview Review);
 
 }

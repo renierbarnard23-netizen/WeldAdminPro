@@ -12,6 +12,7 @@ namespace WeldAdminPro.Data.Services
 	public class ProductionControlTowerService
 	{
 		private readonly WorkOrderRepository _workOrderRepository;
+         private readonly ProductionSettingsRepository _settingsRepository;
 		private readonly ProductionBlockService _blockService;
         private readonly ProductionAlertService _alertService;
 
@@ -19,6 +20,9 @@ namespace WeldAdminPro.Data.Services
         {
             _workOrderRepository =
                 new WorkOrderRepository();
+
+            _settingsRepository =
+                new ProductionSettingsRepository();
 
             _blockService =
                 new ProductionBlockService();
@@ -148,7 +152,13 @@ namespace WeldAdminPro.Data.Services
             // Capacity
             //--------------------------------------------------
 
-            const double totalCapacityPerDay = 32;
+            var settings = _settingsRepository.Get();
+            double totalCapacityPerDay = settings.DailyCapacity;
+
+            if (totalCapacityPerDay <= 0)
+            {
+                totalCapacityPerDay = 8;
+            }
 
             var scheduledHours =
                 workOrders

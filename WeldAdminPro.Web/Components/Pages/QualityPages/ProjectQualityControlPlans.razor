@@ -1,0 +1,528 @@
+﻿@page "/quality/qcp/{ProjectId:guid}"
+@attribute [Authorize(Policy = "Permission:Quality.QCP")]
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Data.Services.Projects
+@using WeldAdminPro.Data.Services.Quality
+
+@inject ProjectApplicationService ProjectService
+@inject ProjectQualityControlPlanApplicationService QcpService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Quality Control Plan</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_project is null)
+    {
+        <MudAlert Severity="Severity.Error">
+            Project could not be loaded.
+        </MudAlert>
+    }
+    else
+    {
+        <MudPaper Class="pa-4 mb-4">
+
+            <MudStack Row="true"
+                      Justify="Justify.SpaceBetween"
+                      AlignItems="AlignItems.Center">
+
+                <div>
+                    <MudText Typo="Typo.h4">
+                        Quality Control Plan
+                    </MudText>
+
+                    <MudText Typo="Typo.subtitle1">
+                        Job @_project.JobNumber — @_project.ProjectName
+                    </MudText>
+
+                    <MudText Typo="Typo.body2">
+                        Client: @_project.Client
+                    </MudText>
+                </div>
+
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.ArrowBack"
+                           OnClick="BackToProjects">
+                    Back to Projects
+                </MudButton>
+
+            </MudStack>
+
+        </MudPaper>
+
+        @if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">
+                @_errorMessage
+            </MudAlert>
+        }
+
+        <MudPaper Class="pa-4">
+
+            <MudStack Row="true"
+                      Justify="Justify.SpaceBetween"
+                      AlignItems="AlignItems.Center"
+                      Class="mb-3">
+
+                <MudText Typo="Typo.h5">
+                    Quality Control Plans
+                </MudText>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="BeginAdd">
+                    New QCP
+                </MudButton>
+
+            </MudStack>
+
+            @if (_plans.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info">
+                    No Quality Control Plans have been created for this project.
+                </MudAlert>
+            }
+            else
+            {
+                <MudTable Items="_plans"
+                          Hover="true"
+                          Dense="true"
+                          Bordered="true">
+
+                    <HeaderContent>
+                        <MudTh>QCP Number</MudTh>
+                        <MudTh>Revision</MudTh>
+                        <MudTh>Title</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Prepared By</MudTh>
+                        <MudTh>Prepared On</MudTh>
+                        <MudTh>Actions</MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate>
+                        <MudTd DataLabel="QCP Number">@context.QcpNumber</MudTd>
+                        <MudTd DataLabel="Revision">@context.Revision</MudTd>
+                        <MudTd DataLabel="Title">@context.Title</MudTd>
+                        <MudTd DataLabel="Status">
+                            <MudChip T="string" Size="Size.Small">
+                                @context.Status
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Prepared By">@context.PreparedBy</MudTd>
+                        <MudTd DataLabel="Prepared On">
+                            @(context.PreparedOn?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "-")
+                        </MudTd>
+
+                        <MudTd DataLabel="Actions">
+
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           Class="mr-2"
+                                           OnClick="@(() => OpenPlan(context))">
+                                    Open
+                                </MudButton>
+
+                            @if (context.Status == ProjectQualityControlPlanStatus.Draft)
+                            {
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           Class="mr-2"
+                                           OnClick="@(() => BeginEdit(context))">
+                                    Edit
+                                </MudButton>
+
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           Color="Color.Success"
+                                           Class="mr-2"
+                                           OnClick="@(() => Approve(context))">
+                                    Approve
+                                </MudButton>
+
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           Color="Color.Error"
+                                           OnClick="@(() => Delete(context))">
+                                    Delete
+                                </MudButton>
+                            }
+                            else if (context.Status == ProjectQualityControlPlanStatus.Active)
+                            {
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           OnClick="@(() => CreateRevision(context))">
+                                    Create Revision
+                                </MudButton>
+                            }
+
+                        </MudTd>
+                    </RowTemplate>
+
+                </MudTable>
+            }
+
+        </MudPaper>
+
+        @if (_creatingRevision && _revisionSource is not null)
+        {
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudStack Row="true"
+                          Justify="Justify.SpaceBetween"
+                          AlignItems="AlignItems.Center"
+                          Class="mb-3">
+                    <MudText Typo="Typo.h6">
+                        Create Quality Control Plan Revision
+                    </MudText>
+
+                    <MudButton Variant="Variant.Text"
+                               OnClick="CancelRevision">
+                        Cancel
+                    </MudButton>
+                </MudStack>
+
+                <MudAlert Severity="Severity.Info" Class="mb-4">
+                    Creating a new controlled revision of
+                    <strong>@_revisionSource.QcpNumber</strong>.
+                    Current revision:
+                    <strong>@_revisionSource.Revision</strong>.
+
+                    The current active revision will be superseded when the new revision is created.
+                </MudAlert>
+
+                <MudGrid>
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudTextField T="string"
+                                      Label="New Revision"
+                                      Variant="Variant.Outlined"
+                                      @bind-Value="_newRevision"
+                                      Required="true" />
+                    </MudItem>
+                </MudGrid>
+
+                <MudStack Row="true"
+                          Justify="Justify.FlexEnd"
+                          Class="mt-4">
+                    <MudButton Variant="Variant.Outlined"
+                               OnClick="CancelRevision">
+                        Cancel
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.PostAdd"
+                               Disabled="_saving"
+                               OnClick="SaveRevision">
+                        @if (_saving)
+                        {
+                            <MudProgressCircular Size="Size.Small"
+                                                  Indeterminate="true" />
+                        }
+                        else
+                        {
+                            <span>Create Revision</span>
+                        }
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        }
+
+
+        @if (_editing)
+        {
+            <MudPaper Class="pa-4 mt-4">
+
+                <MudText Typo="Typo.h5" GutterBottom="true">
+                    @(_editingPlan.Id == Guid.Empty ? "New Quality Control Plan" : "Edit Quality Control Plan")
+                </MudText>
+
+                <MudGrid>
+
+
+
+                    <MudItem xs="12" md="4">
+                        <MudTextField @bind-Value="_editingPlan.QcpNumber"
+                                      Label="QCP Number"
+                                      Required="true"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="2">
+                        <MudTextField @bind-Value="_editingPlan.Revision"
+                                      Label="Revision"
+                                      Required="true"
+                                      Variant="Variant.Outlined"
+                                      Disabled="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_editingPlan.Title"
+                                      Label="Title"
+                                      Required="true"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_editingPlan.Description"
+                                      Label="Description"
+                                      Lines="3"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                </MudGrid>
+
+                <MudStack Row="true" Class="mt-4">
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="Save">
+                        Save
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               OnClick="CancelEdit">
+                        Cancel
+                    </MudButton>
+
+                </MudStack>
+
+            </MudPaper>
+        }
+    }
+
+</MudContainer>
+
+@code {
+
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    private Project? _project;
+    private List<ProjectQualityControlPlan> _plans = new();
+
+    private ProjectQualityControlPlan _editingPlan = new();
+    private bool _editing;
+    private bool _creatingRevision;
+    private bool _saving;
+    private ProjectQualityControlPlan? _revisionSource;
+    private string _newRevision = string.Empty;
+    private bool _loading = true;
+    private string? _errorMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _project = await ProjectService.GetProjectAsync(ProjectId);
+
+            if (_project is null)
+            {
+                return;
+            }
+
+            _plans = (await QcpService.GetByProjectAsync(ProjectId)).ToList();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Navigation.NavigateTo("/quality/qcp");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void BeginAdd()
+    {
+        _editingPlan = new ProjectQualityControlPlan
+        {
+            ProjectId = ProjectId,
+            Revision = "A",
+            Status = ProjectQualityControlPlanStatus.Draft
+        };
+
+        _editing = true;
+    }
+
+    private void BeginEdit(ProjectQualityControlPlan plan)
+    {
+        _editingPlan = new ProjectQualityControlPlan
+        {
+            Id = plan.Id,
+            ProjectId = plan.ProjectId,
+            QcpNumber = plan.QcpNumber,
+            Revision = plan.Revision,
+            Status = plan.Status,
+            Title = plan.Title,
+            Description = plan.Description,
+            PreparedBy = plan.PreparedBy,
+            PreparedOn = plan.PreparedOn,
+            ApprovedBy = plan.ApprovedBy,
+            ApprovedOn = plan.ApprovedOn,
+            EffectiveDate = plan.EffectiveDate,
+            SupersededOn = plan.SupersededOn,
+            PreviousRevisionId = plan.PreviousRevisionId,
+            IsActive = plan.IsActive
+        };
+
+        _editing = true;
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (_editingPlan.Id == Guid.Empty)
+            {
+                await QcpService.AddAsync(_editingPlan);
+                Snackbar.Add("Quality Control Plan created.", Severity.Success);
+            }
+            else
+            {
+                await QcpService.UpdateAsync(_editingPlan);
+                Snackbar.Add("Quality Control Plan updated.", Severity.Success);
+            }
+
+            _editing = false;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private void CancelEdit()
+    {
+        _editing = false;
+        _editingPlan = new ProjectQualityControlPlan();
+    }
+
+    private async Task Approve(ProjectQualityControlPlan plan)
+    {
+        try
+        {
+            await QcpService.ApproveAsync(plan.Id);
+            Snackbar.Add("Quality Control Plan approved.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private void CreateRevision(ProjectQualityControlPlan plan)
+    {
+        if (plan.Status != ProjectQualityControlPlanStatus.Active)
+        {
+            Snackbar.Add(
+                "Only active Quality Control Plans can be revised.",
+                Severity.Warning);
+
+            return;
+        }
+
+        _revisionSource = plan;
+        _newRevision = string.Empty;
+        _creatingRevision = true;
+    }
+
+    private void CancelRevision()
+    {
+        _creatingRevision = false;
+        _revisionSource = null;
+        _newRevision = string.Empty;
+    }
+
+    private async Task SaveRevision()
+    {
+        if (_revisionSource is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_newRevision))
+        {
+            Snackbar.Add(
+                "New revision is required.",
+                Severity.Warning);
+
+            return;
+        }
+
+        _saving = true;
+
+        try
+        {
+            await QcpService.CreateRevisionAsync(
+                _revisionSource.Id,
+                _newRevision.Trim());
+
+            Snackbar.Add(
+                $"QCP revision {_newRevision.Trim()} created.",
+                Severity.Success);
+
+            _creatingRevision = false;
+            _revisionSource = null;
+            _newRevision = string.Empty;
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task Delete(ProjectQualityControlPlan plan)
+    {
+        try
+        {
+            await QcpService.DeleteAsync(plan.Id);
+            Snackbar.Add("Quality Control Plan deleted.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+    private void OpenPlan(ProjectQualityControlPlan plan)
+    {
+        Navigation.NavigateTo($"/quality/qcp/{ProjectId}/plan/{plan.Id}");
+    }
+
+
+    private void BackToProjects()
+    {
+        Navigation.NavigateTo("/quality/qcp");
+    }
+}
+
+

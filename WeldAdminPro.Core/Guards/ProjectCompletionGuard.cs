@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Core.Guards
@@ -19,11 +19,13 @@ namespace WeldAdminPro.Core.Guards
 		}
 
 		public static bool IsEditable(Project project)
-		{
-			if (project == null) return false;
+{
+        if (project == null) return false;
 
-			return project.Status != ProjectStatus.Completed &&
-				   project.Status != ProjectStatus.Cancelled;
-		}
+        // Active, On Hold and Completed projects remain editable.
+        // Cancelled projects are permanently locked.
+        return project.Status != ProjectStatus.Cancelled;
+}
 	}
 }
+

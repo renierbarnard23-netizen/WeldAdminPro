@@ -1,4 +1,4 @@
-@using MudBlazor
+﻿@using MudBlazor
 @using WeldAdminPro.Core.Quality
 @using WeldAdminPro.Data.Services.Projects
 
@@ -47,7 +47,7 @@
         document.IsRequired = value;
         document.LastModifiedOn = DateTime.Now;
 
-        ProjectService.UpdateDocument(document);
+        await ProjectService.UpdateDocument(document);
 
         Snackbar.Add(
             "Required document updated.",

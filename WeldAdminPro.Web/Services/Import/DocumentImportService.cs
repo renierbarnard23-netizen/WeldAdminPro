@@ -1,8 +1,9 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.Text;
 using WeldAdminPro.Data.Services;
 using WeldAdminPro.Web.Models.Import;
 using WeldAdminPro.Data.Models.OCR;
+using WeldAdminPro.Data.Services.Recognition;
 using System.Runtime.Versioning;
 
 namespace WeldAdminPro.Web.Services.Import;
@@ -13,15 +14,18 @@ public class DocumentImportService : IDocumentImporter
     private readonly PdfToImageService _pdfService;
     private readonly PqrOcrService _ocrService;
     private readonly PqrParserService _parser;
+    private readonly RecognitionEngine _recognitionEngine;
 
     public DocumentImportService(
         PdfToImageService pdfService,
         PqrOcrService ocrService,
-        PqrParserService parser)
+        PqrParserService parser,
+        RecognitionEngine recognitionEngine)
     {
         _pdfService = pdfService;
         _ocrService = ocrService;
         _parser = parser;
+        _recognitionEngine = recognitionEngine;
     }
 
     public async Task<DocumentImportResult> ImportAsync(
@@ -75,13 +79,29 @@ public class DocumentImportService : IDocumentImporter
             // Keep existing parser working
             var rawText = document.FullText;
 
-            var pqr = _parser.Parse(rawText, fileName);
+            var pqr = _parser.Parse(document, fileName);
+
+
+            // --------------------------------------------------------
+            // Preserve the structured material recognition result.
+            // RecognitionEngine is authoritative for:
+            // Specification, Grade, UNS and P-Number.
+            // --------------------------------------------------------
+            var recognitionContext = new OcrRecognitionContext(document);
+
+            var recognition =
+                _recognitionEngine.Recognize(recognitionContext);
 
             return new DocumentImportResult
             {
                 FileName = fileName,
                 Status = ImportStatus.Completed,
                 RawText = rawText,
+
+                MaterialSpecification = recognition.MaterialSpecification ?? string.Empty,
+                MaterialGrade = recognition.MaterialGrade ?? string.Empty,
+                MaterialUNS = recognition.MaterialUNS ?? string.Empty,
+                MaterialPNumber = recognition.PNumber ?? string.Empty,
                 Pqr = pqr
             };
         }

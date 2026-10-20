@@ -1,11 +1,13 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using WeldAdminPro.Core.Quality;
 
 namespace WeldAdminPro.Data.Repositories
 {
     public class PqrRepository
     {
-        private string _connectionString => $"Data Source={DatabasePath.Get()}";
+        private readonly string _databasePath;
+
+        private string _connectionString => $"Data Source={_databasePath}";
 
         // =========================
         // ADD
@@ -56,7 +58,7 @@ namespace WeldAdminPro.Data.Repositories
             var cmd = connection.CreateCommand();
             cmd.CommandText = @"
 INSERT INTO Pqr (
-    Id, PqrNumber, QualificationDate, QualifiedBy, ThicknessTested,
+    Id, CompanyId, PqrNumber, QualificationDate, QualifiedBy, ThicknessTested,
     Process, Standard, MaterialGroup, Position,
     FillerMaterial, GasType,
     AmpsUsed, VoltsUsed,
@@ -67,8 +69,11 @@ INSERT INTO Pqr (
 
     SurfacePreparation, GrooveAngle, RootFace, RootGap,
     Backing, BackGouging,
+    JointDiagramPath, PassDiagramPath, GrooveRadius,
+    Misalignment, BackingType, EdgePreparation,
 
     ThicknessQualifiedMin, ThicknessQualifiedMax,
+    DiameterTested,
     DiameterMin, DiameterMax,
     WpsReferenceNumber,
 
@@ -76,6 +81,10 @@ INSERT INTO Pqr (
     BaseMaterial2,
     BaseMaterial1Specification,
     BaseMaterial2Specification,
+    BaseMaterial1Grade,
+    BaseMaterial2Grade,
+    BaseMaterial1UNS,
+    BaseMaterial2UNS,
 
     FillerClassification,
     ANumber,
@@ -102,13 +111,14 @@ INSERT INTO Pqr (
     QualifiedPNumberRange,
 
     Revision,
+    PreviousRevisionId,
     IsActive,
     IsPipe,
 
     PNumber2
     )
 VALUES (
-    $id, $number, $date, $by, $thickness,
+    $id, $companyId, $number, $date, $by, $thickness,
     $process, $standard, $material, $position,
     $filler, $gas,
     $amps, $volts,
@@ -119,8 +129,11 @@ VALUES (
 
     $surfacePrep, $grooveAngle, $rootFace, $rootGap,
     $backing, $backGouging,
+    $jointDiagram, $passDiagram, $grooveRadius,
+    $misalignment, $backingType, $edgePrep,
 
     $tMin, $tMax,
+    $dTested,
     $dMin, $dMax,
     $wpsRef,
 
@@ -128,6 +141,10 @@ VALUES (
     $base2, 
     $base1Spec, 
     $base2Spec,
+    $base1Grade,
+    $base2Grade,
+    $base1UNS,
+    $base2UNS,
 
     $fillerClassification,
     $aNumber,
@@ -154,6 +171,7 @@ $postWeldHeatTreatment,
 $qualifiedPNumberRange,
 
 $revision,
+    $previousRevisionId,
 $isActive,
 $isPipe,
 
@@ -161,6 +179,9 @@ $pNumber2
 );";
 
             cmd.Parameters.AddWithValue("$id", pqr.Id.ToString());
+            cmd.Parameters.AddWithValue(
+                "$companyId",
+                (object?)pqr.CompanyId?.ToString() ?? DBNull.Value);
             cmd.Parameters.AddWithValue("$number", pqr.PqrNumber ?? "");
             cmd.Parameters.AddWithValue("$date", pqr.QualificationDate.ToString("yyyy-MM-dd"));
             cmd.Parameters.AddWithValue("$by", pqr.QualifiedBy ?? "");
@@ -173,6 +194,10 @@ $pNumber2
             cmd.Parameters.AddWithValue("$base2", pqr.BaseMaterial2);
             cmd.Parameters.AddWithValue("$base1Spec", pqr.BaseMaterial1Specification);
             cmd.Parameters.AddWithValue("$base2Spec", pqr.BaseMaterial2Specification);
+            cmd.Parameters.AddWithValue("$base1Grade", pqr.BaseMaterial1Grade ?? "");
+            cmd.Parameters.AddWithValue("$base2Grade", pqr.BaseMaterial2Grade ?? "");
+            cmd.Parameters.AddWithValue("$base1UNS", pqr.BaseMaterial1UNS ?? "");
+            cmd.Parameters.AddWithValue("$base2UNS", pqr.BaseMaterial2UNS ?? "");
 
             cmd.Parameters.AddWithValue("$position", pqr.Position ?? "");
 
@@ -198,6 +223,7 @@ $pNumber2
             cmd.Parameters.AddWithValue("$tMin", pqr.ThicknessQualifiedMin);
             cmd.Parameters.AddWithValue("$tMax", pqr.ThicknessQualifiedMax);
 
+            cmd.Parameters.AddWithValue("$dTested", pqr.DiameterTested);
             cmd.Parameters.AddWithValue("$dMin", pqr.DiameterMin);
             cmd.Parameters.AddWithValue("$dMax", pqr.DiameterMax);
 
@@ -211,6 +237,12 @@ $pNumber2
             cmd.Parameters.AddWithValue("$rootGap", pqr.RootGap);
             cmd.Parameters.AddWithValue("$backing", pqr.Backing ?? "");
             cmd.Parameters.AddWithValue("$backGouging", pqr.BackGouging ?? "");
+            cmd.Parameters.AddWithValue("$jointDiagram", pqr.JointDiagramPath ?? "");
+            cmd.Parameters.AddWithValue("$passDiagram", pqr.PassDiagramPath ?? "");
+            cmd.Parameters.AddWithValue("$grooveRadius", pqr.GrooveRadius);
+            cmd.Parameters.AddWithValue("$misalignment", pqr.Misalignment);
+            cmd.Parameters.AddWithValue("$backingType", pqr.BackingType ?? "");
+            cmd.Parameters.AddWithValue("$edgePrep", pqr.EdgePreparation ?? "");
 
             cmd.Parameters.AddWithValue("$fillerClassification", pqr.FillerClassification ?? "");
             cmd.Parameters.AddWithValue("$aNumber", pqr.ANumber ?? "");
@@ -237,6 +269,7 @@ $pNumber2
             cmd.Parameters.AddWithValue("$qualifiedPNumberRange", pqr.QualifiedPNumberRange ?? "");
 
             cmd.Parameters.AddWithValue("$revision", pqr.Revision);
+            cmd.Parameters.AddWithValue("$previousRevisionId", (object?)pqr.PreviousRevisionId?.ToString() ?? DBNull.Value);
             cmd.Parameters.AddWithValue("$isActive", pqr.IsActive ? 1 : 0);
             cmd.Parameters.AddWithValue("$isPipe", pqr.IsPipe ? 1 : 0);
 
@@ -248,6 +281,335 @@ $pNumber2
         // =========================
         // UPDATE
         // =========================
+
+        // =========================
+        // SAVE REVISION
+        // =========================
+
+        public void SaveRevision(
+            Pqr previous,
+            Pqr revision)
+        {
+            if (previous == null)
+                throw new ArgumentNullException(nameof(previous));
+
+            if (revision == null)
+                throw new ArgumentNullException(nameof(revision));
+
+            if (previous.Id == Guid.Empty)
+                throw new InvalidOperationException(
+                    "Previous PQR Id is required.");
+
+            if (revision.Id == Guid.Empty)
+                revision.Id = Guid.NewGuid();
+
+            if (string.IsNullOrWhiteSpace(previous.PqrNumber))
+                throw new InvalidOperationException(
+                    "Previous PQR Number is required.");
+
+            if (string.IsNullOrWhiteSpace(revision.PqrNumber))
+                throw new InvalidOperationException(
+                    "Revision PQR Number is required.");
+
+            previous.PqrNumber = previous.PqrNumber
+                .Trim()
+                .ToUpperInvariant();
+
+            revision.PqrNumber = revision.PqrNumber
+                .Trim()
+                .ToUpperInvariant();
+
+            if (!string.Equals(
+                    previous.PqrNumber,
+                    revision.PqrNumber,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "Previous and new PQR revisions must have the same PQR Number.");
+            }
+
+            if (revision.PreviousRevisionId != previous.Id)
+            {
+                throw new InvalidOperationException(
+                    "The new PQR revision must reference the previous revision.");
+            }
+
+            using var connection =
+                new SqliteConnection(_connectionString);
+
+            connection.Open();
+
+            using var transaction =
+                connection.BeginTransaction();
+
+            try
+            {
+                using (var deactivate = connection.CreateCommand())
+                {
+                    deactivate.Transaction = transaction;
+                    deactivate.CommandText = @"
+UPDATE Pqr
+SET IsActive = 0
+WHERE Id = $id;";
+
+                    deactivate.Parameters.AddWithValue(
+                        "$id",
+                        previous.Id.ToString());
+
+                    var affected =
+                        deactivate.ExecuteNonQuery();
+
+                    if (affected != 1)
+                    {
+                        throw new InvalidOperationException(
+                            "The previous PQR revision could not be deactivated.");
+                    }
+                }
+
+                revision.IsActive = true;
+
+                InsertRevisionWithinTransaction(
+                    connection,
+                    transaction,
+                    revision);
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        private void InsertRevisionWithinTransaction(
+            SqliteConnection connection,
+            SqliteTransaction transaction,
+            Pqr pqr)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = @"
+            INSERT INTO Pqr (
+            Id, CompanyId, PqrNumber, QualificationDate, QualifiedBy, ThicknessTested,
+            Process, Standard, MaterialGroup, Position,
+            FillerMaterial, GasType,
+            AmpsUsed, VoltsUsed,
+            HeatInput, Preheat, Interpass,
+            PwhtPerformed, WpsId,
+            
+            PNumber, FNumber, QualifiedPosition, JointType, JointDesign,
+            
+            SurfacePreparation, GrooveAngle, RootFace, RootGap,
+            Backing, BackGouging,
+    JointDiagramPath, PassDiagramPath, GrooveRadius,
+    Misalignment, BackingType, EdgePreparation,
+            
+            ThicknessQualifiedMin, ThicknessQualifiedMax,
+            DiameterTested,
+            DiameterMin, DiameterMax,
+            WpsReferenceNumber,
+            
+            BaseMaterial1,
+            BaseMaterial2,
+            BaseMaterial1Specification,
+            BaseMaterial2Specification,
+            BaseMaterial1Grade,
+            BaseMaterial2Grade,
+            BaseMaterial1UNS,
+            BaseMaterial2UNS,
+            
+            FillerClassification,
+            ANumber,
+            
+            WeldingPosition,
+            WeldingType,
+            Progression,
+            CurrentType,
+            TransferMode,
+            Polarity,
+            
+            TravelSpeed,
+            
+            ShieldingGas,
+            GasFlowRate,
+            
+            BackingGas,
+            BackingGasFlowRate,
+            
+            PreheatNotes,
+            PreheatTemperature,
+            PostWeldHeatTreatment,
+            
+            QualifiedPNumberRange,
+            
+            Revision,
+            PreviousRevisionId,
+            IsActive,
+            IsPipe,
+            
+            PNumber2
+            )
+            VALUES (
+            $id, $companyId, $number, $date, $by, $thickness,
+            $process, $standard, $material, $position,
+            $filler, $gas,
+            $amps, $volts,
+            $heat, $preheat, $interpass,
+            $pwht, $wpsId,
+            
+            $pNumber, $fNumber, $qPosition, $joint, $jointDesign,
+            
+            $surfacePrep, $grooveAngle, $rootFace, $rootGap,
+            $backing, $backGouging,
+    $jointDiagram, $passDiagram, $grooveRadius,
+    $misalignment, $backingType, $edgePrep,
+            
+            $tMin, $tMax,
+            $dTested,
+            $dMin, $dMax,
+            $wpsRef,
+            
+            $base1, 
+            $base2, 
+            $base1Spec, 
+            $base2Spec,
+            $base1Grade,
+            $base2Grade,
+            $base1UNS,
+            $base2UNS,
+            
+            $fillerClassification,
+            $aNumber,
+            
+            $weldingPosition,
+            $weldingType,
+            $progression,
+            $currentType,
+            $transferMode,
+            $polarity,
+            
+            $travelSpeed,
+            
+            $shieldingGas,
+            $gasFlowRate,
+            
+            $backingGas,
+            $backingGasFlowRate,
+            
+            $preheatNotes,
+            $preheatTemperature,
+            $postWeldHeatTreatment,
+            
+            $qualifiedPNumberRange,
+            
+            $revision,
+            $previousRevisionId,
+            $isActive,
+            $isPipe,
+            
+            $pNumber2
+            );";
+            
+            cmd.Parameters.AddWithValue("$id", pqr.Id.ToString());
+            cmd.Parameters.AddWithValue(
+            "$companyId",
+            (object?)pqr.CompanyId?.ToString() ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("$number", pqr.PqrNumber ?? "");
+            cmd.Parameters.AddWithValue("$date", pqr.QualificationDate.ToString("yyyy-MM-dd"));
+            cmd.Parameters.AddWithValue("$by", pqr.QualifiedBy ?? "");
+            cmd.Parameters.AddWithValue("$thickness", pqr.ThicknessTested);
+            
+            cmd.Parameters.AddWithValue("$process", pqr.Process ?? "");
+            cmd.Parameters.AddWithValue("$material", pqr.MaterialGroup ?? "");
+            
+            cmd.Parameters.AddWithValue("$base1", pqr.BaseMaterial1);
+            cmd.Parameters.AddWithValue("$base2", pqr.BaseMaterial2);
+            cmd.Parameters.AddWithValue("$base1Spec", pqr.BaseMaterial1Specification);
+            cmd.Parameters.AddWithValue("$base2Spec", pqr.BaseMaterial2Specification);
+            cmd.Parameters.AddWithValue("$base1Grade", pqr.BaseMaterial1Grade ?? "");
+            cmd.Parameters.AddWithValue("$base2Grade", pqr.BaseMaterial2Grade ?? "");
+            cmd.Parameters.AddWithValue("$base1UNS", pqr.BaseMaterial1UNS ?? "");
+            cmd.Parameters.AddWithValue("$base2UNS", pqr.BaseMaterial2UNS ?? "");
+            
+            cmd.Parameters.AddWithValue("$position", pqr.Position ?? "");
+            
+            cmd.Parameters.AddWithValue("$filler", pqr.FillerMaterial ?? "");
+            cmd.Parameters.AddWithValue("$gas", pqr.GasType ?? "");
+            
+            cmd.Parameters.AddWithValue("$amps", pqr.AmpsUsed);
+            cmd.Parameters.AddWithValue("$volts", pqr.VoltsUsed);
+            
+            cmd.Parameters.AddWithValue("$heat", pqr.HeatInput);
+            cmd.Parameters.AddWithValue("$preheat", pqr.Preheat);
+            cmd.Parameters.AddWithValue("$interpass", pqr.Interpass);
+            
+            cmd.Parameters.AddWithValue("$pwht", pqr.PwhtPerformed ? 1 : 0);
+            cmd.Parameters.AddWithValue("$wpsId", (object?)pqr.WpsId?.ToString() ?? DBNull.Value);
+            
+            // ESSENTIAL VARIABLES
+            cmd.Parameters.AddWithValue("$pNumber", pqr.PNumber ?? "");
+            cmd.Parameters.AddWithValue("$fNumber", pqr.FNumber ?? "");
+            cmd.Parameters.AddWithValue("$qPosition", pqr.QualifiedPosition ?? "");
+            cmd.Parameters.AddWithValue("$joint", pqr.JointType ?? "");
+            
+            cmd.Parameters.AddWithValue("$tMin", pqr.ThicknessQualifiedMin);
+            cmd.Parameters.AddWithValue("$tMax", pqr.ThicknessQualifiedMax);
+            
+            cmd.Parameters.AddWithValue("$dTested", pqr.DiameterTested);
+            cmd.Parameters.AddWithValue("$dMin", pqr.DiameterMin);
+            cmd.Parameters.AddWithValue("$dMax", pqr.DiameterMax);
+            
+            cmd.Parameters.AddWithValue("$wpsRef", (object?)pqr.WpsReferenceNumber ?? DBNull.Value);
+            
+            cmd.Parameters.AddWithValue("$standard", pqr.Standard ?? "");
+            cmd.Parameters.AddWithValue("$jointDesign", pqr.JointDesign ?? "");
+            cmd.Parameters.AddWithValue("$surfacePrep", pqr.SurfacePreparation ?? "");
+            cmd.Parameters.AddWithValue("$grooveAngle", pqr.GrooveAngle);
+            cmd.Parameters.AddWithValue("$rootFace", pqr.RootFace);
+            cmd.Parameters.AddWithValue("$rootGap", pqr.RootGap);
+            cmd.Parameters.AddWithValue("$backing", pqr.Backing ?? "");
+            cmd.Parameters.AddWithValue("$backGouging", pqr.BackGouging ?? "");
+            cmd.Parameters.AddWithValue("$jointDiagram", pqr.JointDiagramPath ?? "");
+            cmd.Parameters.AddWithValue("$passDiagram", pqr.PassDiagramPath ?? "");
+            cmd.Parameters.AddWithValue("$grooveRadius", pqr.GrooveRadius);
+            cmd.Parameters.AddWithValue("$misalignment", pqr.Misalignment);
+            cmd.Parameters.AddWithValue("$backingType", pqr.BackingType ?? "");
+            cmd.Parameters.AddWithValue("$edgePrep", pqr.EdgePreparation ?? "");
+            
+            cmd.Parameters.AddWithValue("$fillerClassification", pqr.FillerClassification ?? "");
+            cmd.Parameters.AddWithValue("$aNumber", pqr.ANumber ?? "");
+            
+            cmd.Parameters.AddWithValue("$weldingPosition", pqr.WeldingPosition ?? "");
+            cmd.Parameters.AddWithValue("$weldingType", pqr.WeldingType ?? "");
+            cmd.Parameters.AddWithValue("$progression", pqr.Progression ?? "");
+            cmd.Parameters.AddWithValue("$currentType", pqr.CurrentType ?? "");
+            cmd.Parameters.AddWithValue("$transferMode", pqr.TransferMode ?? "");
+            cmd.Parameters.AddWithValue("$polarity", pqr.Polarity ?? "");
+            
+            cmd.Parameters.AddWithValue("$travelSpeed", pqr.TravelSpeed);
+            
+            cmd.Parameters.AddWithValue("$shieldingGas", pqr.ShieldingGas ?? "");
+            cmd.Parameters.AddWithValue("$gasFlowRate", pqr.GasFlowRate);
+            
+            cmd.Parameters.AddWithValue("$backingGas", pqr.BackingGas ?? "");
+            cmd.Parameters.AddWithValue("$backingGasFlowRate", pqr.BackingGasFlowRate);
+            
+            cmd.Parameters.AddWithValue("$preheatNotes", pqr.PreheatNotes ?? "");
+            cmd.Parameters.AddWithValue("$preheatTemperature", pqr.PreheatTemperature ?? "");
+            cmd.Parameters.AddWithValue("$postWeldHeatTreatment", pqr.PostWeldHeatTreatment ?? "");
+            
+            cmd.Parameters.AddWithValue("$qualifiedPNumberRange", pqr.QualifiedPNumberRange ?? "");
+            
+            cmd.Parameters.AddWithValue("$revision", pqr.Revision);
+            cmd.Parameters.AddWithValue("$previousRevisionId", (object?)pqr.PreviousRevisionId?.ToString() ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("$isActive", pqr.IsActive ? 1 : 0);
+            cmd.Parameters.AddWithValue("$isPipe", pqr.IsPipe ? 1 : 0);
+            
+            cmd.Parameters.AddWithValue("$pNumber2", pqr.PNumber2 ?? "");
+            
+            cmd.ExecuteNonQuery();
+        }
 
         public void Update(Pqr pqr)
         {
@@ -263,6 +625,7 @@ $pNumber2
             var cmd = connection.CreateCommand();
             cmd.CommandText = @"
 UPDATE Pqr SET
+    CompanyId = $companyId,
     PqrNumber = $number,
     QualificationDate = $date,
     QualifiedBy = $by,
@@ -301,6 +664,7 @@ UPDATE Pqr SET
     ThicknessQualifiedMin = $tMin,
     ThicknessQualifiedMax = $tMax,
 
+    DiameterTested = $dTested,
     DiameterMin = $dMin,
     DiameterMax = $dMax,
 
@@ -322,6 +686,10 @@ UPDATE Pqr SET
     BaseMaterial2=$BaseMaterial2,
     BaseMaterial1Specification=$BaseMaterial1Specification,
     BaseMaterial2Specification=$BaseMaterial2Specification,
+    BaseMaterial1Grade=$BaseMaterial1Grade,
+    BaseMaterial2Grade=$BaseMaterial2Grade,
+    BaseMaterial1UNS=$BaseMaterial1UNS,
+    BaseMaterial2UNS=$BaseMaterial2UNS,
 
     FillerClassification = $fillerClassification,
 ANumber = $aNumber,
@@ -348,6 +716,7 @@ PostWeldHeatTreatment = $postWeldHeatTreatment,
 QualifiedPNumberRange = $qualifiedPNumberRange,
 
 Revision = $revision,
+    PreviousRevisionId = $previousRevisionId,
 IsActive = $isActive,
 IsPipe = $isPipe,
 
@@ -357,6 +726,9 @@ WHERE Id = $id;
 ";
 
             cmd.Parameters.AddWithValue("$id", pqr.Id.ToString());
+            cmd.Parameters.AddWithValue(
+                "$companyId",
+                (object?)pqr.CompanyId?.ToString() ?? DBNull.Value);
             cmd.Parameters.AddWithValue("$number", pqr.PqrNumber ?? "");
             cmd.Parameters.AddWithValue("$date", pqr.QualificationDate.ToString("yyyy-MM-dd"));
             cmd.Parameters.AddWithValue("$by", pqr.QualifiedBy ?? "");
@@ -369,6 +741,10 @@ WHERE Id = $id;
             cmd.Parameters.AddWithValue("$BaseMaterial2", pqr.BaseMaterial2 ?? "");
             cmd.Parameters.AddWithValue("$BaseMaterial1Specification", pqr.BaseMaterial1Specification ?? "");
             cmd.Parameters.AddWithValue("$BaseMaterial2Specification", pqr.BaseMaterial2Specification ?? "");
+            cmd.Parameters.AddWithValue("$BaseMaterial1Grade", pqr.BaseMaterial1Grade ?? "");
+            cmd.Parameters.AddWithValue("$BaseMaterial2Grade", pqr.BaseMaterial2Grade ?? "");
+            cmd.Parameters.AddWithValue("$BaseMaterial1UNS", pqr.BaseMaterial1UNS ?? "");
+            cmd.Parameters.AddWithValue("$BaseMaterial2UNS", pqr.BaseMaterial2UNS ?? "");
 
             cmd.Parameters.AddWithValue("$position", pqr.Position ?? "");
 
@@ -392,6 +768,7 @@ WHERE Id = $id;
             cmd.Parameters.AddWithValue("$tMin", pqr.ThicknessQualifiedMin);
             cmd.Parameters.AddWithValue("$tMax", pqr.ThicknessQualifiedMax);
 
+            cmd.Parameters.AddWithValue("$dTested", pqr.DiameterTested);
             cmd.Parameters.AddWithValue("$dMin", pqr.DiameterMin);
             cmd.Parameters.AddWithValue("$dMax", pqr.DiameterMax);
 
@@ -410,13 +787,13 @@ WHERE Id = $id;
             cmd.Parameters.AddWithValue("$rootGap", pqr.RootGap);
             cmd.Parameters.AddWithValue("$backing", pqr.Backing ?? "");
             cmd.Parameters.AddWithValue("$backGouging", pqr.BackGouging ?? "");
-
             cmd.Parameters.AddWithValue("$jointDiagram", pqr.JointDiagramPath ?? "");
             cmd.Parameters.AddWithValue("$passDiagram", pqr.PassDiagramPath ?? "");
             cmd.Parameters.AddWithValue("$grooveRadius", pqr.GrooveRadius);
             cmd.Parameters.AddWithValue("$misalignment", pqr.Misalignment);
             cmd.Parameters.AddWithValue("$backingType", pqr.BackingType ?? "");
             cmd.Parameters.AddWithValue("$edgePrep", pqr.EdgePreparation ?? "");
+
 
             cmd.Parameters.AddWithValue("$fillerClassification", pqr.FillerClassification ?? "");
             cmd.Parameters.AddWithValue("$aNumber", pqr.ANumber ?? "");
@@ -443,6 +820,7 @@ WHERE Id = $id;
             cmd.Parameters.AddWithValue("$qualifiedPNumberRange", pqr.QualifiedPNumberRange ?? "");
 
             cmd.Parameters.AddWithValue("$revision", pqr.Revision);
+            cmd.Parameters.AddWithValue("$previousRevisionId", (object?)pqr.PreviousRevisionId?.ToString() ?? DBNull.Value);
             cmd.Parameters.AddWithValue("$isActive", pqr.IsActive ? 1 : 0);
             cmd.Parameters.AddWithValue("$isPipe", pqr.IsPipe ? 1 : 0);
 
@@ -457,7 +835,7 @@ WHERE Id = $id;
         public Pqr? GetByNumber(string? pqrNumber)
         {
             if (string.IsNullOrWhiteSpace(pqrNumber))
-                return null; // 🔥 prevent crash
+                return null; // Ã°Å¸â€Â¥ prevent crash
 
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
@@ -506,6 +884,15 @@ WHERE Id = $id;";
         // =========================
         // GET ALL
         // =========================
+        public List<Pqr> GetByCompany(Guid companyId)
+        {
+            if (companyId == Guid.Empty)
+                throw new ArgumentException("Company Id is required.", nameof(companyId));
+
+            return GetAll()
+                .Where(x => x.CompanyId == companyId)
+                .ToList();
+        }
         public List<Pqr> GetAll()
         {
             var list = new List<Pqr>();
@@ -526,9 +913,19 @@ WHERE Id = $id;";
 
             return list;
         }
-
         public PqrRepository()
+            : this(DatabasePath.Get())
         {
+        }
+
+        public PqrRepository(string databasePath)
+        {
+            if (string.IsNullOrWhiteSpace(databasePath))
+                throw new ArgumentException(
+                    "Database path is required.",
+                    nameof(databasePath));
+
+            _databasePath = databasePath;
             CreateIndexes();
         }
 
@@ -591,6 +988,10 @@ ON Pqr(IsApproved);
             return new Pqr
             {
                 Id = Guid.Parse(reader["Id"].ToString()!),
+                CompanyId =
+                    reader["CompanyId"] == DBNull.Value
+                        ? null
+                        : Guid.Parse(reader["CompanyId"].ToString()!),
                 PqrNumber = reader["PqrNumber"]?.ToString() ?? "",
                 QualificationDate = DateTime.Parse(reader["QualificationDate"].ToString()!),
                 QualifiedBy = reader["QualifiedBy"]?.ToString() ?? "",
@@ -604,6 +1005,10 @@ ON Pqr(IsApproved);
 
                 BaseMaterial1Specification = reader["BaseMaterial1Specification"]?.ToString() ?? "",
                 BaseMaterial2Specification = reader["BaseMaterial2Specification"]?.ToString() ?? "",
+                BaseMaterial1Grade = reader["BaseMaterial1Grade"]?.ToString() ?? "",
+                BaseMaterial2Grade = reader["BaseMaterial2Grade"]?.ToString() ?? "",
+                BaseMaterial1UNS = reader["BaseMaterial1UNS"]?.ToString() ?? "",
+                BaseMaterial2UNS = reader["BaseMaterial2UNS"]?.ToString() ?? "",
 
                 Position = reader["Position"]?.ToString() ?? "",
 
@@ -629,6 +1034,7 @@ ON Pqr(IsApproved);
                 ThicknessQualifiedMin = reader["ThicknessQualifiedMin"] == DBNull.Value ? 0 : Convert.ToDouble(reader["ThicknessQualifiedMin"]),
                 ThicknessQualifiedMax = reader["ThicknessQualifiedMax"] == DBNull.Value ? 0 : Convert.ToDouble(reader["ThicknessQualifiedMax"]),
 
+                DiameterTested = reader["DiameterTested"] == DBNull.Value ? 0 : Convert.ToDouble(reader["DiameterTested"]),
                 DiameterMin = reader["DiameterMin"] == DBNull.Value ? 0 : Convert.ToDouble(reader["DiameterMin"]),
                 DiameterMax = reader["DiameterMax"] == DBNull.Value ? 0 : Convert.ToDouble(reader["DiameterMax"]),
 
@@ -693,6 +1099,7 @@ ON Pqr(IsApproved);
                 QualifiedPNumberRange = reader["QualifiedPNumberRange"]?.ToString() ?? "",
 
                 Revision = reader["Revision"] == DBNull.Value ? 0 : Convert.ToInt32(reader["Revision"]),
+                PreviousRevisionId = reader["PreviousRevisionId"] == DBNull.Value ? null : Guid.Parse(reader["PreviousRevisionId"].ToString()!),
                 IsActive = reader["IsActive"] != DBNull.Value && Convert.ToInt32(reader["IsActive"]) == 1,
                 IsPipe = reader["IsPipe"] != DBNull.Value && Convert.ToInt32(reader["IsPipe"]) == 1,
 
@@ -702,3 +1109,8 @@ ON Pqr(IsApproved);
     }
     }
 }
+
+
+
+
+

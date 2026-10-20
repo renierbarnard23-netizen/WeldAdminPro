@@ -1,0 +1,354 @@
+@page "/quality/wpqr"
+@attribute [Authorize(Policy = "Permission:Quality.WPQR")]
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Web.Components.Shared.Quality
+@using WeldAdminPro.Web.Services.Quality
+
+@inject WeldAdminPro.Core.Security.Abstractions.ICurrentUserContext CurrentUser
+@inject WpqrApplicationService WpqrService
+@inject WpqrWorkflowService WpqrWorkflow
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>WPQR</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+
+    <MudStack Row="true"
+              Justify="Justify.SpaceBetween"
+              AlignItems="AlignItems.Center"
+              Class="mb-4">
+
+        <div>
+            <MudText Typo="Typo.h4">
+                WPQR Management
+            </MudText>
+
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Welding Procedure Qualification Records
+            </MudText>
+        </div>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="CreateWpqr">
+
+            New WPQR
+
+        </MudButton>
+
+    </MudStack>
+
+    <MudGrid Class="mb-4">
+
+        <MudItem xs="12" sm="4">
+
+            <MudPaper Class="pa-4"
+                      Elevation="2">
+
+                <MudText Typo="Typo.caption">
+                    Total WPQR
+                </MudText>
+
+                <MudText Typo="Typo.h4">
+                    @_items.Count
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <MudItem xs="12" sm="4">
+
+            <MudPaper Class="pa-4"
+                      Elevation="2">
+
+                <MudText Typo="Typo.caption">
+                    Active
+                </MudText>
+
+                <MudText Typo="Typo.h4"
+                         Color="Color.Success">
+
+                    @_items.Count(x => x.IsActive)
+
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <MudItem xs="12" sm="4">
+
+            <MudPaper Class="pa-4"
+                      Elevation="2">
+
+                <MudText Typo="Typo.caption">
+                    Approved
+                </MudText>
+
+                <MudText Typo="Typo.h4"
+                         Color="Color.Info">
+
+                    @_items.Count(x => x.IsApproved)
+
+                </MudText>
+
+            </MudPaper>
+
+        </MudItem>
+
+    </MudGrid>
+
+    <MudPaper Elevation="2"
+              Class="pa-2">
+
+        <WpqrGrid Items="_items"
+                  OnEdit="EditWpqr"
+                  OnDelete="DeleteWpqr"
+                  OnCreateRevision="CreateRevision"
+                  OnApprove="ApproveWpqr" />
+
+    </MudPaper>
+
+</MudContainer>
+
+@code
+{
+    private List<Wpqr> _items = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _items = (await WpqrService.GetAllAsync())
+            .OrderBy(x => x.WpqrNumber)
+            .ToList();
+    }
+
+    private async Task CreateWpqr()
+    {
+        var model = new Wpqr
+        {
+
+
+            QualificationDate = DateTime.Today,
+            ExpiryDate = DateTime.Today.AddYears(2),
+            IsActive = true,
+            IsApproved = false,
+            CreatedOn = DateTime.UtcNow,
+            CreatedBy = "System"
+        };
+
+        var parameters = new DialogParameters
+        {
+            ["Model"] = model
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<WpqrEditor>(
+            "New WPQR",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+        {
+            return;
+        }
+
+        if (result.Data is Wpqr wpqr)
+        {
+            try
+            {
+                await WpqrService.SaveAsync(wpqr);
+
+                await Load();
+
+                Snackbar.Add(
+                    "WPQR created successfully.",
+                    Severity.Success);
+            }
+            catch (InvalidOperationException ex)
+            {
+                Snackbar.Add(
+                    ex.Message,
+                    Severity.Error);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(
+                    $"Unable to create WPQR: {ex.Message}",
+                    Severity.Error);
+            }
+        }
+    }
+
+    private async Task EditWpqr(Wpqr wpqr)
+    {
+        var model = new Wpqr
+        {
+            CompanyId = wpqr.CompanyId,
+            Id = wpqr.Id,
+            WpqrNumber = wpqr.WpqrNumber,
+            WpsId = wpqr.WpsId,
+            WelderQualificationId = wpqr.WelderQualificationId,
+            QualificationDate = wpqr.QualificationDate,
+            RenewalDate = wpqr.RenewalDate,
+            ExpiryDate = wpqr.ExpiryDate,
+            IsActive = wpqr.IsActive,
+            IsApproved = wpqr.IsApproved,
+            ApprovedBy = wpqr.ApprovedBy,
+            ApprovedOn = wpqr.ApprovedOn,
+            ApprovalRole = wpqr.ApprovalRole,
+            SignaturePath = wpqr.SignaturePath,
+            StampPath = wpqr.StampPath,
+            OriginalDocumentPath = wpqr.OriginalDocumentPath,
+            CreatedOn = wpqr.CreatedOn,
+            CreatedBy = wpqr.CreatedBy
+        };
+
+        var parameters = new DialogParameters
+        {
+            ["Model"] = model
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<WpqrEditor>(
+            "Edit WPQR",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+        {
+            return;
+        }
+
+        if (result.Data is Wpqr updated)
+        {
+            try
+            {
+                await WpqrService.SaveAsync(updated);
+
+                await Load();
+
+                Snackbar.Add(
+                    "WPQR updated successfully.",
+                    Severity.Success);
+            }
+            catch (InvalidOperationException ex)
+            {
+                Snackbar.Add(
+                    ex.Message,
+                    Severity.Error);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(
+                    $"Unable to update WPQR: {ex.Message}",
+                    Severity.Error);
+            }
+        }
+    }
+
+    private async Task ApproveWpqr(Wpqr wpqr)
+    {
+        try
+        {
+            await WpqrWorkflow.ApproveAsync(wpqr.Id);
+            await Load();
+            Snackbar.Add($"WPQR {wpqr.WpqrNumber} approved and locked successfully.", Severity.Success);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unable to approve WPQR: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task CreateRevision(Wpqr wpqr)
+    {
+        try
+        {
+            var revision = await WpqrService.CreateRevisionAsync(wpqr.Id);
+            await Load();
+            Snackbar.Add($"WPQR {revision.WpqrNumber}: revision {revision.Revision} created. The previous revision has been retained.", Severity.Success);
+            await EditWpqr(revision);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unable to create WPQR revision: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task DeleteWpqr(Wpqr wpqr)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Message"] =
+                $"Are you sure you want to delete WPQR '{wpqr.WpqrNumber}'?"
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<WpqrDeleteConfirmation>(
+            "Delete WPQR",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+        {
+            return;
+        }
+
+        if (result.Data is true)
+        {
+            await WpqrService.DeleteAsync(wpqr.Id);
+
+            await Load();
+
+            Snackbar.Add(
+                "WPQR deleted successfully.",
+                Severity.Success);
+        }
+    }
+}

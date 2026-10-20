@@ -1,12 +1,15 @@
-@page "/inventory"
+﻿@page "/inventory"
 
 @attribute [Authorize(Policy = "Permission:Inventory.View")]
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Inventory
 @using WeldAdminPro.Web.Components.Shared.Inventory
+@using WeldAdminPro.Web.Services.Inventory
 
 @inject StockApplicationService StockService
 @inject NavigationManager Navigation
+@inject InventoryExportService InventoryExport
+@inject IJSRuntime JS
 
 <PageTitle>Inventory</PageTitle>
 
@@ -58,6 +61,24 @@
 
             </MudButton>
 
+            <MudButton Color="Color.Secondary"
+                       Variant="Variant.Outlined"
+                       Href="/inventory/categories">
+
+                Manage Categories
+
+            </MudButton>
+
+            <MudButton Color="Color.Error"
+                       Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.FileDownload"
+                       Disabled="@(!InventoryExport.HasStockWarnings())"
+                       OnClick="ExportWarnings">
+
+                Export Warnings
+
+            </MudButton>
+
         </MudStack>
 
     </div>
@@ -79,7 +100,9 @@
 <InventoryKpiCards TotalValue="@TotalInventoryValue"
                    TotalUnits="@TotalUnits"
                    LowStock="@LowStock"
-                   Critical="@Critical" />
+                   Critical="@Critical"
+                   LowStockValue="@LowStockValue"
+                   OutOfStockValue="@OutOfStockValue" />
 
 <InventoryToolbar Categories="_categories"
                   CategoryChanged="CategoryChanged"
@@ -96,6 +119,22 @@
 
     private Guid? _selectedCategory;
 
+    private async Task ExportWarnings()
+    {
+        var excel = InventoryExport.ExportStockWarnings();
+
+        var fileName =
+            $"StockWarnings_{DateTime.Today:yyyy-MM-dd}.xlsx";
+
+        var base64 =
+            Convert.ToBase64String(excel);
+
+        await JS.InvokeVoidAsync(
+            "weldAdminDownload.saveBase64File",
+            fileName,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            base64);
+    }
     private void NewItem()
     {
         Navigation.NavigateTo("/inventory/new");
@@ -194,6 +233,19 @@
         FilteredItems.Count(x =>
             x.SmartStatus ==
             SmartStockStatus.Critical);
+    private decimal LowStockValue =>
+        _items
+            .Where(x =>
+                x.SmartStatus ==
+                SmartStockStatus.ReorderRequired)
+            .Sum(x => x.TotalStockValue);
+
+    private decimal OutOfStockValue =>
+        _items
+            .Where(x =>
+                x.SmartStatus ==
+                SmartStockStatus.Critical)
+            .Sum(x => x.TotalStockValue);
 
     private void OpenItem(Guid id)
     {
@@ -213,3 +265,5 @@
     }
 
 }
+
+

@@ -1,4 +1,4 @@
-@page "/production/workorders/edit/{Id:guid}"
+﻿@page "/production/workorders/edit/{Id:guid}"
 
 @attribute [Authorize(Policy = "Permission:Production.EditWorkOrder")]
 @using MudBlazor
@@ -87,6 +87,25 @@ else
 
                 </MudItem>
 
+                <MudItem xs="12" md="6">
+
+                    <MudNumericField T="int"
+                                     Label="Priority"
+                                     @bind-Value="_workOrder.Priority"
+                                     Min="1"
+                                     Required="true" />
+
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+
+                    <MudTextField T="string"
+              Label="Status"
+              Value="@_workOrder.Status.ToString()"
+              ReadOnly="true" />
+
+                </MudItem>
+
         </MudGrid>
 
         </DashboardSection>
@@ -126,25 +145,23 @@ else
     private WorkOrder? _workOrder;
 
     private bool _loading;
-
     protected override void OnInitialized()
     {
         _loading = true;
 
         _workOrder =
             ProductionService.GetWorkOrder(Id);
-
         _loading = false;
     }
 
-    private void Save()
+    private async Task Save()
     {
         if (_workOrder is null)
             return;
 
         try
         {
-            ProductionService.UpdateWorkOrder(_workOrder);
+            await ProductionService.UpdateWorkOrderAsync(_workOrder);
 
             Snackbar.Add(
                 "Work Order updated.",

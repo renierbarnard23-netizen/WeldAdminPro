@@ -1,4 +1,4 @@
-﻿using WeldAdminPro.Core.Security;
+using WeldAdminPro.Core.Security;
 
 namespace WeldAdminPro.Core.Security.Catalog;
 
@@ -72,6 +72,7 @@ public static class RolePermissionCatalog
                 PermissionKeys.Quality.View,
                 PermissionKeys.Quality.WPS,
                 PermissionKeys.Quality.WpsApproval,
+                PermissionKeys.Quality.WpqrApproval,
                 PermissionKeys.Quality.PQR,
                 PermissionKeys.Quality.WPQR,
                 PermissionKeys.Quality.WelderQualifications,
@@ -93,6 +94,7 @@ public static class RolePermissionCatalog
                 PermissionKeys.Quality.WeldRelease,
                 PermissionKeys.Quality.QCP,
                 PermissionKeys.Quality.QCPMaster,
+                PermissionKeys.Quality.ITP,
             ],
 
             // ======================================================
@@ -129,6 +131,7 @@ public static class RolePermissionCatalog
                 PermissionKeys.Quality.WeldRelease,
                 PermissionKeys.Quality.QCP,
                 PermissionKeys.Quality.QCPMaster,
+                PermissionKeys.Quality.ITP,
             ],
 
             // ======================================================
@@ -188,6 +191,7 @@ public static class RolePermissionCatalog
                 PermissionKeys.Quality.HoldPointApproval,
                 PermissionKeys.Quality.WeldRelease,
                 PermissionKeys.Quality.QCP,
+                PermissionKeys.Quality.ITP,
             ],
 
             // ======================================================

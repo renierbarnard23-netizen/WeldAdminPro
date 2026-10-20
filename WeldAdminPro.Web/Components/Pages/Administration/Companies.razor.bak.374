@@ -1,0 +1,277 @@
+﻿@page "/administration/companies"
+
+@using Microsoft.AspNetCore.Authorization
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Security
+@using WeldAdminPro.Data.Services
+
+@attribute [Authorize(Policy = "Permission:Administration.Companies")]
+
+@inject AdministrationApplicationService AdministrationService
+
+<PageTitle>Companies</PageTitle>
+
+<MudStack Row="true"
+          Justify="Justify.SpaceBetween"
+          AlignItems="AlignItems.Center"
+          Class="mb-4">
+
+    <EnterprisePageHeader Title="Companies"
+                          Subtitle="Manage companies and company status."
+                          Icon="@Icons.Material.Filled.Business" />
+
+    <MudStack Row="true" Spacing="2">
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="AddCompany">
+
+            Add Company
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Disabled="_selectedCompany is null"
+                   OnClick="EditCompany">
+
+            Edit
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Disabled="_selectedCompany is null"
+                   OnClick="EnableCompany">
+
+            Enable
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Disabled="_selectedCompany is null"
+                   OnClick="DisableCompany">
+
+            Disable
+
+        </MudButton>
+
+    </MudStack>
+
+</MudStack>
+
+@if (_companies == null)
+{
+    <MudProgressCircular Color="Color.Primary"
+                         Indeterminate="true" />
+}
+else
+{
+    <MudTable T="Company"
+              Items="_companies"
+              Hover="true"
+              Dense="true"
+              Striped="true"
+              SelectOnRowClick="true"
+              @bind-SelectedItem="_selectedCompany">
+
+        <HeaderContent>
+
+            <MudTh>Company Name</MudTh>
+            <MudTh>Company Code</MudTh>
+            <MudTh>Active</MudTh>
+            <MudTh>Created</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.CompanyName</MudTd>
+            <MudTd>@context.CompanyCode</MudTd>
+            <MudTd>@(context.IsActive ? "Yes" : "No")</MudTd>
+            <MudTd>@context.CreatedDate.ToLocalTime().ToString("yyyy-MM-dd")</MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+}
+
+@if (_showEditor && _editingCompany is not null)
+{
+    <MudPaper Class="pa-4 mt-4"
+              Elevation="2">
+
+        <MudText Typo="Typo.h6"
+                 Class="mb-3">
+
+            @(_isNewCompany ? "Add Company" : "Edit Company")
+
+        </MudText>
+
+        <MudStack Spacing="2">
+
+            <MudTextField @bind-Value="_editingCompany.CompanyName"
+                          Label="Company Name"
+                          Variant="Variant.Outlined"
+                          Required="true" />
+
+            <MudTextField @bind-Value="_editingCompany.CompanyCode"
+                          Label="Company Code"
+                          Variant="Variant.Outlined"
+                          Required="true" />
+
+            <MudStack Row="true"
+                      Spacing="2"
+                      Class="mt-2">
+
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           OnClick="SaveCompany">
+
+                    Save
+
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           OnClick="CancelEditor">
+
+                    Cancel
+
+                </MudButton>
+
+            </MudStack>
+
+        </MudStack>
+
+    </MudPaper>
+}
+
+@code
+{
+    private List<Company>? _companies;
+
+    private Company? _selectedCompany;
+
+    private Company? _editingCompany;
+
+    private bool _showEditor;
+
+    private bool _isNewCompany;
+
+    protected override void OnInitialized()
+    {
+        LoadCompanies();
+    }
+
+    private void LoadCompanies()
+    {
+        _companies = AdministrationService
+            .GetCompanies();
+    }
+
+    private void AddCompany()
+    {
+        _editingCompany = new Company
+        {
+            Id = Guid.NewGuid(),
+            CompanyName = "",
+            CompanyCode = "",
+            IsActive = true,
+            CreatedDate = DateTime.UtcNow
+        };
+
+        _isNewCompany = true;
+        _showEditor = true;
+    }
+
+    private void EditCompany()
+    {
+        if (_selectedCompany is null)
+            return;
+
+        _editingCompany = new Company
+        {
+            Id = _selectedCompany.Id,
+            CompanyName = _selectedCompany.CompanyName,
+            CompanyCode = _selectedCompany.CompanyCode,
+            IsActive = _selectedCompany.IsActive,
+            CreatedDate = _selectedCompany.CreatedDate
+        };
+
+        _isNewCompany = false;
+        _showEditor = true;
+    }
+
+    private void SaveCompany()
+    {
+        if (_editingCompany is null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(
+                _editingCompany.CompanyName))
+            return;
+
+        if (string.IsNullOrWhiteSpace(
+                _editingCompany.CompanyCode))
+            return;
+
+        if (_isNewCompany)
+        {
+            AdministrationService.AddCompany(
+                _editingCompany);
+        }
+        else
+        {
+            AdministrationService.UpdateCompany(
+                _editingCompany);
+        }
+
+        LoadCompanies();
+
+        CloseEditor();
+
+        StateHasChanged();
+    }
+
+    private void EnableCompany()
+    {
+        if (_selectedCompany is null)
+            return;
+
+        AdministrationService.EnableCompany(
+            _selectedCompany.Id);
+
+        LoadCompanies();
+
+        CloseEditor();
+
+        StateHasChanged();
+    }
+
+    private void DisableCompany()
+    {
+        if (_selectedCompany is null)
+            return;
+
+        AdministrationService.DisableCompany(
+            _selectedCompany.Id);
+
+        LoadCompanies();
+
+        CloseEditor();
+
+        StateHasChanged();
+    }
+
+    private void CancelEditor()
+    {
+        CloseEditor();
+    }
+
+    private void CloseEditor()
+    {
+        _selectedCompany = null;
+        _editingCompany = null;
+        _showEditor = false;
+        _isNewCompany = false;
+    }
+}

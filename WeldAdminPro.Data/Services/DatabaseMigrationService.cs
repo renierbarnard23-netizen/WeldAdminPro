@@ -37,6 +37,9 @@ namespace WeldAdminPro.Data.Services
                     ?? 0;
             }
 
+            // WPS must exist before migrations 17 and 20 reference it.
+            EnsureWpsMigrationPrerequisites(connection);
+
             if (currentVersion < 1)
             {
                 ApplyVersion1(connection);
@@ -215,6 +218,24 @@ namespace WeldAdminPro.Data.Services
                 ApplyVersion32(connection);
             }
 
+            // VERSION 33 - INSPECTION TEST PLAN FOUNDATION
+            // =====================================
+            if (currentVersion < 33)
+            {
+                ApplyVersion33(connection);
+            }
+
+            // VERSION 34 - COMPLETE WPS ENGINEERING DATA PERSISTENCE
+            if (currentVersion < 34)
+            {
+                ApplyVersion34(connection);
+            }
+
+            // VERSION 35 - WPQR REVISION AND LOCKING FOUNDATION
+            if (currentVersion < 35)
+            {
+                ApplyVersion35(connection);
+            }
             // existing databases as well.
             //
             if (TableExists(connection, "Roles") &&
@@ -227,6 +248,19 @@ namespace WeldAdminPro.Data.Services
         }
 
         // =====================================
+        private static void EnsureWpsMigrationPrerequisites(
+            SqliteConnection connection)
+        {
+            connection.Execute(@"
+CREATE TABLE IF NOT EXISTS Wps
+(
+    Id TEXT PRIMARY KEY,
+    CompanyId TEXT NULL,
+    PqrId TEXT NULL,
+    PreviousRevisionId TEXT NULL
+);");
+        }
+
         // VERSION 1
         // =====================================
 
@@ -1731,31 +1765,38 @@ ON Projects(CompanyId);
         private void ApplyVersion18(
             SqliteConnection connection)
         {
-            var lodexCompanyId =
-                connection.ExecuteScalar<string?>(
+            var projectsNeedingLodexOwnership =
+                connection.ExecuteScalar<int>(
                     @"
+SELECT COUNT(*)
+FROM Projects
+WHERE CompanyId IS NULL
+  AND ProjectName = 'Blow Pots';");
+
+            if (projectsNeedingLodexOwnership > 0)
+            {
+                var lodexCompanyId =
+                    connection.ExecuteScalar<string?>(
+                        @"
 SELECT Id
 FROM Companies
 WHERE CompanyCode = 'L001'
 LIMIT 1;");
 
-            if (string.IsNullOrWhiteSpace(lodexCompanyId))
-            {
-                throw new InvalidOperationException(
-                    "Version 18 migration failed: Lodex company (L001) was not found.");
-            }
+                if (string.IsNullOrWhiteSpace(lodexCompanyId))
+                {
+                    throw new InvalidOperationException(
+                        "Version 18 migration failed: legacy Blow Pots projects need ownership, but Lodex company (L001) was not found.");
+                }
 
-            connection.Execute(
-                @"
+                connection.Execute(
+                    @"
 UPDATE Projects
 SET CompanyId = @CompanyId
 WHERE CompanyId IS NULL
   AND ProjectName = 'Blow Pots';",
-                new
-                {
-                    CompanyId = lodexCompanyId
-                });
-
+                    new { CompanyId = lodexCompanyId });
+            }
             RecordVersion(
                 connection,
                 18,
@@ -2050,74 +2091,70 @@ ON WelderQualification(CompanyId);
 ");
 
             // =====================================
-            // EXISTING QUALITY MASTER OWNERSHIP
-            // Dynamic Options = DYN01
-            // =====================================
-
-            var dynamicOptionsCompanyId =
-                connection.ExecuteScalar<string?>(
+            // Assign the legacy default company only when records need ownership.
+            var qualityRecordsNeedingCompany =
+                connection.ExecuteScalar<int>(
                     @"
+SELECT
+    (SELECT COUNT(*) FROM Pqr
+     WHERE CompanyId IS NULL OR TRIM(CompanyId) = '') +
+    (SELECT COUNT(*) FROM Wps
+     WHERE CompanyId IS NULL OR TRIM(CompanyId) = '') +
+    (SELECT COUNT(*) FROM Wpqr
+     WHERE CompanyId IS NULL OR TRIM(CompanyId) = '') +
+    (SELECT COUNT(*) FROM WelderQualification
+     WHERE CompanyId IS NULL OR TRIM(CompanyId) = '');
+");
+
+            if (qualityRecordsNeedingCompany > 0)
+            {
+                var dynamicOptionsCompanyId =
+                    connection.ExecuteScalar<string?>(
+                        @"
 SELECT Id
 FROM Companies
 WHERE CompanyCode = 'DYN01'
   AND IsActive = 1
 LIMIT 1;");
 
-            if (string.IsNullOrWhiteSpace(dynamicOptionsCompanyId))
-            {
-                throw new InvalidOperationException(
-                    "Version 20 migration failed: Dynamic Options company (DYN01) was not found.");
-            }
+                if (string.IsNullOrWhiteSpace(dynamicOptionsCompanyId))
+                {
+                    throw new InvalidOperationException(
+                        "Version 20 migration failed: quality master records need company ownership, but active Dynamic Options company (DYN01) was not found.");
+                }
 
-            connection.Execute(
-                @"
+                connection.Execute(
+                    @"
 UPDATE Pqr
 SET CompanyId = @CompanyId
 WHERE CompanyId IS NULL
-   OR TRIM(CompanyId) = '';
-",
-                new
-                {
-                    CompanyId = dynamicOptionsCompanyId
-                });
+   OR TRIM(CompanyId) = '';",
+                    new { CompanyId = dynamicOptionsCompanyId });
 
-            connection.Execute(
-                @"
+                connection.Execute(
+                    @"
 UPDATE Wps
 SET CompanyId = @CompanyId
 WHERE CompanyId IS NULL
-   OR TRIM(CompanyId) = '';
-",
-                new
-                {
-                    CompanyId = dynamicOptionsCompanyId
-                });
+   OR TRIM(CompanyId) = '';",
+                    new { CompanyId = dynamicOptionsCompanyId });
 
-            connection.Execute(
-                @"
+                connection.Execute(
+                    @"
 UPDATE Wpqr
 SET CompanyId = @CompanyId
 WHERE CompanyId IS NULL
-   OR TRIM(CompanyId) = '';
-",
-                new
-                {
-                    CompanyId = dynamicOptionsCompanyId
-                });
+   OR TRIM(CompanyId) = '';",
+                    new { CompanyId = dynamicOptionsCompanyId });
 
-            connection.Execute(
-                @"
+                connection.Execute(
+                    @"
 UPDATE WelderQualification
 SET CompanyId = @CompanyId
 WHERE CompanyId IS NULL
-   OR TRIM(CompanyId) = '';
-",
-                new
-                {
-                    CompanyId = dynamicOptionsCompanyId
-                });
-
-            // =====================================
+   OR TRIM(CompanyId) = '';",
+                    new { CompanyId = dynamicOptionsCompanyId });
+            }
             // MIGRATION VALIDATION
             // =====================================
 
@@ -2692,14 +2729,274 @@ CREATE INDEX IF NOT EXISTS IX_QcpMasterActivities_IsActive
                 "1.32.0",
                 "QCP Master Activity Library persistence");
         }
+        // =====================================
+        // VERSION 33 - INSPECTION TEST PLAN FOUNDATION
+        // =====================================
+        private void ApplyVersion33(SqliteConnection connection)
+        {
+            connection.Execute(@"
+CREATE TABLE IF NOT EXISTS InspectionTestPlans
+(
+    Id TEXT NOT NULL PRIMARY KEY,
+    ProjectId TEXT NOT NULL,
+    ItpNumber TEXT NOT NULL,
+    Revision TEXT NOT NULL,
+    Status INTEGER NOT NULL DEFAULT 0,
+    Title TEXT NOT NULL,
+    Description TEXT NULL,
+    PreparedBy TEXT NULL,
+    PreparedOn TEXT NULL,
+    ApprovedBy TEXT NULL,
+    ApprovedOn TEXT NULL,
+    EffectiveDate TEXT NULL,
+    SupersededOn TEXT NULL,
+    PreviousRevisionId TEXT NULL,
+    IsActive INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY(ProjectId) REFERENCES Projects(Id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS IX_InspectionTestPlans_ProjectId
+    ON InspectionTestPlans(ProjectId);
+
+CREATE INDEX IF NOT EXISTS IX_InspectionTestPlans_Project_ItpNumber
+    ON InspectionTestPlans(ProjectId, ItpNumber);
+
+CREATE UNIQUE INDEX IF NOT EXISTS UX_InspectionTestPlans_Project_ItpNumber_Revision
+    ON InspectionTestPlans(ProjectId, ItpNumber, Revision);
+
+CREATE TABLE IF NOT EXISTS InspectionTestPlanItems
+(
+    Id TEXT NOT NULL PRIMARY KEY,
+    InspectionTestPlanId TEXT NOT NULL,
+    SequenceNumber INTEGER NOT NULL,
+    QcpRevisionId TEXT NOT NULL,
+    QcpItemId TEXT NOT NULL,
+    CustomerQualityRequirementId TEXT NULL,
+    Activity TEXT NOT NULL,
+    AcceptanceCriteria TEXT NOT NULL,
+    VerificationMethod TEXT NOT NULL,
+    ResponsibleParty TEXT NOT NULL,
+    InspectionStage TEXT NOT NULL,
+    HoldPointCategory INTEGER NULL,
+    HoldPointType INTEGER NULL,
+    RequiredNdtMethod INTEGER NULL,
+    Mandatory INTEGER NOT NULL DEFAULT 0,
+    RequiredEvidence TEXT NOT NULL,
+    ExecutionType TEXT NOT NULL,
+    Notes TEXT NOT NULL,
+    FOREIGN KEY(InspectionTestPlanId)
+        REFERENCES InspectionTestPlans(Id)
+        ON DELETE CASCADE,
+    FOREIGN KEY(QcpRevisionId)
+        REFERENCES ProjectQualityControlPlans(Id),
+    FOREIGN KEY(QcpItemId)
+        REFERENCES ProjectQualityControlPlanItems(Id),
+    FOREIGN KEY(CustomerQualityRequirementId)
+        REFERENCES CustomerQualityRequirements(Id)
+        ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS IX_InspectionTestPlanItems_PlanId
+    ON InspectionTestPlanItems(InspectionTestPlanId);
+
+CREATE INDEX IF NOT EXISTS IX_InspectionTestPlanItems_QcpRevisionId
+    ON InspectionTestPlanItems(QcpRevisionId);
+
+CREATE INDEX IF NOT EXISTS IX_InspectionTestPlanItems_QcpItemId
+    ON InspectionTestPlanItems(QcpItemId);
+
+CREATE INDEX IF NOT EXISTS IX_InspectionTestPlanItems_RequirementId
+    ON InspectionTestPlanItems(CustomerQualityRequirementId);
+
+CREATE UNIQUE INDEX IF NOT EXISTS UX_InspectionTestPlanItems_Plan_Sequence
+    ON InspectionTestPlanItems(InspectionTestPlanId, SequenceNumber);
+
+CREATE TABLE IF NOT EXISTS InspectionTestPlanExecutions
+(
+    Id TEXT NOT NULL PRIMARY KEY,
+    InspectionTestPlanItemId TEXT NOT NULL,
+    ExecutionType TEXT NOT NULL,
+    ExecutionRecordId TEXT NOT NULL,
+    LinkedOn TEXT NOT NULL,
+    LinkedBy TEXT NULL,
+    Notes TEXT NULL,
+    FOREIGN KEY(InspectionTestPlanItemId)
+        REFERENCES InspectionTestPlanItems(Id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS IX_InspectionTestPlanExecutions_ItemId
+    ON InspectionTestPlanExecutions(InspectionTestPlanItemId);
+
+CREATE INDEX IF NOT EXISTS IX_InspectionTestPlanExecutions_Record
+    ON InspectionTestPlanExecutions(ExecutionType, ExecutionRecordId);
+");
+
+            RecordVersion(
+                connection,
+                33,
+                "1.33.0",
+                "Inspection Test Plan foundation persistence");
+        }
+        // =====================================
+        // VERSION 34 - COMPLETE WPS PERSISTENCE
+        // =====================================
+        private void ApplyVersion34(SqliteConnection connection)
+        {
+            // Create the table if absent. Never drop or rebuild an existing table.
+            connection.Execute(@"
+CREATE TABLE IF NOT EXISTS Wps
+(
+    Id TEXT PRIMARY KEY,
+    CompanyId TEXT NULL,
+    WpsNumber TEXT NOT NULL DEFAULT '',
+    Process TEXT NULL,
+    MaterialGroup TEXT NULL,
+    ThicknessMin REAL NOT NULL DEFAULT 0,
+    ThicknessMax REAL NOT NULL DEFAULT 0,
+    Diameter REAL NOT NULL DEFAULT 0,
+    FillerMaterial TEXT NOT NULL DEFAULT '',
+    GasType TEXT NOT NULL DEFAULT '',
+    AmpsMin REAL NOT NULL DEFAULT 0,
+    AmpsMax REAL NOT NULL DEFAULT 0,
+    VoltsMin REAL NOT NULL DEFAULT 0,
+    VoltsMax REAL NOT NULL DEFAULT 0,
+    HeatInputMin REAL NOT NULL DEFAULT 0,
+    HeatInputMax REAL NOT NULL DEFAULT 0,
+    PreheatMin REAL NOT NULL DEFAULT 0,
+    PreheatMax REAL NOT NULL DEFAULT 0,
+    WelderNumber TEXT NOT NULL DEFAULT '',
+    InterpassMax REAL NULL,
+    PwhtRequired INTEGER NOT NULL DEFAULT 0,
+    PqrId TEXT NULL,
+    LinkedPqrNumber TEXT NULL,
+    PNumber TEXT NULL,
+    FNumber TEXT NULL,
+    Position TEXT NULL,
+    JointType TEXT NULL,
+    JointDesign TEXT NOT NULL DEFAULT '',
+    Backing TEXT NOT NULL DEFAULT '',
+    BackingType TEXT NOT NULL DEFAULT '',
+    IsApproved INTEGER NOT NULL DEFAULT 0,
+    IsLocked INTEGER NOT NULL DEFAULT 0,
+    ApprovedOn TEXT NULL,
+    ApprovedBy TEXT NULL,
+    ParseConfidence REAL NOT NULL DEFAULT 0,
+    ParseNotes TEXT NOT NULL DEFAULT '',
+    PreviousRevisionId TEXT NULL,
+    CreatedOn TEXT NULL,
+    CreatedBy TEXT NOT NULL DEFAULT '',
+    ImportSource TEXT NOT NULL DEFAULT '',
+    Revision INTEGER NOT NULL DEFAULT 0,
+    IsActive INTEGER NOT NULL DEFAULT 1,
+    IsCompliant INTEGER NOT NULL DEFAULT 0,
+    ValidationStatus TEXT NOT NULL DEFAULT '',
+    CurrentType TEXT NOT NULL DEFAULT '',
+    Polarity TEXT NOT NULL DEFAULT '',
+    Progression TEXT NOT NULL DEFAULT '',
+    JointDiagramPath TEXT NOT NULL DEFAULT '',
+    PassDiagramPath TEXT NOT NULL DEFAULT '',
+    QualifiedThicknessRange TEXT NOT NULL DEFAULT '',
+    IsPipe INTEGER NOT NULL DEFAULT 0
+);");
+
+            // Ensure every Wps model column exists in older schemas.
+            // Defaults allow legacy rows to remain intact.
+            var columns = new (string Name, string Definition)[]
+            {
+                ("CompanyId", "TEXT NULL"),
+                ("WpsNumber", "TEXT NOT NULL DEFAULT ''"),
+                ("Process", "TEXT NULL"),
+                ("MaterialGroup", "TEXT NOT NULL DEFAULT ''"),
+                ("ThicknessMin", "REAL NOT NULL DEFAULT 0"),
+                ("ThicknessMax", "REAL NOT NULL DEFAULT 0"),
+                ("Diameter", "REAL NOT NULL DEFAULT 0"),
+                ("FillerMaterial", "TEXT NOT NULL DEFAULT ''"),
+                ("GasType", "TEXT NOT NULL DEFAULT ''"),
+                ("AmpsMin", "REAL NOT NULL DEFAULT 0"),
+                ("AmpsMax", "REAL NOT NULL DEFAULT 0"),
+                ("VoltsMin", "REAL NOT NULL DEFAULT 0"),
+                ("VoltsMax", "REAL NOT NULL DEFAULT 0"),
+                ("HeatInputMin", "REAL NOT NULL DEFAULT 0"),
+                ("HeatInputMax", "REAL NOT NULL DEFAULT 0"),
+                ("PreheatMin", "REAL NOT NULL DEFAULT 0"),
+                ("PreheatMax", "REAL NOT NULL DEFAULT 0"),
+                ("WelderNumber", "TEXT NOT NULL DEFAULT ''"),
+                ("InterpassMax", "REAL NULL"),
+                ("PwhtRequired", "INTEGER NOT NULL DEFAULT 0"),
+                ("PqrId", "TEXT NULL"),
+                ("LinkedPqrNumber", "TEXT NULL"),
+                ("PNumber", "TEXT NULL"),
+                ("FNumber", "TEXT NULL"),
+                ("Position", "TEXT NULL"),
+                ("JointType", "TEXT NULL"),
+                ("JointDesign", "TEXT NOT NULL DEFAULT ''"),
+                ("Backing", "TEXT NOT NULL DEFAULT ''"),
+                ("BackingType", "TEXT NOT NULL DEFAULT ''"),
+                ("IsApproved", "INTEGER NOT NULL DEFAULT 0"),
+                ("IsLocked", "INTEGER NOT NULL DEFAULT 0"),
+                ("ApprovedOn", "TEXT NULL"),
+                ("ApprovedBy", "TEXT NULL"),
+                ("ParseConfidence", "REAL NOT NULL DEFAULT 0"),
+                ("ParseNotes", "TEXT NOT NULL DEFAULT ''"),
+                ("PreviousRevisionId", "TEXT NULL"),
+                ("CreatedOn", "TEXT NULL"),
+                ("CreatedBy", "TEXT NOT NULL DEFAULT ''"),
+                ("ImportSource", "TEXT NOT NULL DEFAULT ''"),
+                ("Revision", "INTEGER NOT NULL DEFAULT 0"),
+                ("IsActive", "INTEGER NOT NULL DEFAULT 1"),
+                ("IsCompliant", "INTEGER NOT NULL DEFAULT 0"),
+                ("ValidationStatus", "TEXT NOT NULL DEFAULT ''"),
+                ("CurrentType", "TEXT NOT NULL DEFAULT ''"),
+                ("Polarity", "TEXT NOT NULL DEFAULT ''"),
+                ("Progression", "TEXT NOT NULL DEFAULT ''"),
+                ("JointDiagramPath", "TEXT NOT NULL DEFAULT ''"),
+                ("PassDiagramPath", "TEXT NOT NULL DEFAULT ''"),
+                ("QualifiedThicknessRange", "TEXT NOT NULL DEFAULT ''"),
+                ("IsPipe", "INTEGER NOT NULL DEFAULT 0")
+            };
+
+            foreach (var column in columns)
+            {
+                TryAddColumn(connection, "Wps", column.Name, column.Definition);
+            }
+
+            connection.Execute(@"
+CREATE INDEX IF NOT EXISTS IX_Wps_CompanyId
+    ON Wps(CompanyId);");
+
+            RecordVersion(
+                connection,
+                34,
+                "1.34.0",
+                "Complete WPS engineering, compliance and audit persistence");
+        }
+
+
+        // =====================================
+        // VERSION 35 - WPQR REVISION AND LOCKING FOUNDATION
+        // =====================================
+        private void ApplyVersion35(SqliteConnection connection)
+        {
+            if (!TableExists(connection, "Wpqr"))
+            {
+                throw new InvalidOperationException(
+                    "Version 35 migration cannot run because the Wpqr table does not exist.");
+            }
+
+            TryAddColumn(connection, "Wpqr", "PreviousRevisionId", "TEXT NULL");
+            TryAddColumn(connection, "Wpqr", "Revision", "INTEGER NOT NULL DEFAULT 0");
+            TryAddColumn(connection, "Wpqr", "IsLocked", "INTEGER NOT NULL DEFAULT 0");
+
+            connection.Execute(@"
+CREATE INDEX IF NOT EXISTS IX_Wpqr_PreviousRevisionId
+    ON Wpqr(PreviousRevisionId);");
+
+            RecordVersion(
+                connection,
+                35,
+                "1.35.0",
+                "WPQR revision lineage and locking foundation");
+        }
     }
 }
-
-
-
-
-
-
-
-
-

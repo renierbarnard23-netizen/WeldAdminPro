@@ -21,6 +21,49 @@ namespace WeldAdminPro.Data.Repositories
             CreateIndexes();
         }
 
+        public DocumentVaultFile? GetById(Guid id)
+        {
+            if (id == Guid.Empty)
+                return null;
+
+            using var connection =
+                new SqliteConnection(_connectionString);
+
+            connection.Open();
+
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+SELECT *
+FROM DocumentVaultFiles
+WHERE Id = $Id
+LIMIT 1;";
+            command.Parameters.AddWithValue("$Id", id.ToString());
+
+            using var reader = command.ExecuteReader();
+            if (!reader.Read())
+                return null;
+
+            return new DocumentVaultFile
+            {
+                Id = Guid.Parse(reader["Id"].ToString()!),
+                FileName = reader["FileName"]?.ToString() ?? "",
+                OriginalFileName = reader["OriginalFileName"]?.ToString() ?? "",
+                FilePath = reader["FilePath"]?.ToString() ?? "",
+                Category = (DocumentCategoryType)Convert.ToInt32(reader["Category"]),
+                Description = reader["Description"]?.ToString() ?? "",
+                DocumentNumber = reader["DocumentNumber"]?.ToString() ?? "",
+                Title = reader["Title"]?.ToString() ?? "",
+                Status = reader["Status"]?.ToString() ?? "",
+                Revision = reader["Revision"]?.ToString() ?? "",
+                UploadedDate = DateTime.Parse(reader["UploadedDate"].ToString()!),
+                UploadedBy = reader["UploadedBy"]?.ToString() ?? "",
+                WeldId = reader["WeldId"] == DBNull.Value ? null : Guid.Parse(reader["WeldId"].ToString()!),
+                ProjectId = reader["ProjectId"] == DBNull.Value ? null : Guid.Parse(reader["ProjectId"].ToString()!),
+                CompanyId = reader["CompanyId"] == DBNull.Value ? null : Guid.Parse(reader["CompanyId"].ToString()!),
+                IsApproved = Convert.ToInt32(reader["IsApproved"]) == 1
+            };
+        }
+
         public void Add(
             DocumentVaultFile file)
         {
@@ -61,7 +104,8 @@ namespace WeldAdminPro.Data.Repositories
 
             if (Exists(
                     file.ProjectId,
-                    file.FileName))
+                    file.FileName,
+                    file.CompanyId))
             {
                 throw new InvalidOperationException(
                     $"Document '{file.FileName}' already exists.");
@@ -94,6 +138,7 @@ INSERT INTO DocumentVaultFiles
     UploadedBy,
     WeldId,
     ProjectId,
+    CompanyId,
     IsApproved
 )
 VALUES
@@ -112,6 +157,7 @@ VALUES
     $UploadedBy,
     $WeldId,
     $ProjectId,
+    $CompanyId,
     $IsApproved
 )";
 
@@ -175,6 +221,12 @@ VALUES
                     ? file.ProjectId.ToString()
                     : DBNull.Value);
 
+            command.Parameters.AddWithValue(
+                "$CompanyId",
+                file.CompanyId != null
+                    ? file.CompanyId.ToString()
+                    : DBNull.Value);
+
 
             command.Parameters.AddWithValue(
                 "$IsApproved",
@@ -183,6 +235,84 @@ VALUES
             command.ExecuteNonQuery();
         }
 
+        public void Approve(
+            Guid id,
+            string approvedBy)
+        {
+            if (id == Guid.Empty)
+                throw new ArgumentException(
+                    "Document ID is required.",
+                    nameof(id));
+
+            if (string.IsNullOrWhiteSpace(approvedBy))
+                throw new ArgumentException(
+                    "Approving user is required.",
+                    nameof(approvedBy));
+
+            using var connection =
+                new SqliteConnection(_connectionString);
+
+            connection.Open();
+
+            using var transaction =
+                connection.BeginTransaction();
+
+            using var check =
+                connection.CreateCommand();
+
+            check.Transaction = transaction;
+            check.CommandText = @"
+SELECT IsApproved
+FROM DocumentVaultFiles
+WHERE Id = $Id
+LIMIT 1;";
+
+            check.Parameters.AddWithValue(
+                "$Id",
+                id.ToString());
+
+            var existing = check.ExecuteScalar();
+
+            if (existing == null ||
+                existing == DBNull.Value)
+            {
+                throw new InvalidOperationException(
+                    "Document could not be found.");
+            }
+
+            if (Convert.ToInt32(existing) == 1)
+            {
+                throw new InvalidOperationException(
+                    "Document is already approved.");
+            }
+
+            using var command =
+                connection.CreateCommand();
+
+            command.Transaction = transaction;
+            command.CommandText = @"
+UPDATE DocumentVaultFiles
+SET
+    IsApproved = 1,
+    Status = 'Approved'
+WHERE Id = $Id
+  AND IsApproved = 0;";
+
+            command.Parameters.AddWithValue(
+                "$Id",
+                id.ToString());
+
+            var affected =
+                command.ExecuteNonQuery();
+
+            if (affected != 1)
+            {
+                throw new InvalidOperationException(
+                    "Document approval could not be completed.");
+            }
+
+            transaction.Commit();
+        }
         private void CreateIndexes()
         {
             using var connection =
@@ -269,6 +399,40 @@ ON DocumentVaultFiles(IsApproved);
         }
 
         public List<DocumentVaultFile>
+            GetByCompany(Guid companyId)
+        {
+            if (companyId == Guid.Empty)
+                throw new ArgumentException(
+                    "Company ID is required.",
+                    nameof(companyId));
+
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            connection.Open();
+
+            var command =
+                connection.CreateCommand();
+
+            command.CommandText =
+            @"
+                SELECT *
+                FROM DocumentVaultFiles
+                WHERE CompanyId = $CompanyId
+                ORDER BY UploadedDate DESC;";
+
+            command.Parameters.AddWithValue(
+                "$CompanyId",
+                companyId.ToString());
+
+            using var reader =
+                command.ExecuteReader();
+
+            return ReadFiles(reader);
+        }
+
+        public List<DocumentVaultFile>
             GetByWeld(Guid weldId)
         {
             using var connection =
@@ -290,6 +454,48 @@ ON DocumentVaultFiles(IsApproved);
             command.Parameters.AddWithValue(
                 "$WeldId",
                 weldId.ToString());
+
+            using var reader =
+                command.ExecuteReader();
+
+            return ReadFiles(reader);
+        }
+
+        public List<DocumentVaultFile>
+            GetApprovedByCompanyAndCategory(
+            Guid companyId,
+            DocumentCategoryType category)
+        {
+            if (companyId == Guid.Empty)
+                throw new ArgumentException(
+                    "Company ID is required.",
+                    nameof(companyId));
+
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            connection.Open();
+
+            var command =
+                connection.CreateCommand();
+
+            command.CommandText =
+            @"
+                SELECT *
+                FROM DocumentVaultFiles
+                WHERE CompanyId = $CompanyId
+                AND Category = $Category
+                AND IsApproved = 1
+                ORDER BY UploadedDate DESC;";
+
+            command.Parameters.AddWithValue(
+                "$CompanyId",
+                companyId.ToString());
+
+            command.Parameters.AddWithValue(
+                "$Category",
+                (int)category);
 
             using var reader =
                 command.ExecuteReader();
@@ -408,6 +614,15 @@ Revision =
             reader["ProjectId"]
                 .ToString()!),
 
+
+                        CompanyId =
+    string.IsNullOrWhiteSpace(
+        reader["CompanyId"]
+            ?.ToString())
+        ? null
+        : Guid.Parse(
+            reader["CompanyId"]
+                .ToString()!),
                         IsApproved =
     Convert.ToInt32(
         reader["IsApproved"]) == 1
@@ -419,7 +634,8 @@ Revision =
         }
         private bool Exists(
             Guid? projectId,
-            string fileName)
+            string fileName,
+            Guid? companyId = null)
         {
             using var connection =
                 new SqliteConnection(
@@ -442,12 +658,28 @@ Revision =
                     "$ProjectId",
                     projectId.Value.ToString());
             }
+            else if (companyId.HasValue)
+            {
+                cmd.CommandText = @"
+                SELECT COUNT(*)
+                FROM DocumentVaultFiles
+                WHERE ProjectId IS NULL
+                AND WeldId IS NULL
+                AND CompanyId = $CompanyId
+                AND FileName = $FileName;";
+
+                cmd.Parameters.AddWithValue(
+                    "$CompanyId",
+                    companyId.Value.ToString());
+            }
             else
             {
                 cmd.CommandText = @"
                 SELECT COUNT(*)
                 FROM DocumentVaultFiles
                 WHERE ProjectId IS NULL
+                AND WeldId IS NULL
+                AND CompanyId IS NULL
                 AND FileName = $FileName;";
             }
 
@@ -460,3 +692,6 @@ Revision =
         }
     }
 }
+
+
+

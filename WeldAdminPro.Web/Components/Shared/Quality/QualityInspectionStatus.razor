@@ -1,4 +1,4 @@
-@using MudBlazor
+﻿@using MudBlazor
 @using WeldAdminPro.Core.Quality.Models
 
 @if (Snapshot == null)
@@ -23,7 +23,7 @@ else
                          Color="Color.Success" />
 
                 <MudText Typo="Typo.h5">
-                    @Snapshot.ComplianceScore%
+                    @(Snapshot.IsComplete ? $"{Snapshot.ComplianceScore}%" : "Restricted")
                 </MudText>
 
                 <MudText Typo="Typo.caption">
@@ -43,7 +43,7 @@ else
                          Color="Color.Warning" />
 
                 <MudText Typo="Typo.h5">
-                    @Snapshot.PendingNdt
+                    @(Snapshot.PendingNdtAvailable ? Snapshot.PendingNdt.ToString() : "Restricted")
                 </MudText>
 
                 <MudText Typo="Typo.caption">
@@ -63,7 +63,7 @@ else
                          Color="Color.Error" />
 
                 <MudText Typo="Typo.h5">
-                    @Snapshot.OpenRepairs
+                    @(Snapshot.OpenRepairsAvailable ? Snapshot.OpenRepairs.ToString() : "Restricted")
                 </MudText>
 
                 <MudText Typo="Typo.caption">
@@ -83,7 +83,7 @@ else
                          Color="Color.Info" />
 
                 <MudText Typo="Typo.h5">
-                    @Snapshot.MissingDocuments
+                    @(Snapshot.MissingDocumentsAvailable ? Snapshot.MissingDocuments.ToString() : "Restricted")
                 </MudText>
 
                 <MudText Typo="Typo.caption">

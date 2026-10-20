@@ -11,9 +11,28 @@ namespace WeldAdminPro.Data
     {
         public static void Initialize()
         {
-            using var connection = 
+            Initialize(DatabasePath.Get());
+        }
+
+        public static void Initialize(string databasePath)
+        {
+            if (string.IsNullOrWhiteSpace(databasePath))
+                throw new ArgumentException(
+                    "Database path is required.",
+                    nameof(databasePath));
+
+            var fullDatabasePath =
+                System.IO.Path.GetFullPath(databasePath);
+
+            var directory =
+                System.IO.Path.GetDirectoryName(fullDatabasePath);
+
+            if (!string.IsNullOrWhiteSpace(directory))
+                System.IO.Directory.CreateDirectory(directory);
+
+            using var connection =
                 new SqliteConnection(
-                    $"Data Source={DatabasePath.Get()}");
+                    $"Data Source={fullDatabasePath}");
 
             connection.Open();
 

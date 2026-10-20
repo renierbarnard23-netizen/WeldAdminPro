@@ -1,8 +1,20 @@
-namespace WeldAdminPro.Data.Services.Recognition;
+﻿namespace WeldAdminPro.Data.Services.Recognition;
 
 public class RecognitionResult
 {
-    public string Material { get; set; } = "";
+        public string Material { get; set; } = "";
+
+    // =========================================================
+    // STRUCTURED BASE MATERIAL IDENTIFIERS
+    // Extracted from the actual PQR BASE METALS section.
+    // These are used for authoritative material resolution.
+    // =========================================================
+
+    public string MaterialSpecification { get; set; } = "";
+
+    public string MaterialGrade { get; set; } = "";
+
+    public string MaterialUNS { get; set; } = "";
     public string PNumber { get; set; } = "";
     public string FNumber { get; set; } = "";
     public string PqrNumber { get; set; } = "";

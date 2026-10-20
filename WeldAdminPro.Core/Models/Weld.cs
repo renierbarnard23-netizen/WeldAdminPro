@@ -21,6 +21,13 @@ namespace WeldAdminPro.Core.Models
 
         public string JointType { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Exact WPS master record used for this weld.
+        /// Null is retained for legacy welds created before exact WPS
+        /// revision traceability was introduced.
+        /// </summary>
+        public Guid? WpsId { get; set; }
+
         public string WpsNumber { get; set; } = string.Empty;
 
         public string JointNumber { get; set; } = "";

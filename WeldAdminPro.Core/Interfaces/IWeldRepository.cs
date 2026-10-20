@@ -1,4 +1,4 @@
-﻿using WeldAdminPro.Core.Models;
+using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Core.Interfaces
 {
@@ -16,6 +16,8 @@ namespace WeldAdminPro.Core.Interfaces
             Guid projectId);
 
         Task UpdateAsync(Weld weld);
+        Task UpdateWorkflowAsync(Weld weld);
+        Task UpdateNdtProjectionAsync(Weld weld);
         Task DeleteAsync(Guid weldId);
     }
 }

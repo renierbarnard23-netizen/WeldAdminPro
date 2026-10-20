@@ -1,0 +1,201 @@
+@using WeldAdminPro.Web.Components.Security
+@using WeldAdminPro.Core.Security
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Web.Services.Quality
+
+@inject WpsApplicationService WpsService
+@inject WelderQualificationApplicationService WelderService
+
+<MudTable Items="@Items"
+          Hover="true"
+          Dense="true"
+          Striped="true"
+          Bordered="true"
+          Elevation="1">
+
+    <HeaderContent>
+
+        <MudTh>WPQR No.</MudTh>
+        <MudTh>WPS</MudTh>
+        <MudTh>Welder</MudTh>
+        <MudTh>Qualified</MudTh>
+        <MudTh>Expiry</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Approval</MudTh>
+        <MudTh>Actions</MudTh>
+
+    </HeaderContent>
+
+    <RowTemplate>
+
+        <MudTd DataLabel="WPQR">
+            @context.WpqrNumber
+        </MudTd>
+
+        <MudTd DataLabel="WPS">
+            @{
+                var wps = GetWps(context.WpsId);
+            }
+
+            @(wps?.WpsNumber ?? "-")
+        </MudTd>
+
+        <MudTd DataLabel="Welder">
+            @{
+                var welder = GetWelder(context.WelderQualificationId);
+            }
+
+            @(welder?.WelderNumber ?? "-")
+        </MudTd>
+
+        <MudTd DataLabel="Qualified">
+            @context.QualificationDate.ToString("yyyy-MM-dd")
+        </MudTd>
+
+        <MudTd DataLabel="Expiry">
+            @context.ExpiryDate.ToString("yyyy-MM-dd")
+        </MudTd>
+
+        <MudTd DataLabel="Status">
+
+            @if (!context.IsActive)
+            {
+                <StatusBadge Text="Inactive"
+                             BadgeCss="bg-secondary" />
+            }
+            else if (context.ExpiryDate < DateTime.Today)
+            {
+                <StatusBadge Text="Expired"
+                             BadgeCss="bg-error" />
+            }
+            else if (context.ExpiryDate <= DateTime.Today.AddDays(30))
+            {
+                <StatusBadge Text="Expiring Soon"
+                             BadgeCss="bg-warning text-dark" />
+            }
+            else
+            {
+                <StatusBadge Text="Active"
+                             BadgeCss="bg-success" />
+            }
+
+        </MudTd>
+
+        <MudTd DataLabel="Approval">
+
+            @if (context.IsApproved)
+            {
+                <StatusBadge Text="Approved"
+                             BadgeCss="bg-success" />
+            }
+            else
+            {
+                <StatusBadge Text="Pending"
+                             BadgeCss="bg-warning text-dark" />
+            }
+
+        </MudTd>
+
+        <MudTd>
+
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           OnClick="@(() => OnEdit.InvokeAsync(context))" />
+
+            @if (context.IsActive && !context.IsApproved && !context.IsLocked)
+            {
+                <PermissionView Permission="@PermissionKeys.Quality.WpqrApproval">
+                    <MudTooltip Text="Approve WPQR">
+                        <MudIconButton Icon="@Icons.Material.Filled.CheckCircle"
+                                       Size="Size.Small"
+                                       Color="Color.Success"
+                                       title="Approve WPQR"
+                                       OnClick="@(() => OnApprove.InvokeAsync(context))" />
+                    </MudTooltip>
+                </PermissionView>
+            }
+
+            @if (context.IsActive && (context.IsApproved || context.IsLocked))
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.PostAdd"
+                               Size="Size.Small"
+                               Color="Color.Success"
+                               title="Create Revision"
+                               OnClick="@(() => OnCreateRevision.InvokeAsync(context))" />
+            }
+
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Size="Size.Small"
+                           Color="Color.Error"
+                           OnClick="@(() => OnDelete.InvokeAsync(context))" />
+
+        </MudTd>
+
+    </RowTemplate>
+
+    <NoRecordsContent>
+
+        <MudText Class="pa-4">
+            No WPQR records have been created yet.
+        </MudText>
+
+    </NoRecordsContent>
+
+</MudTable>
+
+@code
+{
+    [Parameter]
+    public List<Wpqr> Items { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<Wpqr> OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<Wpqr> OnDelete { get; set; }
+
+    [Parameter]
+    public EventCallback<Wpqr> OnCreateRevision { get; set; }
+
+    [Parameter]
+    public EventCallback<Wpqr> OnApprove { get; set; }
+
+    private List<Wps> _wps = new();
+
+    private List<WelderQualification> _welders = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _wps = (await WpsService.GetAllAsync())
+            .ToList();
+
+        _welders =
+            (await WelderService.GetAllAsync())
+                .ToList();
+    }
+
+    private Wps? GetWps(Guid? id)
+    {
+        if (!id.HasValue)
+        {
+            return null;
+        }
+
+        return _wps.FirstOrDefault(x => x.Id == id.Value);
+    }
+
+    private WelderQualification? GetWelder(int? id)
+    {
+        if (!id.HasValue)
+        {
+            return null;
+        }
+
+        return _welders.FirstOrDefault(x => x.Id == id.Value);
+    }
+}
+
+

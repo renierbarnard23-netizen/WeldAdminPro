@@ -253,14 +253,14 @@
         document.IsRequired = value;
         document.LastModifiedOn = DateTime.Now;
 
-        ProjectService.UpdateDocument(document);
+        await ProjectService.UpdateDocument(document);
 
         await OnDocumentsChanged.InvokeAsync();
     }
 
     private List<ProjectDocumentFile> _files = new();
 
-    private void Toggle(ProjectDocument document)
+    private async Task Toggle(ProjectDocument document)
     {
         if (_expandedDocument == document.Id)
         {
@@ -272,7 +272,7 @@
         _expandedDocument = document.Id;
 
         _files =
-            ProjectService.GetDocumentFiles(document.Id);
+            await ProjectService.GetDocumentFiles(document.Id);
     }
 
     private async Task Upload(ProjectDocument document)
@@ -295,9 +295,9 @@
         }
     }
 
-    private void Approve(ProjectDocument document)
+    private async Task Approve(ProjectDocument document)
     {
-        if (ProjectService.ToggleDocumentApproval(document))
+        if (await ProjectService.ToggleDocumentApproval(document))
         {
             Snackbar.Add(
                 "Document approval updated.",
@@ -313,9 +313,9 @@
         StateHasChanged();
     }
 
-    private void Open(ProjectDocument document)
+    private async Task Open(ProjectDocument document)
     {
-        if (!ProjectService.OpenDocument(document))
+        if (!await ProjectService.OpenDocument(document))
         {
             Snackbar.Add(
                 "Unable to open document.",
@@ -324,3 +324,4 @@
     }
 
 }
+

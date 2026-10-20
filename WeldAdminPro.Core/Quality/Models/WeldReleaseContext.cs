@@ -1,4 +1,4 @@
-namespace WeldAdminPro.Core.Quality.Models
+﻿namespace WeldAdminPro.Core.Quality.Models
 {
     public class WeldReleaseContext
     {
@@ -9,6 +9,8 @@ namespace WeldAdminPro.Core.Quality.Models
         public bool HasAcceptedNdt { get; set; }
 
         public bool HasOpenRepairs { get; set; }
+
+        public bool HasOpenNcrs { get; set; }
 
         public bool HasMaterialTraceability { get; set; }
 

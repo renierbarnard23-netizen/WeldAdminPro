@@ -164,7 +164,7 @@ public class NcrApplicationService
 
         await EnsureNcrProjectAccessAsync(existingNcr);
 
-        _repository.Update(ncr);
+        _repository.UpdateEditable(ncr);
     }
 
     public bool CanMoveTo(
@@ -244,7 +244,7 @@ public class NcrApplicationService
 
         ncr.Status = target;
 
-        _repository.Update(ncr);
+        _repository.UpdateStatus(ncr);
 
         AddHistory(
             ncr.Id,
@@ -310,7 +310,7 @@ public class NcrApplicationService
         ncr.Status =
             target;
 
-        _repository.Update(ncr);
+        _repository.UpdateStatus(ncr);
 
         AddHistory(
             ncr.Id,
@@ -471,7 +471,7 @@ public class NcrApplicationService
         ncr.Status =
             target;
 
-        _repository.Update(ncr);
+        _repository.UpdateStatus(ncr);
 
         AddHistory(
             ncr.Id,
@@ -529,7 +529,7 @@ public class NcrApplicationService
         ncr.CustomerApprovalReference =
             customerApprovalReference;
 
-        _repository.Update(ncr);
+        _repository.UpdateDisposition(ncr);
 
         var details =
             $"Disposition: {disposition}. " +
@@ -594,7 +594,7 @@ public class NcrApplicationService
         ncr.Status =
             target.Value;
 
-        _repository.Update(ncr);
+        _repository.UpdateStatus(ncr);
 
         AddHistory(
             ncr.Id,
@@ -657,7 +657,7 @@ public class NcrApplicationService
         ncr.VerificationBy = actor;
         ncr.VerificationDate = DateTime.Now;
 
-        _repository.Update(ncr);
+        _repository.UpdateVerification(ncr);
 
         AddHistory(
             ncr.Id,
@@ -731,7 +731,7 @@ public class NcrApplicationService
         ncr.ClosedBy = closedBy;
         ncr.ClosedDate = DateTime.Now;
 
-        _repository.Update(ncr);
+        _repository.UpdateClosure(ncr);
 
         AddHistory(
             ncr.Id,
@@ -744,10 +744,6 @@ public class NcrApplicationService
         return true;
     }
 
-    public string GetNextNcrNumber()
-    {
-        return _repository.GetNextNcrNumber();
-    }
 
     // =====================================================
     // History

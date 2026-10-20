@@ -1,4 +1,7 @@
-﻿@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Projects
+
+@inject ProjectApplicationService ProjectService
 
 <div class="card shadow-sm mb-4">
 
@@ -51,6 +54,24 @@
                 <label class="form-label">Material</label>
                 <input class="form-control"
                        @bind="Project.Material" disabled="@(!IsEditable)" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Welding / Fabrication Subcontractor</label>
+                <select class="form-select"
+                        @bind="Project.WeldingSubcontractorCompanyId"
+                        disabled="@(!IsEditable)">
+                    <option value="">-- Not Assigned --</option>
+                    @foreach (var company in _weldingCompanies)
+                    {
+                        <option value="@company.Id">
+                            @company.CompanyName (@company.CompanyType)
+                        </option>
+                    }
+                </select>
+                <div class="form-text">
+                    Select the company responsible for welding/fabrication and the applicable ISO 3834 WPS records.
+                </div>
             </div>
 
             <div class="col-md-6">
@@ -108,7 +129,8 @@
 
         <hr />
 
-        <button class="btn btn-success"
+        <button class="btn btn-success"
+
                 disabled="@(!IsEditable)"
                                 @onclick="Save">
 
@@ -130,6 +152,13 @@
 
     [Parameter]
     public bool IsEditable { get; set; } = true;
+
+    private List<Company> _weldingCompanies = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _weldingCompanies = await ProjectService.GetWeldingCompanyOptionsAsync();
+    }
     private async Task Save()
     {
         

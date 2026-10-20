@@ -1,4 +1,4 @@
-namespace WeldAdminPro.Core.Security.Abstractions;
+﻿namespace WeldAdminPro.Core.Security.Abstractions;
 
 public interface ICurrentUserContext
 {
@@ -11,4 +11,7 @@ public interface ICurrentUserContext
     string FullName { get; }
 
     string Role { get; }
+
+    Guid? CompanyId { get; }
 }
+

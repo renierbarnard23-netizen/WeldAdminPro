@@ -1,0 +1,716 @@
+﻿@page "/administration/companies"
+
+@using Microsoft.AspNetCore.Authorization
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Security
+@using WeldAdminPro.Data.Services
+
+@attribute [Authorize(Policy = "Permission:Administration.Companies")]
+
+@inject AdministrationApplicationService AdministrationService
+
+<PageTitle>Companies</PageTitle>
+
+<MudStack Row="true"
+          Justify="Justify.SpaceBetween"
+          AlignItems="AlignItems.Center"
+          Class="mb-4">
+
+    <EnterprisePageHeader Title="Companies"
+                          Subtitle="Manage companies and company status."
+                          Icon="@Icons.Material.Filled.Business" />
+
+    <MudStack Row="true" Spacing="2">
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="AddCompany">
+
+            Add Company
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Disabled="_selectedCompany is null"
+                   OnClick="EditCompany">
+
+            Edit
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Disabled="_selectedCompany is null"
+                   OnClick="OpenCompliance">
+
+            Compliance
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Disabled="_selectedCompany is null"
+                   OnClick="EnableCompany">
+
+            Enable
+
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Disabled="_selectedCompany is null"
+                   OnClick="DisableCompany">
+
+            Disable
+
+        </MudButton>
+
+    </MudStack>
+
+</MudStack>
+
+@if (_companies == null)
+{
+    <MudProgressCircular Color="Color.Primary"
+                         Indeterminate="true" />
+}
+else
+{
+    <MudTable T="Company"
+              Items="_companies"
+              Hover="true"
+              Dense="true"
+              Striped="true"
+              SelectOnRowClick="true"
+              @bind-SelectedItem="_selectedCompany">
+
+        <HeaderContent>
+
+            <MudTh>Company Name</MudTh>
+            <MudTh>Company Code</MudTh>
+            <MudTh>Active</MudTh>
+            <MudTh>Created</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd>@context.CompanyName</MudTd>
+            <MudTd>@context.CompanyCode</MudTd>
+            <MudTd>@(context.IsActive ? "Yes" : "No")</MudTd>
+            <MudTd>@context.CreatedDate.ToLocalTime().ToString("yyyy-MM-dd")</MudTd>
+
+        </RowTemplate>
+
+    </MudTable>
+}
+
+@if (_showEditor && _editingCompany is not null)
+{
+    <MudPaper Class="pa-4 mt-4"
+              Elevation="2">
+
+        <MudText Typo="Typo.h6"
+                 Class="mb-3">
+
+            @(_isNewCompany ? "Add Company" : "Edit Company")
+
+        </MudText>
+
+        <MudStack Spacing="3">
+
+            <!-- ========================================= -->
+            <!-- COMPANY INFORMATION                       -->
+            <!-- ========================================= -->
+
+            <MudText Typo="Typo.subtitle1"
+                     Color="Color.Primary">
+                Company Information
+            </MudText>
+
+            <MudGrid>
+
+                <MudItem xs="12" md="6">
+
+                    <MudTextField @bind-Value="_editingCompany.CompanyName"
+                                  Label="Company Name"
+                                  Variant="Variant.Outlined"
+                                  Required="true" />
+
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+
+                    <MudTextField @bind-Value="_editingCompany.CompanyCode"
+                                  Label="Company Code"
+                                  Variant="Variant.Outlined"
+                                  Required="true" />
+
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+
+                    <MudSelect T="string"
+                               @bind-Value="_editingCompany.CompanyType"
+                               Label="Company Type"
+                               Variant="Variant.Outlined">
+
+                        <MudSelectItem Value="@("Customer")">
+                            Customer
+                        </MudSelectItem>
+
+                        <MudSelectItem Value="@("Supplier")">
+                            Supplier
+                        </MudSelectItem>
+
+                        <MudSelectItem Value="@("Subcontractor")">
+                            Subcontractor
+                        </MudSelectItem>
+
+                        <MudSelectItem Value="@("Manufacturer")">
+                            Manufacturer
+                        </MudSelectItem>
+
+                        <MudSelectItem Value="@("Service Provider")">
+                            Service Provider
+                        </MudSelectItem>
+
+                        <MudSelectItem Value="@("Other")">
+                            Other
+                        </MudSelectItem>
+
+                    </MudSelect>
+
+                </MudItem>
+
+            </MudGrid>
+
+            <!-- ========================================= -->
+            <!-- REGISTRATION AND VAT                      -->
+            <!-- ========================================= -->
+
+            <MudText Typo="Typo.subtitle1"
+                     Color="Color.Primary"
+                     Class="mt-2">
+                Registration &amp; VAT
+            </MudText>
+
+            <MudGrid>
+
+                <MudItem xs="12" md="6">
+
+                    <MudTextField @bind-Value="_editingCompany.RegistrationNumber"
+                                  Label="Company Registration Number"
+                                  Variant="Variant.Outlined"
+                                  Placeholder="Enter registration number or N/A" />
+
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+
+                    <MudTextField @bind-Value="_editingCompany.VatNumber"
+                                  Label="VAT Number"
+                                  Variant="Variant.Outlined"
+                                  Placeholder="Enter VAT number or N/A" />
+
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+
+                    <MudSelect T="string"
+                               @bind-Value="_editingCompany.VatStatus"
+                               Label="VAT Status"
+                               Variant="Variant.Outlined">
+
+                        <MudSelectItem Value="@("Registered")">
+                            Registered
+                        </MudSelectItem>
+
+                        <MudSelectItem Value="@("Not Registered")">
+                            Not Registered
+                        </MudSelectItem>
+
+                        <MudSelectItem Value="@("N/A")">
+                            N/A
+                        </MudSelectItem>
+
+                    </MudSelect>
+
+                </MudItem>
+
+            </MudGrid>
+
+            <!-- ========================================= -->
+            <!-- CONTACT INFORMATION                       -->
+            <!-- ========================================= -->
+
+            <MudText Typo="Typo.subtitle1"
+                     Color="Color.Primary"
+                     Class="mt-2">
+                Contact Information
+            </MudText>
+
+            <MudGrid>
+
+                <MudItem xs="12" md="6">
+
+                    <MudTextField @bind-Value="_editingCompany.Telephone"
+                                  Label="Telephone"
+                                  Variant="Variant.Outlined" />
+
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+
+                    <MudTextField @bind-Value="_editingCompany.Mobile"
+                                  Label="Mobile"
+                                  Variant="Variant.Outlined" />
+
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+
+                    <MudTextField @bind-Value="_editingCompany.Email"
+                                  Label="Email"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Email" />
+
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+
+                    <MudTextField @bind-Value="_editingCompany.Website"
+                                  Label="Website"
+                                  Variant="Variant.Outlined" />
+
+                </MudItem>
+
+            </MudGrid>
+
+            <!-- ========================================= -->
+            <!-- ADDRESSES                                 -->
+            <!-- ========================================= -->
+
+            <MudText Typo="Typo.subtitle1"
+                     Color="Color.Primary"
+                     Class="mt-2">
+                Addresses
+            </MudText>
+
+            <MudTextField @bind-Value="_editingCompany.PhysicalAddress"
+                          Label="Physical Address"
+                          Variant="Variant.Outlined"
+                          Lines="3" />
+
+            <MudTextField @bind-Value="_editingCompany.PostalAddress"
+                          Label="Postal Address"
+                          Variant="Variant.Outlined"
+                          Lines="3" />
+
+            <!-- ========================================= -->
+            <!-- NOTES                                     -->
+            <!-- ========================================= -->
+
+            <MudText Typo="Typo.subtitle1"
+                     Color="Color.Primary"
+                     Class="mt-2">
+                Additional Information
+            </MudText>
+
+            <MudTextField @bind-Value="_editingCompany.Notes"
+                          Label="Notes"
+                          Variant="Variant.Outlined"
+                          Lines="4" />
+
+            <!-- ========================================= -->
+            <!-- ACTIONS                                   -->
+            <!-- ========================================= -->
+
+            <MudStack Row="true"
+                      Spacing="2"
+                      Class="mt-3">
+
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           OnClick="SaveCompany">
+
+                    Save
+
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           OnClick="CancelEditor">
+
+                    Cancel
+
+                </MudButton>
+
+            </MudStack>
+
+        </MudStack>
+
+    </MudPaper>
+}
+
+@if (_showCompliance && _selectedCompany is not null)
+{
+    <MudPaper Class="pa-4 mt-4"
+              Elevation="2">
+
+        <MudStack Row="true"
+                  AlignItems="AlignItems.Center"
+                  Justify="Justify.SpaceBetween"
+                  Class="mb-3">
+
+            <MudText Typo="Typo.h6">
+                Company Compliance - @_selectedCompany.CompanyName
+            </MudText>
+
+            <MudButton Variant="Variant.Outlined"
+                       OnClick="CloseCompliance">
+                Close
+            </MudButton>
+
+        </MudStack>
+
+        <MudTabs Rounded="true"
+                 Elevation="1">
+
+            <MudTabPanel Text="Contacts">
+
+                @if (_companyContacts is null)
+                {
+                    <MudProgressCircular Color="Color.Primary"
+                                         Indeterminate="true" />
+                }
+                else if (_companyContacts.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Class="mt-3">
+                        No company contacts have been captured.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudTable T="CompanyContact"
+                              Items="_companyContacts"
+                              Dense="true"
+                              Hover="true"
+                              Striped="true"
+                              Class="mt-3">
+
+                        <HeaderContent>
+                            <MudTh>Name</MudTh>
+                            <MudTh>Position</MudTh>
+                            <MudTh>Telephone</MudTh>
+                            <MudTh>Mobile</MudTh>
+                            <MudTh>Email</MudTh>
+                            <MudTh>Primary</MudTh>
+                            <MudTh>Active</MudTh>
+                        </HeaderContent>
+
+                        <RowTemplate>
+                            <MudTd>@context.ContactName</MudTd>
+                            <MudTd>@context.Position</MudTd>
+                            <MudTd>@context.Telephone</MudTd>
+                            <MudTd>@context.Mobile</MudTd>
+                            <MudTd>@context.Email</MudTd>
+                            <MudTd>@(context.IsPrimary ? "Yes" : "No")</MudTd>
+                            <MudTd>@(context.IsActive ? "Yes" : "No")</MudTd>
+                        </RowTemplate>
+
+                    </MudTable>
+                }
+
+            </MudTabPanel>
+
+            <MudTabPanel Text="Requirements">
+
+                @if (_companyRequirements is null)
+                {
+                    <MudProgressCircular Color="Color.Primary"
+                                         Indeterminate="true" />
+                }
+                else if (_companyRequirements.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Class="mt-3">
+                        No company requirements have been captured.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudTable T="CompanyRequirement"
+                              Items="_companyRequirements"
+                              Dense="true"
+                              Hover="true"
+                              Striped="true"
+                              Class="mt-3">
+
+                        <HeaderContent>
+                            <MudTh>Code</MudTh>
+                            <MudTh>Requirement</MudTh>
+                            <MudTh>Type</MudTh>
+                            <MudTh>Status</MudTh>
+                            <MudTh>Reviewed</MudTh>
+                            <MudTh>Reviewed By</MudTh>
+                        </HeaderContent>
+
+                        <RowTemplate>
+                            <MudTd>@context.RequirementCode</MudTd>
+                            <MudTd>@context.RequirementName</MudTd>
+                            <MudTd>@context.RequirementType</MudTd>
+                            <MudTd>@context.RequirementStatus</MudTd>
+                            <MudTd>@(context.ReviewedDate?.ToLocalTime().ToString("yyyy-MM-dd") ?? "-")</MudTd>
+                            <MudTd>@context.ReviewedBy</MudTd>
+                        </RowTemplate>
+
+                    </MudTable>
+                }
+
+            </MudTabPanel>
+
+            <MudTabPanel Text="Documents">
+
+                @if (_companyDocuments is null)
+                {
+                    <MudProgressCircular Color="Color.Primary"
+                                         Indeterminate="true" />
+                }
+                else if (_companyDocuments.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Class="mt-3">
+                        No company documents have been captured.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudTable T="CompanyDocument"
+                              Items="_companyDocuments"
+                              Dense="true"
+                              Hover="true"
+                              Striped="true"
+                              Class="mt-3">
+
+                        <HeaderContent>
+                            <MudTh>Type</MudTh>
+                            <MudTh>Document</MudTh>
+                            <MudTh>File</MudTh>
+                            <MudTh>Issue Date</MudTh>
+                            <MudTh>Expiry Date</MudTh>
+                            <MudTh>Review Date</MudTh>
+                            <MudTh>Renewal</MudTh>
+                            <MudTh>Active</MudTh>
+                        </HeaderContent>
+
+                        <RowTemplate>
+                            <MudTd>@context.DocumentType</MudTd>
+                            <MudTd>@context.DocumentName</MudTd>
+                            <MudTd>@context.FileName</MudTd>
+                            <MudTd>@(context.IssueDate?.ToLocalTime().ToString("yyyy-MM-dd") ?? "-")</MudTd>
+                            <MudTd>@(context.ExpiryDate?.ToLocalTime().ToString("yyyy-MM-dd") ?? "-")</MudTd>
+                            <MudTd>@(context.ReviewDate?.ToLocalTime().ToString("yyyy-MM-dd") ?? "-")</MudTd>
+                            <MudTd>@(context.RequiresRenewal ? "Yes" : "No")</MudTd>
+                            <MudTd>@(context.IsActive ? "Yes" : "No")</MudTd>
+                        </RowTemplate>
+
+                    </MudTable>
+                }
+
+            </MudTabPanel>
+
+        </MudTabs>
+
+    </MudPaper>
+}
+
+@code
+{
+    private List<Company>? _companies;
+
+    private Company? _selectedCompany;
+
+    private Company? _editingCompany;
+
+    private bool _showEditor;
+
+    private bool _isNewCompany;
+
+    private bool _showCompliance;
+
+    private List<CompanyContact>? _companyContacts;
+
+    private List<CompanyRequirement>? _companyRequirements;
+
+    private List<CompanyDocument>? _companyDocuments;
+
+    protected override void OnInitialized()
+    {
+        LoadCompanies();
+    }
+
+    private void OpenCompliance()
+    {
+        if (_selectedCompany is null)
+            return;
+
+        _showCompliance = true;
+        LoadCompanyCompliance();
+    }
+
+    private void CloseCompliance()
+    {
+        _showCompliance = false;
+        _companyContacts = null;
+        _companyRequirements = null;
+        _companyDocuments = null;
+    }
+
+    private void LoadCompanyCompliance()
+    {
+        if (_selectedCompany is null)
+            return;
+
+        var companyId = _selectedCompany.Id;
+
+        _companyContacts =
+            AdministrationService.GetCompanyContacts(companyId);
+
+        _companyRequirements =
+            AdministrationService.GetCompanyRequirements(companyId);
+
+        _companyDocuments =
+            AdministrationService.GetCompanyDocuments(companyId);
+    }
+
+    private void LoadCompanies()
+    {
+        _companies = AdministrationService
+            .GetCompanies();
+    }
+
+    private void AddCompany()
+    {
+        _editingCompany = new Company
+        {
+            Id = Guid.NewGuid(),
+            CompanyName = "",
+            CompanyCode = "",
+            RegistrationNumber = "",
+            VatNumber = "",
+            VatStatus = "N/A",
+            CompanyType = "Other",
+            Telephone = "",
+            Mobile = "",
+            Email = "",
+            Website = "",
+            PhysicalAddress = "",
+            PostalAddress = "",
+            Notes = "",
+            IsActive = true,
+            CreatedDate = DateTime.UtcNow
+        };
+
+        _isNewCompany = true;
+        _showEditor = true;
+    }
+
+    private void EditCompany()
+    {
+        if (_selectedCompany is null)
+            return;
+
+        _editingCompany = new Company
+        {
+            Id = _selectedCompany.Id,
+            CompanyName = _selectedCompany.CompanyName,
+            CompanyCode = _selectedCompany.CompanyCode,
+            RegistrationNumber = _selectedCompany.RegistrationNumber,
+            VatNumber = _selectedCompany.VatNumber,
+            VatStatus = _selectedCompany.VatStatus,
+            CompanyType = _selectedCompany.CompanyType,
+            Telephone = _selectedCompany.Telephone,
+            Mobile = _selectedCompany.Mobile,
+            Email = _selectedCompany.Email,
+            Website = _selectedCompany.Website,
+            PhysicalAddress = _selectedCompany.PhysicalAddress,
+            PostalAddress = _selectedCompany.PostalAddress,
+            Notes = _selectedCompany.Notes,
+            IsActive = _selectedCompany.IsActive,
+            CreatedDate = _selectedCompany.CreatedDate
+        };
+
+        _isNewCompany = false;
+        _showEditor = true;
+    }
+
+    private void SaveCompany()
+    {
+        if (_editingCompany is null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(
+                _editingCompany.CompanyName))
+            return;
+
+        if (string.IsNullOrWhiteSpace(
+                _editingCompany.CompanyCode))
+            return;
+
+        if (_isNewCompany)
+        {
+            AdministrationService.AddCompany(
+                _editingCompany);
+        }
+        else
+        {
+            AdministrationService.UpdateCompany(
+                _editingCompany);
+        }
+
+        LoadCompanies();
+
+        CloseEditor();
+
+        StateHasChanged();
+    }
+
+    private void EnableCompany()
+    {
+        if (_selectedCompany is null)
+            return;
+
+        AdministrationService.EnableCompany(
+            _selectedCompany.Id);
+
+        LoadCompanies();
+
+        CloseEditor();
+
+        StateHasChanged();
+    }
+
+    private void DisableCompany()
+    {
+        if (_selectedCompany is null)
+            return;
+
+        AdministrationService.DisableCompany(
+            _selectedCompany.Id);
+
+        LoadCompanies();
+
+        CloseEditor();
+
+        StateHasChanged();
+    }
+
+    private void CancelEditor()
+    {
+        CloseEditor();
+    }
+
+    private void CloseEditor()
+    {
+        _selectedCompany = null;
+        _editingCompany = null;
+        _showEditor = false;
+        _isNewCompany = false;
+    }
+}

@@ -1,0 +1,16 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using WeldAdminPro.Web.Services.Security
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserContextService UserContext
+
+@code
+{
+    protected override async Task OnInitializedAsync()
+    {
+        var authenticationState =
+            await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        UserContext.SetCircuitUser(authenticationState.User);
+    }
+}

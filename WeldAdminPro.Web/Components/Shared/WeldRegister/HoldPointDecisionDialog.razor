@@ -1,0 +1,124 @@
+﻿@using MudBlazor
+@using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Core.Quality.Models
+
+<MudDialog>
+    <DialogContent>
+
+        <MudText Typo="Typo.h6" Class="mb-4">
+            @Title
+        </MudText>
+
+        <MudAlert Severity="@(_decision == HoldPointDecision.Approve
+                                ? Severity.Info
+                                : Severity.Warning)"
+                  Dense="true"
+                  Class="mb-4">
+            Hold Point:
+            <strong>@HoldPoint.HoldPointType</strong>
+            |
+            Category:
+            <strong>@HoldPoint.Category</strong>
+            |
+            Required Approver:
+            <strong>@HoldPoint.RequiredApproverRole</strong>
+        </MudAlert>
+
+        @if (_decision == HoldPointDecision.Approve)
+        {
+            <MudTextField @bind-Value="_approvedBy"
+                          Label="Approved By"
+                          Required="true"
+                          Immediate="true"
+                          Class="mb-3" />
+        }
+
+        <MudTextField @bind-Value="_comments"
+                      Label="@(_decision == HoldPointDecision.Approve
+                              ? "Approval Comments"
+                              : "Rejection Reason")"
+                      Required="true"
+                      Immediate="true"
+                      Lines="4" />
+
+    </DialogContent>
+
+    <DialogActions>
+
+        <MudButton Color="Color.Default"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+
+        <MudButton Color="@(_decision == HoldPointDecision.Approve
+                            ? Color.Success
+                            : Color.Error)"
+                   Variant="Variant.Filled"
+                   Disabled="@(!CanSave)"
+                   OnClick="Save">
+            @(_decision == HoldPointDecision.Approve ? "Approve" : "Reject")
+        </MudButton>
+
+    </DialogActions>
+</MudDialog>
+
+@code
+{
+    [CascadingParameter]
+    public IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public WeldHoldPoint HoldPoint { get; set; } = default!;
+
+    [Parameter]
+    public HoldPointDecision Decision { get; set; }
+
+    private string _approvedBy = string.Empty;
+    private string _comments = string.Empty;
+
+    private HoldPointDecision _decision =>
+        Decision;
+
+    private string Title =>
+        _decision == HoldPointDecision.Approve
+            ? "Approve Hold Point"
+            : "Reject Hold Point";
+
+    private bool CanSave =>
+        HoldPoint != null &&
+        !string.IsNullOrWhiteSpace(_comments) &&
+        (_decision != HoldPointDecision.Approve ||
+         !string.IsNullOrWhiteSpace(_approvedBy));
+
+    private void Save()
+    {
+        if (!CanSave)
+            return;
+
+        var result = new HoldPointDecisionResult
+        {
+            ApprovedBy = _approvedBy.Trim(),
+            Comments = _comments.Trim()
+        };
+
+        MudDialog.Close(DialogResult.Ok(result));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    public enum HoldPointDecision
+    {
+        Approve,
+        Reject
+    }
+
+    public sealed class HoldPointDecisionResult
+    {
+        public string ApprovedBy { get; set; } = string.Empty;
+
+        public string Comments { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,444 @@
+============================================================
+W18.2 IMPLEMENTATION TARGETS
+Read-only extraction before implementation
+============================================================
+
+============================================================
+FILE: .\WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs
+============================================================
+
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:493:    {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:494:        var repairs =
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:495:            await GetEnterpriseRepairs();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:496:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:497:        var analyticsService =
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:498:            new RepairAnalyticsService();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:499:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:500:        return analyticsService.Generate(repairs);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:501:    }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:502:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:503:    /// <summary>
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:504:    /// Returns only WPS revisions that are 
+applicable to the selected repair:
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:505:    /// the project's welding/fabrication 
+subcontractor, approved, active, and matching the weld material group.
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:506:    /// </summary>
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:507:    public async Task<List<Wps>> 
+GetApplicableRepairWpsAsync(
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:508:        Guid repairId)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:509:    {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:510:        var repair = _repairRepository.GetAll()
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:511:            .FirstOrDefault(x => x.Id == 
+repairId);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:512:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:513:        if (repair == null)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:514:            throw new 
+InvalidOperationException("Repair record could not be found.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:515:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:516:        await EnsureRepairAccessAsync(
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:517:            repair,
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:518:            PermissionKeys.Quality.Repairs);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:519:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:520:        var weld = await 
+_weldService.GetByIdAsync(repair.WeldId);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:521:        if (weld == null)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:522:            throw new 
+InvalidOperationException("The weld linked to this repair could not be found.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:523:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:524:        var project = 
+_projectRepository.GetById(weld.ProjectId);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:525:        if (project == null ||
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:526:            
+!project.WeldingSubcontractorCompanyId.HasValue ||
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:527:            
+project.WeldingSubcontractorCompanyId.Value == Guid.Empty)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:528:            return new List<Wps>();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:529:
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:530:        var weldingCompanyId = 
+project.WeldingSubcontractorCompanyId.Value;
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:531:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:532:        var weldMaterial = 
+ComplianceNormalizer.NormalizeMaterialGroup(
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:533:            
+string.IsNullOrWhiteSpace(weld.MaterialGroup)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:534:                ? weld.MaterialSpecification
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:535:                : weld.MaterialGroup);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:536:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:537:        if 
+(string.IsNullOrWhiteSpace(weldMaterial))
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:538:            return new List<Wps>();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:539:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:540:        return 
+_wpsRepository.GetByCompany(weldingCompanyId)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:541:            .Where(x => x.IsApproved && 
+x.IsActive)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:542:            .Where(x => 
+ComplianceNormalizer.NormalizeMaterialGroup(x.MaterialGroup) == weldMaterial)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:543:            .OrderBy(x => x.WpsNumber)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:544:            .ThenByDescending(x => x.Revision)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:545:            .ToList();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:546:    }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:547:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:548:    // 
+==================================================
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:549:    // REPAIR WORKFLOW OPERATIONS
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:550:    // 
+==================================================
+
+
+
+
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:644:            return false;
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:645:        }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:646:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:647:        repair.ExcavationMethod =
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:648:            excavationMethod.Trim();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:649:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:650:        _repairRepository.Update(repair);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:651:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:652:        return true;
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:653:    }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:654:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:655:    public async Task<(bool Success, string 
+Error)>
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:656:        StartRepairWeldingAsync(
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:657:        RepairRecord repair,
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:658:        string repairedByWelder,
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:659:        Guid? repairWpsId)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:660:    {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:661:        await EnsureRepairAccessAsync(
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:662:            repair,
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:663:            PermissionKeys.Quality.Repairs);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:664:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:665:        if (repair == null)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:666:        {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:667:            return (false, "Repair record is 
+required.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:668:        }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:669:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:670:        if 
+(string.IsNullOrWhiteSpace(repairedByWelder))
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:671:        {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:672:            return (false, "Repair welder is 
+required.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:673:        }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:674:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:675:        if (!repairWpsId.HasValue || 
+repairWpsId.Value == Guid.Empty)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:676:        {
+
+
+
+
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:696:            {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:697:                transaction.Rollback();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:698:                return (false, "The weld linked 
+to this repair could not be found.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:699:            }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:700:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:701:            var project = 
+_projectRepository.GetById(weld.ProjectId);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:702:            if (project == null)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:703:            {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:704:                transaction.Rollback();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:705:                return (false, "The project 
+linked to this repair could not be found.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:706:            }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:707:
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:708:            if 
+(!project.WeldingSubcontractorCompanyId.HasValue ||
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:709:                
+project.WeldingSubcontractorCompanyId.Value == Guid.Empty)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:710:            {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:711:                transaction.Rollback();
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:712:                return (false, "The project has 
+no welding/fabrication subcontractor assigned, so a repair WPS cannot be selected.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:713:            }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:714:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:715:            var repairWps = 
+_wpsRepository.GetById(
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:716:                repairWpsId.Value,
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:717:                connection,
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:718:                transaction);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:719:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:720:            if (repairWps == null)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:721:            {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:722:                transaction.Rollback();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:723:                return (false, "The selected 
+repair WPS revision could not be found.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:724:            }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:725:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:726:            if (!repairWps.CompanyId.HasValue ||
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:727:                repairWps.CompanyId.Value != 
+project.WeldingSubcontractorCompanyId.Value)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:728:            {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:729:                transaction.Rollback();
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:730:                return (false, "The selected 
+repair WPS does not belong to the project's welding/fabrication subcontractor.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:731:            }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:732:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:733:            if (!repairWps.IsApproved)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:734:            {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:735:                transaction.Rollback();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:736:                return (false, $"Repair WPS 
+'{repairWps.WpsNumber} Rev {repairWps.Revision}' is not approved and cannot be used for repair welding.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:737:            }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:738:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:739:            if (!repairWps.IsActive)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:740:            {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:741:                transaction.Rollback();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:742:                return (false, $"Repair WPS 
+'{repairWps.WpsNumber} Rev {repairWps.Revision}' is not active and cannot be used for repair welding.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:743:            }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:744:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:745:            var weldMaterial = 
+ComplianceNormalizer.NormalizeMaterialGroup(
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:746:                
+string.IsNullOrWhiteSpace(weld.MaterialGroup)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:747:                    ? weld.MaterialSpecification
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:748:                    : weld.MaterialGroup);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:749:            var wpsMaterial = 
+ComplianceNormalizer.NormalizeMaterialGroup(
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:750:                repairWps.MaterialGroup);
+
+
+
+
+============================================================
+FILE: .\WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs
+============================================================
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:159:                "The project was not found.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:160:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:161:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:162:        if (!await 
+_projectAccessAuthorization.CanAccessProjectAsync(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:163:                _currentUser.UserId,
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:164:                project))
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:165:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:166:            throw new UnauthorizedAccessException(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:167:                "You do not have access to this 
+project.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:168:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:169:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:170:        var weldingCompanyId =
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:171:            project.WeldingSubcontractorCompanyId
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:172:            ?? project.CompanyId;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:173:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:174:        if (!weldingCompanyId.HasValue ||
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:175:            weldingCompanyId.Value == Guid.Empty)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:176:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:177:            return new List<Wps>();
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:178:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:179:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:180:        await 
+EnsureWpsReadAccessAsync(weldingCompanyId.Value);
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:181:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:182:        return _wpsRepository
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:183:            .GetByCompany(weldingCompanyId.Value)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:184:            .Where(wps =>
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:185:                wps.IsApproved &&
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:186:                wps.IsActive)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:187:            .OrderBy(wps => wps.WpsNumber)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:188:            .ThenByDescending(wps => wps.Revision)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:189:            .ToList();
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:190:    }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:191:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:192:    public async Task<List<Wps>> GetAllAsync()
+
+
+
+
+============================================================
+FILE: .\WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs
+============================================================
+
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:37:            _calibrationRepository = 
+calibrationRepository ?? throw new ArgumentNullException(nameof(calibrationRepository));
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:38:            _currentUser = currentUser ?? throw 
+new ArgumentNullException(nameof(currentUser));
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:39:            _permissions = permissions ?? throw 
+new ArgumentNullException(nameof(permissions));
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:40:            _projectAccess = projectAccess ?? 
+throw new ArgumentNullException(nameof(projectAccess));
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:41:            _projectService = projectService ?? 
+throw new ArgumentNullException(nameof(projectService));
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:42:            _documentVault = documentVault ?? 
+throw new ArgumentNullException(nameof(documentVault));
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:43:            _companyRepository = 
+companyRepository ?? throw new ArgumentNullException(nameof(companyRepository));
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:44:        }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:45:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:46:        public async Task<List<Equipment>> 
+GetForProjectAsync(Guid projectId)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:47:        {
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:48:            var project = await 
+RequireProjectAccessAsync(projectId);
+> WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:49:            var companyId = 
+ResolveWorkingCompany(project);
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:50:            await 
+EnsureCompanyAccessAsync(companyId);
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:51:            return 
+_equipmentRepository.GetByCompany(companyId, activeOnly: true);
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:52:        }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:53:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:54:        public async Task<List<Company>> 
+GetAccessibleCompaniesAsync()
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:55:        {
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:56:            await 
+RequirePermissionAsync(PermissionKeys.Quality.Equipment);
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:57:            if (!_currentUser.IsAuthenticated 
+|| string.IsNullOrWhiteSpace(_currentUser.UserId))
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:58:                throw new 
+UnauthorizedAccessException("Authentication is required.");
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:59:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:60:            var companies = 
+_companyRepository.GetAll().Where(x => x.IsActive).ToList();
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:61:            var accessible = new 
+List<Company>();
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:62:            foreach (var company in companies)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:63:            {
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:64:                if (await 
+_projectAccess.CanAccessCompanyAsync(_currentUser.UserId, company.Id))
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:65:                    accessible.Add(company);
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:66:            }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:67:            return accessible;
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:68:        }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:69:
+
+
+
+
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:193:                    return null;
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:194:                }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:195:            }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:196:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:197:            return calibration;
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:198:        }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:199:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:200:        public async Task<bool> 
+IsNdtCalibrationCompliantAsync(
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:201:            Guid projectId,
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:202:            IEnumerable<WeldNdtResult> 
+ndtResults)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:203:        {
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:204:            var project = await 
+RequireProjectAccessAsync(projectId);
+> WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:205:            var companyId = 
+ResolveWorkingCompany(project);
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:206:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:207:            var results = ndtResults?.ToList() 
+?? new List<WeldNdtResult>();
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:208:            if (results.Count == 0)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:209:                return true;
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:210:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:211:            foreach (var ndt in results)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:212:            {
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:213:                var equipmentIds = 
+(ndt.EquipmentIds ?? new List<Guid>())
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:214:                    .Where(x => x != 
+Guid.Empty)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:215:                    .Distinct()
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:216:                    .ToList();
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:217:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:218:                if (equipmentIds.Count == 0 &&
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:219:                    ndt.EquipmentId.HasValue &&
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:220:                    ndt.EquipmentId.Value != 
+Guid.Empty)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:221:                {
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:222:                    
+equipmentIds.Add(ndt.EquipmentId.Value);
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:223:                }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:224:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:225:                if (equipmentIds.Count == 0)
+
+
+
+
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:292:            if (companyId == Guid.Empty ||
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:293:                !await 
+_projectAccess.CanAccessCompanyAsync(_currentUser.UserId, companyId))
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:294:                throw new 
+UnauthorizedAccessException("The requested quality equipment record is not accessible.");
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:295:        }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:296:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:297:        private Guid RequireCurrentCompany()
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:298:        {
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:299:            if 
+(!_currentUser.CompanyId.HasValue || _currentUser.CompanyId.Value == Guid.Empty)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:300:                throw new 
+UnauthorizedAccessException("A company context is required.");
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:301:            return 
+_currentUser.CompanyId.Value;
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:302:        }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:303:
+> WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:304:        private static Guid 
+ResolveWorkingCompany(Project project)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:305:        {
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:306:            if 
+(project.WeldingSubcontractorCompanyId.HasValue && project.WeldingSubcontractorCompanyId.Value != Guid.Empty)
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:307:                return 
+project.WeldingSubcontractorCompanyId.Value;
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:308:            if (project.CompanyId.HasValue && 
+project.CompanyId.Value != Guid.Empty)
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:309:                return project.CompanyId.Value;
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:310:            throw new 
+InvalidOperationException("The project has no responsible company for welding/NDT equipment.");
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:311:        }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:312:    }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:313:}
+
+
+

@@ -21,6 +21,9 @@ namespace WeldAdminPro.Core.Models
 
         public int RoleId { get; set; }
 
+        // Company tenancy boundary
+        public Guid? CompanyId { get; set; }
+
         public string RoleName { get; set; } = "";
 
         public bool IsActive { get; set; } = true;

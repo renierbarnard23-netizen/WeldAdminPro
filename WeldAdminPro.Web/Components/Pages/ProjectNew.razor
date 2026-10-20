@@ -30,7 +30,7 @@
         Project.IsInvoiced = false;
     }
 
-    private void SaveProject()
+    private async Task SaveProject()
     {
         Console.WriteLine("=== PAGE SAVE START ===");
 
@@ -38,7 +38,7 @@
         {
             Console.WriteLine("Calling ProjectService.SaveProject");
 
-            ProjectService.SaveProject(Project);
+            await ProjectService.SaveProjectAsync(Project);
 
             Console.WriteLine($"Returned. Project Id = {Project.Id}");
 

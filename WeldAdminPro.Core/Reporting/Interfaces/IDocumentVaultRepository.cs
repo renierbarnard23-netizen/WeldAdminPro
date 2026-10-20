@@ -9,6 +9,12 @@ namespace WeldAdminPro.Core.Reporting.Interfaces
         void Add(
             DocumentVaultFile file);
 
+        void Approve(
+            Guid id,
+            string approvedBy);
+
+        DocumentVaultFile? GetById(Guid id);
+
         List<DocumentVaultFile> GetAll();
 
         List<DocumentVaultFile> GetByProject(
@@ -17,9 +23,17 @@ namespace WeldAdminPro.Core.Reporting.Interfaces
         List<DocumentVaultFile> GetByWeld(
             Guid weldId);
 
+        List<DocumentVaultFile> GetByCompany(
+            Guid companyId);
+
+        List<DocumentVaultFile>
+            GetApprovedByCompanyAndCategory(
+            Guid companyId,
+            DocumentCategoryType category);
+
         List<DocumentVaultFile>
             GetApprovedByCategory(
             DocumentCategoryType category);
-
     }
 }
+

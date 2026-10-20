@@ -1,3 +1,4 @@
+﻿using WeldAdminPro.Core.Quality.Normalization;
 using WeldAdminPro.Core.Quality;
 
 namespace WeldAdminPro.Core.Quality.Services
@@ -12,6 +13,10 @@ namespace WeldAdminPro.Core.Quality.Services
             double requiredThickness)
         {
             // Qualification expired
+            // Qualification inactive
+            if (!qualification.IsActive)
+                return false;
+
             if (qualification.ExpiryDate < DateTime.Today)
                 return false;
 
@@ -49,25 +54,45 @@ namespace WeldAdminPro.Core.Quality.Services
     Wps wps,
     double weldThickness)
         {
+            // Qualification inactive
+            if (!qualification.IsActive)
+                return false;
+
             if (qualification.ExpiryDate < DateTime.Today)
                 return false;
 
-            if (!string.Equals(
-                    qualification.Process,
-                    wps.Process,
-                    StringComparison.OrdinalIgnoreCase))
+            var qualificationProcess =
+                ComplianceNormalizer.NormalizeProcess(
+                    qualification.Process);
+
+            var wpsProcess =
+                ComplianceNormalizer.NormalizeProcess(
+                    wps.Process);
+
+            if (qualificationProcess != wpsProcess)
                 return false;
 
-            if (!string.Equals(
-                    qualification.Position,
-                    wps.Position,
-                    StringComparison.OrdinalIgnoreCase))
+            var qualificationPosition =
+                ComplianceNormalizer.NormalizePosition(
+                    qualification.Position);
+
+            var wpsPosition =
+                ComplianceNormalizer.NormalizePosition(
+                    wps.Position ?? "");
+
+            if (wpsPosition != "ALL" &&
+                qualificationPosition != wpsPosition)
                 return false;
 
-            if (!string.Equals(
-                    qualification.MaterialGroup,
-                    wps.MaterialGroup,
-                    StringComparison.OrdinalIgnoreCase))
+            var qualificationMaterial =
+                ComplianceNormalizer.NormalizeMaterialGroup(
+                    qualification.MaterialGroup);
+
+            var wpsMaterial =
+                ComplianceNormalizer.NormalizeMaterialGroup(
+                    wps.MaterialGroup);
+
+            if (qualificationMaterial != wpsMaterial)
                 return false;
 
             if (weldThickness < qualification.ThicknessMin ||
@@ -82,3 +107,6 @@ namespace WeldAdminPro.Core.Quality.Services
         }
     }
 }
+
+
+

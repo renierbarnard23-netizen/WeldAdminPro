@@ -1,4 +1,4 @@
-@using WeldAdminPro.Core.Models
+﻿@using WeldAdminPro.Core.Models
 
 <div class="row g-3 mb-4">
 
@@ -68,14 +68,70 @@
 
 </div>
 
+<div class="card shadow-sm mb-4">
+
+    <div class="card-body">
+
+        <h5 class="mb-3">📊 Inventory Financial Summary</h5>
+
+        <div class="row g-3">
+
+            <div class="col-md-6">
+
+                <strong>💰 Total Inventory Value</strong>
+
+                <div>@TotalValue.ToString("C")</div>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <strong>📦 Total Units</strong>
+
+                <div>@TotalUnits</div>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <strong>🟡 Low Stock Value Risk</strong>
+
+                <div>@LowStockValue.ToString("C")</div>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <strong>🔴 Out of Stock Value</strong>
+
+                <div>@OutOfStockValue.ToString("C")</div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
 @code {
 
-    [Parameter] public decimal TotalValue { get; set; }
+    [Parameter]
+    public decimal TotalValue { get; set; }
 
-    [Parameter] public int TotalUnits { get; set; }
+    [Parameter]
+    public int TotalUnits { get; set; }
 
-    [Parameter] public int LowStock { get; set; }
+    [Parameter]
+    public int LowStock { get; set; }
 
-    [Parameter] public int Critical { get; set; }
+    [Parameter]
+    public int Critical { get; set; }
+
+    [Parameter]
+    public decimal LowStockValue { get; set; }
+
+    [Parameter]
+    public decimal OutOfStockValue { get; set; }
 
 }

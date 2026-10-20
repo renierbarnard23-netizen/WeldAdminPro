@@ -1,0 +1,176 @@
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Projects
+
+@inject ProjectApplicationService ProjectService
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header bg-primary text-white">
+        Project Information
+    </div>
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            <div class="col-md-6">
+                <label class="form-label">Project Name</label>
+                <input class="form-control"
+                       @bind="Project.ProjectName" disabled="@(!IsEditable)" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Client</label>
+                <input class="form-control"
+                       @bind="Project.Client" disabled="@(!IsEditable)" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Representative</label>
+                <input class="form-control"
+                       @bind="Project.ClientRepresentative" disabled="@(!IsEditable)" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Quote Number</label>
+                <input class="form-control"
+                       @bind="Project.QuoteNumber" disabled="@(!IsEditable)" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Order Number</label>
+                <input class="form-control"
+                       @bind="Project.OrderNumber" disabled="@(!IsEditable)" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Budget</label>
+                <input class="form-control"
+                       type="number"
+                       @bind="Project.Budget" disabled="@(!IsEditable)" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Material</label>
+                <input class="form-control"
+                       @bind="Project.Material" disabled="@(!IsEditable)" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Welding / Fabrication Subcontractor</label>
+                <select class="form-select"
+                        @bind="Project.WeldingSubcontractorCompanyId"
+                        disabled="@(!IsEditable)">
+                    <option value="">-- Not Assigned --</option>
+                    @foreach (var company in _weldingCompanies)
+                    {
+                        <option value="@company.Id">
+                            @company.CompanyName (@company.CompanyType)
+                        </option>
+                    }
+                </select>
+                <div class="form-text">
+                    Select the company responsible for welding/fabrication and the applicable ISO 3834 WPS records.
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Assigned To</label>
+                <input class="form-control"
+                       @bind="Project.AssignedTo" disabled="@(!IsEditable)" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Status</label>
+
+                <InputSelect class="form-select"
+                             @bind-Value="Project.Status" disabled="@(!IsEditable)">
+
+                    @foreach (var status in Enum.GetValues<ProjectStatus>())
+                    {
+                        <option value="@status">@status</option>
+                    }
+
+                </InputSelect>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Start Date</label>
+                <InputDate class="form-control"
+                           @bind-Value="Project.StartDate" disabled="@(!IsEditable)" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">End Date</label>
+                <InputDate class="form-control"
+                           @bind-Value="Project.EndDate" disabled="@(!IsEditable)" />
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-check mt-4">
+
+                    <InputCheckbox class="form-check-input"
+                                   @bind-Value="Project.IsInvoiced" disabled="@(!IsEditable)" />
+
+                    <label class="form-check-label">
+                        Invoiced
+                    </label>
+
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Invoice Number</label>
+                <input class="form-control"
+                       @bind="Project.InvoiceNumber" disabled="@(!IsEditable)" />
+            </div>
+
+        </div>
+
+        <hr />
+
+        <button class="btn btn-success"
+
+                disabled="@(!IsEditable)"
+                                @onclick="Save">
+
+            Save Project
+
+        </button>
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public Project Project { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    [Parameter]
+    public bool IsEditable { get; set; } = true;
+
+    private List<Company> _weldingCompanies = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _weldingCompanies = await ProjectService.GetWeldingCompanyOptionsAsync();
+    }
+    private async Task Save()
+    {
+        
+        if (!IsEditable)
+            return;
+Console.WriteLine("Editor Save button clicked");
+
+        await OnSave.InvokeAsync();
+
+        Console.WriteLine("Editor callback finished");
+    }
+
+}
+
+

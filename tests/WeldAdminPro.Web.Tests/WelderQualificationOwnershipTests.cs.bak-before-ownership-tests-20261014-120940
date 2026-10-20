@@ -1,0 +1,10 @@
+﻿namespace WeldAdminPro.Web.Tests;
+
+public class WelderQualificationOwnershipTests
+{
+    [Fact]
+    public void TestProjectIsCreated()
+    {
+        Assert.True(true);
+    }
+}

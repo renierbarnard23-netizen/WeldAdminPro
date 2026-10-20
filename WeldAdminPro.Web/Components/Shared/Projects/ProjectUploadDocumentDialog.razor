@@ -28,6 +28,14 @@
 
             </MudAlert>
         }
+        @if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">
+
+                @_errorMessage
+
+            </MudAlert>
+        }
 
     </DialogContent>
 
@@ -68,6 +76,8 @@
 
     private string? _fileName;
 
+    private string? _errorMessage;
+
     private void OnFileSelected(InputFileChangeEventArgs e)
     {
         _selectedFile = e.File;
@@ -85,27 +95,49 @@
         if (_selectedFile is null)
             return;
 
-        await using var stream =
-            _selectedFile.OpenReadStream(1024 * 1024 * 100);
+        string? storedPath = null;
 
-        var storedPath =
-            await DocumentStorageService.SaveProjectDocumentAsync(
-                ProjectId,
-                _selectedFile.Name,
-                stream);
+        try
+        {
+            await using var stream =
+                _selectedFile.OpenReadStream(1024 * 1024 * 100);
 
-        var document =
-            ProjectService
-                .GetDocuments(ProjectId)
-                .FirstOrDefault(d => d.Id == DocumentId);
+            storedPath =
+                await DocumentStorageService.SaveProjectDocumentAsync(
+                    ProjectId,
+                    _selectedFile.Name,
+                    stream);
 
-        if (document is null)
-            return;
+            var document =
+                    (await ProjectService.GetDocuments(ProjectId))
+                    .FirstOrDefault(d => d.Id == DocumentId);
 
-        ProjectService.RegisterDocumentFile(
-            document,
-            storedPath);
+            if (document is null)
+                throw new InvalidOperationException(
+                    "The selected project document could not be found.");
 
-        MudDialog.Close(DialogResult.Ok(true));
+            await ProjectService.RegisterDocumentFile(
+                document,
+                storedPath);
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch
+        {
+            if (!string.IsNullOrWhiteSpace(storedPath))
+            {
+                try
+                {
+                    if (File.Exists(storedPath))
+                        File.Delete(storedPath);
+                }
+                catch
+                {
+                    // Do not mask the original upload or registration failure.
+                }
+            }
+
+            _errorMessage = "The document could not be uploaded.";
+        }
     }
 }

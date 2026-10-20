@@ -1,0 +1,598 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using WeldAdminPro.Core.Interfaces;
+using WeldAdminPro.Core.Security;
+using WeldAdminPro.Core.Security.Abstractions;
+using WeldAdminPro.Core.Models;
+using WeldAdminPro.Data.Repositories;
+
+namespace WeldAdminPro.Web.Services.Quality
+{
+    public class WpqrApplicationService
+    {
+        private readonly IWpqrRepository _repository;
+        private readonly ICurrentUserContext _currentUser;
+        private readonly IPermissionAuthorizationService _permissionAuthorization;
+        private readonly IProjectAccessAuthorizationService _projectAccessAuthorization;
+        private readonly WpsApplicationService _wpsService;
+        private readonly WelderQualificationApplicationService _welderService;
+        private readonly CompanyRepository _companyRepository;
+
+        public WpqrApplicationService(
+            IWpqrRepository repository,
+            ICurrentUserContext currentUser,
+            IPermissionAuthorizationService permissionAuthorization,
+            IProjectAccessAuthorizationService projectAccessAuthorization,
+            WpsApplicationService wpsService,
+            WelderQualificationApplicationService welderService,
+            CompanyRepository companyRepository)
+        {
+            _repository = repository;
+
+            _currentUser = currentUser
+                ?? throw new ArgumentNullException(nameof(currentUser));
+
+            _permissionAuthorization = permissionAuthorization
+                ?? throw new ArgumentNullException(nameof(permissionAuthorization));
+
+            _projectAccessAuthorization = projectAccessAuthorization
+                ?? throw new ArgumentNullException(nameof(projectAccessAuthorization));
+
+            _wpsService =
+                wpsService
+                ?? throw new ArgumentNullException(nameof(wpsService));
+
+            _welderService =
+                welderService
+                ?? throw new ArgumentNullException(nameof(welderService));
+
+            _companyRepository =
+                companyRepository
+                ?? throw new ArgumentNullException(nameof(companyRepository));
+        }
+
+        private async Task EnsureAuthorizedAsync()
+        {
+            if (!_currentUser.IsAuthenticated ||
+                string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                throw new UnauthorizedAccessException(
+                    "You must be authenticated to access WPQR records.");
+            }
+
+            var hasPermission =
+                await _permissionAuthorization.HasPermissionAsync(
+                    _currentUser.UserId,
+                    _currentUser.Role,
+                    PermissionKeys.Quality.WPQR);
+
+            if (!hasPermission)
+            {
+                throw new UnauthorizedAccessException(
+                    "You do not have permission to access WPQR records.");
+            }
+        }
+
+        public async Task<List<Company>> GetAccessibleCompaniesAsync()
+        {
+            await EnsureAuthorizedAsync();
+
+            var accessible = new List<Company>();
+
+            foreach (var company in _companyRepository.GetAll())
+            {
+                if (!company.IsActive || company.Id == Guid.Empty)
+                {
+                    continue;
+                }
+
+                if (await _projectAccessAuthorization.CanAccessCompanyAsync(
+                        _currentUser.UserId,
+                        company.Id))
+                {
+                    accessible.Add(company);
+                }
+            }
+
+            return accessible
+                .OrderBy(x => x.CompanyName)
+                .ToList();
+        }
+
+        private async Task EnsureCompanyAccessAsync(
+            Guid? companyId)
+        {
+            if (!companyId.HasValue ||
+                companyId.Value == Guid.Empty)
+            {
+                throw new InvalidOperationException(
+                    "The WPQR does not have a valid owning company.");
+            }
+
+            var hasAccess =
+                await _projectAccessAuthorization.CanAccessCompanyAsync(
+                    _currentUser.UserId,
+                    companyId.Value);
+
+            if (!hasAccess)
+            {
+                throw new UnauthorizedAccessException(
+                    "You do not have access to the company that owns this WPQR.");
+            }
+        }
+
+        private async Task<Wpqr?> GetAuthorizedAsync(
+            Guid id)
+        {
+            await EnsureAuthorizedAsync();
+
+            var wpqr = _repository.GetById(id);
+
+            if (wpqr == null)
+                return null;
+
+            if (!wpqr.CompanyId.HasValue ||
+                wpqr.CompanyId.Value == Guid.Empty)
+            {
+                return null;
+            }
+
+            var hasAccess =
+                await _projectAccessAuthorization.CanAccessCompanyAsync(
+                    _currentUser.UserId,
+                    wpqr.CompanyId.Value);
+
+            return hasAccess ? wpqr : null;
+        }
+
+        public async Task<List<Wpqr>> GetAllAsync()
+        {
+            await EnsureAuthorizedAsync();
+
+            var result = new List<Wpqr>();
+
+            foreach (var wpqr in _repository.GetAll())
+            {
+                if (!wpqr.CompanyId.HasValue ||
+                    wpqr.CompanyId.Value == Guid.Empty)
+                {
+                    continue;
+                }
+
+                if (await _projectAccessAuthorization.CanAccessCompanyAsync(
+                        _currentUser.UserId,
+                        wpqr.CompanyId.Value))
+                {
+                    result.Add(wpqr);
+                }
+            }
+
+            return result;
+        }
+
+        public async Task<Wpqr?> GetByIdAsync(Guid id)
+        {
+            return await GetAuthorizedAsync(id);
+        }
+
+        public async Task<Wpqr?> GetByNumberAsync(
+            string number)
+        {
+            await EnsureAuthorizedAsync();
+
+            var wpqr =
+                _repository.GetByWpqrNumber(number);
+
+            if (wpqr == null ||
+                !wpqr.CompanyId.HasValue ||
+                wpqr.CompanyId.Value == Guid.Empty)
+            {
+                return null;
+            }
+
+            if (!await _projectAccessAuthorization.CanAccessCompanyAsync(
+                    _currentUser.UserId,
+                    wpqr.CompanyId.Value))
+            {
+                return null;
+            }
+
+            return wpqr;
+        }
+
+        public async Task<List<Wpqr>> GetByWpsIdAsync(
+            Guid wpsId)
+        {
+            await EnsureAuthorizedAsync();
+
+            var result = new List<Wpqr>();
+
+            foreach (var wpqr in _repository.GetByWpsId(wpsId))
+            {
+                if (!wpqr.CompanyId.HasValue ||
+                    wpqr.CompanyId.Value == Guid.Empty)
+                {
+                    continue;
+                }
+
+                if (await _projectAccessAuthorization.CanAccessCompanyAsync(
+                        _currentUser.UserId,
+                        wpqr.CompanyId.Value))
+                {
+                    result.Add(wpqr);
+                }
+            }
+
+            return result;
+        }
+
+        public async Task<List<Wpqr>> GetByWelderQualificationIdAsync(
+            int welderQualificationId)
+        {
+            await EnsureAuthorizedAsync();
+
+            var result = new List<Wpqr>();
+
+            foreach (var wpqr in
+                _repository.GetByWelderQualificationId(
+                    welderQualificationId))
+            {
+                if (!wpqr.CompanyId.HasValue ||
+                    wpqr.CompanyId.Value == Guid.Empty)
+                {
+                    continue;
+                }
+
+                if (await _projectAccessAuthorization.CanAccessCompanyAsync(
+                        _currentUser.UserId,
+                        wpqr.CompanyId.Value))
+                {
+                    result.Add(wpqr);
+                }
+            }
+
+            return result;
+        }
+
+        public async Task<List<Wpqr>> GetActiveAsync()
+        {
+            await EnsureAuthorizedAsync();
+
+            var result = new List<Wpqr>();
+
+            foreach (var wpqr in _repository.GetActive())
+            {
+                if (!wpqr.CompanyId.HasValue ||
+                    wpqr.CompanyId.Value == Guid.Empty)
+                {
+                    continue;
+                }
+
+                if (await _projectAccessAuthorization.CanAccessCompanyAsync(
+                        _currentUser.UserId,
+                        wpqr.CompanyId.Value))
+                {
+                    result.Add(wpqr);
+                }
+            }
+
+            return result;
+        }
+
+        public async Task<List<Wpqr>> GetApprovedAsync()
+        {
+            await EnsureAuthorizedAsync();
+
+            var result = new List<Wpqr>();
+
+            foreach (var wpqr in _repository.GetApproved())
+            {
+                if (!wpqr.CompanyId.HasValue ||
+                    wpqr.CompanyId.Value == Guid.Empty)
+                {
+                    continue;
+                }
+
+                if (await _projectAccessAuthorization.CanAccessCompanyAsync(
+                        _currentUser.UserId,
+                        wpqr.CompanyId.Value))
+                {
+                    result.Add(wpqr);
+                }
+            }
+
+            return result;
+        }
+
+        private async Task EnsureRelationshipIntegrityAsync(
+            Guid companyId,
+            Guid? wpsId,
+            int? welderQualificationId)
+        {
+            WeldAdminPro.Core.Quality.Wps? selectedWps = null;
+            if (wpsId.HasValue)
+            {
+                var wpsList = await _wpsService.GetAllAsync();
+                var wps = wpsList.FirstOrDefault(x => x.Id == wpsId.Value);
+                selectedWps = wps;
+
+                if (wps == null)
+                {
+                    throw new InvalidOperationException(
+                        "The selected WPS could not be found or is not accessible.");
+                }
+
+                if (!wps.CompanyId.HasValue ||
+                    wps.CompanyId.Value == Guid.Empty)
+                {
+                    throw new InvalidOperationException(
+                        "The selected WPS does not have a valid owning company.");
+                }
+
+                if (wps.CompanyId.Value != companyId)
+                {
+                    throw new UnauthorizedAccessException(
+                        "The selected WPS belongs to a different company.");
+                }
+
+                if (!wps.IsApproved || !wps.IsActive)
+                {
+                    throw new InvalidOperationException(
+                        "The selected WPS must be approved and active.");
+                }
+            }
+
+            if (welderQualificationId.HasValue)
+            {
+                var qualifications =
+                    await _welderService.GetAccessibleAsync();
+
+                var qualification = qualifications
+                    .FirstOrDefault(x => x.Id == welderQualificationId.Value);
+
+                if (qualification == null)
+                {
+                    throw new InvalidOperationException(
+                        "The selected welder qualification could not be found or is not accessible.");
+                }
+
+                if (!qualification.CompanyId.HasValue ||
+                    qualification.CompanyId.Value == Guid.Empty)
+                {
+                    throw new InvalidOperationException(
+                        "The selected welder qualification does not have a valid owning company.");
+                }
+
+                if (qualification.CompanyId.Value != companyId)
+                {
+                    throw new UnauthorizedAccessException(
+                        "The selected welder qualification belongs to a different company.");
+                }
+
+                if (!qualification.IsActive)
+                {
+                    throw new InvalidOperationException(
+                        "The selected welder qualification must be active.");
+                }
+
+                if (selectedWps != null)
+                {
+                    var wpsMaterialGroup =
+                        WeldAdminPro.Core.Quality.Normalization.ComplianceNormalizer
+                            .NormalizeMaterialGroup(selectedWps.MaterialGroup);
+
+                    var welderMaterialGroup =
+                        WeldAdminPro.Core.Quality.Normalization.ComplianceNormalizer
+                            .NormalizeMaterialGroup(qualification.MaterialGroup);
+
+                    if (string.IsNullOrWhiteSpace(wpsMaterialGroup) ||
+                        string.IsNullOrWhiteSpace(welderMaterialGroup) ||
+                        !string.Equals(
+                            wpsMaterialGroup,
+                            welderMaterialGroup,
+                            StringComparison.Ordinal))
+                    {
+                        throw new InvalidOperationException(
+                            "The selected welder qualification's material group is missing or does not match the selected WPS.");
+                    }
+                }
+            }
+        }
+
+        public async Task SaveAsync(Wpqr wpqr)
+        {
+            if (wpqr == null)
+            {
+                throw new ArgumentNullException(nameof(wpqr));
+            }
+
+            await EnsureAuthorizedAsync();
+
+            var existing =
+                wpqr.Id == Guid.Empty
+                    ? null
+                    : _repository.GetById(wpqr.Id);
+
+            if (existing == null)
+            {
+                if (!_currentUser.CompanyId.HasValue ||
+                    _currentUser.CompanyId.Value == Guid.Empty)
+                {
+                    throw new InvalidOperationException(
+                        "Your user account does not have a valid company.");
+                }
+
+                wpqr.CompanyId =
+                    _currentUser.CompanyId.Value;
+
+                var creator = !string.IsNullOrWhiteSpace(_currentUser.Username)
+                    ? _currentUser.Username.Trim()
+                    : _currentUser.UserId?.Trim();
+
+                if (string.IsNullOrWhiteSpace(creator))
+                {
+                    throw new UnauthorizedAccessException(
+                        "The authenticated user has no valid audit identity.");
+                }
+
+                // Creation audit fields are server-authoritative.
+                wpqr.CreatedBy = creator;
+                wpqr.CreatedOn = DateTime.UtcNow;
+
+                await EnsureCompanyAccessAsync(
+                    wpqr.CompanyId);
+
+                await EnsureRelationshipIntegrityAsync(
+                    wpqr.CompanyId.Value,
+                    wpqr.WpsId,
+                    wpqr.WelderQualificationId);
+
+                _repository.Add(wpqr);
+                return;
+            }
+
+            await EnsureCompanyAccessAsync(
+                existing.CompanyId);
+
+            if (existing.IsApproved)
+            {
+                throw new InvalidOperationException(
+                    "WPQR is approved and cannot be edited directly. Create a new revision instead.");
+            }
+
+            if (existing.IsLocked)
+            {
+                throw new InvalidOperationException(
+                    "WPQR is locked and cannot be edited directly.");
+            }
+
+            // Preserve audit identity and revision metadata on ordinary updates.
+            wpqr.CreatedOn = existing.CreatedOn;
+            wpqr.CreatedBy = existing.CreatedBy;
+            wpqr.PreviousRevisionId = existing.PreviousRevisionId;
+            wpqr.Revision = existing.Revision;
+            wpqr.IsLocked = existing.IsLocked;
+
+            // Ownership is authoritative from the database.
+            wpqr.CompanyId = existing.CompanyId;
+
+            if (!wpqr.CompanyId.HasValue ||
+                wpqr.CompanyId.Value == Guid.Empty)
+            {
+                throw new InvalidOperationException(
+                    "The WPQR does not have a valid owning company.");
+            }
+
+            await EnsureRelationshipIntegrityAsync(
+                wpqr.CompanyId.Value,
+                wpqr.WpsId,
+                wpqr.WelderQualificationId);
+
+            _repository.Update(wpqr);
+        }
+
+        public async Task<Wpqr> CreateRevisionAsync(Guid id)
+        {
+            if (id == Guid.Empty)
+                throw new ArgumentException("A valid WPQR ID is required.", nameof(id));
+
+            await EnsureAuthorizedAsync();
+
+            var existing = _repository.GetById(id);
+            if (existing == null)
+                throw new InvalidOperationException("The WPQR could not be found.");
+
+            await EnsureCompanyAccessAsync(existing.CompanyId);
+
+            if (!existing.IsActive)
+                throw new InvalidOperationException("Only the active WPQR revision can be revised.");
+
+            if (!existing.IsApproved && !existing.IsLocked)
+                throw new InvalidOperationException("Only an approved or locked WPQR can be revised.");
+
+            if (!existing.CompanyId.HasValue || existing.CompanyId.Value == Guid.Empty)
+                throw new InvalidOperationException("The WPQR does not have a valid owning company.");
+
+            await EnsureRelationshipIntegrityAsync(
+                existing.CompanyId.Value,
+                existing.WpsId,
+                existing.WelderQualificationId);
+
+            var username = !string.IsNullOrWhiteSpace(_currentUser.Username)
+                ? _currentUser.Username
+                : _currentUser.UserId;
+
+            var revision = existing.CreateRevision(username);
+
+            // Use authoritative values from the stored predecessor.
+            revision.CompanyId = existing.CompanyId;
+            revision.WpqrNumber = existing.WpqrNumber;
+            revision.WpsId = existing.WpsId;
+            revision.WelderQualificationId = existing.WelderQualificationId;
+            revision.PreviousRevisionId = existing.Id;
+            revision.Revision = existing.Revision + 1;
+            revision.IsActive = true;
+            revision.IsApproved = false;
+            revision.IsLocked = false;
+            revision.ApprovedBy = null;
+            revision.ApprovedOn = null;
+            revision.ApprovalRole = null;
+            revision.SignaturePath = null;
+            revision.StampPath = null;
+            revision.CreatedOn = DateTime.UtcNow;
+            revision.CreatedBy = username.Trim();
+
+            _repository.SaveRevision(existing, revision);
+
+            return revision;
+        }
+        public async Task DeleteAsync(Guid id)
+        {
+            await EnsureAuthorizedAsync();
+
+            var existing =
+                _repository.GetById(id);
+
+            if (existing == null)
+            {
+                throw new InvalidOperationException(
+                    "The WPQR could not be found.");
+            }
+
+            await EnsureCompanyAccessAsync(
+                existing.CompanyId);
+
+            if (existing.IsApproved || existing.IsLocked)
+            {
+                throw new InvalidOperationException(
+                    "Approved or locked WPQR records cannot be deleted. Preserve the qualification audit trail.");
+            }
+
+            _repository.Delete(id);
+        }
+        public int GetActiveCount()
+        {
+            return _repository
+                .GetActive()
+                .Count;
+        }
+
+        public int GetApprovedCount()
+        {
+            return _repository
+                .GetApproved()
+                .Count;
+        }
+
+        public int GetActiveApprovedCount()
+        {
+            return _repository
+                .GetActive()
+                .Count(x => x.IsApproved);
+        }
+    }
+}
+
+
+

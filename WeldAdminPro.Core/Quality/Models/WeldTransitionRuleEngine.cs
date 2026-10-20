@@ -14,7 +14,8 @@ namespace WeldAdminPro.Core.Quality.Services
             bool hasApprovedWps,
             bool hasValidWelder,
             bool hasAcceptedNdt,
-            bool hasOpenRepairs)
+            bool hasOpenRepairs,
+            bool hasOpenNcrs = false)
         {
             var result =
                 new WeldStateTransitionResult
@@ -59,6 +60,14 @@ namespace WeldAdminPro.Core.Quality.Services
 
                     result.BlockingIssues.Add(
                         "Open repairs exist.");
+                }
+
+                if (hasOpenNcrs)
+                {
+                    result.Success = false;
+
+                    result.BlockingIssues.Add(
+                        "Open NCRs prevent weld release.");
                 }
             }
 

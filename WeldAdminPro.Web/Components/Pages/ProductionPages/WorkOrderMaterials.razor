@@ -1,4 +1,4 @@
-@page "/production/workorders/materials/{WorkOrderId:guid}"
+﻿@page "/production/workorders/materials/{WorkOrderId:guid}"
 
 @attribute [Authorize(Policy = "Permission:Production.EditWorkOrder")]
 @using WeldAdminPro.Core.Models
@@ -103,7 +103,7 @@
             ProductionService.GetStockItems();
     }
 
-    private void AddMaterial()
+    private async Task AddMaterial()
     {
         if (_selectedMaterial is null)
         {
@@ -128,7 +128,7 @@
                     RequiredQuantity = _requiredQuantity
                 };
 
-            ProductionService.AddWorkOrderMaterial(material);
+            await ProductionService.AddWorkOrderMaterialAsync(material);
 
             Snackbar.Add(
                 "Material added successfully.",

@@ -1,4 +1,4 @@
-@using MudBlazor
+﻿@using MudBlazor
 @using WeldAdminPro.Core.Quality
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Web.Components.Quality
@@ -48,6 +48,21 @@
             </MudItem>
 
             <!-- ========================= -->
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid?"
+                           Label="Owning Company"
+                           Value="Model.CompanyId"
+                           ValueChanged="OnCompanyChanged"
+                           Disabled="@(Model.Id != Guid.Empty)"
+                           Required="true">
+                    @foreach (var company in _availableCompanies)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)company.Id)">
+                            @company.CompanyName (@company.CompanyCode)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
             <!-- CODE / STANDARD -->
             <!-- ========================= -->
 
@@ -398,13 +413,13 @@
 
             <MudItem xs="12" md="3">
                 <MudNumericField T="double"
-                                 Label="Preheat (°C)"
+                                 Label="Preheat (Â°C)"
                                  @bind-Value="Model.Preheat" />
             </MudItem>
 
             <MudItem xs="12" md="3">
                 <MudNumericField T="double"
-                                 Label="Interpass (°C)"
+                                 Label="Interpass (Â°C)"
                                  @bind-Value="Model.Interpass" />
             </MudItem>
 
@@ -467,7 +482,7 @@
                          <MudNumericField T="double"
                                  Label="Test Diameter"
                                  Immediate="true"
-                                 @bind-Value="Model.DiameterMax" />
+                                 @bind-Value="Model.DiameterTested" />
                      </MudItem>
                      
                      <MudItem xs="12" md="4">
@@ -572,6 +587,51 @@
 
     private void Save()
     {
+        // Synchronize editor-only values back into the PQR model
+        // before returning the model to the parent page.
+
+        if (int.TryParse(PqrRevision, out var parsedRevision))
+        {
+            Model.Revision = parsedRevision;
+        }
+        else
+        {
+            Model.Revision = 0;
+        }
+
+        if (PqrDate.HasValue)
+        {
+            Model.QualificationDate = PqrDate.Value;
+        }
+
+        // Base Material 1
+        if (_selectedBaseMaterial1 != null)
+        {
+            Model.BaseMaterial1 =
+                _selectedBaseMaterial1.Material ?? "";
+
+            Model.BaseMaterial1Specification =
+                _selectedBaseMaterial1.Specification ?? "";
+
+            Model.PNumber =
+                _selectedBaseMaterial1.PNumber.ToString();
+
+            Model.MaterialGroup =
+                _selectedBaseMaterial1.GroupNumber.ToString();
+        }
+
+        // Base Material 2
+        if (_selectedBaseMaterial2 != null)
+        {
+            Model.BaseMaterial2 =
+                _selectedBaseMaterial2.Material ?? "";
+
+            Model.BaseMaterial2Specification =
+                _selectedBaseMaterial2.Specification ?? "";
+        }
+
+        // Welding Position is bound directly to Model.WeldingPosition.
+
         MudDialog.Close(DialogResult.Ok(Model));
     }
 
@@ -710,8 +770,8 @@
 {
     "None",
     "Argon",
-    "CO₂",
-    "Argon / CO₂",
+    "COâ‚‚",
+    "Argon / COâ‚‚",
     "Argon / Oxygen",
     "Helium",
     "Argon / Helium",
@@ -734,62 +794,226 @@
 
     private Pqr? _lastModel;
 
+    private List<Company> _availableCompanies = new();
+
+    private Task OnCompanyChanged(Guid? companyId)
+    {
+        Model.CompanyId = companyId;
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _availableCompanies = await PqrService.GetAccessibleCompaniesAsync();
+    }
     protected override void OnParametersSet()
     {
         if (_lastModel != Model)
         {
             _lastModel = Model;
 
-            // -----------------------------
-            // Restore Base Material 1
-            // -----------------------------
+            // Restore revision and qualification date for this model.
+            // New PQRs have a default date; existing dates must be preserved.
+            PqrRevision = Model.Revision.ToString(
+                System.Globalization.CultureInfo.InvariantCulture);
+
+            PqrDate = Model.QualificationDate == default(DateTime)
+                ? DateTime.Today
+                : Model.QualificationDate;
+
+            // =====================================================
+            // RESTORE WELDING POSITION
+            // =====================================================
+            //
+            // Imported PQRs may contain the qualification position
+            // in QualifiedPosition while WeldingPosition is empty.
+            //
+            // The editor displays WeldingPosition.
+            // =====================================================
+
+            if (string.IsNullOrWhiteSpace(Model.WeldingPosition) &&
+                !string.IsNullOrWhiteSpace(Model.QualifiedPosition))
+            {
+                Model.WeldingPosition = Model.QualifiedPosition;
+            }
+
+            // =====================================================
+            // RESTORE BASE MATERIAL 1
+            // =====================================================
+
+            BaseMaterial? material1 = null;
+
+            // 1. First try exact Material + Specification.
             if (!string.IsNullOrWhiteSpace(Model.BaseMaterial1))
             {
-                SelectedBaseMaterial1 =
+                material1 =
                     MaterialLibrary.BaseMaterials.FirstOrDefault(m =>
                         string.Equals(
-                            m.Material,
-                            Model.BaseMaterial1,
+                            m.Material ?? "",
+                            Model.BaseMaterial1 ?? "",
                             StringComparison.OrdinalIgnoreCase)
-                            &&
-                            string.Equals(
-                                m.Specification,
-                                Model.BaseMaterial1Specification,
-                                StringComparison.OrdinalIgnoreCase));
-            }
-
-            // -----------------------------
-            // Restore Base Material 2
-            // -----------------------------
-            if (!string.IsNullOrWhiteSpace(Model.BaseMaterial2))
-            {
-                SelectedBaseMaterial2 =
-                    MaterialLibrary.BaseMaterials.FirstOrDefault(m =>
+                        &&
                         string.Equals(
-                            m.Material,
-                            Model.BaseMaterial2,
-                            StringComparison.OrdinalIgnoreCase)
-                            &&
-                            string.Equals(
-                                m.Specification,
-                                Model.BaseMaterial2Specification,
-                                StringComparison.OrdinalIgnoreCase));
-            }
-
-            // -----------------------------
-            // Restore Filler
-            // -----------------------------
-            if (!string.IsNullOrWhiteSpace(Model.FillerMaterial))
-            {
-                SelectedFillerMaterial =
-                    MaterialLibrary.Fillers.FirstOrDefault(f =>
-                        string.Equals(
-                            f.Classification,
-                            Model.FillerMaterial,
+                            m.Specification ?? "",
+                            Model.BaseMaterial1Specification ?? "",
                             StringComparison.OrdinalIgnoreCase));
             }
+
+            // 2. If not found, try Material only.
+            if (material1 == null &&
+                !string.IsNullOrWhiteSpace(Model.BaseMaterial1))
+            {
+                material1 =
+                    MaterialLibrary.BaseMaterials.FirstOrDefault(m =>
+                        string.Equals(
+                            m.Material ?? "",
+                            Model.BaseMaterial1 ?? "",
+                            StringComparison.OrdinalIgnoreCase));
+            }
+
+            // 3. If BaseMaterial1 was not populated by the importer,
+            //    restore it using the P-Number.
+            //
+            //    Example:
+            //    Model.PNumber = "P51"
+            //
+            //    This is the important fix for PQ5418-P1.
+            if (material1 == null &&
+                !string.IsNullOrWhiteSpace(Model.PNumber))
+            {
+                // =================================================
+                // Imported PQRs may store the P-number as:
+                //
+                // P51
+                // 51
+                // P-51
+                //
+                // MaterialLibrary stores PNumber as an integer.
+                // Normalize the imported value before matching.
+                // =================================================
+
+                var importedPNumber =
+                    Model.PNumber
+                        .Trim()
+                        .ToUpperInvariant()
+                        .Replace("P-", "")
+                        .Replace("P", "")
+                        .Trim();
+
+                if (int.TryParse(importedPNumber, out var parsedPNumber))
+                {
+                    material1 =
+                        MaterialLibrary.BaseMaterials.FirstOrDefault(m =>
+                            m.PNumber == parsedPNumber);
+                }
+            }
+
+            if (material1 != null)
+            {
+                _selectedBaseMaterial1 = material1;
+
+                BaseMetal1PNo =
+                    material1.PNumber.ToString();
+
+                BaseMetal1Group =
+                    material1.GroupNumber.ToString();
+
+                // Restore the canonical model fields.
+                Model.PNumber = BaseMetal1PNo;
+                Model.BaseMaterial1 = material1.Material ?? "";
+                Model.BaseMaterial1Specification =
+                    material1.Specification ?? "";
+            }
+            else
+            {
+                // Preserve imported P-No even when no library
+                // material could be found.
+                BaseMetal1PNo = Model.PNumber ?? "";
+            }
+
+            // =====================================================
+            // RESTORE BASE MATERIAL 2
+            // =====================================================
+
+            BaseMaterial? material2 = null;
+
+            // 1. Exact Material + Specification.
+            if (!string.IsNullOrWhiteSpace(Model.BaseMaterial2))
+            {
+                material2 =
+                    MaterialLibrary.BaseMaterials.FirstOrDefault(m =>
+                        string.Equals(
+                            m.Material ?? "",
+                            Model.BaseMaterial2 ?? "",
+                            StringComparison.OrdinalIgnoreCase)
+                        &&
+                        string.Equals(
+                            m.Specification ?? "",
+                            Model.BaseMaterial2Specification ?? "",
+                            StringComparison.OrdinalIgnoreCase));
+            }
+
+            // 2. Material only.
+            if (material2 == null &&
+                !string.IsNullOrWhiteSpace(Model.BaseMaterial2))
+            {
+                material2 =
+                    MaterialLibrary.BaseMaterials.FirstOrDefault(m =>
+                        string.Equals(
+                            m.Material ?? "",
+                            Model.BaseMaterial2 ?? "",
+                            StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (material2 != null)
+            {
+                _selectedBaseMaterial2 = material2;
+
+                BaseMetal2PNo =
+                    material2.PNumber.ToString();
+
+                BaseMetal2Group =
+                    material2.GroupNumber.ToString();
+
+                Model.BaseMaterial2 =
+                    material2.Material ?? "";
+
+                Model.BaseMaterial2Specification =
+                    material2.Specification ?? "";
+            }
+
+            // =====================================================
+            // RESTORE FILLER MATERIAL
+            // =====================================================
+
+            if (!string.IsNullOrWhiteSpace(Model.FillerMaterial))
+            {
+                _selectedFillerMaterial =
+                    MaterialLibrary.Fillers.FirstOrDefault(f =>
+                        string.Equals(
+                            f.Classification ?? "",
+                            Model.FillerMaterial ?? "",
+                            StringComparison.OrdinalIgnoreCase));
+
+                if (_selectedFillerMaterial != null)
+                {
+                    FNumber =
+                        _selectedFillerMaterial.FNumber.ToString();
+
+                    ANumber =
+                        _selectedFillerMaterial.ANumber.ToString();
+                }
+            }
+
+            // =====================================================
+            // RECALCULATE QUALIFICATION DISPLAY
+            // =====================================================
 
             CalculateQualification();
         }
     }
 }
+
+
+
+

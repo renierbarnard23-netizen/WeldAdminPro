@@ -2,9 +2,10 @@
 
 @attribute [Authorize(Policy = "Permission:Inventory.View")]
 @using WeldAdminPro.Core.Models
-@using WeldAdminPro.Data.Repositories
+@using WeldAdminPro.Data.Services.Inventory
 
 @inject NavigationManager Navigation
+@inject StockApplicationService StockService
 
 <PageTitle>Stock Transactions</PageTitle>
 
@@ -68,9 +69,7 @@
 
     protected override void OnInitialized()
     {
-        var repo = new StockRepository();
-
-        _transactions = repo.GetAllTransactions()
+        _transactions = StockService.GetTransactions()
                             .OrderByDescending(t => t.TransactionDate)
                             .ToList();
     }

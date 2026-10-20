@@ -1091,6 +1091,23 @@ _projectContextService =
                 _repairRepository.GetByWeld(
                     SelectedWeld.Id);
 
+            // =====================================
+            // LOAD NCR STATUS
+            // =====================================
+
+            var ncrRepository =
+                new NcrRepository(
+                    DatabasePath.GetConnectionString());
+
+            var ncrs =
+                ncrRepository.GetByWeld(
+                    SelectedWeld.Id);
+
+            var hasOpenNcrs =
+                ncrs.Any(n =>
+                    n.Status != NcrStatus.Closed ||
+                    !n.IsClosed);
+
             var hasOpenRepairs =
                 repairs.Any(x =>
                     x.Status !=
@@ -1122,7 +1139,8 @@ _projectContextService =
                     HasOpenRepairs = hasOpenRepairs,
                     HasMaterialTraceability = true,
                     HasValidConsumables = true,
-                    HasCalibrationCompliance = true
+                    HasCalibrationCompliance = true,
+                    HasOpenNcrs = hasOpenNcrs
                 };
 
             // =====================================
@@ -1254,6 +1272,7 @@ _projectContextService =
                     true,
                     hasAcceptedNdt,
                     hasOpenRepairs,
+                    hasOpenNcrs,
                     out var workflowError))
             {
                 MessageBox.Show(
@@ -1819,3 +1838,4 @@ var approvedWps =
         
     }
 }
+

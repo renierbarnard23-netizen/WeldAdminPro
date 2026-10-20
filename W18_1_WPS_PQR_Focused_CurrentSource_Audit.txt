@@ -1,0 +1,4268 @@
+============================================================
+W18.1 WPS/PQR FOCUSED CURRENT SOURCE AUDIT
+Read-only audit - application stopped - no database access
+============================================================
+
+
+============================================================
+FILE: .\WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs
+============================================================
+
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:501:    }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:502:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:503:    /// <summary>
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:504:    /// Returns only WPS revisions that are 
+applicable to the selected repair:
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:505:    /// the project's welding/fabrication 
+subcontractor, approved, active, and matching the weld material group.
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:506:    /// </summary>
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:507:    public async Task<List<Wps>> 
+GetApplicableRepairWpsAsync(
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:508:        Guid repairId)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:509:    {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:510:        var repair = _repairRepository.GetAll()
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:511:            .FirstOrDefault(x => x.Id == 
+repairId);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:512:
+
+
+
+
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:523:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:524:        var project = 
+_projectRepository.GetById(weld.ProjectId);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:525:        if (project == null ||
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:526:            
+!project.WeldingSubcontractorCompanyId.HasValue ||
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:527:            
+project.WeldingSubcontractorCompanyId.Value == Guid.Empty)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:528:            return new List<Wps>();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:529:
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:530:        var weldingCompanyId = 
+project.WeldingSubcontractorCompanyId.Value;
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:531:
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:532:        var weldMaterial = 
+ComplianceNormalizer.NormalizeMaterialGroup(
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:533:            
+string.IsNullOrWhiteSpace(weld.MaterialGroup)
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:534:                ? weld.MaterialSpecification
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:535:                : weld.MaterialGroup);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:536:
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:537:        if 
+(string.IsNullOrWhiteSpace(weldMaterial))
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:538:            return new List<Wps>();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:539:
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:540:        return 
+_wpsRepository.GetByCompany(weldingCompanyId)
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:541:            .Where(x => x.IsApproved && 
+x.IsActive)
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:542:            .Where(x => 
+ComplianceNormalizer.NormalizeMaterialGroup(x.MaterialGroup) == weldMaterial)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:543:            .OrderBy(x => x.WpsNumber)
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:544:            .ThenByDescending(x => x.Revision)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:545:            .ToList();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:546:    }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:547:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:548:    // 
+==================================================
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:549:    // REPAIR WORKFLOW OPERATIONS
+
+
+
+
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:656:        StartRepairWeldingAsync(
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:657:        RepairRecord repair,
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:658:        string repairedByWelder,
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:659:        Guid? repairWpsId)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:660:    {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:661:        await EnsureRepairAccessAsync(
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:662:            repair,
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:663:            PermissionKeys.Quality.Repairs);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:664:
+
+
+
+
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:672:            return (false, "Repair welder is 
+required.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:673:        }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:674:
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:675:        if (!repairWpsId.HasValue || 
+repairWpsId.Value == Guid.Empty)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:676:        {
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:677:            return (false, "An approved active 
+repair WPS must be selected.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:678:        }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:679:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:680:        await using var connection =
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:681:            new 
+SqliteConnection(DatabasePath.GetConnectionString());
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:682:
+
+
+
+
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:705:                return (false, "The project 
+linked to this repair could not be found.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:706:            }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:707:
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:708:            if 
+(!project.WeldingSubcontractorCompanyId.HasValue ||
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:709:                
+project.WeldingSubcontractorCompanyId.Value == Guid.Empty)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:710:            {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:711:                transaction.Rollback();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:712:                return (false, "The project has 
+no welding/fabrication subcontractor assigned, so a repair WPS cannot be selected.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:713:            }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:714:
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:715:            var repairWps = 
+_wpsRepository.GetById(
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:716:                repairWpsId.Value,
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:717:                connection,
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:718:                transaction);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:719:
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:720:            if (repairWps == null)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:721:            {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:722:                transaction.Rollback();
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:723:                return (false, "The selected 
+repair WPS revision could not be found.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:724:            }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:725:
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:726:            if (!repairWps.CompanyId.HasValue ||
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:727:                repairWps.CompanyId.Value != 
+project.WeldingSubcontractorCompanyId.Value)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:728:            {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:729:                transaction.Rollback();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:730:                return (false, "The selected 
+repair WPS does not belong to the project's welding/fabrication subcontractor.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:731:            }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:732:
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:733:            if (!repairWps.IsApproved)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:734:            {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:735:                transaction.Rollback();
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:736:                return (false, $"Repair WPS 
+'{repairWps.WpsNumber} Rev {repairWps.Revision}' is not approved and cannot be used for repair welding.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:737:            }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:738:
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:739:            if (!repairWps.IsActive)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:740:            {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:741:                transaction.Rollback();
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:742:                return (false, $"Repair WPS 
+'{repairWps.WpsNumber} Rev {repairWps.Revision}' is not active and cannot be used for repair welding.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:743:            }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:744:
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:745:            var weldMaterial = 
+ComplianceNormalizer.NormalizeMaterialGroup(
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:746:                
+string.IsNullOrWhiteSpace(weld.MaterialGroup)
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:747:                    ? weld.MaterialSpecification
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:748:                    : weld.MaterialGroup);
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:749:            var wpsMaterial = 
+ComplianceNormalizer.NormalizeMaterialGroup(
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:750:                repairWps.MaterialGroup);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:751:
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:752:            if 
+(string.IsNullOrWhiteSpace(weldMaterial) ||
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:753:                
+string.IsNullOrWhiteSpace(wpsMaterial) ||
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:754:                weldMaterial != wpsMaterial)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:755:            {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:756:                transaction.Rollback();
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:757:                return (false, $"The selected 
+repair WPS material group '{repairWps.MaterialGroup}' does not match the weld material group 
+'{(string.IsNullOrWhiteSpace(weld.MaterialGroup) ? weld.MaterialSpecification : weld.MaterialGroup)}'.");
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:758:            }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:759:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:760:            if (weld.WorkflowStatus != 
+WeldWorkflowStatus.RepairRequired)
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:761:            {
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:762:                transaction.Rollback();
+
+
+
+
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:780:            }
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:781:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:782:            repair.RepairedByWelder = 
+repairedByWelder.Trim();
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:783:            repair.RepairWpsId = repairWps.Id;
+
+
+
+
+> WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:784:            repair.RepairWpsNumber = 
+repairWps.WpsNumber.Trim();
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:785:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:786:            _repairRepository.Update(repair, 
+connection, transaction);
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:787:
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:788:            await 
+_weldRepository.UpdateWorkflowAsync(
+  WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs:789:                weld,
+
+
+
+
+============================================================
+FILE: .\WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs
+============================================================
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:47:        _compliance = new WpsComplianceService();
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:48:    }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:49:
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:50:    private async Task EnsureWpsReadAccessAsync(Guid 
+companyId)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:51:    {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:52:        if (!_currentUser.IsAuthenticated ||
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:53:            
+string.IsNullOrWhiteSpace(_currentUser.UserId))
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:54:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:55:            throw new UnauthorizedAccessException(
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:70:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:71:        if (!await 
+_projectAccessAuthorization.CanAccessCompanyAsync(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:72:                _currentUser.UserId,
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:73:                companyId))
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:74:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:75:            throw new UnauthorizedAccessException(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:76:                "You do not have access to the company 
+that owns this WPS.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:77:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:78:    }
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:79:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:80:    private async Task EnsureWpsMutationAccessAsync(
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:81:        Guid? companyId,
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:82:        bool requireExistingOwnership)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:83:    {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:84:        if (!_currentUser.IsAuthenticated ||
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:85:            
+string.IsNullOrWhiteSpace(_currentUser.UserId))
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:86:        {
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:100:                "You do not have permission to modify 
+WPS records.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:101:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:102:
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:103:        if (!companyId.HasValue || companyId.Value == 
+Guid.Empty)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:104:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:105:            if (requireExistingOwnership)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:106:            {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:107:                throw new InvalidOperationException(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:108:                    "The WPS does not have a valid 
+owning company.");
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:109:            }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:110:
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:111:            if (!_currentUser.CompanyId.HasValue ||
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:112:                _currentUser.CompanyId.Value == 
+Guid.Empty)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:113:            {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:114:                throw new InvalidOperationException(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:115:                    "Your user account does not have 
+a company.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:116:            }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:117:
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:120:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:121:        if (!await 
+_projectAccessAuthorization.CanAccessCompanyAsync(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:122:                _currentUser.UserId,
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:123:                companyId.Value))
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:124:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:125:            throw new UnauthorizedAccessException(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:126:                "You do not have access to the 
+company that owns this WPS.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:127:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:128:    }
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:132:    // 
+=====================================================
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:133:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:134:    /// <summary>
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:135:    /// Returns approved and active WPS revisions 
+applicable to the
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:136:    /// welding company assigned to the project.
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:137:    /// </summary>
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:138:    public async Task<List<Wps>> 
+GetForProjectAsync(Guid projectId)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:139:    {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:140:        if (projectId == Guid.Empty)
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:167:                "You do not have access to this 
+project.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:168:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:169:
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:170:        var weldingCompanyId =
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:171:            project.WeldingSubcontractorCompanyId
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:172:            ?? project.CompanyId;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:173:
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:174:        if (!weldingCompanyId.HasValue ||
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:175:            weldingCompanyId.Value == Guid.Empty)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:176:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:177:            return new List<Wps>();
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:178:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:179:
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:180:        await 
+EnsureWpsReadAccessAsync(weldingCompanyId.Value);
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:181:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:182:        return _wpsRepository
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:183:            .GetByCompany(weldingCompanyId.Value)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:184:            .Where(wps =>
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:185:                wps.IsApproved &&
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:186:                wps.IsActive)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:187:            .OrderBy(wps => wps.WpsNumber)
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:188:            .ThenByDescending(wps => wps.Revision)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:189:            .ToList();
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:190:    }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:191:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:192:    public async Task<List<Wps>> GetAllAsync()
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:193:    {
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:215:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:216:        foreach (var wps in all)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:217:        {
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:218:            if (wps.CompanyId.HasValue &&
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:219:                await 
+_projectAccessAuthorization.CanAccessCompanyAsync(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:220:                    _currentUser.UserId,
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:221:                    wps.CompanyId.Value))
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:222:            {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:223:                result.Add(wps);
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:224:            }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:225:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:226:
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:253:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:254:        foreach (var wps in all)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:255:        {
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:256:            if (wps.CompanyId.HasValue &&
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:257:                await 
+_projectAccessAuthorization.CanAccessCompanyAsync(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:258:                    _currentUser.UserId,
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:259:                    wps.CompanyId.Value))
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:260:            {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:261:                result.Add(wps);
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:262:            }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:263:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:264:
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:290:            _wpsRepository.GetByWpsNumber(wpsNumber);
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:291:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:292:        if (wps == null ||
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:293:            !wps.CompanyId.HasValue)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:294:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:295:            return null;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:296:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:297:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:298:        if (!await 
+_projectAccessAuthorization.CanAccessCompanyAsync(
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:299:                _currentUser.UserId,
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:300:                wps.CompanyId.Value))
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:301:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:302:            return null;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:303:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:304:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:305:        return wps;
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:335:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:336:        foreach (var pqr in all)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:337:        {
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:338:            if (!pqr.CompanyId.HasValue ||
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:339:                pqr.CompanyId.Value == Guid.Empty)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:340:            {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:341:                continue;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:342:            }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:343:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:344:            if (await 
+_projectAccessAuthorization.CanAccessCompanyAsync(
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:345:                    _currentUser.UserId,
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:346:                    pqr.CompanyId.Value))
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:347:            {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:348:                result.Add(pqr);
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:349:            }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:350:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:351:
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:376:        var pqr = _pqrRepository.GetById(id);
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:377:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:378:        if (pqr == null ||
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:379:            !pqr.CompanyId.HasValue ||
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:380:            pqr.CompanyId.Value == Guid.Empty)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:381:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:382:            return null;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:383:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:384:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:385:        if (!await 
+_projectAccessAuthorization.CanAccessCompanyAsync(
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:386:                _currentUser.UserId,
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:387:                pqr.CompanyId.Value))
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:388:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:389:            return null;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:390:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:391:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:392:        return pqr;
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:428:                "The selected PQR could not be 
+found.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:429:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:430:
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:431:        if (!authoritativePqr.CompanyId.HasValue ||
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:432:            authoritativePqr.CompanyId.Value == 
+Guid.Empty)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:433:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:434:            throw new InvalidOperationException(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:435:                "The selected PQR does not have a 
+valid owning company.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:436:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:437:
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:438:        if (!await 
+_projectAccessAuthorization.CanAccessCompanyAsync(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:439:                _currentUser.UserId,
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:440:                authoritativePqr.CompanyId.Value))
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:441:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:442:            throw new UnauthorizedAccessException(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:443:                "You do not have access to the 
+company that owns the selected PQR.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:444:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:445:
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:462:    // 
+=====================================================
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:463:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:464:    private async Task EnsurePqrOwnershipAsync(
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:465:        Guid? wpsCompanyId,
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:466:        Guid? pqrId)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:467:    {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:468:        if (!pqrId.HasValue || pqrId.Value == 
+Guid.Empty)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:469:            return;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:470:
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:471:        if (!wpsCompanyId.HasValue ||
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:472:            wpsCompanyId.Value == Guid.Empty)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:473:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:474:            throw new InvalidOperationException(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:475:                "The WPS does not have a valid owning 
+company.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:476:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:477:
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:483:                "The linked PQR could not be found.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:484:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:485:
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:486:        if (!pqr.CompanyId.HasValue ||
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:487:            pqr.CompanyId.Value == Guid.Empty)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:488:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:489:            throw new InvalidOperationException(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:490:                "The linked PQR does not have a valid 
+owning company.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:491:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:492:
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:493:        if (pqr.CompanyId.Value != wpsCompanyId.Value)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:494:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:495:            throw new InvalidOperationException(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:496:                "The linked PQR must belong to the 
+same company as the WPS.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:497:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:498:
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:499:        if (!await 
+_projectAccessAuthorization.CanAccessCompanyAsync(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:500:                _currentUser.UserId,
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:501:                pqr.CompanyId.Value))
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:502:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:503:            throw new UnauthorizedAccessException(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:504:                "You do not have access to the 
+company that owns the linked PQR.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:505:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:506:    }
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:509:        if (wps == null)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:510:            throw new 
+ArgumentNullException(nameof(wps));
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:511:
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:512:        // Always reload the authoritative current 
+revision from the repository.
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:513:        var existing =
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:514:            
+_wpsRepository.GetByWpsNumber(wps.WpsNumber);
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:515:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:516:        if (existing == null)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:517:        {
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:519:                null,
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:520:                requireExistingOwnership: false);
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:521:
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:522:            // Never trust CompanyId supplied by the 
+UI for a new WPS.
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:523:            wps.CompanyId = _currentUser.CompanyId;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:524:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:525:        else
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:526:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:527:            await EnsureWpsMutationAccessAsync(
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:528:                existing.CompanyId,
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:529:                requireExistingOwnership: true);
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:530:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:531:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:532:        // The WPS and its linked PQR must share the 
+same
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:533:        // authoritative company ownership.
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:534:        var authoritativeWpsCompanyId =
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:535:            existing?.CompanyId ?? wps.CompanyId;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:536:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:537:        await EnsurePqrOwnershipAsync(
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:538:            authoritativeWpsCompanyId,
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:539:            wps.PqrId);
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:540:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:541:        // 
+---------------------------------------------------------
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:542:        // NEW WPS
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:543:        // 
+---------------------------------------------------------
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:547:            if (wps.Id == Guid.Empty)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:548:                wps.Id = Guid.NewGuid();
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:549:
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:550:            if (wps.Revision < 1)
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:551:                wps.Revision = 1;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:552:
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:553:            wps.IsActive = true;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:554:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:555:            _wpsRepository.Add(wps);
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:556:            return;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:557:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:558:
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:559:        // 
+---------------------------------------------------------
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:560:        // EXISTING APPROVED WPS
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:561:        //
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:562:        // Approved revisions are immutable.
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:563:        // Editing an approved WPS creates a new 
+revision.
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:564:        // 
+---------------------------------------------------------
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:565:
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:566:        if (existing.IsApproved)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:567:        {
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:568:            var revision = existing.CreateRevision(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:569:                existing.CreatedBy);
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:570:
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:571:            // Revision ownership must remain 
+identical to the
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:572:            // authoritative existing WPS ownership.
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:573:            revision.CompanyId = existing.CompanyId;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:574:
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:575:            // Apply the edited WPS data onto the new 
+revision.
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:576:            revision.WpsNumber = wps.WpsNumber;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:577:            revision.Process = wps.Process;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:578:            revision.ThicknessMin = wps.ThicknessMin;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:579:            revision.ThicknessMax = wps.ThicknessMax;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:580:            revision.Diameter = wps.Diameter;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:581:            revision.FillerMaterial = 
+wps.FillerMaterial;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:582:            revision.GasType = wps.GasType;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:583:            revision.AmpsMin = wps.AmpsMin;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:584:            revision.AmpsMax = wps.AmpsMax;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:585:            revision.VoltsMin = wps.VoltsMin;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:586:            revision.VoltsMax = wps.VoltsMax;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:587:            revision.HeatInputMin = wps.HeatInputMin;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:588:            revision.HeatInputMax = wps.HeatInputMax;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:589:            revision.PreheatMin = wps.PreheatMin;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:590:            revision.PreheatMax = wps.PreheatMax;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:591:            revision.InterpassMax = wps.InterpassMax;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:592:            revision.PwhtRequired = wps.PwhtRequired;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:593:            revision.PqrId = wps.PqrId;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:594:            revision.LinkedPqrNumber = 
+wps.LinkedPqrNumber;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:595:            revision.PNumber = wps.PNumber;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:596:            revision.FNumber = wps.FNumber;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:597:            revision.Position = wps.Position;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:598:            revision.MaterialGroup = 
+wps.MaterialGroup;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:599:            revision.JointType = wps.JointType;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:600:            revision.JointDesign = wps.JointDesign;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:601:            revision.Backing = wps.Backing;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:602:            revision.BackingType = wps.BackingType;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:603:            revision.IsCompliant = wps.IsCompliant;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:604:            revision.ValidationStatus = 
+wps.ValidationStatus;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:605:            revision.CurrentType = wps.CurrentType;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:606:            revision.Polarity = wps.Polarity;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:607:            revision.Progression = wps.Progression;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:608:            revision.JointDiagramPath = 
+wps.JointDiagramPath;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:609:            revision.PassDiagramPath = 
+wps.PassDiagramPath;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:610:            revision.QualifiedThicknessRange = 
+wps.QualifiedThicknessRange;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:611:            revision.ParseConfidence = 
+wps.ParseConfidence;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:612:            revision.ParseNotes = wps.ParseNotes;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:613:
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:614:            // New revisions must start as active, 
+unlocked and unapproved.
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:615:            revision.IsApproved = false;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:616:            revision.IsLocked = false;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:617:            revision.ApprovedBy = null;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:618:            revision.ApprovedOn = null;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:619:            revision.IsActive = true;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:620:
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:621:            // Save the previous and new revision 
+atomically.
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:622:            // The repository transaction guarantees 
+that either both
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:623:            // changes succeed or neither change is 
+committed.
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:624:            _wpsRepository.SaveRevision(existing, 
+revision);
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:625:            return;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:626:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:627:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:628:        // 
+---------------------------------------------------------
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:629:        // EXISTING UNAPPROVED WPS
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:630:        //
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:631:        // Normal editing remains an update.
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:632:        // 
+---------------------------------------------------------
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:633:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:634:        wps.Id = existing.Id;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:635:        wps.Revision = existing.Revision;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:636:        wps.IsActive = existing.IsActive;
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:637:        wps.PreviousRevisionId = 
+existing.PreviousRevisionId;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:638:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:639:        // Existing WPS ownership is authoritative.
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:640:        wps.CompanyId = existing.CompanyId;
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:641:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:642:        _wpsRepository.Update(wps);
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:643:    }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:644:
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:645:    // 
+=====================================================
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:700:                "The WPS could not be found.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:701:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:702:
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:703:        if (!existing.CompanyId.HasValue ||
+
+
+
+
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:704:            existing.CompanyId.Value == Guid.Empty)
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:705:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:706:            throw new InvalidOperationException(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:707:                "The WPS does not have a valid owning 
+company.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:708:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:709:
+
+
+
+
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:710:        if (!await 
+_projectAccessAuthorization.CanAccessCompanyAsync(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:711:                _currentUser.UserId,
+> WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:712:                existing.CompanyId.Value))
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:713:        {
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:714:            throw new UnauthorizedAccessException(
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:715:                "You do not have access to the 
+company that owns this WPS.");
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:716:        }
+  WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs:717:
+
+
+
+
+============================================================
+FILE: .\WeldAdminPro.Data\Repositories\WpsRepository.cs
+============================================================
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:68:INSERT INTO Wps
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:69:(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:70:    Id,
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:71:    CompanyId,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:72:    WpsNumber,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:73:    Process,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:74:    MaterialGroup,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:75:    ThicknessMin,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:76:    ThicknessMax,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:77:    PqrId,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:78:    PNumber,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:79:    FNumber,
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:80:    Position,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:81:    JointType,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:82:    Diameter,
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:83:    IsApproved,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:84:    IsLocked,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:85:    ApprovedOn,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:86:    ApprovedBy,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:87:    Revision,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:88:    IsActive,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:89:    PreviousRevisionId
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:90:)
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:91:VALUES
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:92:(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:93:    $id,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:94:    $companyId,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:95:    $wpsNumber,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:96:    $process,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:97:    $materialGroup,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:98:    $tMin,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:99:    $tMax,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:100:    $pqrId,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:101:    $pNumber,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:102:    $fNumber,
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:103:    $position,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:104:    $jointType,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:105:    $diameter,
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:106:    $approved,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:107:    $locked,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:108:    $approvedOn,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:109:    $approvedBy,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:110:    $revision,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:111:    $isActive,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:112:    $previousRevisionId
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:113:);";
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:114:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:115:            cmd.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:116:                "$id",
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:117:                wps.Id.ToString());
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:118:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:119:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:120:            cmd.Parameters.AddWithValue(
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:121:                "$companyId",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:122:                (object?)wps.CompanyId?.ToString()
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:123:                ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:124:            cmd.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:125:                "$wpsNumber",
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:126:                wps.WpsNumber);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:127:
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:130:                wps.Process);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:131:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:132:            cmd.Parameters.AddWithValue(
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:133:                "$materialGroup",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:134:                wps.MaterialGroup);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:135:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:136:            cmd.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:137:                "$tMin",
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:138:                wps.ThicknessMin);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:139:
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:171:                wps.Diameter);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:172:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:173:            cmd.Parameters.AddWithValue(
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:174:                "$approved",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:175:                wps.IsApproved ? 1 : 0);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:176:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:177:            cmd.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:178:                "$locked",
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:179:                wps.IsLocked ? 1 : 0);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:180:
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:181:            cmd.Parameters.AddWithValue(
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:182:                "$approvedOn",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:183:                (object?)wps.ApprovedOn?.ToString("s")
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:184:                ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:185:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:186:            cmd.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:187:                "$approvedBy",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:188:                (object?)wps.ApprovedBy
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:189:                ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:190:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:191:            cmd.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:192:                "$revision",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:193:                wps.Revision);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:194:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:195:            cmd.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:196:                "$isActive",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:197:                wps.IsActive ? 1 : 0);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:198:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:199:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:200:            cmd.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:201:                "$previousRevisionId",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:202:                (object?)wps.PreviousRevisionId?.ToString()
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:203:                ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:204:            cmd.ExecuteNonQuery();
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:205:        }
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:206:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:207:        private void EnsureTables(
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:216:    Id TEXT PRIMARY KEY,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:217:    WpsNumber TEXT NOT NULL,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:218:    Process TEXT,
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:219:    MaterialGroup TEXT,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:220:    ThicknessMin REAL,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:221:    ThicknessMax REAL,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:222:    PqrId TEXT,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:223:    PNumber TEXT,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:224:    FNumber TEXT,
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:226:    JointType TEXT,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:227:    Diameter REAL NOT NULL DEFAULT 0,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:228:    IsPipe INTEGER NOT NULL DEFAULT 0,
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:229:    IsApproved INTEGER NOT NULL DEFAULT 0,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:230:    IsLocked INTEGER NOT NULL DEFAULT 0,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:231:    ApprovedOn TEXT,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:232:    ApprovedBy TEXT,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:233:    Revision INTEGER NOT NULL DEFAULT 0,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:234:    IsActive INTEGER NOT NULL DEFAULT 1
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:235:);";
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:236:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:237:            cmd.ExecuteNonQuery();
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:238:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:239:            cmd.CommandText = @"
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:246:ON Wps(PqrId);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:247:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:248:CREATE INDEX IF NOT EXISTS
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:249:IX_Wps_Approved
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:250:ON Wps(IsApproved);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:251:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:252:CREATE INDEX IF NOT EXISTS
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:253:IX_Wps_Active
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:254:ON Wps(IsActive);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:255:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:256:CREATE INDEX IF NOT EXISTS
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:257:IX_Wps_Process
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:258:ON Wps(Process);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:259:";
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:261:            cmd.ExecuteNonQuery();
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:262:        }
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:263:
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:264:        public List<Wps> GetByCompany(Guid companyId)
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:265:        {
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:266:            if (companyId == Guid.Empty)
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:267:                throw new ArgumentException("Company Id is 
+required.", nameof(companyId));
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:268:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:269:            return GetAll()
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:270:                .Where(x => x.CompanyId == companyId)
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:271:                .ToList();
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:272:        }
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:273:        public List<Wps> GetAll()
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:274:        {
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:275:            var list =
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:288:                FROM Wps
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:289:                ORDER BY
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:290:                    WpsNumber,
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:291:                    Revision DESC;";
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:292:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:293:            using var reader =
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:294:                cmd.ExecuteReader();
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:295:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:296:            while (reader.Read())
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:361:FROM Wps
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:362:WHERE WpsNumber = $wpsNumber
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:363:ORDER BY
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:364:    IsActive DESC,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:365:    Revision DESC
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:366:LIMIT 1";
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:367:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:368:    cmd.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:369:        "$wpsNumber",
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:370:        wpsNumber.Trim());
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:404:FROM Wps
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:405:WHERE WpsNumber = $wpsNumber
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:406:ORDER BY
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:407:    IsActive DESC,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:408:    Revision DESC
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:409:LIMIT 1";
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:410:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:411:    cmd.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:412:        "$wpsNumber",
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:413:        wpsNumber.Trim());
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:459:            {
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:460:                Id = id,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:461:
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:462:                CompanyId =
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:463:                    reader["CompanyId"] == DBNull.Value
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:464:                        ? null
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:465:                        : Guid.Parse(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:466:                            reader["CompanyId"].ToString()!),
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:467:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:468:                WpsNumber =
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:469:                    reader["WpsNumber"]?.ToString()
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:470:                    ?? "",
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:471:
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:473:                    reader["Process"]?.ToString()
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:474:                    ?? "",
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:475:
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:476:                MaterialGroup =
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:477:                    !string.IsNullOrWhiteSpace(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:478:                        reader["MaterialGroup"]?.ToString())
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:479:                    ? reader["MaterialGroup"]!.ToString()!
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:480:                    : reader["PNumber"]?.ToString() ?? "",
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:481:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:482:                ThicknessMin =
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:483:                    reader["ThicknessMin"] != DBNull.Value
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:484:                        ? Convert.ToDouble(
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:520:                            reader["Diameter"])
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:521:                        : 0,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:522:
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:523:                IsApproved =
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:524:                    Convert.ToInt32(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:525:                        reader["IsApproved"]) == 1,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:526:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:527:                IsLocked =
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:528:                    Convert.ToInt32(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:529:                        reader["IsLocked"]) == 1,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:530:
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:531:                ApprovedOn =
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:532:                    reader["ApprovedOn"] == DBNull.Value
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:533:                        ? null
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:534:                        : DateTime.Parse(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:535:                            reader["ApprovedOn"]
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:536:                                .ToString()!),
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:537:
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:538:                ApprovedBy =
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:539:                    reader["ApprovedBy"]?.ToString(),
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:540:
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:541:                Revision =
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:542:                    reader["Revision"] != DBNull.Value
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:543:                        ? Convert.ToInt32(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:544:                            reader["Revision"])
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:545:                        : 0,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:546:
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:547:                PreviousRevisionId =
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:548:                    reader["PreviousRevisionId"] == DBNull.Value
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:549:                        ? null
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:550:                        : Guid.TryParse(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:551:                            
+reader["PreviousRevisionId"]?.ToString(),
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:552:                            out var previousRevisionId)
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:553:                            ? previousRevisionId
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:554:                            : null,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:555:
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:556:                IsActive =
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:557:                    reader["IsActive"] != DBNull.Value
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:558:                    &&
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:559:                    Convert.ToInt32(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:560:                        reader["IsActive"]) == 1
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:561:            };
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:562:        }
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:563:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:564:        public void Update(Wps wps)
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:565:        {
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:586:            cmd.CommandText = @"
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:587:UPDATE Wps
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:588:SET
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:589:    CompanyId = $companyId,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:590:    WpsNumber = $wpsNumber,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:591:    Process = $process,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:592:    MaterialGroup = $materialGroup,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:593:    ThicknessMin = $tMin,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:594:    ThicknessMax = $tMax,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:595:    PqrId = $pqrId,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:596:    PNumber = $pNumber,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:597:    FNumber = $fNumber,
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:599:    JointType = $jointType,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:600:    Diameter = $diameter,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:601:    
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:602:    IsApproved = $approved,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:603:    IsLocked = $locked,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:604:    ApprovedOn = $approvedOn,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:605:    ApprovedBy = $approvedBy,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:606:    Revision = $revision,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:607:    IsActive = $isActive,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:608:    PreviousRevisionId = $previousRevisionId
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:609:WHERE Id = $id;";
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:610:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:611:            cmd.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:612:                "$id",
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:613:                wps.Id.ToString());
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:614:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:615:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:616:            cmd.Parameters.AddWithValue(
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:617:                "$companyId",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:618:                (object?)wps.CompanyId?.ToString()
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:619:                ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:620:            cmd.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:621:                "$wpsNumber",
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:622:                wps.WpsNumber);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:623:
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:626:                wps.Process);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:627:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:628:            cmd.Parameters.AddWithValue(
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:629:                "$materialGroup",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:630:                wps.MaterialGroup);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:631:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:632:            cmd.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:633:                "$tMin",
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:634:                wps.ThicknessMin);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:635:
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:667:                wps.Diameter);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:668:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:669:            cmd.Parameters.AddWithValue(
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:670:                "$approved",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:671:                wps.IsApproved ? 1 : 0);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:672:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:673:            cmd.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:674:                "$locked",
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:675:                wps.IsLocked ? 1 : 0);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:676:
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:677:            cmd.Parameters.AddWithValue(
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:678:                "$approvedOn",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:679:                (object?)wps.ApprovedOn?.ToString("s")
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:680:                ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:681:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:682:            cmd.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:683:                "$approvedBy",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:684:                (object?)wps.ApprovedBy
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:685:                ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:686:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:687:            cmd.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:688:                "$revision",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:689:                wps.Revision);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:690:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:691:            cmd.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:692:                "$isActive",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:693:                wps.IsActive ? 1 : 0);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:694:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:695:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:696:            cmd.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:697:                "$previousRevisionId",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:698:                (object?)wps.PreviousRevisionId?.ToString()
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:699:                ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:700:            cmd.ExecuteNonQuery();
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:701:        }
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:702:
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:703:        public void SaveRevision(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:704:            Wps previous,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:705:            Wps revision)
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:706:        {
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:707:            if (previous == null)
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:708:                throw new 
+ArgumentNullException(nameof(previous));
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:709:
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:710:            if (revision == null)
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:711:                throw new 
+ArgumentNullException(nameof(revision));
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:712:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:713:            if (string.IsNullOrWhiteSpace(previous.WpsNumber))
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:714:                throw new InvalidOperationException(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:715:                    "Previous WPS Number is required.");
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:716:
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:717:            if (string.IsNullOrWhiteSpace(revision.WpsNumber))
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:718:                throw new InvalidOperationException(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:719:                    "Revision WPS Number is required.");
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:720:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:721:            previous.WpsNumber =
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:722:                previous.WpsNumber
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:723:                    .Trim()
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:724:                    .ToUpperInvariant();
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:725:
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:726:            revision.WpsNumber =
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:727:                revision.WpsNumber
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:728:                    .Trim()
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:729:                    .ToUpperInvariant();
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:730:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:731:            if (!string.Equals(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:732:                    previous.WpsNumber,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:733:                    revision.WpsNumber,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:734:                    StringComparison.OrdinalIgnoreCase))
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:735:            {
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:736:                throw new InvalidOperationException(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:737:                    "Previous and new WPS revisions must have 
+the same WPS Number.");
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:738:            }
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:739:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:740:            using var connection =
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:741:                new SqliteConnection(_connectionString);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:742:
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:749:            try
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:750:            {
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:751:                // 
+-------------------------------------------------
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:752:                // Deactivate the previous revision.
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:753:                // 
+-------------------------------------------------
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:754:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:755:                using (var deactivate = 
+connection.CreateCommand())
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:756:                {
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:757:                    deactivate.Transaction = transaction;
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:758:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:759:                    deactivate.CommandText = @"
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:760:UPDATE Wps
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:761:SET IsActive = 0
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:762:WHERE Id = $id;";
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:763:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:764:                    deactivate.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:765:                        "$id",
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:766:                        previous.Id.ToString());
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:771:                    if (affected != 1)
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:772:                    {
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:773:                        throw new InvalidOperationException(
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:774:                            "The previous WPS revision could not 
+be deactivated.");
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:775:                    }
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:776:                }
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:777:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:778:                // 
+-------------------------------------------------
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:779:                // Insert the new revision.
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:780:                // 
+-------------------------------------------------
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:781:
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:782:                if (revision.Id == Guid.Empty)
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:783:                    revision.Id = Guid.NewGuid();
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:784:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:785:                using (var insert = connection.CreateCommand())
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:786:                {
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:787:                    insert.Transaction = transaction;
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:788:
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:790:INSERT INTO Wps
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:791:(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:792:    Id,
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:793:    CompanyId,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:794:    WpsNumber,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:795:    Process,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:796:    MaterialGroup,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:797:    ThicknessMin,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:798:    ThicknessMax,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:799:    PqrId,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:800:    PNumber,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:801:    FNumber,
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:802:    Position,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:803:    JointType,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:804:    Diameter,
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:805:    IsApproved,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:806:    IsLocked,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:807:    ApprovedOn,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:808:    ApprovedBy,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:809:    Revision,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:810:    IsActive,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:811:    PreviousRevisionId
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:812:)
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:813:VALUES
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:814:(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:815:    $id,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:816:    $companyId,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:817:    $wpsNumber,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:818:    $process,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:819:    $materialGroup,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:820:    $tMin,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:821:    $tMax,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:822:    $pqrId,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:823:    $pNumber,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:824:    $fNumber,
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:825:    $position,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:826:    $jointType,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:827:    $diameter,
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:828:    $approved,
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:829:    $locked,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:830:    $approvedOn,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:831:    $approvedBy,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:832:    $revision,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:833:    $isActive,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:834:    $previousRevisionId
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:835:);";
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:836:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:837:                    insert.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:838:                        "$id",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:839:                        revision.Id.ToString());
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:840:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:841:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:842:                    insert.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:843:                        "$companyId",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:844:                        (object?)revision.CompanyId?.ToString()
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:845:                        ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:846:                    insert.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:847:                        "$wpsNumber",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:848:                        revision.WpsNumber);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:849:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:850:                    insert.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:851:                        "$process",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:852:                        revision.Process);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:853:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:854:                    insert.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:855:                        "$materialGroup",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:856:                        revision.MaterialGroup);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:857:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:858:                    insert.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:859:                        "$tMin",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:860:                        revision.ThicknessMin);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:861:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:862:                    insert.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:863:                        "$tMax",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:864:                        revision.ThicknessMax);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:865:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:866:                    insert.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:867:                        "$pqrId",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:868:                        (object?)revision.PqrId?.ToString()
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:869:                        ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:870:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:871:                    insert.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:872:                        "$pNumber",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:873:                        (object?)revision.PNumber
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:874:                        ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:875:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:876:                    insert.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:877:                        "$fNumber",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:878:                        (object?)revision.FNumber
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:879:                        ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:880:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:881:                    insert.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:882:                        "$position",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:883:                        (object?)revision.Position
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:884:                        ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:885:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:886:                    insert.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:887:                        "$jointType",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:888:                        (object?)revision.JointType
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:889:                        ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:890:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:891:                    insert.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:892:                        "$diameter",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:893:                        revision.Diameter);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:894:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:895:                    insert.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:896:                        "$approved",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:897:                        revision.IsApproved ? 1 : 0);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:898:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:899:                    insert.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:900:                        "$locked",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:901:                        revision.IsLocked ? 1 : 0);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:902:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:903:                    insert.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:904:                        "$approvedOn",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:905:                        
+(object?)revision.ApprovedOn?.ToString("s")
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:906:                        ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:907:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:908:                    insert.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:909:                        "$approvedBy",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:910:                        (object?)revision.ApprovedBy
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:911:                        ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:912:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:913:                    insert.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:914:                        "$revision",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:915:                        revision.Revision);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:916:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:917:                    insert.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:918:                        "$isActive",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:919:                        revision.IsActive ? 1 : 0);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:920:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:921:                    insert.Parameters.AddWithValue(
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:922:                        "$previousRevisionId",
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:923:                        
+(object?)revision.PreviousRevisionId?.ToString()
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:924:                        ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:925:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:926:                    var inserted =
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:927:                        insert.ExecuteNonQuery();
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:928:
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:929:                    if (inserted != 1)
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:930:                    {
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:931:                        throw new InvalidOperationException(
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:932:                            "The new WPS revision could not be 
+inserted.");
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:933:                    }
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:934:                }
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:935:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:936:                // 
+-------------------------------------------------
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:937:                // Both operations succeeded.
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:982:            cmd.CommandText = @"
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:983:SELECT *
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:984:FROM Wps
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:985:WHERE IsActive = 1
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:986:ORDER BY
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:987:    WpsNumber,
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:988:    Revision DESC;";
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:989:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:990:            using var reader =
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:991:                cmd.ExecuteReader();
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:992:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:993:            while (reader.Read())
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:999:            return list;
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1000:        }
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1001:
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:1002:        public int GetNextRevision(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1003:            string wpsNumber)
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1004:        {
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1005:            var all =
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1006:                GetAll()
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1007:                    .Where(x =>
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1011:            if (!all.Any())
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1012:                return 0;
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1013:
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:1014:            return all.Max(x => x.Revision) + 1;
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1015:        }
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1016:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1017:        public void DeactivatePrevious(
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1018:            string wpsNumber)
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1019:        {
+
+
+
+
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1022:                    .Where(x =>
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1023:                        x.WpsNumber == wpsNumber
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1024:                        &&
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:1025:                        x.IsActive)
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1026:                    .ToList();
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1027:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1028:            foreach (var item in items)
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1029:            {
+
+
+
+
+> WeldAdminPro.Data\Repositories\WpsRepository.cs:1030:                item.IsActive = false;
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1031:                Update(item);
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1032:            }
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1033:        }
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1034:
+  WeldAdminPro.Data\Repositories\WpsRepository.cs:1035:        public Wps? GetByNumber(
+
+
+
+
+============================================================
+FILE: .\WeldAdminPro.Data\Repositories\PqrRepository.cs
+============================================================
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:56:            var cmd = connection.CreateCommand();
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:57:            cmd.CommandText = @"
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:58:INSERT INTO Pqr (
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:59:    Id, CompanyId, PqrNumber, QualificationDate, QualifiedBy, 
+ThicknessTested,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:60:    Process, Standard, MaterialGroup, Position,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:61:    FillerMaterial, GasType,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:62:    AmpsUsed, VoltsUsed,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:63:    HeatInput, Preheat, Interpass,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:64:    PwhtPerformed, WpsId,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:65:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:66:    PNumber, FNumber, QualifiedPosition, JointType, JointDesign,
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:73:    DiameterMin, DiameterMax,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:74:    WpsReferenceNumber,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:75:
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:76:    BaseMaterial1,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:77:    BaseMaterial2,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:78:    BaseMaterial1Specification,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:79:    BaseMaterial2Specification,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:80:    BaseMaterial1Grade,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:81:    BaseMaterial2Grade,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:82:    BaseMaterial1UNS,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:83:    BaseMaterial2UNS,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:84:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:85:    FillerClassification,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:86:    ANumber,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:87:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:88:    WeldingPosition,
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:106:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:107:    QualifiedPNumberRange,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:108:
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:109:    Revision,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:110:    PreviousRevisionId,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:111:    IsActive,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:112:    IsPipe,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:113:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:114:    PNumber2
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:115:    )
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:116:VALUES (
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:117:    $id, $companyId, $number, $date, $by, $thickness,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:118:    $process, $standard, $material, $position,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:119:    $filler, $gas,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:120:    $amps, $volts,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:121:    $heat, $preheat, $interpass,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:122:    $pwht, $wpsId,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:123:
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:164:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:165:$qualifiedPNumberRange,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:166:
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:167:$revision,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:168:    $previousRevisionId,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:169:$isActive,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:170:$isPipe,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:171:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:172:$pNumber2
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:173:);";
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:174:
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:175:            cmd.Parameters.AddWithValue("$id", 
+pqr.Id.ToString());
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:176:            cmd.Parameters.AddWithValue(
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:177:                "$companyId",
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:178:                (object?)pqr.CompanyId?.ToString() ?? 
+DBNull.Value);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:179:            cmd.Parameters.AddWithValue("$number", pqr.PqrNumber 
+?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:180:            cmd.Parameters.AddWithValue("$date", 
+pqr.QualificationDate.ToString("yyyy-MM-dd"));
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:181:            cmd.Parameters.AddWithValue("$by", pqr.QualifiedBy 
+?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:182:            cmd.Parameters.AddWithValue("$thickness", 
+pqr.ThicknessTested);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:183:
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:184:            cmd.Parameters.AddWithValue("$process", pqr.Process 
+?? "");
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:185:            cmd.Parameters.AddWithValue("$material", 
+pqr.MaterialGroup ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:186:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:187:            cmd.Parameters.AddWithValue("$base1", 
+pqr.BaseMaterial1);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:188:            cmd.Parameters.AddWithValue("$base2", 
+pqr.BaseMaterial2);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:189:            cmd.Parameters.AddWithValue("$base1Spec", 
+pqr.BaseMaterial1Specification);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:190:            cmd.Parameters.AddWithValue("$base2Spec", 
+pqr.BaseMaterial2Specification);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:191:            cmd.Parameters.AddWithValue("$base1Grade", 
+pqr.BaseMaterial1Grade ?? "");
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:192:            cmd.Parameters.AddWithValue("$base2Grade", 
+pqr.BaseMaterial2Grade ?? "");
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:193:            cmd.Parameters.AddWithValue("$base1UNS", 
+pqr.BaseMaterial1UNS ?? "");
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:194:            cmd.Parameters.AddWithValue("$base2UNS", 
+pqr.BaseMaterial2UNS ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:195:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:196:            cmd.Parameters.AddWithValue("$position", 
+pqr.Position ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:197:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:198:            cmd.Parameters.AddWithValue("$filler", 
+pqr.FillerMaterial ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:199:            cmd.Parameters.AddWithValue("$gas", pqr.GasType ?? 
+"");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:200:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:201:            cmd.Parameters.AddWithValue("$amps", pqr.AmpsUsed);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:202:            cmd.Parameters.AddWithValue("$volts", pqr.VoltsUsed);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:203:
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:256:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:257:            
+cmd.Parameters.AddWithValue("$qualifiedPNumberRange", pqr.QualifiedPNumberRange ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:258:
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:259:            cmd.Parameters.AddWithValue("$revision", 
+pqr.Revision);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:260:            cmd.Parameters.AddWithValue("$previousRevisionId", 
+(object?)pqr.PreviousRevisionId?.ToString() ?? DBNull.Value);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:261:            cmd.Parameters.AddWithValue("$isActive", 
+pqr.IsActive ? 1 : 0);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:262:            cmd.Parameters.AddWithValue("$isPipe", pqr.IsPipe ? 
+1 : 0);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:263:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:264:            cmd.Parameters.AddWithValue("$pNumber2", 
+pqr.PNumber2 ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:265:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:266:            cmd.ExecuteNonQuery();
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:271:        // =========================
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:272:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:273:        // =========================
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:274:        // SAVE REVISION
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:275:        // =========================
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:276:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:277:        public void SaveRevision(
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:278:            Pqr previous,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:279:            Pqr revision)
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:280:        {
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:281:            if (previous == null)
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:282:                throw new 
+ArgumentNullException(nameof(previous));
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:283:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:284:            if (revision == null)
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:285:                throw new 
+ArgumentNullException(nameof(revision));
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:286:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:287:            if (previous.Id == Guid.Empty)
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:288:                throw new InvalidOperationException(
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:289:                    "Previous PQR Id is required.");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:290:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:291:            if (revision.Id == Guid.Empty)
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:292:                revision.Id = Guid.NewGuid();
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:293:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:294:            if (string.IsNullOrWhiteSpace(previous.PqrNumber))
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:295:                throw new InvalidOperationException(
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:296:                    "Previous PQR Number is required.");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:297:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:298:            if (string.IsNullOrWhiteSpace(revision.PqrNumber))
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:299:                throw new InvalidOperationException(
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:300:                    "Revision PQR Number is required.");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:301:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:302:            previous.PqrNumber = previous.PqrNumber
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:303:                .Trim()
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:304:                .ToUpperInvariant();
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:305:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:306:            revision.PqrNumber = revision.PqrNumber
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:307:                .Trim()
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:308:                .ToUpperInvariant();
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:309:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:310:            if (!string.Equals(
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:311:                    previous.PqrNumber,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:312:                    revision.PqrNumber,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:313:                    StringComparison.OrdinalIgnoreCase))
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:314:            {
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:315:                throw new InvalidOperationException(
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:316:                    "Previous and new PQR revisions must have 
+the same PQR Number.");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:317:            }
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:318:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:319:            if (revision.PreviousRevisionId != previous.Id)
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:320:            {
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:321:                throw new InvalidOperationException(
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:322:                    "The new PQR revision must reference the 
+previous revision.");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:323:            }
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:324:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:325:            using var connection =
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:326:                new SqliteConnection(_connectionString);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:327:
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:337:                    deactivate.Transaction = transaction;
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:338:                    deactivate.CommandText = @"
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:339:UPDATE Pqr
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:340:SET IsActive = 0
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:341:WHERE Id = $id;";
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:342:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:343:                    deactivate.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:344:                        "$id",
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:345:                        previous.Id.ToString());
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:350:                    if (affected != 1)
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:351:                    {
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:352:                        throw new InvalidOperationException(
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:353:                            "The previous PQR revision could not 
+be deactivated.");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:354:                    }
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:355:                }
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:356:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:357:                revision.IsActive = true;
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:358:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:359:                InsertRevisionWithinTransaction(
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:360:                    connection,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:361:                    transaction,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:362:                    revision);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:363:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:364:                transaction.Commit();
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:365:            }
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:366:            catch
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:367:            {
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:370:            }
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:371:        }
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:372:
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:373:        private void InsertRevisionWithinTransaction(
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:374:            SqliteConnection connection,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:375:            SqliteTransaction transaction,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:376:            Pqr pqr)
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:377:        {
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:378:            using var cmd = connection.CreateCommand();
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:379:            cmd.Transaction = transaction;
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:380:            cmd.CommandText = @"
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:381:            INSERT INTO Pqr (
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:382:            Id, CompanyId, PqrNumber, QualificationDate, 
+QualifiedBy, ThicknessTested,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:383:            Process, Standard, MaterialGroup, Position,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:384:            FillerMaterial, GasType,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:385:            AmpsUsed, VoltsUsed,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:386:            HeatInput, Preheat, Interpass,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:387:            PwhtPerformed, WpsId,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:388:            
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:389:            PNumber, FNumber, QualifiedPosition, JointType, 
+JointDesign,
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:396:            DiameterMin, DiameterMax,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:397:            WpsReferenceNumber,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:398:            
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:399:            BaseMaterial1,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:400:            BaseMaterial2,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:401:            BaseMaterial1Specification,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:402:            BaseMaterial2Specification,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:403:            BaseMaterial1Grade,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:404:            BaseMaterial2Grade,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:405:            BaseMaterial1UNS,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:406:            BaseMaterial2UNS,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:407:            
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:408:            FillerClassification,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:409:            ANumber,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:410:            
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:411:            WeldingPosition,
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:429:            
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:430:            QualifiedPNumberRange,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:431:            
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:432:            Revision,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:433:            PreviousRevisionId,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:434:            IsActive,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:435:            IsPipe,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:436:            
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:437:            PNumber2
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:438:            )
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:439:            VALUES (
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:440:            $id, $companyId, $number, $date, $by, $thickness,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:441:            $process, $standard, $material, $position,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:442:            $filler, $gas,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:443:            $amps, $volts,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:444:            $heat, $preheat, $interpass,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:445:            $pwht, $wpsId,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:446:            
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:487:            
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:488:            $qualifiedPNumberRange,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:489:            
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:490:            $revision,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:491:            $previousRevisionId,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:492:            $isActive,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:493:            $isPipe,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:494:            
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:495:            $pNumber2
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:496:            );";
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:497:            
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:498:            cmd.Parameters.AddWithValue("$id", 
+pqr.Id.ToString());
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:499:            cmd.Parameters.AddWithValue(
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:500:            "$companyId",
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:501:            (object?)pqr.CompanyId?.ToString() ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:502:            cmd.Parameters.AddWithValue("$number", pqr.PqrNumber 
+?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:503:            cmd.Parameters.AddWithValue("$date", 
+pqr.QualificationDate.ToString("yyyy-MM-dd"));
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:504:            cmd.Parameters.AddWithValue("$by", pqr.QualifiedBy 
+?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:505:            cmd.Parameters.AddWithValue("$thickness", 
+pqr.ThicknessTested);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:506:            
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:507:            cmd.Parameters.AddWithValue("$process", pqr.Process 
+?? "");
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:508:            cmd.Parameters.AddWithValue("$material", 
+pqr.MaterialGroup ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:509:            
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:510:            cmd.Parameters.AddWithValue("$base1", 
+pqr.BaseMaterial1);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:511:            cmd.Parameters.AddWithValue("$base2", 
+pqr.BaseMaterial2);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:512:            cmd.Parameters.AddWithValue("$base1Spec", 
+pqr.BaseMaterial1Specification);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:513:            cmd.Parameters.AddWithValue("$base2Spec", 
+pqr.BaseMaterial2Specification);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:514:            cmd.Parameters.AddWithValue("$base1Grade", 
+pqr.BaseMaterial1Grade ?? "");
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:515:            cmd.Parameters.AddWithValue("$base2Grade", 
+pqr.BaseMaterial2Grade ?? "");
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:516:            cmd.Parameters.AddWithValue("$base1UNS", 
+pqr.BaseMaterial1UNS ?? "");
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:517:            cmd.Parameters.AddWithValue("$base2UNS", 
+pqr.BaseMaterial2UNS ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:518:            
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:519:            cmd.Parameters.AddWithValue("$position", 
+pqr.Position ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:520:            
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:521:            cmd.Parameters.AddWithValue("$filler", 
+pqr.FillerMaterial ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:522:            cmd.Parameters.AddWithValue("$gas", pqr.GasType ?? 
+"");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:523:            
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:524:            cmd.Parameters.AddWithValue("$amps", pqr.AmpsUsed);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:525:            cmd.Parameters.AddWithValue("$volts", pqr.VoltsUsed);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:526:            
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:579:            
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:580:            
+cmd.Parameters.AddWithValue("$qualifiedPNumberRange", pqr.QualifiedPNumberRange ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:581:            
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:582:            cmd.Parameters.AddWithValue("$revision", 
+pqr.Revision);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:583:            cmd.Parameters.AddWithValue("$previousRevisionId", 
+(object?)pqr.PreviousRevisionId?.ToString() ?? DBNull.Value);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:584:            cmd.Parameters.AddWithValue("$isActive", 
+pqr.IsActive ? 1 : 0);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:585:            cmd.Parameters.AddWithValue("$isPipe", pqr.IsPipe ? 
+1 : 0);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:586:            
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:587:            cmd.Parameters.AddWithValue("$pNumber2", 
+pqr.PNumber2 ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:588:            
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:589:            cmd.ExecuteNonQuery();
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:603:            var cmd = connection.CreateCommand();
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:604:            cmd.CommandText = @"
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:605:UPDATE Pqr SET
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:606:    CompanyId = $companyId,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:607:    PqrNumber = $number,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:608:    QualificationDate = $date,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:609:    QualifiedBy = $by,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:610:    ThicknessTested = $thickness,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:611:
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:612:    Process = $process,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:613:    Standard = $standard,
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:614:    MaterialGroup = $material,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:615:    Position = $position,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:616:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:617:    FillerMaterial = $filler,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:618:    GasType = $gas,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:619:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:620:    AmpsUsed = $amps,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:621:    VoltsUsed = $volts,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:622:    HeatInput = $heat,
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:648:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:649:    WpsReferenceNumber = $wpsRef,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:650:
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:651:    IsApproved = $approved,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:652:    ApprovedOn = $approvedOn,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:653:    ApprovedBy = $approvedBy,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:654:    IsLocked = $locked,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:655:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:656:    JointDiagramPath = $jointDiagram,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:657:    PassDiagramPath = $passDiagram,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:658:    GrooveRadius = $grooveRadius,
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:660:    BackingType = $backingType,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:661:    EdgePreparation = $edgePrep,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:662:
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:663:    BaseMaterial1=$BaseMaterial1,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:664:    BaseMaterial2=$BaseMaterial2,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:665:    BaseMaterial1Specification=$BaseMaterial1Specification,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:666:    BaseMaterial2Specification=$BaseMaterial2Specification,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:667:    BaseMaterial1Grade=$BaseMaterial1Grade,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:668:    BaseMaterial2Grade=$BaseMaterial2Grade,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:669:    BaseMaterial1UNS=$BaseMaterial1UNS,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:670:    BaseMaterial2UNS=$BaseMaterial2UNS,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:671:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:672:    FillerClassification = $fillerClassification,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:673:ANumber = $aNumber,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:674:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:675:WeldingPosition = $weldingPosition,
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:693:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:694:QualifiedPNumberRange = $qualifiedPNumberRange,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:695:
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:696:Revision = $revision,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:697:    PreviousRevisionId = $previousRevisionId,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:698:IsActive = $isActive,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:699:IsPipe = $isPipe,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:700:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:701:PNumber2 = $pNumber2
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:702:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:703:WHERE Id = $id;
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:705:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:706:            cmd.Parameters.AddWithValue("$id", 
+pqr.Id.ToString());
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:707:            cmd.Parameters.AddWithValue(
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:708:                "$companyId",
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:709:                (object?)pqr.CompanyId?.ToString() ?? 
+DBNull.Value);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:710:            cmd.Parameters.AddWithValue("$number", pqr.PqrNumber 
+?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:711:            cmd.Parameters.AddWithValue("$date", 
+pqr.QualificationDate.ToString("yyyy-MM-dd"));
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:712:            cmd.Parameters.AddWithValue("$by", pqr.QualifiedBy 
+?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:713:            cmd.Parameters.AddWithValue("$thickness", 
+pqr.ThicknessTested);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:714:
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:715:            cmd.Parameters.AddWithValue("$process", pqr.Process 
+?? "");
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:716:            cmd.Parameters.AddWithValue("$material", 
+pqr.MaterialGroup ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:717:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:718:            cmd.Parameters.AddWithValue("$BaseMaterial1", 
+pqr.BaseMaterial1 ?? "");
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:719:            cmd.Parameters.AddWithValue("$BaseMaterial2", 
+pqr.BaseMaterial2 ?? "");
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:720:            
+cmd.Parameters.AddWithValue("$BaseMaterial1Specification", pqr.BaseMaterial1Specification ?? "");
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:721:            
+cmd.Parameters.AddWithValue("$BaseMaterial2Specification", pqr.BaseMaterial2Specification ?? "");
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:722:            cmd.Parameters.AddWithValue("$BaseMaterial1Grade", 
+pqr.BaseMaterial1Grade ?? "");
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:723:            cmd.Parameters.AddWithValue("$BaseMaterial2Grade", 
+pqr.BaseMaterial2Grade ?? "");
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:724:            cmd.Parameters.AddWithValue("$BaseMaterial1UNS", 
+pqr.BaseMaterial1UNS ?? "");
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:725:            cmd.Parameters.AddWithValue("$BaseMaterial2UNS", 
+pqr.BaseMaterial2UNS ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:726:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:727:            cmd.Parameters.AddWithValue("$position", 
+pqr.Position ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:728:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:729:            cmd.Parameters.AddWithValue("$filler", 
+pqr.FillerMaterial ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:730:            cmd.Parameters.AddWithValue("$gas", pqr.GasType ?? 
+"");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:731:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:732:            cmd.Parameters.AddWithValue("$amps", pqr.AmpsUsed);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:733:            cmd.Parameters.AddWithValue("$volts", pqr.VoltsUsed);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:734:            cmd.Parameters.AddWithValue("$heat", pqr.HeatInput);
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:752:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:753:            cmd.Parameters.AddWithValue("$wpsRef", 
+(object?)pqr.WpsReferenceNumber ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:754:
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:755:            cmd.Parameters.AddWithValue("$approved", 
+pqr.IsApproved ? 1 : 0);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:756:            cmd.Parameters.AddWithValue("$approvedOn", 
+(object?)pqr.ApprovedOn?.ToString("s") ?? DBNull.Value);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:757:            cmd.Parameters.AddWithValue("$approvedBy", 
+(object?)pqr.ApprovedBy ?? DBNull.Value);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:758:            cmd.Parameters.AddWithValue("$locked", pqr.IsLocked 
+? 1 : 0);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:759:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:760:            cmd.Parameters.AddWithValue("$standard", 
+pqr.Standard ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:761:            cmd.Parameters.AddWithValue("$jointDesign", 
+pqr.JointDesign ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:762:            cmd.Parameters.AddWithValue("$surfacePrep", 
+pqr.SurfacePreparation ?? "");
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:797:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:798:            
+cmd.Parameters.AddWithValue("$qualifiedPNumberRange", pqr.QualifiedPNumberRange ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:799:
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:800:            cmd.Parameters.AddWithValue("$revision", 
+pqr.Revision);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:801:            cmd.Parameters.AddWithValue("$previousRevisionId", 
+(object?)pqr.PreviousRevisionId?.ToString() ?? DBNull.Value);
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:802:            cmd.Parameters.AddWithValue("$isActive", 
+pqr.IsActive ? 1 : 0);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:803:            cmd.Parameters.AddWithValue("$isPipe", pqr.IsPipe ? 
+1 : 0);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:804:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:805:            cmd.Parameters.AddWithValue("$pNumber2", 
+pqr.PNumber2 ?? "");
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:806:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:807:            cmd.ExecuteNonQuery();
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:862:        // =========================
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:863:        // GET ALL
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:864:        // =========================
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:865:        public List<Pqr> GetByCompany(Guid companyId)
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:866:        {
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:867:            if (companyId == Guid.Empty)
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:868:                throw new ArgumentException("Company Id is 
+required.", nameof(companyId));
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:869:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:870:            return GetAll()
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:871:                .Where(x => x.CompanyId == companyId)
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:872:                .ToList();
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:873:        }
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:874:        public List<Pqr> GetAll()
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:875:        {
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:876:            var list = new List<Pqr>();
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:926:ON Pqr(Process);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:927:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:928:CREATE INDEX IF NOT EXISTS
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:929:IX_Pqr_Approved
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:930:ON Pqr(IsApproved);
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:931:";
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:932:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:933:            cmd.ExecuteNonQuery();
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:934:        }
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:935:
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:956:            return new Pqr
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:957:            {
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:958:                Id = Guid.Parse(reader["Id"].ToString()!),
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:959:                CompanyId =
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:960:                    reader["CompanyId"] == DBNull.Value
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:961:                        ? null
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:962:                        : 
+Guid.Parse(reader["CompanyId"].ToString()!),
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:963:                PqrNumber = reader["PqrNumber"]?.ToString() ?? 
+"",
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:964:                QualificationDate = 
+DateTime.Parse(reader["QualificationDate"].ToString()!),
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:965:                QualifiedBy = reader["QualifiedBy"]?.ToString() 
+?? "",
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:966:                ThicknessTested = reader["ThicknessTested"] == 
+DBNull.Value ? 0 : Convert.ToDouble(reader["ThicknessTested"]),
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:967:
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:968:                Process = reader["Process"]?.ToString() ?? "",
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:969:                MaterialGroup = 
+reader["MaterialGroup"]?.ToString() ?? "",
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:970:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:971:                BaseMaterial1 = 
+reader["BaseMaterial1"]?.ToString() ?? "",
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:972:                BaseMaterial2 = 
+reader["BaseMaterial2"]?.ToString() ?? "",
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:973:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:974:                BaseMaterial1Specification = 
+reader["BaseMaterial1Specification"]?.ToString() ?? "",
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:975:                BaseMaterial2Specification = 
+reader["BaseMaterial2Specification"]?.ToString() ?? "",
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:976:                BaseMaterial1Grade = 
+reader["BaseMaterial1Grade"]?.ToString() ?? "",
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:977:                BaseMaterial2Grade = 
+reader["BaseMaterial2Grade"]?.ToString() ?? "",
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:978:                BaseMaterial1UNS = 
+reader["BaseMaterial1UNS"]?.ToString() ?? "",
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:979:                BaseMaterial2UNS = 
+reader["BaseMaterial2UNS"]?.ToString() ?? "",
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:980:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:981:                Position = reader["Position"]?.ToString() ?? "",
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:982:
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:983:                FillerMaterial = 
+reader["FillerMaterial"]?.ToString() ?? "",
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:984:                GasType = reader["GasType"]?.ToString() ?? "",
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:985:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:986:                AmpsUsed = reader["AmpsUsed"] == DBNull.Value ? 
+0 : Convert.ToDouble(reader["AmpsUsed"]),
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:987:                VoltsUsed = reader["VoltsUsed"] == DBNull.Value 
+? 0 : Convert.ToDouble(reader["VoltsUsed"]),
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:988:                HeatInput = reader["HeatInput"] == DBNull.Value 
+? 0 : Convert.ToDouble(reader["HeatInput"]),
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1008:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1009:                WpsReferenceNumber = 
+reader["WpsReferenceNumber"]?.ToString() ?? "",
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1010:
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:1011:                IsApproved = reader["IsApproved"] != 
+DBNull.Value && Convert.ToInt32(reader["IsApproved"]) == 1,
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:1012:                ApprovedOn = reader["ApprovedOn"] == 
+DBNull.Value ? null : DateTime.Parse(reader["ApprovedOn"].ToString()!),
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:1013:                ApprovedBy = reader["ApprovedBy"]?.ToString(),
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1014:                IsLocked = reader["IsLocked"] != DBNull.Value 
+&& Convert.ToInt32(reader["IsLocked"]) == 1,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1015:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1016:                Standard = reader["Standard"]?.ToString() ?? "",
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1017:                JointDesign = reader["JointDesign"]?.ToString() 
+?? "",
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1018:                SurfacePreparation = 
+reader["SurfacePreparation"]?.ToString() ?? "",
+
+
+
+
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1066:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1067:                QualifiedPNumberRange = 
+reader["QualifiedPNumberRange"]?.ToString() ?? "",
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1068:
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:1069:                Revision = reader["Revision"] == DBNull.Value ? 
+0 : Convert.ToInt32(reader["Revision"]),
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:1070:                PreviousRevisionId = 
+reader["PreviousRevisionId"] == DBNull.Value ? null : Guid.Parse(reader["PreviousRevisionId"].ToString()!),
+
+
+
+
+> WeldAdminPro.Data\Repositories\PqrRepository.cs:1071:                IsActive = reader["IsActive"] != DBNull.Value 
+&& Convert.ToInt32(reader["IsActive"]) == 1,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1072:                IsPipe = reader["IsPipe"] != DBNull.Value && 
+Convert.ToInt32(reader["IsPipe"]) == 1,
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1073:
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1074:                PNumber2 = reader["PNumber2"]?.ToString() ?? "",
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1075:            };
+  WeldAdminPro.Data\Repositories\PqrRepository.cs:1076:            
+
+
+
+
+============================================================
+FILE: .\WeldAdminPro.Web\Components\Pages\Repairs.razor
+============================================================
+
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:34:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:35:        <MudButton Variant="Variant.Filled"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:36:                   Color="Color.Primary"
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:37:                   StartIcon="@Icons.Material.Filled.Refresh"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:38:                   Disabled="_actionBusy"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:39:                   OnClick="LoadData">
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:40:            Refresh
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:41:        </MudButton>
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:42:
+
+
+
+
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:159:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:160:                            <MudButton Variant="Variant.Filled"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:161:                                       Color="Color.Primary"
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:162:                                       
+StartIcon="@Icons.Material.Filled.VerifiedUser"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:163:                                       Disabled="_actionBusy"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:164:                                       
+OnClick="AuthorizeSelectedRepair">
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:165:                                Authorize Repair
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:166:                            </MudButton>
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:167:                        }
+
+
+
+
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:169:                        {
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:170:                            <MudTextField T="string"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:171:                                          Label="Excavation 
+Method"
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:172:                                          HelperText="Example: 
+Grinding, machining or approved gouging method"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:173:                                          
+Variant="Variant.Outlined"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:174:                                          
+@bind-Value="_excavationMethod"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:175:                                          Disabled="_actionBusy" 
+/>
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:176:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:177:                            <MudButton Variant="Variant.Filled"
+
+
+
+
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:178:                                       Color="Color.Warning"
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:179:                                       
+StartIcon="@Icons.Material.Filled.Construction"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:180:                                       Disabled="_actionBusy"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:181:                                       
+OnClick="StartSelectedExcavation">
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:182:                                Start Excavation
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:183:                            </MudButton>
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:184:                        }
+
+
+
+
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:193:                            <MudSelect T="Guid?"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:194:                                       Label="Repair WPS"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:195:                                       Variant="Variant.Outlined"
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:196:                                       Value="_repairWpsId"
+
+
+
+
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:197:                                       
+ValueChanged="OnRepairWpsSelected"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:198:                                       Disabled="_actionBusy">
+
+
+
+
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:199:                                @foreach (var wps in 
+_repairWpsOptions)
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:200:                                {
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:201:                                    <MudSelectItem T="Guid?" 
+Value="@((Guid?)wps.Id)">
+
+
+
+
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:202:                                        @wps.WpsNumber — Rev 
+@wps.Revision
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:203:                                    </MudSelectItem>
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:204:                                }
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:205:                            </MudSelect>
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:206:
+
+
+
+
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:207:                            @if (_repairWpsOptions.Count == 0)
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:208:                            {
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:209:                                <MudAlert 
+Severity="Severity.Warning" Variant="Variant.Outlined">
+
+
+
+
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:210:                                    No approved and active WPS 
+revisions applicable to this weld's company and material group were found.
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:211:                                </MudAlert>
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:212:                            }
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:213:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:214:                            <MudButton Variant="Variant.Filled"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:215:                                       Color="Color.Warning"
+
+
+
+
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:216:                                       
+StartIcon="@Icons.Material.Filled.Build"
+
+
+
+
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:217:                                       Disabled="_actionBusy || 
+!_repairWpsId.HasValue"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:218:                                       
+OnClick="StartSelectedRepairWelding">
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:219:                                Start Repair Welding
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:220:                            </MudButton>
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:221:                        }
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:222:                        else if (_selectedRepair.Status == 
+RepairStatus.RepairWeldingInProgress)
+
+
+
+
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:229:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:230:                            <MudButton Variant="Variant.Filled"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:231:                                       Color="Color.Info"
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:232:                                       
+StartIcon="@Icons.Material.Filled.FactCheck"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:233:                                       Disabled="_actionBusy"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:234:                                       
+OnClick="SendSelectedForReinspection">
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:235:                                Send For Reinspection
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:236:                            </MudButton>
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:237:                        }
+
+
+
+
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:244:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:245:                            <MudButton Variant="Variant.Filled"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:246:                                       Color="Color.Success"
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:247:                                       
+StartIcon="@Icons.Material.Filled.Lock"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:248:                                       Disabled="_actionBusy"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:249:                                       
+OnClick="CloseSelectedRepair">
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:250:                                Close Repair
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:251:                            </MudButton>
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:252:                        }
+
+
+
+
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:260:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:261:                            <MudButton Variant="Variant.Filled"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:262:                                       Color="Color.Warning"
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:263:                                       
+StartIcon="@Icons.Material.Filled.Replay"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:264:                                       Disabled="_actionBusy"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:265:                                       
+OnClick="StartNewRepairCycle"
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:266:                                       Class="mt-3">
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:267:                                Start New Repair Cycle
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:268:                            </MudButton>
+
+
+
+
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:407:    private string _authorizedBy = string.Empty;
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:408:    private string _excavationMethod = string.Empty;
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:409:    private string _repairWelder = string.Empty;
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:410:    private Guid? _repairWpsId;
+
+
+
+
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:411:    private List<Wps> _repairWpsOptions = new();
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:412:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:413:    protected override async Task OnInitializedAsync()
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:414:    {
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:415:        await LoadData();
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:416:    }
+
+
+
+
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:456:                _selectedRepair.Id;
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:457:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:458:            LoadFieldsFromSelectedRepair();
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:459:            await LoadRepairWpsOptionsAsync();
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:460:        }
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:461:        catch (Exception ex)
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:462:        {
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:463:            Snackbar.Add(
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:464:                $"Unable to load repair information: 
+{ex.Message}",
+
+
+
+
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:483:                : null;
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:484:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:485:        LoadFieldsFromSelectedRepair();
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:486:        await LoadRepairWpsOptionsAsync();
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:487:    }
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:488:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:489:    private void LoadFieldsFromSelectedRepair()
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:490:    {
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:491:        if (_selectedRepair == null)
+
+
+
+
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:493:            _authorizedBy = string.Empty;
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:494:            _excavationMethod = string.Empty;
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:495:            _repairWelder = string.Empty;
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:496:            _repairWpsId = null;
+
+
+
+
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:497:            _repairWpsOptions.Clear();
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:498:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:499:            return;
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:500:        }
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:501:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:502:        _authorizedBy =
+
+
+
+
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:511:            _selectedRepair.RepairedByWelder
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:512:            ?? string.Empty;
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:513:
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:514:        _repairWpsId = _selectedRepair.RepairWpsId;
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:515:    }
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:516:
+
+
+
+
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:517:    private async Task LoadRepairWpsOptionsAsync()
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:518:    {
+
+
+
+
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:519:        _repairWpsOptions = new List<Wps>();
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:520:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:521:        if (_selectedRepair == null)
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:522:            return;
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:523:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:524:        try
+
+
+
+
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:525:        {
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:526:            _repairWpsOptions =
+
+
+
+
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:527:                await RepairService.GetApplicableRepairWpsAsync(
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:528:                    _selectedRepair.Id);
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:529:        }
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:530:        catch (Exception ex)
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:531:        {
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:532:            Snackbar.Add(
+
+
+
+
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:533:                $"Unable to load applicable repair WPSs: 
+{ex.Message}",
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:534:                Severity.Error);
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:535:        }
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:536:    }
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:537:
+
+
+
+
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:538:    private void OnRepairWpsSelected(Guid? wpsId)
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:539:    {
+
+
+
+
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:540:        _repairWpsId = wpsId;
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:541:    }
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:542:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:543:    private async Task AuthorizeSelectedRepair()
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:544:    {
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:545:        if (_selectedRepair == null)
+
+
+
+
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:573:            () => RepairService.StartRepairWeldingAsync(
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:574:                _selectedRepair,
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:575:                _repairWelder,
+> WeldAdminPro.Web\Components\Pages\Repairs.razor:576:                _repairWpsId),
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:577:            "Repair welding started.");
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:578:    }
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:579:
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:580:    private async Task SendSelectedForReinspection()
+  WeldAdminPro.Web\Components\Pages\Repairs.razor:581:    {
+
+
+
+
+FILE NOT FOUND: .\WeldAdminPro.Web\Components\Pages\WeldRegister.razor
+
+============================================================
+FILE: .\WeldAdminPro.Core\Quality\Wps.cs
+============================================================
+
+  WeldAdminPro.Core\Quality\Wps.cs:8:/// Company that owns this WPS.
+  WeldAdminPro.Core\Quality\Wps.cs:9:/// Ownership is enforced by the application service.
+  WeldAdminPro.Core\Quality\Wps.cs:10:/// </summary>
+> WeldAdminPro.Core\Quality\Wps.cs:11:public Guid? CompanyId { get; set; }
+  WeldAdminPro.Core\Quality\Wps.cs:12:
+  WeldAdminPro.Core\Quality\Wps.cs:13:        public string WpsNumber { get; set; } = "";
+  WeldAdminPro.Core\Quality\Wps.cs:14:        public string Process { get; set; } = "";
+  WeldAdminPro.Core\Quality\Wps.cs:15:
+  WeldAdminPro.Core\Quality\Wps.cs:16:        public double ThicknessMin { get; set; }
+
+
+
+
+  WeldAdminPro.Core\Quality\Wps.cs:18:
+  WeldAdminPro.Core\Quality\Wps.cs:19:        public double Diameter { get; set; }
+  WeldAdminPro.Core\Quality\Wps.cs:20:
+> WeldAdminPro.Core\Quality\Wps.cs:21:        public string FillerMaterial { get; set; } = "";
+  WeldAdminPro.Core\Quality\Wps.cs:22:        public string GasType { get; set; } = "";
+  WeldAdminPro.Core\Quality\Wps.cs:23:
+  WeldAdminPro.Core\Quality\Wps.cs:24:        public double AmpsMin { get; set; }
+  WeldAdminPro.Core\Quality\Wps.cs:25:        public double AmpsMax { get; set; }
+  WeldAdminPro.Core\Quality\Wps.cs:26:
+
+
+
+
+  WeldAdminPro.Core\Quality\Wps.cs:54:        public string? PNumber { get; set; }
+  WeldAdminPro.Core\Quality\Wps.cs:55:        public string? FNumber { get; set; }
+  WeldAdminPro.Core\Quality\Wps.cs:56:        public string? Position { get; set; }
+> WeldAdminPro.Core\Quality\Wps.cs:57:        public string MaterialGroup { get; set; } = "";
+  WeldAdminPro.Core\Quality\Wps.cs:58:
+  WeldAdminPro.Core\Quality\Wps.cs:59:        public string? JointType { get; set; }
+  WeldAdminPro.Core\Quality\Wps.cs:60:        public string JointDesign { get; set; } = "";
+  WeldAdminPro.Core\Quality\Wps.cs:61:
+  WeldAdminPro.Core\Quality\Wps.cs:62:        public string Backing { get; set; } = "";
+
+
+
+
+  WeldAdminPro.Core\Quality\Wps.cs:63:        public string BackingType { get; set; } = "";
+  WeldAdminPro.Core\Quality\Wps.cs:64:
+> WeldAdminPro.Core\Quality\Wps.cs:65:        public bool IsApproved { get; set; }
+  WeldAdminPro.Core\Quality\Wps.cs:66:        public bool IsLocked { get; set; }
+
+
+
+
+> WeldAdminPro.Core\Quality\Wps.cs:67:        public DateTime? ApprovedOn { get; set; }
+
+
+
+
+> WeldAdminPro.Core\Quality\Wps.cs:68:        public string? ApprovedBy { get; set; }
+  WeldAdminPro.Core\Quality\Wps.cs:69:
+  WeldAdminPro.Core\Quality\Wps.cs:70:        public double ParseConfidence
+  WeldAdminPro.Core\Quality\Wps.cs:71:        {
+  WeldAdminPro.Core\Quality\Wps.cs:72:            get;
+  WeldAdminPro.Core\Quality\Wps.cs:73:            set;
+
+
+
+
+  WeldAdminPro.Core\Quality\Wps.cs:79:            set;
+  WeldAdminPro.Core\Quality\Wps.cs:80:        } = "";
+  WeldAdminPro.Core\Quality\Wps.cs:81:
+> WeldAdminPro.Core\Quality\Wps.cs:82:        public Guid? PreviousRevisionId
+  WeldAdminPro.Core\Quality\Wps.cs:83:        {
+  WeldAdminPro.Core\Quality\Wps.cs:84:            get;
+  WeldAdminPro.Core\Quality\Wps.cs:85:            set;
+  WeldAdminPro.Core\Quality\Wps.cs:86:        }
+  WeldAdminPro.Core\Quality\Wps.cs:87:
+
+
+
+
+  WeldAdminPro.Core\Quality\Wps.cs:103:            set;
+  WeldAdminPro.Core\Quality\Wps.cs:104:        } = "";
+  WeldAdminPro.Core\Quality\Wps.cs:105:
+> WeldAdminPro.Core\Quality\Wps.cs:106:        public int Revision { get; set; }
+
+
+
+
+> WeldAdminPro.Core\Quality\Wps.cs:107:        public bool IsActive { get; set; }
+  WeldAdminPro.Core\Quality\Wps.cs:108:
+  WeldAdminPro.Core\Quality\Wps.cs:109:        // ðŸ”¥ Compliance
+  WeldAdminPro.Core\Quality\Wps.cs:110:        public bool IsCompliant { get; set; }
+  WeldAdminPro.Core\Quality\Wps.cs:111:        public string ValidationStatus { get; set; } = "";
+  WeldAdminPro.Core\Quality\Wps.cs:112:
+
+
+
+
+  WeldAdminPro.Core\Quality\Wps.cs:123:        public string QualifiedThicknessRange { get; set; } = "";
+  WeldAdminPro.Core\Quality\Wps.cs:124:
+  WeldAdminPro.Core\Quality\Wps.cs:125:
+> WeldAdminPro.Core\Quality\Wps.cs:126:        public Wps CreateRevision(
+  WeldAdminPro.Core\Quality\Wps.cs:127:        string username)
+  WeldAdminPro.Core\Quality\Wps.cs:128:        {
+  WeldAdminPro.Core\Quality\Wps.cs:129:            return new Wps
+  WeldAdminPro.Core\Quality\Wps.cs:130:            {
+  WeldAdminPro.Core\Quality\Wps.cs:131:                Id = Guid.NewGuid(),
+
+
+
+
+  WeldAdminPro.Core\Quality\Wps.cs:132:
+> WeldAdminPro.Core\Quality\Wps.cs:133:                PreviousRevisionId =
+  WeldAdminPro.Core\Quality\Wps.cs:134:                    Id,
+  WeldAdminPro.Core\Quality\Wps.cs:135:
+
+
+
+
+> WeldAdminPro.Core\Quality\Wps.cs:136:                Revision =
+
+
+
+
+> WeldAdminPro.Core\Quality\Wps.cs:137:                    Revision + 1,
+  WeldAdminPro.Core\Quality\Wps.cs:138:
+
+
+
+
+> WeldAdminPro.Core\Quality\Wps.cs:139:                IsApproved =
+  WeldAdminPro.Core\Quality\Wps.cs:140:                    false,
+  WeldAdminPro.Core\Quality\Wps.cs:141:
+  WeldAdminPro.Core\Quality\Wps.cs:142:                IsLocked =
+  WeldAdminPro.Core\Quality\Wps.cs:143:                    false,
+  WeldAdminPro.Core\Quality\Wps.cs:144:
+
+
+
+
+> WeldAdminPro.Core\Quality\Wps.cs:145:                ApprovedBy =
+  WeldAdminPro.Core\Quality\Wps.cs:146:                    null,
+  WeldAdminPro.Core\Quality\Wps.cs:147:
+
+
+
+
+> WeldAdminPro.Core\Quality\Wps.cs:148:                ApprovedOn =
+  WeldAdminPro.Core\Quality\Wps.cs:149:                    null,
+  WeldAdminPro.Core\Quality\Wps.cs:150:
+
+
+
+
+> WeldAdminPro.Core\Quality\Wps.cs:151:                IsActive =
+  WeldAdminPro.Core\Quality\Wps.cs:152:                    true,
+  WeldAdminPro.Core\Quality\Wps.cs:153:
+  WeldAdminPro.Core\Quality\Wps.cs:154:                CreatedOn =
+  WeldAdminPro.Core\Quality\Wps.cs:155:                    DateTime.UtcNow,
+  WeldAdminPro.Core\Quality\Wps.cs:156:
+
+
+
+
+  WeldAdminPro.Core\Quality\Wps.cs:169:                ThicknessMin = ThicknessMin,
+  WeldAdminPro.Core\Quality\Wps.cs:170:                ThicknessMax = ThicknessMax,
+  WeldAdminPro.Core\Quality\Wps.cs:171:                Diameter = Diameter,
+> WeldAdminPro.Core\Quality\Wps.cs:172:                FillerMaterial = FillerMaterial,
+  WeldAdminPro.Core\Quality\Wps.cs:173:                GasType = GasType,
+  WeldAdminPro.Core\Quality\Wps.cs:174:                AmpsMin = AmpsMin,
+  WeldAdminPro.Core\Quality\Wps.cs:175:                AmpsMax = AmpsMax,
+  WeldAdminPro.Core\Quality\Wps.cs:176:                VoltsMin = VoltsMin,
+  WeldAdminPro.Core\Quality\Wps.cs:177:                VoltsMax = VoltsMax,
+
+
+
+
+  WeldAdminPro.Core\Quality\Wps.cs:186:                PNumber = PNumber,
+  WeldAdminPro.Core\Quality\Wps.cs:187:                FNumber = FNumber,
+  WeldAdminPro.Core\Quality\Wps.cs:188:                Position = Position,
+> WeldAdminPro.Core\Quality\Wps.cs:189:                MaterialGroup = MaterialGroup,
+  WeldAdminPro.Core\Quality\Wps.cs:190:                JointType = JointType,
+  WeldAdminPro.Core\Quality\Wps.cs:191:                JointDesign = JointDesign,
+  WeldAdminPro.Core\Quality\Wps.cs:192:                Backing = Backing,
+  WeldAdminPro.Core\Quality\Wps.cs:193:                BackingType = BackingType,
+  WeldAdminPro.Core\Quality\Wps.cs:194:                IsCompliant = IsCompliant,
+
+
+
+
+============================================================
+FILE: .\WeldAdminPro.Core\Models\Project.cs
+============================================================
+
+  WeldAdminPro.Core\Models\Project.cs:13:	public class Project
+  WeldAdminPro.Core\Models\Project.cs:14:	{
+  WeldAdminPro.Core\Models\Project.cs:15:        public Guid Id { get; set; } = Guid.Empty;
+> WeldAdminPro.Core\Models\Project.cs:16:public Guid? CompanyId { get; set; }
+  WeldAdminPro.Core\Models\Project.cs:17:
+  WeldAdminPro.Core\Models\Project.cs:18:        /// <summary>
+  WeldAdminPro.Core\Models\Project.cs:19:        /// Company responsible for welding/fabrication activities on the 
+project.
+  WeldAdminPro.Core\Models\Project.cs:20:        /// This may be a subcontractor and is distinct from the project 
+customer/owner.
+  WeldAdminPro.Core\Models\Project.cs:21:        /// </summary>
+
+
+
+
+> WeldAdminPro.Core\Models\Project.cs:22:        public Guid? WeldingSubcontractorCompanyId { get; set; }
+  WeldAdminPro.Core\Models\Project.cs:23:
+  WeldAdminPro.Core\Models\Project.cs:24:        public int JobNumber { get; set; }
+  WeldAdminPro.Core\Models\Project.cs:25:
+  WeldAdminPro.Core\Models\Project.cs:26:		public string ProjectName { get; set; } = string.Empty;
+  WeldAdminPro.Core\Models\Project.cs:27:		public string Client { get; set; } = string.Empty;
+
+
+
+
+  WeldAdminPro.Core\Models\Project.cs:30:		public string QuoteNumber { get; set; } = string.Empty;
+  WeldAdminPro.Core\Models\Project.cs:31:		public string OrderNumber { get; set; } = string.Empty;
+  WeldAdminPro.Core\Models\Project.cs:32:
+> WeldAdminPro.Core\Models\Project.cs:33:		public string Material { get; set; } = string.Empty;
+  WeldAdminPro.Core\Models\Project.cs:34:		public string AssignedTo { get; set; } = string.Empty;
+  WeldAdminPro.Core\Models\Project.cs:35:
+  WeldAdminPro.Core\Models\Project.cs:36:		public bool IsInvoiced { get; set; }
+  WeldAdminPro.Core\Models\Project.cs:37:		public string? InvoiceNumber { get; set; }
+  WeldAdminPro.Core\Models\Project.cs:38:
+
+
+

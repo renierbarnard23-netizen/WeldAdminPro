@@ -1,12 +1,12 @@
-@page "/quality/project-weld-register"
+﻿@page "/quality/project-weld-register"
 
 @attribute [Authorize(Policy = "Permission:Quality.WeldRegister")]
 @using MudBlazor
 @using WeldAdminPro.Core.Models
-@using WeldAdminPro.Data.Repositories
+@using WeldAdminPro.Data.Services.Projects
 @using WeldAdminPro.Web.Components.Shared.Projects
 
-@inject ProjectRepository ProjectRepository
+@inject ProjectApplicationService ProjectService
 @inject NavigationManager Navigation
 
 <PageTitle>Project Weld Register</PageTitle>
@@ -22,7 +22,7 @@
     </MudText>
 
     <ProjectSelectorGrid Projects="_projects"
-                         OpenProject="OpenProject" />
+                         OpenProject="OpenProject" OpenButtonText="Open Weld Register" />
 
 </MudContainer>
 
@@ -30,11 +30,9 @@
 {
     private List<Project> _projects = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _projects = ProjectRepository
-            .GetAll()
-            .ToList();
+        _projects = await ProjectService.GetProjectsAsync();
     }
 
     private void OpenProject(Project project)
@@ -43,3 +41,4 @@
             $"/quality/weld-register/{project.Id}");
     }
 }
+

@@ -1,13 +1,21 @@
-@page "/quality/pqr"
+﻿@page "/quality/pqr"
 
 @attribute [Authorize(Policy = "Permission:Quality.PQR")]
 @using WeldAdminPro.Core.Quality
 @using WeldAdminPro.Web.Services.Quality
+@using WeldAdminPro.Core.Quality.Services
+@using WeldAdminPro.Core.Security.Abstractions
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
 @using WeldAdminPro.Web.Services.Import
 @using WeldAdminPro.Web.Components.Shared.Quality
+@using WeldAdminPro.Data.Repositories
 
 @inject PqrApplicationService Service
+@inject PqrPdfService PqrPdf
+@inject CompanyRepository CompanyRepository
+@inject IJSRuntime JS
+@inject ICurrentUserContext CurrentUser
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -44,20 +52,44 @@
 
 <PqrGrid Items="@Items"
          OnEdit="EditPqr"
-         OnDelete="DeletePqr" />
+         OnDelete="DeletePqr"
+         OnPrint="PrintPqr"
+OnApprove="ApprovePqr" />
 
 @code
 {
     private List<Pqr> Items = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Load();
+        await LoadAsync();
     }
 
-    private void Load()
+    private async Task ApprovePqr(Pqr pqr)
     {
-        Items = Service.GetAll();
+        if (pqr == null)
+            return;
+
+        try
+        {
+            await Service.ApproveAsync(pqr.Id);
+
+            Snackbar.Add(
+                $"PQR {pqr.PqrNumber} approved successfully.",
+                Severity.Success);
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+    }
+    private async Task LoadAsync()
+    {
+        Items = await Service.GetAllAsync();
 
         foreach (var p in Items)
         {
@@ -99,13 +131,28 @@
         if (result.Data is not Pqr pqr)
             return;
 
-        Service.Save(pqr);
+        try
+        {
+            await Service.SaveAsync(pqr);
 
-        Load();
+            await LoadAsync();
 
-        Snackbar.Add(
-            "PQR saved.",
-            Severity.Success);
+            Snackbar.Add(
+                "PQR saved.",
+                Severity.Success);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to save PQR: {ex.Message}",
+                Severity.Error);
+        }
     }
 
     private async Task EditPqr(Pqr pqr)
@@ -139,24 +186,124 @@
         if (result.Data is not Pqr updated)
             return;
 
-        Service.Save(updated);
+        try
+        {
+            await Service.SaveAsync(updated);
 
-        Load();
+            await LoadAsync();
 
-        Snackbar.Add(
-            "PQR updated.",
-            Severity.Success);
+            Snackbar.Add(
+                "PQR updated.",
+                Severity.Success);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to update PQR: {ex.Message}",
+                Severity.Error);
+        }
     }
 
-    private Task DeletePqr(Pqr pqr)
+    private async Task PrintPqr(Pqr pqr)
     {
-        Service.Delete(pqr.Id);
+        if (pqr == null)
+            return;
 
-        Load();
+        try
+        {
+            var companyName = "Company not recorded";
+
+            if (pqr.CompanyId.HasValue &&
+                pqr.CompanyId.Value != Guid.Empty)
+            {
+                var company =
+                    CompanyRepository.GetById(
+                        pqr.CompanyId.Value);
+
+                if (company != null &&
+                    !string.IsNullOrWhiteSpace(company.CompanyName))
+                {
+                    companyName = company.CompanyName.Trim();
+                }
+            }
+
+            var generatedBy =
+                string.IsNullOrWhiteSpace(CurrentUser.Username)
+                    ? "WeldAdmin Pro"
+                    : CurrentUser.Username.Trim();
+
+            var pdfBytes =
+                PqrPdf.Generate(
+                    pqr,
+                    companyName,
+                    generatedBy);
+
+            if (pdfBytes == null ||
+                pdfBytes.Length == 0)
+            {
+                Snackbar.Add(
+                    "The PQR PDF could not be generated.",
+                    Severity.Error);
+
+                return;
+            }
+
+            var safeNumber =
+                string.IsNullOrWhiteSpace(pqr.PqrNumber)
+                    ? pqr.Id.ToString("N")
+                    : pqr.PqrNumber.Trim();
+
+            foreach (var invalidChar in Path.GetInvalidFileNameChars())
+            {
+                safeNumber =
+                    safeNumber.Replace(
+                        invalidChar,
+                        '_');
+            }
+
+            var fileName =
+                $"PQR-{safeNumber}-Rev{pqr.Revision}.pdf";
+
+            var base64 =
+                Convert.ToBase64String(pdfBytes);
+
+            await JS.InvokeVoidAsync(
+                "weldAdminDownload.saveBase64File",
+                fileName,
+                "application/pdf",
+                base64);
+
+            Snackbar.Add(
+                $"PQR {pqr.PqrNumber} PDF generated.",
+                Severity.Success);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to generate PQR PDF: {ex.Message}",
+                Severity.Error);
+        }
+    }
+    private async Task DeletePqr(Pqr pqr)
+    {
+        await Service.DeleteAsync(pqr.Id);
+
+        await LoadAsync();
 
         Snackbar.Add("PQR deleted.", Severity.Success);
 
-        return Task.CompletedTask;
     }
 
     private async Task OpenImport()
@@ -189,12 +336,33 @@
         Console.WriteLine($"Thickness: {imported.ThicknessQualifiedMin} - {imported.ThicknessQualifiedMax}");
         Console.WriteLine("=========================");
 
-        Service.Save(imported);
+        try
+        {
+            await Service.SaveAsync(imported);
 
-        Load();
+            await LoadAsync();
 
-        Snackbar.Add(
-            "PQR imported successfully.",
-            Severity.Success);
+            Snackbar.Add(
+                "PQR imported successfully.",
+                Severity.Success);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to import PQR: {ex.Message}",
+                Severity.Error);
+        }
     }
 }
+
+
+
+
+
+

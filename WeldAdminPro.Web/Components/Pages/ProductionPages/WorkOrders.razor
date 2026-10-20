@@ -1,4 +1,4 @@
-@page "/production/workorders"
+﻿@page "/production/workorders"
 
 @attribute [Authorize(Policy = "Permission:Production.WorkOrders")]
 @using WeldAdminPro.Core.Models
@@ -317,7 +317,7 @@
             {
                 <MudText Color="Color.Success">
 
-                    —
+                    â€”
 
                 </MudText>
             }
@@ -372,12 +372,12 @@
         _loading = false;
     }
 
-    private void StartWorkOrder()
+    private async Task StartWorkOrder()
     {
         if (_selected is null)
             return;
 
-        ProductionService.StartWorkOrder(_selected.Id);
+        await ProductionService.StartWorkOrderAsync(_selected.Id);
 
         Snackbar.Add(
             "Work Order Started.",
@@ -386,12 +386,12 @@
         Load();
     }
 
-    private void PauseWorkOrder()
+    private async Task PauseWorkOrder()
     {
         if (_selected is null)
             return;
 
-        ProductionService.PauseWorkOrder(_selected.Id);
+        await ProductionService.PauseWorkOrderAsync(_selected.Id);
 
         Snackbar.Add(
             "Work Order Paused.",
@@ -400,12 +400,12 @@
         Load();
     }
 
-    private void CompleteWorkOrder()
+    private async Task CompleteWorkOrder()
 {
     if (_selected is null)
         return;
 
-    ProductionService.CompleteWorkOrder(_selected.Id);
+    await ProductionService.CompleteWorkOrderAsync(_selected.Id);
 
     Snackbar.Add(
         "Work Order Completed.",
@@ -414,12 +414,12 @@
     Load();
 }
     
-    private void CancelWorkOrder()
+    private async Task CancelWorkOrder()
     {
         if (_selected is null)
             return;
 
-        ProductionService.CancelWorkOrder(_selected.Id);
+        await ProductionService.CancelWorkOrderAsync(_selected.Id);
 
         Snackbar.Add(
             "Work Order Cancelled.",

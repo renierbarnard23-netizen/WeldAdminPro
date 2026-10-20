@@ -1,0 +1,135 @@
+@using System
+@using System.Collections.Generic
+@using System.Linq
+@using MudBlazor
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Data.Services.Quality
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-3">
+            Review Legacy NDT Traceability
+        </MudText>
+
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            This NDT record was created without equipment traceability. Only convert it when the project records can substantiate the equipment actually used for this examination.
+        </MudAlert>
+
+        <MudPaper Class="pa-3 mb-4" Outlined="true">
+            <MudText><strong>Weld:</strong> @WeldNumber</MudText>
+            <MudText><strong>Method:</strong> @Ndt.NdtMethod</MudText>
+            <MudText><strong>Inspection date:</strong> @Ndt.InspectionDate.ToShortDateString()</MudText>
+            <MudText><strong>Report:</strong> @(string.IsNullOrWhiteSpace(Ndt.ReportNumber) ? "Not recorded" : Ndt.ReportNumber)</MudText>
+            <MudText><strong>Inspector:</strong> @(string.IsNullOrWhiteSpace(Ndt.InspectorName) ? "Not recorded" : Ndt.InspectorName)</MudText>
+        </MudPaper>
+
+        <MudCheckBox T="bool"
+                     @bind-Value="_dateConfirmed"
+                     Color="Color.Primary"
+                     Class="mb-3">
+            I confirm that the inspection date shown above is the original examination date in the source records.
+        </MudCheckBox>
+
+        <MudSelect T="Guid"
+                   Label="Equipment actually used"
+                   MultiSelection="true"
+                   ToStringFunc="@GetEquipmentDisplay"
+                   @bind-SelectedValues="_selectedEquipmentIds"
+                   Required="true"
+                   HelperText="Select every controlled item that the source records show was used for this NDT examination.">
+            @foreach (var equipment in _equipment)
+            {
+                <MudSelectItem T="Guid" Value="@equipment.Id">
+                    @GetEquipmentDisplay(equipment.Id)
+                </MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudTextField T="string"
+                      Label="Review remarks"
+                      Lines="4"
+                      Required="true"
+                      Class="mt-4"
+                      @bind-Value="_reviewRemarks"
+                      HelperText="Record the basis/source used to establish the legacy equipment traceability." />
+
+        @if (_selectedEquipmentIds.Count > 0)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-4">
+                Calibration will be evaluated independently for every selected equipment item using the original inspection date.
+            </MudAlert>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   Disabled="@(!_dateConfirmed || _selectedEquipmentIds.Count == 0 || string.IsNullOrWhiteSpace(_reviewRemarks))"
+                   OnClick="Save">
+            Review &amp; Link Traceability
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public WeldNdtResult Ndt { get; set; } = default!;
+
+    [Parameter]
+    public string WeldNumber { get; set; } = string.Empty;
+
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    [Inject]
+    private EquipmentApplicationService EquipmentService { get; set; } = default!;
+
+    private List<Equipment> _equipment = new();
+    private IReadOnlyCollection<Guid> _selectedEquipmentIds = Array.Empty<Guid>();
+    private bool _dateConfirmed;
+    private string _reviewRemarks = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _equipment = await EquipmentService.GetForProjectAsync(ProjectId);
+    }
+
+    private string GetEquipmentDisplay(Guid equipmentId)
+    {
+        var equipment = _equipment.FirstOrDefault(x => x.Id == equipmentId);
+        if (equipment == null)
+            return equipmentId.ToString();
+
+        var serial = string.IsNullOrWhiteSpace(equipment.SerialNumber)
+            ? "No serial"
+            : $"SN: {equipment.SerialNumber}";
+
+        var calibration = equipment.CalibrationRequired
+            ? "Calibration required"
+            : "Calibration not required";
+
+        return $"{equipment.EquipmentNumber} - {equipment.Description} ({serial}; {calibration})";
+    }
+
+    private void Save()
+    {
+        MudDialog.Close(DialogResult.Ok(
+            new LegacyNdtTraceabilityReview
+            {
+                EquipmentIds = _selectedEquipmentIds.ToList(),
+                ReviewRemarks = _reviewRemarks.Trim()
+            }));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    public sealed class LegacyNdtTraceabilityReview
+    {
+        public List<Guid> EquipmentIds { get; init; } = new();
+        public string ReviewRemarks { get; init; } = string.Empty;
+    }
+}

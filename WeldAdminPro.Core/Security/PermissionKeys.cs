@@ -1,4 +1,4 @@
-﻿namespace WeldAdminPro.Core.Security;
+namespace WeldAdminPro.Core.Security;
 
 public static class PermissionKeys
 {
@@ -56,6 +56,7 @@ public static class PermissionKeys
         public const string View = "Quality.View";
         public const string WPS = "Quality.WPS";
         public const string WpsApproval = "Quality.WpsApproval";
+        public const string WpqrApproval = "Quality.WpqrApproval";
         public const string PQR = "Quality.PQR";
         public const string WPQR = "Quality.WPQR";
         public const string WelderQualifications = "Quality.WelderQualifications";
@@ -74,6 +75,7 @@ public static class PermissionKeys
         public const string CustomerRequirements = "Quality.CustomerRequirements";
         public const string QCP = "Quality.QCP";
         public const string QCPMaster = "Quality.QCPMaster";
+        public const string ITP = "Quality.ITP";
     }
 
     public static class Administration

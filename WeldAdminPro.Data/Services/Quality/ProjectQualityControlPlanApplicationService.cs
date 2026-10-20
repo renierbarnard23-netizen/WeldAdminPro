@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WeldAdminPro.Core.Models;
@@ -32,6 +32,7 @@ namespace WeldAdminPro.Data.Services.Quality
             IPermissionAuthorizationService permissionAuthorization,
             IProjectAccessAuthorizationService projectAccessAuthorization,
             ProjectQualityControlPlanItemApprovalHistoryRepository itemApprovalHistoryRepository,
+            QcpMasterActivityRepository qcpMasterActivityRepository,
             AuditService auditService)
         {
             _repository = repository;
@@ -43,6 +44,7 @@ namespace WeldAdminPro.Data.Services.Quality
             _projectAccessAuthorization = projectAccessAuthorization;
             _auditService = auditService;
             _itemApprovalHistoryRepository = itemApprovalHistoryRepository;
+            _qcpMasterActivityRepository = qcpMasterActivityRepository;
         }
 
         public async Task<List<ProjectQualityControlPlan>> GetByProjectAsync(
@@ -77,6 +79,13 @@ namespace WeldAdminPro.Data.Services.Quality
             await EnsureProjectAccessAsync(plan.ProjectId);
 
             return plan;
+        }
+
+        public async Task<List<QcpMasterActivity>> GetActiveMasterActivitiesAsync()
+        {
+            await EnsurePermissionAsync(PermissionKeys.Quality.QCP);
+
+            return _qcpMasterActivityRepository.GetActive();
         }
 
         public async Task AddAsync(
@@ -457,6 +466,83 @@ namespace WeldAdminPro.Data.Services.Quality
             return item;
         }
 
+        public async Task AddItemFromMasterAsync(
+            Guid planId,
+            Guid masterActivityId,
+            int sequenceNumber,
+            Guid? customerQualityRequirementId = null)
+        {
+            await EnsurePermissionAsync(PermissionKeys.Quality.QCP);
+
+            var plan = await EnsurePlanAccessAsync(planId);
+            EnsureDraftPlan(plan);
+
+            if (masterActivityId == Guid.Empty)
+            {
+                throw new ArgumentException(
+                    "QCP Master Activity ID cannot be empty.",
+                    nameof(masterActivityId));
+            }
+
+            var masterActivity = _qcpMasterActivityRepository.GetById(masterActivityId);
+
+            if (masterActivity == null)
+            {
+                throw new KeyNotFoundException(
+                    "The selected QCP Master Activity could not be found.");
+            }
+
+            if (!masterActivity.IsActive)
+            {
+                throw new InvalidOperationException(
+                    "The selected QCP Master Activity is inactive and cannot be used for new QCP items.");
+            }
+
+            if (sequenceNumber <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(sequenceNumber),
+                    "QCP item sequence number must be greater than zero.");
+            }
+
+            var existingItems = _itemRepository.GetByPlan(plan.Id);
+
+            if (existingItems.Any(existing =>
+                existing.SequenceNumber == sequenceNumber))
+            {
+                throw new InvalidOperationException(
+                    $"A QCP item with sequence number {sequenceNumber} already exists.");
+            }
+
+            var item = new ProjectQualityControlPlanItem
+            {
+                Id = Guid.NewGuid(),
+                ProjectQualityControlPlanId = plan.Id,
+                SequenceNumber = sequenceNumber,
+                Activity = masterActivity.Name,
+                CustomerQualityRequirementId = customerQualityRequirementId,
+                AcceptanceCriteria = masterActivity.AcceptanceCriteria,
+                VerificationMethod = masterActivity.VerificationMethod,
+                ResponsibleParty = masterActivity.ResponsibleParty,
+                InspectionStage = masterActivity.InspectionStage,
+                HoldPointCategory = masterActivity.HoldPointCategory,
+                HoldPointType = masterActivity.HoldPointType,
+                RequiredNdtMethod = masterActivity.RequiredNdtMethod,
+                Mandatory = masterActivity.Mandatory,
+                RequiredEvidence = masterActivity.RequiredEvidence,
+                Notes = masterActivity.Notes
+            };
+
+            ValidateItem(item);
+            await ValidateCustomerQualityRequirementAsync(item, plan);
+
+            _itemRepository.Add(item);
+
+            _auditService.Log(
+                "QCP Item Added From Master Activity",
+                "Quality.QCP",
+                $"QCP item '{item.Id}' added to plan '{plan.Id}' from master activity '{masterActivity.Code}' ({masterActivity.Id}).");
+        }
         public async Task AddItemAsync(
             ProjectQualityControlPlanItem item)
         {
@@ -917,6 +1003,12 @@ namespace WeldAdminPro.Data.Services.Quality
         }
     }
 }
+
+
+
+
+
+
 
 
 

@@ -1,0 +1,86 @@
+@using WeldAdminPro.Core.Quality
+
+<MudTable Items="@Items"
+          Hover="true"
+          Dense="true"
+          Striped="true">
+
+    <HeaderContent>
+
+        <MudTh>PQR</MudTh>
+        <MudTh>Process</MudTh>
+        <MudTh>Material</MudTh>
+        <MudTh>P No.</MudTh>
+        <MudTh>F No.</MudTh>
+        <MudTh>Joint</MudTh>
+        <MudTh>Qualified Thickness</MudTh>
+        <MudTh>Position</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh></MudTh>
+
+    </HeaderContent>
+
+    <RowTemplate>
+
+        <MudTd>@context.PqrNumber</MudTd>
+
+        <MudTd>@context.Process</MudTd>
+
+        <MudTd>@context.MaterialGroup</MudTd>
+
+        <MudTd>@context.PNumber</MudTd>
+
+        <MudTd>@context.FNumber</MudTd>
+
+        <MudTd>@context.JointType</MudTd>
+
+        <MudTd>@context.QualifiedRangeDisplay</MudTd>
+
+        <MudTd>@context.QualifiedPosition</MudTd>
+
+        <MudTd>
+
+            @if (context.IsApproved)
+            {
+                <MudChip T="string"
+                         Color="Color.Success">
+                    Approved
+                </MudChip>
+            }
+            else
+            {
+                <MudChip T="string"
+                         Color="Color.Warning">
+                    Draft
+                </MudChip>
+            }
+
+        </MudTd>
+
+        <MudTd Class="text-end">
+
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           OnClick="@(() => OnEdit.InvokeAsync(context))" />
+
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Color="Color.Error"
+                           OnClick="@(() => OnDelete.InvokeAsync(context))" />
+
+        </MudTd>
+
+    </RowTemplate>
+
+</MudTable>
+
+@code {
+
+    [Parameter]
+    public List<Pqr> Items { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<Pqr> OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<Pqr> OnDelete { get; set; }
+
+}

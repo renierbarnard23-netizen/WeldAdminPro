@@ -124,7 +124,6 @@ public class QcpMasterActivityApplicationService
         activity.CreatedOn = existing.CreatedOn;
         activity.ModifiedBy = _currentUser.Username!;
         activity.ModifiedOn = DateTime.UtcNow;
-        activity.IsActive = existing.IsActive;
 
         _repository.Update(activity);
 
@@ -258,4 +257,5 @@ public class QcpMasterActivityApplicationService
         }
     }
 }
+
 

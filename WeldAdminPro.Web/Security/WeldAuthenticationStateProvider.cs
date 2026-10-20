@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components.Authorization;
+﻿using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
 using WeldAdminPro.Core.Models;
 
@@ -44,7 +44,11 @@ public class WeldAuthenticationStateProvider
 
                     new Claim(
                         ClaimTypes.Role,
-                        user.RoleName)
+                        user.RoleName),
+
+                    new Claim(
+                        "WeldAdminPro:CompanyId",
+                        user.CompanyId?.ToString() ?? "")
                 },
                 authenticationType: "WeldAdmin");
 
@@ -63,3 +67,4 @@ public class WeldAuthenticationStateProvider
             GetAuthenticationStateAsync());
     }
 }
+

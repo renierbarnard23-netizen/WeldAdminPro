@@ -33,6 +33,7 @@ INSERT INTO SystemUsers
     Email,
     Role,
     RoleId,
+     CompanyId,
     IsActive,
     CreatedDate,
     LastLoginDate
@@ -46,6 +47,7 @@ VALUES
     @Email,
     0,
     @RoleId,
+     @CompanyId,
     @IsActive,
     @CreatedDate,
     @LastLoginDate
@@ -64,6 +66,9 @@ VALUES
                     user.Email,
 
                     user.RoleId,
+
+                    CompanyId =
+                        user.CompanyId?.ToString(),
 
                     IsActive =
                         user.IsActive ? 1 : 0,
@@ -93,6 +98,7 @@ SELECT
     u.FullName,
     u.Email,
     u.RoleId,
+    u.CompanyId,
     u.IsActive,
     u.CreatedDate,
     u.LastLoginDate,
@@ -130,6 +136,7 @@ SELECT
     u.FullName,
     u.Email,
     u.RoleId,
+    u.CompanyId,
     u.IsActive,
     u.CreatedDate,
     u.LastLoginDate,
@@ -159,6 +166,7 @@ SET
     FullName = @FullName,
     Email = @Email,
     RoleId = @RoleId,
+    CompanyId = @CompanyId,
     IsActive = @IsActive,
     LastLoginDate = @LastLoginDate
 WHERE Id = @Id",
@@ -176,6 +184,9 @@ WHERE Id = @Id",
                     user.Email,
 
                     user.RoleId,
+
+                    CompanyId =
+                        user.CompanyId?.ToString(),
 
                     IsActive =
                         user.IsActive ? 1 : 0,
@@ -211,6 +222,10 @@ WHERE Id = @Id",
                         ? 0
                         : (int)(long)row.RoleId,
 
+                CompanyId =
+                    row.CompanyId != null
+                        ? Guid.Parse((string)row.CompanyId)
+                        : null,
                 RoleName =
                     row.RoleName ?? "",
 

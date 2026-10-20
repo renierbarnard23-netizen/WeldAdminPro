@@ -1,0 +1,472 @@
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Security.Claims;
+using WeldAdminPro.Core.Models;
+
+namespace WeldAdminPro.Web.Security;
+
+public static class UserClaimsFactory
+{
+    public static ClaimsPrincipal Create(
+        SystemUser user)
+    {
+        if (string.IsNullOrWhiteSpace(user.RoleName))
+        {
+            throw new InvalidOperationException(
+                $"User '{user.Username}' does not have a valid database role.");
+        }
+
+        var identity =
+            new ClaimsIdentity(
+                new[]
+                {
+                    new Claim(
+                        ClaimTypes.NameIdentifier,
+                        user.Id.ToString()),
+
+                    new Claim(
+                        ClaimTypes.Name,
+                        user.Username),
+
+                    new Claim(
+                        ClaimTypes.GivenName,
+                        user.FullName),
+
+                    new Claim(
+                        ClaimTypes.Role,
+                        user.RoleName),
+
+                    new Claim(
+                        "WeldAdminPro:CompanyId",
+                        user.CompanyId?.ToString() ?? "")
+                },
+                CookieAuthenticationDefaults
+                    .AuthenticationScheme);
+
+        return new ClaimsPrincipal(identity);
+    }
+}
+
+using Microsoft.AspNetCore.Components.Authorization;
+using System.Security.Claims;
+using WeldAdminPro.Core.Models;
+
+namespace WeldAdminPro.Web.Security;
+
+public class WeldAuthenticationStateProvider
+    : AuthenticationStateProvider
+{
+    private static readonly ClaimsPrincipal Anonymous =
+        new(new ClaimsIdentity());
+
+    private ClaimsPrincipal _currentUser = Anonymous;
+
+    public override Task<AuthenticationState> GetAuthenticationStateAsync()
+    {
+        return Task.FromResult(
+            new AuthenticationState(_currentUser));
+    }
+
+    public void SignIn(SystemUser user)
+    {
+        if (string.IsNullOrWhiteSpace(user.RoleName))
+        {
+            throw new InvalidOperationException(
+                $"User '{user.Username}' does not have a valid database role.");
+        }
+
+        var identity =
+            new ClaimsIdentity(
+                new[]
+                {
+                    new Claim(
+                        ClaimTypes.NameIdentifier,
+                        user.Id.ToString()),
+
+                    new Claim(
+                        ClaimTypes.Name,
+                        user.Username),
+
+                    new Claim(
+                        ClaimTypes.GivenName,
+                        user.FullName),
+
+                    new Claim(
+                        ClaimTypes.Role,
+                        user.RoleName)
+                },
+                authenticationType: "WeldAdmin");
+
+        _currentUser =
+            new ClaimsPrincipal(identity);
+
+        NotifyAuthenticationStateChanged(
+            GetAuthenticationStateAsync());
+    }
+
+    public void SignOut()
+    {
+        _currentUser = Anonymous;
+
+        NotifyAuthenticationStateChanged(
+            GetAuthenticationStateAsync());
+    }
+}
+using System.Security.Claims;
+using WeldAdminPro.Core.Security.Abstractions;
+
+namespace WeldAdminPro.Web.Services.Security;
+
+public class UserContextService : ICurrentUserContext
+{
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public UserContextService(
+        IHttpContextAccessor httpContextAccessor)
+    {
+        _httpContextAccessor =
+            httpContextAccessor;
+    }
+
+    private ClaimsPrincipal? User =>
+        _httpContextAccessor.HttpContext?.User;
+
+    public bool IsAuthenticated =>
+        User?.Identity?.IsAuthenticated ?? false;
+
+    public string UserId =>
+        User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+
+    public string Username =>
+        User?.Identity?.Name ?? "";
+
+    public string FullName =>
+        User?.FindFirst(ClaimTypes.GivenName)?.Value ?? "";
+
+    public string Role =>
+        User?.FindFirst(ClaimTypes.Role)?.Value ?? "";
+
+    public Guid? CompanyId
+    {
+        get
+        {
+            var value =
+                User?.FindFirst("WeldAdminPro:CompanyId")?.Value;
+
+            if (Guid.TryParse(value, out var companyId))
+                return companyId;
+
+            return null;
+        }
+    }
+
+    public bool IsAdministrator =>
+        string.Equals(
+            Role,
+            "Administrator",
+            StringComparison.OrdinalIgnoreCase);
+}
+
+using Dapper;
+using Microsoft.Data.Sqlite;
+using System.Linq;
+using WeldAdminPro.Core.Models;
+
+namespace WeldAdminPro.Data.Repositories
+{
+    public class SystemUserRepository
+    {
+        private readonly string _connectionString;
+
+        public SystemUserRepository(
+            string connectionString)
+        {
+            _connectionString =
+                connectionString;
+        }
+
+        public void Add(SystemUser user)
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            connection.Execute(
+                @"
+INSERT INTO SystemUsers
+(
+    Id,
+    Username,
+    PasswordHash,
+    FullName,
+    Email,
+    Role,
+    RoleId,
+     CompanyId,
+    IsActive,
+    CreatedDate,
+    LastLoginDate
+)
+VALUES
+(
+    @Id,
+    @Username,
+    @PasswordHash,
+    @FullName,
+    @Email,
+    0,
+    @RoleId,
+     @CompanyId,
+    @IsActive,
+    @CreatedDate,
+    @LastLoginDate
+)",
+                new
+                {
+                    Id =
+                        user.Id.ToString(),
+
+                    user.Username,
+
+                    user.PasswordHash,
+
+                    user.FullName,
+
+                    user.Email,
+
+                    user.RoleId,
+
+                    CompanyId =
+                        user.CompanyId?.ToString(),
+
+                    IsActive =
+                        user.IsActive ? 1 : 0,
+
+                    CreatedDate =
+                        user.CreatedDate.ToString("O"),
+
+                    LastLoginDate =
+                        user.LastLoginDate?.ToString("O")
+                });
+        }
+
+        public SystemUser? GetByUsername(
+            string username)
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            var row =
+                connection.QueryFirstOrDefault(
+                    @"
+SELECT
+    u.Id,
+    u.Username,
+    u.PasswordHash,
+    u.FullName,
+    u.Email,
+    u.RoleId,
+    u.CompanyId,
+    u.IsActive,
+    u.CreatedDate,
+    u.LastLoginDate,
+    r.Name AS RoleName
+FROM SystemUsers u
+LEFT JOIN Roles r
+    ON r.Id = u.RoleId
+WHERE u.Username = @Username",
+                    new
+                    {
+                        Username = username
+                    });
+
+            if (row == null)
+            {
+                return null;
+            }
+
+            return MapUser(row);
+        }
+
+        public List<SystemUser> GetAll()
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            var rows =
+                connection.Query(
+                    @"
+SELECT
+    u.Id,
+    u.Username,
+    u.PasswordHash,
+    u.FullName,
+    u.Email,
+    u.RoleId,
+    u.CompanyId,
+    u.IsActive,
+    u.CreatedDate,
+    u.LastLoginDate,
+    r.Name AS RoleName
+FROM SystemUsers u
+LEFT JOIN Roles r
+    ON r.Id = u.RoleId
+ORDER BY u.Username");
+
+            return rows
+                .Select(MapUser)
+                .ToList();
+        }
+
+        public void Update(SystemUser user)
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            connection.Execute(
+                @"
+UPDATE SystemUsers
+SET
+    Username = @Username,
+    PasswordHash = @PasswordHash,
+    FullName = @FullName,
+    Email = @Email,
+    RoleId = @RoleId,
+    CompanyId = @CompanyId,
+    IsActive = @IsActive,
+    LastLoginDate = @LastLoginDate
+WHERE Id = @Id",
+                new
+                {
+                    Id =
+                        user.Id.ToString(),
+
+                    user.Username,
+
+                    user.PasswordHash,
+
+                    user.FullName,
+
+                    user.Email,
+
+                    user.RoleId,
+
+                    CompanyId =
+                        user.CompanyId?.ToString(),
+
+                    IsActive =
+                        user.IsActive ? 1 : 0,
+
+                    LastLoginDate =
+                        user.LastLoginDate?.ToString("O")
+                });
+        }
+
+        private static SystemUser MapUser(
+            dynamic row)
+        {
+            return new SystemUser
+            {
+                Id =
+                    Guid.Parse(
+                        (string)row.Id),
+
+                Username =
+                    row.Username,
+
+                PasswordHash =
+                    row.PasswordHash,
+
+                FullName =
+                    row.FullName,
+
+                Email =
+                    row.Email ?? "",
+
+                RoleId =
+                    row.RoleId == null
+                        ? 0
+                        : (int)(long)row.RoleId,
+
+                CompanyId =
+                    row.CompanyId != null
+                        ? Guid.Parse((string)row.CompanyId)
+                        : null,
+                RoleName =
+                    row.RoleName ?? "",
+
+                IsActive =
+                    row.IsActive == 1,
+
+                CreatedDate =
+                    DateTime.Parse(
+                        (string)row.CreatedDate),
+
+                LastLoginDate =
+                    row.LastLoginDate != null
+                        ? DateTime.Parse(
+                            (string)row.LastLoginDate)
+                        : null
+            };
+        }
+    }
+}
+using WeldAdminPro.Core.Models;
+using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Core.Services;
+
+namespace WeldAdminPro.Data.Services
+{
+    public class AuthenticationService
+    {
+        private readonly SystemUserRepository
+            _repository;
+
+        private readonly PasswordHashService
+            _hashService = new();
+
+        public AuthenticationService(
+            SystemUserRepository repository)
+        {
+            _repository = repository;
+        }
+
+        public SystemUser? Authenticate(
+            string username,
+            string password)
+        {
+            var user =
+                _repository.GetByUsername(username);
+
+            if (user == null)
+            {
+                return null;
+            }
+
+            if (!user.IsActive)
+            {
+                return null;
+            }
+
+            if (!_hashService.Verify(
+                    password,
+                    user.PasswordHash))
+            {
+                return null;
+            }
+
+            if (_hashService.IsLegacyHash(
+                    user.PasswordHash))
+            {
+                user.PasswordHash =
+                    _hashService.Hash(password);
+
+                _repository.Update(user);
+            }
+
+            return user;
+        }
+    }
+}

@@ -1,6 +1,7 @@
-using System.Linq;
+﻿using System.Linq;
 using WeldAdminPro.Core.Analytics.Executive;
 using WeldAdminPro.Core.Quality;
+using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.Data.Services
@@ -9,23 +10,31 @@ namespace WeldAdminPro.Data.Services
     {
         private readonly ProjectCostingService _costingService = new();
         private readonly ProjectRiskService _riskService = new(); // for compliance
-        private readonly ProjectRepository _projectRepo = new();
 
-        public UnifiedProjectRiskModel Evaluate(ProjectComplianceResult compliance, System.Guid projectId)
+        public UnifiedProjectRiskModel Evaluate(ProjectComplianceResult compliance, Project project)
         {
             var complianceRisk = _riskService.EvaluateCompliance(compliance);
             int complianceScore = complianceRisk.Score;
 
-            var costing = _costingService.GetProjectCostSummary()
-                .FirstOrDefault(c => c.ProjectId == projectId);
+            if (project == null)
+                throw new ArgumentNullException(nameof(project));
 
-            var project = _projectRepo.GetById(projectId);
+            if (project.Id == Guid.Empty)
+                throw new ArgumentException(
+                    "Project Id is required.",
+                    nameof(project));
+
+            var materialBreakdown =
+                _costingService.GetProjectMaterialBreakdown(project.Id);
+
+            var materialCost =
+                materialBreakdown.Sum(x => x.MaterialCost);
 
             int financialScore = 100;
 
-            if (project != null && project.Budget > 0 && costing != null)
+            if (project.Budget > 0 && materialCost > 0)
             {
-                var percent = (double)(costing.TotalMaterialCost / project.Budget) * 100;
+                var percent = (double)(materialCost / project.Budget) * 100;
 
                 financialScore = percent switch
                 {

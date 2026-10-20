@@ -1,0 +1,608 @@
+﻿using System.Linq;
+using System.Collections.Generic;
+using WeldAdminPro.Core.Models;
+using WeldAdminPro.Core.Services;
+using WeldAdminPro.Core.Security;
+using WeldAdminPro.Core.Security.Abstractions;
+using WeldAdminPro.Core.Security.Models;
+using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Data.Repositories.Security;
+namespace WeldAdminPro.Data.Services
+{
+    public class AdministrationApplicationService
+    {
+        private readonly SystemUserRepository _userRepository;
+        private readonly CompanyRepository _companyRepository;
+        private readonly CompanyComplianceRepository _companyComplianceRepository;
+        private readonly AuditLogRepository _auditRepository;
+        private readonly ProductionSettingsRepository _settingsRepository;
+        private readonly PasswordHashService _passwordHashService;
+        private readonly AuditService _auditService;
+
+        private readonly IUserCompanyAccessRepository _userCompanyAccessRepository;
+        private readonly IPermissionAuthorizationService _permissionAuthorization;
+        private readonly ICurrentUserContext _currentUser;
+        public AdministrationApplicationService(
+            AuditService auditService,
+            IUserCompanyAccessRepository userCompanyAccessRepository,
+            IPermissionAuthorizationService permissionAuthorization,
+            ICurrentUserContext currentUser)
+        {
+            _auditService = auditService;
+            _userCompanyAccessRepository = userCompanyAccessRepository
+                ?? throw new ArgumentNullException(nameof(userCompanyAccessRepository));
+            _permissionAuthorization = permissionAuthorization
+                ?? throw new ArgumentNullException(nameof(permissionAuthorization));
+            _currentUser = currentUser
+                ?? throw new ArgumentNullException(nameof(currentUser));
+
+            var connectionString = DatabasePath.GetConnectionString();
+
+            _userRepository = new SystemUserRepository(connectionString);
+            _companyRepository = new CompanyRepository();
+            _companyComplianceRepository = new CompanyComplianceRepository();
+            _auditRepository = new AuditLogRepository(connectionString);
+            _settingsRepository = new ProductionSettingsRepository(); 
+
+            _passwordHashService = new PasswordHashService();
+        }
+
+        private SystemUser? GetUser(Guid userId)
+        {
+            return _userRepository
+                .GetAll()
+                .FirstOrDefault(x => x.Id == userId);
+        }
+
+        public List<SystemUser> GetUsers()
+        {
+            return _userRepository.GetAll();
+        }
+
+        public void UpdateUser(SystemUser user)
+        {
+            _userRepository.Update(user);
+
+            _auditService.Log(
+                "EDIT USER",
+                "User Management",
+                $"Edited user: {user.Username}");
+        }
+
+        public void EnableUser(Guid userId)
+        {
+            var user = GetUser(userId);
+
+            if (user == null)
+                return;
+
+            user.IsActive = true;
+
+            _userRepository.Update(user);
+
+            _auditService.Log(
+                "ENABLE USER",
+                "User Management",
+                $"Enabled user: {user.Username}");
+        }
+
+        public void DisableUser(Guid userId)
+        {
+            var user = GetUser(userId);
+
+            if (user == null)
+                return;
+
+            user.IsActive = false;
+
+            _userRepository.Update(user);
+
+            _auditService.Log(
+                "DISABLE USER",
+                "User Management",
+                $"Disabled user: {user.Username}");
+        }
+
+        public void ResetPassword(Guid userId)
+        {
+            var user = GetUser(userId);
+
+            if (user == null)
+                return;
+
+            user.PasswordHash = _passwordHashService.Hash("password123");
+
+            _userRepository.Update(user);
+
+            _auditService.Log(
+                "RESET PASSWORD",
+                "User Management",
+                $"Password reset for: {user.Username}");
+        }
+
+        public void SetPassword(Guid userId, string password)
+        {
+            if (string.IsNullOrWhiteSpace(password))
+                throw new ArgumentException("Password cannot be empty.");
+
+            var user = GetUser(userId);
+
+            if (user == null)
+                return;
+
+            user.PasswordHash = _passwordHashService.Hash(password);
+
+            _userRepository.Update(user);
+
+            _auditService.Log(
+                "CHANGE PASSWORD",
+                "User Management",
+                $"Password changed for: {user.Username}");
+        }
+
+        public void AddUser(SystemUser user)
+        {
+            if (string.IsNullOrWhiteSpace(user.PasswordHash))
+            {
+                user.PasswordHash =
+                    _passwordHashService.Hash("password123");
+            }
+
+            _userRepository.Add(user);
+
+            _auditService.Log(
+                "CREATE USER",
+                "User Management",
+                $"Created user: {user.Username}");
+        }
+        // ------------------------------------------------------------
+        // USER COMPANY ACCESS
+        // ------------------------------------------------------------
+
+        public async Task<IReadOnlyList<UserCompanyAccess>>
+            GetUserCompanyAccessAsync(Guid userId)
+        {
+            await EnsureSecurityPermissionAsync();
+
+            if (userId == Guid.Empty)
+                throw new ArgumentException(
+                    "User ID is required.",
+                    nameof(userId));
+
+            var user = GetUser(userId);
+
+            if (user == null)
+                throw new InvalidOperationException(
+                    "User was not found.");
+
+            var access = await _userCompanyAccessRepository
+                .GetByUserIdAsync(user.Id.ToString());
+
+            return access.ToList();
+        }
+
+        public async Task GrantUserCompanyAccessAsync(
+            Guid userId,
+            Guid companyId,
+            DateTime? validFrom = null,
+            DateTime? validUntil = null,
+            string? notes = null)
+        {
+            await EnsureSecurityPermissionAsync();
+
+            if (userId == Guid.Empty)
+                throw new ArgumentException(
+                    "User ID is required.",
+                    nameof(userId));
+
+            if (companyId == Guid.Empty)
+                throw new ArgumentException(
+                    "Company ID is required.",
+                    nameof(companyId));
+
+            if (validFrom.HasValue &&
+                validUntil.HasValue &&
+                validUntil.Value < validFrom.Value)
+            {
+                throw new ArgumentException(
+                    "Valid until date cannot be earlier than valid from date.");
+            }
+
+            var user = GetUser(userId);
+
+            if (user == null)
+                throw new InvalidOperationException(
+                    "User was not found.");
+
+            var company = _companyRepository.GetById(companyId);
+
+            if (company == null)
+                throw new InvalidOperationException(
+                    "Company was not found.");
+
+            // Home-company access is implicit.
+            if (user.CompanyId.HasValue &&
+                user.CompanyId.Value == companyId)
+            {
+                throw new InvalidOperationException(
+                    "The user's home company already grants access. " +
+                    "Additional company access is not required.");
+            }
+
+            if (await _userCompanyAccessRepository
+                .HasActiveAccessAsync(
+                    userId.ToString(),
+                    companyId))
+            {
+                throw new InvalidOperationException(
+                    "The user already has active access to this company.");
+            }
+
+            var access = new UserCompanyAccess
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId.ToString(),
+                CompanyId = companyId,
+                IsActive = true,
+                ValidFrom = validFrom,
+                ValidUntil = validUntil,
+                CreatedOn = DateTime.UtcNow,
+                CreatedBy = string.IsNullOrWhiteSpace(_currentUser.Username)
+                    ? "System"
+                    : _currentUser.Username.Trim(),
+                Notes = notes
+            };
+
+            await _userCompanyAccessRepository.AddAsync(access);
+
+            _auditService.Log(
+                "GRANT COMPANY ACCESS",
+                "User Management",
+                $"Granted {user.Username} access to {company.CompanyName}.");
+        }
+
+        public async Task RevokeUserCompanyAccessAsync(
+            Guid userId,
+            Guid accessId)
+        {
+            await EnsureSecurityPermissionAsync();
+
+            if (userId == Guid.Empty)
+                throw new ArgumentException(
+                    "User ID is required.",
+                    nameof(userId));
+
+            if (accessId == Guid.Empty)
+                throw new ArgumentException(
+                    "Access ID is required.",
+                    nameof(accessId));
+
+            var user = GetUser(userId);
+
+            if (user == null)
+                throw new InvalidOperationException(
+                    "User was not found.");
+
+            var access = (await _userCompanyAccessRepository
+                    .GetByUserIdAsync(userId.ToString()))
+                .FirstOrDefault(x => x.Id == accessId);
+
+            if (access == null)
+                throw new InvalidOperationException(
+                    "Company access record was not found for this user.");
+
+            if (!access.IsActive)
+                return;
+
+            await _userCompanyAccessRepository
+                .DeactivateAsync(accessId);
+
+            var company = _companyRepository.GetById(access.CompanyId);
+
+            _auditService.Log(
+                "REVOKE COMPANY ACCESS",
+                "User Management",
+                $"Revoked {user.Username} access to " +
+                $"{company?.CompanyName ?? access.CompanyId.ToString()}.");
+        }
+
+        private async Task EnsureSecurityPermissionAsync()
+        {
+            if (!_currentUser.IsAuthenticated ||
+                string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+            }
+
+            var allowed =
+                await _permissionAuthorization.HasPermissionAsync(
+                    _currentUser.UserId,
+                    _currentUser.Role,
+                    PermissionKeys.Administration.Security);
+
+            if (!allowed)
+            {
+                throw new UnauthorizedAccessException(
+                    "Administration.Security permission is required.");
+            }
+        }
+
+
+        public List<Company> GetCompanies()
+        {
+            return _companyRepository.GetAll();
+        }
+
+        public Company? GetCompany(Guid id)
+        {
+            return _companyRepository.GetById(id);
+        }
+
+        public void AddCompany(Company company)
+        {
+            if (company == null)
+                throw new ArgumentNullException(nameof(company));
+
+            if (string.IsNullOrWhiteSpace(company.CompanyName))
+                throw new ArgumentException(
+                    "Company name cannot be empty.");
+
+            if (string.IsNullOrWhiteSpace(company.CompanyCode))
+                throw new ArgumentException(
+                    "Company code cannot be empty.");
+
+            if (_companyRepository.GetByCode(company.CompanyCode) != null)
+                throw new InvalidOperationException(
+                    "A company with this code already exists.");
+
+            _companyRepository.Add(company);
+
+            _auditService.Log(
+                "CREATE COMPANY",
+                "Administration",
+                $"Created company: {company.CompanyName} ({company.CompanyCode})");
+        }
+
+        public void UpdateCompany(Company company)
+        {
+            if (company == null)
+                throw new ArgumentNullException(nameof(company));
+
+            if (string.IsNullOrWhiteSpace(company.CompanyName))
+                throw new ArgumentException(
+                    "Company name cannot be empty.");
+
+            if (string.IsNullOrWhiteSpace(company.CompanyCode))
+                throw new ArgumentException(
+                    "Company code cannot be empty.");
+
+            var existing = _companyRepository.GetByCode(company.CompanyCode);
+
+            if (existing != null && existing.Id != company.Id)
+                throw new InvalidOperationException(
+                    "Another company already uses this company code.");
+
+            _companyRepository.Update(company);
+
+            _auditService.Log(
+                "EDIT COMPANY",
+                "Administration",
+                $"Edited company: {company.CompanyName} ({company.CompanyCode})");
+        }
+
+        public void EnableCompany(Guid companyId)
+        {
+            var company = _companyRepository.GetById(companyId);
+
+            if (company == null)
+                return;
+
+            _companyRepository.SetActive(companyId, true);
+
+            _auditService.Log(
+                "ENABLE COMPANY",
+                "Administration",
+                $"Enabled company: {company.CompanyName}");
+        }
+
+        public void DisableCompany(Guid companyId)
+        {
+            var company = _companyRepository.GetById(companyId);
+
+            if (company == null)
+                return;
+
+            _companyRepository.SetActive(companyId, false);
+
+            _auditService.Log(
+                "DISABLE COMPANY",
+                "Administration",
+                $"Disabled company: {company.CompanyName}");
+        }
+
+        // ==================================================
+        // COMPANY CONTACTS
+        // ==================================================
+
+        public List<CompanyContact> GetCompanyContacts(Guid companyId)
+        {
+            return _companyComplianceRepository.GetContacts(companyId);
+        }
+
+        public CompanyContact? GetPrimaryCompanyContact(Guid companyId)
+        {
+            return _companyComplianceRepository.GetPrimaryContact(companyId);
+        }
+
+        public void AddCompanyContact(CompanyContact contact)
+        {
+            if (contact == null)
+                throw new ArgumentNullException(nameof(contact));
+
+            _companyComplianceRepository.AddContact(contact);
+
+            _auditService.Log(
+                "CREATE COMPANY CONTACT",
+                "Administration",
+                $"Created contact: {contact.ContactName}");
+        }
+
+        public void UpdateCompanyContact(CompanyContact contact)
+        {
+            if (contact == null)
+                throw new ArgumentNullException(nameof(contact));
+
+            _companyComplianceRepository.UpdateContact(contact);
+
+            _auditService.Log(
+                "EDIT COMPANY CONTACT",
+                "Administration",
+                $"Edited contact: {contact.ContactName}");
+        }
+
+        public void SetCompanyContactActive(
+            Guid contactId,
+            bool isActive)
+        {
+            _companyComplianceRepository.SetContactActive(
+                contactId,
+                isActive);
+
+            _auditService.Log(
+                isActive
+                    ? "ENABLE COMPANY CONTACT"
+                    : "DISABLE COMPANY CONTACT",
+                "Administration",
+                $"Company contact {contactId} active status changed to {isActive}.");
+        }
+
+        // ==================================================
+        // COMPANY REQUIREMENTS
+        // ==================================================
+
+        public List<CompanyRequirement> GetCompanyRequirements(
+            Guid companyId)
+        {
+            return _companyComplianceRepository.GetRequirements(
+                companyId);
+        }
+
+        public void AddCompanyRequirement(
+            CompanyRequirement requirement)
+        {
+            if (requirement == null)
+                throw new ArgumentNullException(nameof(requirement));
+
+            _companyComplianceRepository.AddRequirement(requirement);
+
+            _auditService.Log(
+                "CREATE COMPANY REQUIREMENT",
+                "Administration",
+                $"Created requirement: {requirement.RequirementName}");
+        }
+
+        public void UpdateCompanyRequirement(
+            CompanyRequirement requirement)
+        {
+            if (requirement == null)
+                throw new ArgumentNullException(nameof(requirement));
+
+            _companyComplianceRepository.UpdateRequirement(
+                requirement);
+
+            _auditService.Log(
+                "EDIT COMPANY REQUIREMENT",
+                "Administration",
+                $"Edited requirement: {requirement.RequirementName}");
+        }
+
+        // ==================================================
+        // COMPANY DOCUMENTS
+        // ==================================================
+
+        public List<CompanyDocument> GetCompanyDocuments(
+            Guid companyId)
+        {
+            return _companyComplianceRepository.GetDocuments(
+                companyId);
+        }
+
+        public List<CompanyDocument> GetCompanyDocumentsRequiringAttention(
+            Guid companyId,
+            DateTime today)
+        {
+            return _companyComplianceRepository
+                .GetDocumentsRequiringAttention(companyId, today);
+        }
+
+        public void AddCompanyDocument(
+            CompanyDocument document)
+        {
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
+
+            _companyComplianceRepository.AddDocument(document);
+
+            _auditService.Log(
+                "CREATE COMPANY DOCUMENT",
+                "Administration",
+                $"Added company document: {document.DocumentName}");
+        }
+
+        public void UpdateCompanyDocument(
+            CompanyDocument document)
+        {
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
+
+            _companyComplianceRepository.UpdateDocument(document);
+
+            _auditService.Log(
+                "EDIT COMPANY DOCUMENT",
+                "Administration",
+                $"Edited company document: {document.DocumentName}");
+        }
+
+        public void SetCompanyDocumentActive(
+            Guid documentId,
+            bool isActive)
+        {
+            _companyComplianceRepository.SetDocumentActive(
+                documentId,
+                isActive);
+
+            _auditService.Log(
+                isActive
+                    ? "ENABLE COMPANY DOCUMENT"
+                    : "DISABLE COMPANY DOCUMENT",
+                "Administration",
+                $"Company document {documentId} active status changed to {isActive}.");
+        }
+        public ProductionSettings GetProductionSettings()
+        {
+            return _settingsRepository.Get();
+        }
+
+        public void SaveProductionSettings(ProductionSettings settings)
+        {
+            _settingsRepository.Save(settings);
+
+            _auditService.Log(
+                "UPDATE PRODUCTION SETTINGS",
+                "Administration",
+                "Production settings updated.");
+        }
+
+        public List<AuditLog> GetAuditLog()
+        {
+            return _auditRepository.GetAll();
+        }
+    }
+
+}
+
+
+
+
+

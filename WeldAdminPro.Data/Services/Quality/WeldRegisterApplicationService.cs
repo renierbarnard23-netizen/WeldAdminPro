@@ -1,16 +1,26 @@
-using WeldAdminPro.Core.Models;
+﻿using WeldAdminPro.Core.Models;
 using WeldAdminPro.Core.Quality.Enums;
 using WeldAdminPro.Core.Quality.Models;
 using WeldAdminPro.Core.Quality.Services;
 using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Data.Services;
+using WeldAdminPro.Core.Security;
+using WeldAdminPro.Core.Security.Abstractions;
+using WeldAdminPro.Core.Reporting.Enums;
 
 namespace WeldAdminPro.Data.Services.Quality
 {
     public class WeldRegisterApplicationService
     {
+        private readonly ICurrentUserContext _currentUser;
+        private readonly IPermissionAuthorizationService _permissionAuthorization;
+        private readonly IProjectAccessAuthorizationService _projectAccessAuthorization;
+        private readonly ProjectRepository _projectRepository;
         private readonly WeldRepository _weldRepository;
         private readonly WeldHistoryRepository _historyRepository;
         private readonly WeldNdtRepository _ndtRepository;
+        private readonly NcrRepository _ncrRepository;
+        private readonly NcrWorkflowHistoryRepository _ncrWorkflowHistoryRepository;
 
         // ==========================================
         // RELEASE GOVERNANCE EVIDENCE
@@ -21,60 +31,729 @@ namespace WeldAdminPro.Data.Services.Quality
             _welderQualificationRepository;
         private readonly RepairRepository _repairRepository;
 
+        private readonly DocumentVaultRepository
+            _documentVaultRepository;
+
+        private readonly WeldTraceabilityRepository
+            _weldTraceabilityRepository;
+
+        private readonly EquipmentApplicationService
+            _equipmentApplicationService;
+
+        private readonly AuditService
+            _auditService;
+
         private readonly WeldReleaseContextBuilder
             _releaseContextBuilder;
 
         private readonly WelderQualificationValidationService
             _welderQualificationValidationService;
 
-        public WeldRegisterApplicationService()
+        private readonly WeldReleaseValidationService
+            _releaseValidationService;
+
+        private readonly WeldItpComplianceService
+            _itpComplianceService;
+
+        public WeldRegisterApplicationService(
+            WeldRepository weldRepository,
+            WeldHistoryRepository historyRepository,
+            WeldNdtRepository ndtRepository,
+            NcrRepository ncrRepository,
+            NcrWorkflowHistoryRepository ncrWorkflowHistoryRepository,
+            WpsRepository wpsRepository,
+            WelderQualificationRepository welderQualificationRepository,
+            RepairRepository repairRepository,
+            DocumentVaultRepository documentVaultRepository,
+            WeldTraceabilityRepository weldTraceabilityRepository,
+            EquipmentApplicationService equipmentApplicationService,
+            AuditService auditService,
+            WeldReleaseContextBuilder releaseContextBuilder,
+            WelderQualificationValidationService welderQualificationValidationService,
+            WeldReleaseValidationService releaseValidationService,
+            WeldItpComplianceService itpComplianceService,
+            ICurrentUserContext currentUser,
+            IPermissionAuthorizationService permissionAuthorization,
+            IProjectAccessAuthorizationService projectAccessAuthorization,
+            ProjectRepository projectRepository)
         {
-            _weldRepository = new WeldRepository();
-
-            var connectionString = 
-                $"Data Source={DatabasePath.Get()}";
-
-            _historyRepository =
-                new WeldHistoryRepository(connectionString);
-
-            _ndtRepository =
-                new WeldNdtRepository();
-
-            _wpsRepository =
-                new WpsRepository();
-
-            _welderQualificationRepository =
-                new WelderQualificationRepository();
-
-            _repairRepository =
-                new RepairRepository(
-                    DatabasePath.GetConnectionString());
-
-            _releaseContextBuilder =
-                new WeldReleaseContextBuilder();
-
+            _currentUser = currentUser;
+            _permissionAuthorization = permissionAuthorization;
+            _projectAccessAuthorization = projectAccessAuthorization;
+            _projectRepository = projectRepository;
+            _weldRepository = weldRepository;
+            _historyRepository = historyRepository;
+            _ndtRepository = ndtRepository;
+            _ncrRepository = ncrRepository;
+            _ncrWorkflowHistoryRepository = ncrWorkflowHistoryRepository;
+            _wpsRepository = wpsRepository;
+            _welderQualificationRepository = welderQualificationRepository;
+            _repairRepository = repairRepository;
+            _documentVaultRepository = documentVaultRepository;
+            _weldTraceabilityRepository = weldTraceabilityRepository;
+            _equipmentApplicationService = equipmentApplicationService;
+            _auditService = auditService;
+            _releaseContextBuilder = releaseContextBuilder;
             _welderQualificationValidationService =
-                new WelderQualificationValidationService();
+                welderQualificationValidationService;
+            _releaseValidationService = releaseValidationService;
+            _itpComplianceService = itpComplianceService;
         }
 
+        private NcrRecord? CreateAutomaticNcrForRejectedNdt(
+            Weld weld,
+            WeldNdtResult result)
+        {
+            if (weld == null)
+            {
+                throw new ArgumentNullException(
+                    nameof(weld));
+            }
+
+            if (result == null)
+            {
+                throw new ArgumentNullException(
+                    nameof(result));
+            }
+
+            if (result.Result != NdtResultType.Reject &&
+                result.Result != NdtResultType.Repair)
+            {
+                return null;
+            }
+
+            // ==================================================
+            // DUPLICATE PROTECTION
+            // ==================================================
+            //
+            // A failed reinspection belongs to the existing
+            // NCR/repair lifecycle. Do not create another NCR
+            // for every failed repair cycle.
+            // ==================================================
+
+            var existingNcr =
+                _ncrRepository
+                    .GetByWeld(weld.Id)
+                    .FirstOrDefault();
+
+            if (existingNcr != null)
+            {
+                return existingNcr;
+            }
+
+            var ncr =
+                new NcrRecord
+                {
+                    Id = Guid.NewGuid(),
+
+                    WeldId =
+                        weld.Id,
+
+                    WeldNumber =
+                        weld.WeldNumber ?? string.Empty,
+
+
+                    Category =
+                        "NDT",
+
+                    CustomReason =
+                        "NDT rejection",
+
+                    IsWeldingRelated =
+                        true,
+
+                    Description =
+                        string.IsNullOrWhiteSpace(
+                            result.Remarks)
+                            ? $"NDT result '{result.Result}' " +
+                              $"for weld '{weld.WeldNumber}'. " +
+                              $"Method: {result.NdtMethod}."
+                            : $"NDT result '{result.Result}' " +
+                              $"for weld '{weld.WeldNumber}'. " +
+                              $"Method: {result.NdtMethod}. " +
+                              $"Remarks: {result.Remarks.Trim()}",
+
+                    RootCause =
+                        string.Empty,
+
+                    CorrectiveAction =
+                        string.Empty,
+
+                    PreventiveAction =
+                        string.Empty,
+
+                    RaisedBy =
+                        string.IsNullOrWhiteSpace(
+                            result.InspectorName)
+                            ? _currentUser.Username
+                            : result.InspectorName.Trim(),
+
+                    RaisedDate =
+                        DateTime.UtcNow,
+
+                    AssignedTo =
+                        string.Empty,
+
+                    DueDate =
+                        null,
+
+                    Status =
+                        NcrStatus.Open,
+
+                    IsClosed =
+                        false,
+
+                    ClosedBy =
+                        string.Empty,
+
+                    ClosedDate =
+                        null,
+
+                    DispositionType =
+                        null,
+
+                    DispositionApprovedBy =
+                        null,
+
+                    DispositionApprovedDate =
+                        null,
+
+                    VerificationBy =
+                        null,
+
+                    VerificationDate =
+                        null,
+
+                    RequiresCustomerApproval =
+                        false,
+
+                    CustomerApproved =
+                        false,
+
+                    CustomerApprovalReference =
+                        null
+                };
+
+            _ncrRepository.Add(ncr);
+
+            return ncr;
+        }
         public async Task<List<Weld>> GetProjectWelds(Guid projectId)
         {
+            await EnsurePermissionAsync(
+                PermissionKeys.Quality.WeldRegister);
+
+            if (projectId == Guid.Empty)
+            {
+                return new List<Weld>();
+            }
+
+            if (string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                return new List<Weld>();
+            }
+
+            var project = _projectRepository.GetById(projectId);
+
+            if (project == null)
+            {
+                return new List<Weld>();
+            }
+
+            if (!await _projectAccessAuthorization.CanAccessProjectAsync(
+                    _currentUser.UserId,
+                    project))
+            {
+                return new List<Weld>();
+            }
+
             return await _weldRepository.GetByProjectAsync(projectId);
         }
 
-        public List<WeldHistoryEntry> GetHistory(Guid weldId)
+        public async Task<List<WeldHistoryEntry>> GetHistoryAsync(
+            Guid weldId)
         {
+            await EnsureWeldProjectAccessAsync(weldId);
+
             return _historyRepository.GetByWeld(weldId);
         }
 
-        public List<WeldNdtResult> GetNdt(Guid weldId)
+        public async Task ReviewLegacyNdtTraceabilityAsync(
+            Guid weldId,
+            Guid ndtResultId,
+            IReadOnlyCollection<Guid> equipmentIds,
+            string reviewRemarks)
         {
+            await EnsurePermissionAsync(PermissionKeys.Quality.NDT);
+
+            var weld = await EnsureWeldProjectAccessAsync(weldId);
+
+            if (ndtResultId == Guid.Empty)
+                throw new ArgumentException("NDT result ID cannot be empty.", nameof(ndtResultId));
+
+            if (equipmentIds == null || equipmentIds.Count == 0)
+                throw new InvalidOperationException(
+                    "At least one equipment item must be selected for legacy traceability review.");
+
+            if (string.IsNullOrWhiteSpace(reviewRemarks))
+                throw new InvalidOperationException(
+                    "Review remarks are required for legacy NDT traceability review.");
+
+            var ndt = _ndtRepository
+                .GetByWeld(weld.Id)
+                .FirstOrDefault(x => x.Id == ndtResultId);
+
+            if (ndt == null)
+                throw new InvalidOperationException(
+                    "The selected NDT result could not be found for this weld.");
+
+            if (ndt.EquipmentUsages.Any() || ndt.EquipmentId.HasValue)
+                throw new InvalidOperationException(
+                    "This NDT result already has equipment traceability and does not require legacy conversion.");
+
+            var selectedIds = equipmentIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            var equipmentOptions = await _equipmentApplicationService
+                .GetForProjectAsync(weld.ProjectId);
+
+            var usages = new List<WeldNdtEquipmentUsage>();
+
+            foreach (var equipmentId in selectedIds)
+            {
+                var equipment = equipmentOptions.FirstOrDefault(x => x.Id == equipmentId);
+
+                if (equipment == null)
+                    throw new InvalidOperationException(
+                        "One or more selected equipment items are not active or are not available to this project.");
+
+                var validCalibration = await _equipmentApplicationService
+                    .GetValidCalibrationAsync(equipment.Id, ndt.InspectionDate);
+
+                Guid? calibrationRecordId = null;
+                var calibrationCertificate = "NOT REQUIRED";
+
+                if (equipment.CalibrationRequired)
+                {
+                    if (validCalibration == null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Equipment '{equipment.EquipmentNumber}' has no approved calibration valid on {ndt.InspectionDate:yyyy-MM-dd}. The legacy NDT cannot be converted until valid evidence is available.");
+                    }
+
+                    calibrationRecordId = validCalibration.Id;
+                    calibrationCertificate = validCalibration.CertificateNumber;
+                }
+
+                usages.Add(new WeldNdtEquipmentUsage
+                {
+                    Id = Guid.NewGuid(),
+                    WeldNdtResultId = ndt.Id,
+                    EquipmentId = equipment.Id,
+                    CalibrationRecordId = calibrationRecordId,
+                    EquipmentNumberSnapshot = equipment.EquipmentNumber,
+                    EquipmentSerialNumberSnapshot = equipment.SerialNumber,
+                    CalibrationCertificateSnapshot = calibrationCertificate
+                });
+            }
+
+            _ndtRepository.AttachLegacyEquipmentTraceability(ndt.Id, usages);
+
+            _historyRepository.Add(
+                new WeldHistoryEntry
+                {
+                    Id = Guid.NewGuid(),
+                    WeldId = weld.Id,
+                    EventDate = DateTime.UtcNow,
+                    EventType = "NDT Traceability Review",
+                    Description =
+                        $"Legacy NDT traceability reviewed for {ndt.NdtMethod} inspection dated {ndt.InspectionDate:yyyy-MM-dd}. Equipment linked: {string.Join(", ", usages.Select(x => x.EquipmentNumberSnapshot))}.",
+                    UserName = _currentUser.Username,
+                    StatusSnapshot = weld.WorkflowStatus.ToString()
+                });
+
+            var details =
+                $"Legacy NDT traceability reviewed for weld '{weld.WeldNumber}', NDT '{ndt.ReportNumber}' ({ndt.Id}), inspection date {ndt.InspectionDate:yyyy-MM-dd}. " +
+                $"Equipment: {string.Join(", ", usages.Select(x => x.EquipmentNumberSnapshot))}. " +
+                $"Remarks: {reviewRemarks?.Trim() ?? string.Empty}";
+
+            _auditService.Log(
+                "Legacy NDT Traceability Reviewed",
+                "Quality.WeldRegister",
+                details);
+        }
+
+        public async Task<List<WeldNdtResult>> GetNdtAsync(
+            Guid weldId)
+        {
+            await EnsureWeldProjectAccessAsync(weldId);
+
             return _ndtRepository.GetByWeld(weldId);
         }
 
-        public List<Weld> GetAllWelds()
+        public async Task<List<Weld>> GetAllWelds()
         {
-            return _weldRepository.GetAll();
+            await EnsurePermissionAsync(
+                PermissionKeys.Quality.WeldRegister);
+
+            if (string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                return new List<Weld>();
+            }
+
+            var projects = _projectRepository.GetAll();
+            var accessibleWelds = new List<Weld>();
+
+            foreach (var project in projects)
+            {
+                if (!await _projectAccessAuthorization.CanAccessProjectAsync(
+                        _currentUser.UserId,
+                        project))
+                {
+                    continue;
+                }
+
+                accessibleWelds.AddRange(
+                    await _weldRepository.GetByProjectAsync(project.Id));
+            }
+
+            return accessibleWelds;
+        }
+
+        private async Task<Weld> EnsureWeldProjectAccessAsync(
+            Guid weldId)
+        {
+            if (weldId == Guid.Empty)
+            {
+                throw new ArgumentException(
+                    "Weld ID cannot be empty.",
+                    nameof(weldId));
+            }
+
+            if (!_currentUser.IsAuthenticated)
+            {
+                throw new UnauthorizedAccessException(
+                    "User is not authenticated.");
+            }
+
+            if (string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                throw new UnauthorizedAccessException(
+                    "User identity could not be established.");
+            }
+
+            var weld = await _weldRepository.GetByIdAsync(weldId);
+
+            if (weld == null)
+            {
+                throw new KeyNotFoundException(
+                    "Weld was not found.");
+            }
+
+            if (weld.ProjectId == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException(
+                    "Weld is not associated with a valid project.");
+            }
+
+            var project = _projectRepository.GetById(weld.ProjectId);
+
+            if (project == null)
+            {
+                throw new KeyNotFoundException(
+                    "The weld's project was not found.");
+            }
+
+            if (!await _projectAccessAuthorization.CanAccessProjectAsync(
+                    _currentUser.UserId,
+                    project))
+            {
+                throw new UnauthorizedAccessException(
+                    "User does not have access to the weld's project.");
+            }
+
+            return weld;
+        }
+        private async Task EnsurePermissionAsync(string permissionKey)
+        {
+            if (!_currentUser.IsAuthenticated)
+            {
+                throw new UnauthorizedAccessException(
+                    "User is not authenticated.");
+            }
+
+            if (string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                throw new UnauthorizedAccessException(
+                    "User identity could not be established.");
+            }
+
+            if (string.IsNullOrWhiteSpace(_currentUser.Role))
+            {
+                throw new UnauthorizedAccessException(
+                    "User does not have an assigned role.");
+            }
+
+            var hasPermission =
+                await _permissionAuthorization
+                    .HasPermissionAsync(
+                        _currentUser.UserId,
+                        _currentUser.Role,
+                        permissionKey);
+
+            if (!hasPermission)
+            {
+                throw new UnauthorizedAccessException(
+                    $"User does not have permission: {permissionKey}");
+            }
+        }
+
+        public async Task UpdateWeldAsync(Weld weld)
+        {
+            if (weld == null)
+            {
+                throw new ArgumentNullException(nameof(weld));
+            }
+
+            await EnsurePermissionAsync(
+                PermissionKeys.Quality.WeldRegister);
+
+            var existingWeld =
+                await EnsureWeldProjectAccessAsync(weld.Id);
+
+            // The general Edit Weld operation is intentionally limited to
+            // master-data fields exposed by EditWeldDialog. All compliance,
+            // traceability, workflow, NDT, repair and release fields must be
+            // changed by their dedicated business processes.
+            if (existingWeld.IsReleased ||
+                existingWeld.WorkflowStatus == WeldWorkflowStatus.TurnoverReady ||
+                existingWeld.WorkflowStatus == WeldWorkflowStatus.Closed)
+            {
+                throw new InvalidOperationException(
+                    "A released, turnover-ready or closed Weld cannot be edited through the general Weld Edit operation.");
+            }
+
+            if (existingWeld.ProjectId != weld.ProjectId)
+            {
+                throw new UnauthorizedAccessException(
+                    "The weld project cannot be changed.");
+            }
+
+            // Never persist the caller's copy of system-controlled fields.
+            // Start from the authoritative database record and copy only the
+            // fields that the current edit UI is allowed to change.
+            existingWeld.DrawingNumber = weld.DrawingNumber?.Trim() ?? string.Empty;
+            existingWeld.JointNumber = weld.JointNumber?.Trim() ?? string.Empty;
+
+            await _weldRepository.UpdateAsync(existingWeld);
+
+            _historyRepository.Add(
+                new WeldHistoryEntry
+                {
+                    Id = Guid.NewGuid(),
+                    WeldId = existingWeld.Id,
+                    EventDate = DateTime.Now,
+                    EventType = "Edit",
+                    Description = "Weld updated",
+                    UserName = "Web User",
+                    StatusSnapshot = existingWeld.Status.ToString()
+                });
+        }
+
+        public async Task<string> GetNextWeldNumberAsync(Guid projectId)
+        {
+            if (projectId == Guid.Empty)
+            {
+                throw new ArgumentException(
+                    "Project ID is required.",
+                    nameof(projectId));
+            }
+
+            if (!_currentUser.IsAuthenticated)
+            {
+                throw new UnauthorizedAccessException(
+                    "User is not authenticated.");
+            }
+
+            if (string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                throw new UnauthorizedAccessException(
+                    "Current user ID is missing.");
+            }
+
+            var project = _projectRepository.GetById(projectId);
+
+            if (project == null)
+            {
+                throw new KeyNotFoundException(
+                    "Project was not found.");
+            }
+
+            if (!await _projectAccessAuthorization.CanAccessProjectAsync(
+                    _currentUser.UserId,
+                    project))
+            {
+                throw new UnauthorizedAccessException(
+                    "You do not have access to this project.");
+            }
+
+            return await _weldRepository.GetNextWeldNumberAsync(projectId);
+        }
+
+        public async Task AddWeldAsync(Weld weld)
+        {
+            if (weld == null)
+            {
+                throw new ArgumentNullException(nameof(weld));
+            }
+
+            await EnsurePermissionAsync(
+                PermissionKeys.Quality.WeldRegister);
+
+            if (weld.ProjectId == Guid.Empty)
+            {
+                throw new ArgumentException(
+                    "A valid project is required.",
+                    nameof(weld));
+            }
+
+            var project = _projectRepository.GetById(weld.ProjectId);
+
+            if (project == null)
+            {
+                throw new KeyNotFoundException(
+                    "The weld project was not found.");
+            }
+
+            if (!await _projectAccessAuthorization.CanAccessProjectAsync(
+                _currentUser.UserId,
+                project))
+            {
+                throw new UnauthorizedAccessException(
+                    "You do not have access to this project.");
+            }
+
+            // ======================================================
+            // SERVER-SIDE WELD CREATION GOVERNANCE (W3)
+            // ======================================================
+            // The client may supply display values, but the server
+            // must be authoritative for the selected WPS, company
+            // ownership, welder qualification and initial lifecycle.
+
+            if (!project.CompanyId.HasValue || project.CompanyId.Value == Guid.Empty)
+            {
+                throw new InvalidOperationException(
+                    "The project does not have a welding company assigned. A Weld cannot be created without company ownership.");
+            }
+
+            var weldingCompanyId =
+                project.WeldingSubcontractorCompanyId
+                ?? project.CompanyId;
+
+            if (!weld.WpsId.HasValue || weld.WpsId.Value == Guid.Empty)
+            {
+                throw new ArgumentException(
+                    "An exact WPS revision must be selected.",
+                    nameof(weld));
+            }
+
+            var wps = _wpsRepository.GetById(weld.WpsId.Value);
+
+            if (wps == null)
+            {
+                throw new InvalidOperationException(
+                    "The selected WPS revision was not found.");
+            }
+
+            if (!wps.CompanyId.HasValue ||
+                wps.CompanyId.Value != weldingCompanyId.Value)
+            {
+                throw new UnauthorizedAccessException(
+                    "The selected WPS does not belong to the welding company assigned to this project.");
+            }
+
+            if (!wps.IsApproved)
+            {
+                throw new InvalidOperationException(
+                    $"WPS {wps.WpsNumber} Rev {wps.Revision} is not approved and cannot be assigned to a new Weld.");
+            }
+
+            if (!wps.IsActive)
+            {
+                throw new InvalidOperationException(
+                    $"WPS {wps.WpsNumber} Rev {wps.Revision} is inactive and cannot be assigned to a new Weld.");
+            }
+
+            if (string.IsNullOrWhiteSpace(weld.WelderNumber))
+            {
+                throw new ArgumentException(
+                    "A welder must be selected.",
+                    nameof(weld));
+            }
+
+            if (weld.Thickness <= 0)
+            {
+                throw new ArgumentException(
+                    "Weld thickness must be greater than zero.",
+                    nameof(weld));
+            }
+
+            // Load qualifications only from the project's company.
+            // Do not use the unrestricted GetByWelderNumber lookup.
+            var qualifications =
+                _welderQualificationRepository.GetByCompany(
+                    weldingCompanyId.Value);
+
+            var compatibleQualification =
+                qualifications.FirstOrDefault(q =>
+                    string.Equals(
+                        q.WelderNumber,
+                        weld.WelderNumber,
+                        StringComparison.OrdinalIgnoreCase) &&
+                    _welderQualificationValidationService
+                        .IsWelderQualifiedForWps(
+                            q,
+                            wps,
+                            weld.Thickness));
+
+            if (compatibleQualification == null)
+            {
+                throw new InvalidOperationException(
+                    $"Welder {weld.WelderNumber} does not have a current qualification compatible with WPS {wps.WpsNumber} Rev {wps.Revision} and weld thickness {weld.Thickness:N2} mm.");
+            }
+
+            // WPS is authoritative for the WPS reference and core
+            // welding variables. Do not trust client-supplied copies.
+            weld.WpsId = wps.Id;
+            weld.WpsNumber = wps.WpsNumber;
+            weld.Process = wps.Process;
+            weld.Position = wps.Position ?? compatibleQualification.Position;
+            weld.MaterialGroup = wps.MaterialGroup;
+
+            // A newly registered Weld always starts at the controlled
+            // initial state. Workflow advancement must happen through
+            // TransitionWorkflowAsync.
+            weld.Status = WeldStatusType.Pending;
+            weld.WorkflowStatus = WeldWorkflowStatus.Draft;
+            weld.IsReleased = false;
+            weld.ReleaseReady = false;
+            weld.TurnoverReady = false;
+            weld.ReleasedBy = string.Empty;
+            weld.ReleasedDate = null;
+
+            await _weldRepository.AddAsync(weld);
+        }
+
+        public async Task DeleteWeldAsync(Guid weldId)
+        {
+            await EnsurePermissionAsync(
+                PermissionKeys.Quality.WeldRegister);
+
+            await EnsureWeldProjectAccessAsync(weldId);
+
+            await _weldRepository.DeleteAsync(weldId);
         }
 
         /// <summary>
@@ -93,10 +772,14 @@ namespace WeldAdminPro.Data.Services.Quality
                     nameof(weld));
             }
 
+            await EnsurePermissionAsync(
+                PermissionKeys.Quality.WeldRegister);
+            weld = await EnsureWeldProjectAccessAsync(weld.Id);
+
             if (string.IsNullOrWhiteSpace(userName))
             {
                 userName =
-                    Environment.UserName;
+                    _currentUser.Username;
             }
 
             var previousStatus =
@@ -129,6 +812,55 @@ namespace WeldAdminPro.Data.Services.Quality
             var repairs =
                 _repairRepository.GetByWeld(
                     weld.Id);
+
+            var traceability =
+                _weldTraceabilityRepository.GetByWeld(
+                    weld.Id);
+
+            var ncrs =
+                _ncrRepository.GetByWeld(
+                    weld.Id);
+
+            var hasOpenNcrs =
+                ncrs.Any(n =>
+                    n.Status != NcrStatus.Closed ||
+                    !n.IsClosed);
+
+            var calibrationDocuments =
+                _documentVaultRepository.GetByWeld(
+                    weld.Id);
+
+            // W17: calibration compliance is now derived from the
+            // actual equipment recorded against NDT results.
+            // Legacy welds without equipment retain the previous
+            // approved calibration-certificate fallback so existing
+            // records remain reviewable while new NDT captures are
+            // required to carry equipment traceability.
+            var hasEquipmentCalibrationCompliance =
+                await _equipmentApplicationService
+                    .IsNdtCalibrationCompliantAsync(
+                        weld.ProjectId,
+                        ndtResults);
+
+            var hasLegacyCalibrationDocument =
+                calibrationDocuments.Any(x =>
+                    x.Category ==
+                        DocumentCategoryType.CalibrationCertificate &&
+                    x.IsApproved);
+
+            // W18.1-H2:
+            // When NDT records exist, calibration compliance MUST come
+            // from the controlled NDT equipment traceability model.
+            //
+            // Legacy weld-level calibration certificates may still support
+            // welds that have NO NDT records at all. However, once an NDT
+            // record exists, an unreviewed legacy NDT record must not bypass
+            // equipment/calibration validation through the old certificate
+            // fallback.
+            var hasCalibrationCompliance =
+                ndtResults.Count == 0
+                    ? hasLegacyCalibrationDocument
+                    : hasEquipmentCalibrationCompliance;
 
             var wps =
                 string.IsNullOrWhiteSpace(
@@ -174,8 +906,86 @@ namespace WeldAdminPro.Data.Services.Quality
                     weld,
                     ndtResults,
                     repairs,
+                    traceability,
                     hasApprovedWps,
-                    hasQualifiedWelder);
+                    hasQualifiedWelder,
+                    hasCalibrationCompliance,
+                    hasOpenNcrs);
+
+
+            // ==========================================
+            // DEDICATED RELEASE VALIDATION
+            // ==========================================
+            //
+            // The release validator is the dedicated
+            // application-level release governance gate.
+            //
+            // Evidence has already been derived from
+            // the database and assembled into releaseContext.
+            // ==========================================
+
+            if (targetStatus ==
+                WeldWorkflowStatus.Released)
+            {
+                if (!_currentUser.IsAuthenticated)
+                {
+                    throw new UnauthorizedAccessException(
+                        "User is not authenticated.");
+                }
+
+                if (string.IsNullOrWhiteSpace(
+                    _currentUser.Role))
+                {
+                    throw new UnauthorizedAccessException(
+                        "User does not have an assigned role.");
+                }
+
+                var hasReleasePermission =
+                    await _permissionAuthorization
+                        .HasPermissionAsync(
+                            _currentUser.UserId,
+                            _currentUser.Role,
+                            PermissionKeys.Quality.WeldRelease);
+
+                if (!hasReleasePermission)
+                {
+                    throw new UnauthorizedAccessException(
+                        "User does not have permission to release welds.");
+                }
+
+                var releaseValidation =
+                    _releaseValidationService.ValidateRelease(
+                        weld,
+                        releaseContext);
+
+                if (!releaseValidation.Success)
+                {
+                    var releaseMessage =
+                        string.IsNullOrWhiteSpace(
+                            releaseValidation.ErrorMessage)
+                            ? "Release validation failed."
+                            : releaseValidation.ErrorMessage;
+
+                    throw new InvalidOperationException(
+                        releaseMessage);
+                }
+
+                var itpCompliance =
+                    _itpComplianceService.Evaluate(weld);
+
+                if (!itpCompliance.IsCompliant)
+                {
+                    var itpMessage =
+                        itpCompliance.BlockingIssues.Count == 0
+                            ? "ITP compliance validation failed."
+                            : string.Join(
+                                Environment.NewLine,
+                                itpCompliance.BlockingIssues);
+
+                    throw new InvalidOperationException(
+                        itpMessage);
+                }
+            }
 
             var transition =
                 workflowEngine.TryTransition(
@@ -184,7 +994,8 @@ namespace WeldAdminPro.Data.Services.Quality
                     releaseContext.HasApprovedWps,
                     releaseContext.HasQualifiedWelder,
                     releaseContext.HasAcceptedNdt,
-                    releaseContext.HasOpenRepairs);
+                    releaseContext.HasOpenRepairs,
+                    releaseContext.HasOpenNcrs);
 
             if (!transition.Success)
             {
@@ -201,10 +1012,23 @@ namespace WeldAdminPro.Data.Services.Quality
             }
 
             // ==========================================
+            // FORMAL RELEASE RECORD
+            // ==========================================
+
+            if (targetStatus ==
+                WeldWorkflowStatus.Released)
+            {
+                weld.ReleaseReady = true;
+                weld.IsReleased = true;
+                weld.ReleasedBy = userName;
+                weld.ReleasedDate = DateTime.UtcNow;
+            }
+
+            // ==========================================
             // PERSIST GOVERNED WORKFLOW STATE
             // ==========================================
 
-            await _weldRepository.UpdateAsync(weld);
+            await _weldRepository.UpdateWorkflowAsync(weld);
 
             // ==========================================
             // AUDIT HISTORY
@@ -230,11 +1054,17 @@ namespace WeldAdminPro.Data.Services.Quality
             Weld weld,
             WeldNdtResult result)
         {
+            await EnsurePermissionAsync(
+                PermissionKeys.Quality.NDT);
+
             if (weld == null)
             {
                 throw new ArgumentNullException(
                     nameof(weld));
             }
+
+            weld = await EnsureWeldProjectAccessAsync(weld.Id);
+
 
             if (result == null)
             {
@@ -260,6 +1090,96 @@ namespace WeldAdminPro.Data.Services.Quality
 
             result.WeldId =
                 weld.Id;
+
+            // ==========================================
+            // W18 EQUIPMENT / CALIBRATION GOVERNANCE
+            // ==========================================
+            // One NDT examination may use multiple controlled equipment items.
+            // The server resolves and snapshots each selected item and its exact
+            // calibration record for the inspection date.
+            var selectedEquipmentIds =
+                (result.EquipmentIds ?? new List<Guid>())
+                    .Where(x => x != Guid.Empty)
+                    .Distinct()
+                    .ToList();
+
+            // Backward compatibility for callers that still provide the primary
+            // W17 EquipmentId only.
+            if (selectedEquipmentIds.Count == 0 &&
+                result.EquipmentId.HasValue &&
+                result.EquipmentId.Value != Guid.Empty)
+            {
+                selectedEquipmentIds.Add(result.EquipmentId.Value);
+            }
+
+            if (selectedEquipmentIds.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "At least one NDT equipment item must be selected before the result can be captured.");
+            }
+
+            var equipmentOptions =
+                await _equipmentApplicationService
+                    .GetForProjectAsync(weld.ProjectId);
+
+            var equipmentUsages = new List<WeldNdtEquipmentUsage>();
+
+            foreach (var equipmentId in selectedEquipmentIds)
+            {
+                var equipment =
+                    equipmentOptions.FirstOrDefault(x => x.Id == equipmentId);
+
+                if (equipment == null)
+                {
+                    throw new InvalidOperationException(
+                        "One or more selected NDT equipment items are not active or are not available to this project.");
+                }
+
+                var validCalibration =
+                    await _equipmentApplicationService
+                        .GetValidCalibrationAsync(
+                            equipment.Id,
+                            result.InspectionDate);
+
+                Guid? calibrationRecordId = null;
+                var calibrationCertificate = "NOT REQUIRED";
+
+                if (equipment.CalibrationRequired)
+                {
+                    if (validCalibration == null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Equipment '{equipment.EquipmentNumber}' has no approved calibration valid on {result.InspectionDate:yyyy-MM-dd}.");
+                    }
+
+                    calibrationRecordId = validCalibration.Id;
+                    calibrationCertificate = validCalibration.CertificateNumber;
+                }
+
+                equipmentUsages.Add(
+                    new WeldNdtEquipmentUsage
+                    {
+                        Id = Guid.NewGuid(),
+                        WeldNdtResultId = result.Id,
+                        EquipmentId = equipment.Id,
+                        CalibrationRecordId = calibrationRecordId,
+                        EquipmentNumberSnapshot = equipment.EquipmentNumber,
+                        EquipmentSerialNumberSnapshot = equipment.SerialNumber,
+                        CalibrationCertificateSnapshot = calibrationCertificate
+                    });
+            }
+
+            result.EquipmentIds = selectedEquipmentIds;
+            result.EquipmentUsages = equipmentUsages;
+
+            // Keep the first item in the original W17 fields for compatibility
+            // with existing reports and integrations.
+            var primaryUsage = equipmentUsages[0];
+            result.EquipmentId = primaryUsage.EquipmentId;
+            result.CalibrationRecordId = primaryUsage.CalibrationRecordId;
+            result.EquipmentNumberSnapshot = primaryUsage.EquipmentNumberSnapshot;
+            result.EquipmentSerialNumberSnapshot = primaryUsage.EquipmentSerialNumberSnapshot;
+            result.CalibrationCertificateSnapshot = primaryUsage.CalibrationCertificateSnapshot;
 
             // ==========================================
             // DATABASE-DERIVED NDT LIFECYCLE EVIDENCE
@@ -402,6 +1322,63 @@ namespace WeldAdminPro.Data.Services.Quality
                 result);
 
             // ==========================================
+            // AUTOMATIC NCR CREATION
+            // ==========================================
+            //
+            // A first-time NDT Reject/Repair automatically
+            // creates the NCR that governs the corrective
+            // action lifecycle.
+            // ==========================================
+
+            var existingNcrBeforeAutoCreation =
+                _ncrRepository
+                    .GetByWeld(weld.Id)
+                    .FirstOrDefault();
+
+            var automaticNcr =
+                CreateAutomaticNcrForRejectedNdt(
+                    weld,
+                    result);
+
+            if (
+                automaticNcr != null &&
+                existingNcrBeforeAutoCreation == null)
+            {
+                _ncrWorkflowHistoryRepository.Add(
+                    new NcrWorkflowHistoryEntry
+                    {
+                        Id =
+                            Guid.NewGuid(),
+
+                        NcrId =
+                            automaticNcr.Id,
+
+                        FromStatus =
+                            null,
+
+                        ToStatus =
+                            NcrStatus.Open,
+
+                        Action =
+                            "Created",
+
+                        PerformedBy =
+                            string.IsNullOrWhiteSpace(
+                                result.InspectorName)
+                                ? _currentUser.Username
+                                : result.InspectorName.Trim(),
+
+                        PerformedDate =
+                            DateTime.UtcNow,
+
+                        Details =
+                            $"Automatically created from " +
+                            $"NDT result '{result.Result}' " +
+                            $"for weld '{weld.WeldNumber}'."
+                    });
+            }
+
+            // ==========================================
             // REINSPECTION -> REPAIR SYNCHRONIZATION
             // ==========================================
             //
@@ -455,6 +1432,21 @@ namespace WeldAdminPro.Data.Services.Quality
 
                 _repairRepository.Update(
                     latestRepair);
+
+                // ==========================================
+                // NEXT REPAIR CYCLE
+                // ==========================================
+                //
+                // A failed reinspection rejects the current
+                // repair cycle only.
+                //
+                // The next repair cycle is created explicitly
+                // through CreateNextRepairCycleAsync().
+                //
+                // Do not automatically create another repair
+                // during NDT result capture.
+                // ==========================================
+
             }
 
             // ==========================================
@@ -515,7 +1507,10 @@ namespace WeldAdminPro.Data.Services.Quality
                 requiresRepair;
 
             weld.RepairCycle =
-                derivedRepairCycle;
+                _repairRepository.GetByWeld(weld.Id)
+                    .OrderByDescending(repair => repair.RepairNumber)
+                    .Select(repair => repair.RepairNumber)
+                    .FirstOrDefault();
 
             weld.LastNdtDate =
                 result.InspectionDate;
@@ -523,7 +1518,12 @@ namespace WeldAdminPro.Data.Services.Quality
             weld.LastNdtResult =
                 result.Result.ToString();
 
-            await _weldRepository.UpdateAsync(
+            // Persist governed workflow state first.
+            // UpdateNdtProjectionAsync persists the NDT projection
+            // but does not persist WorkflowStatus.
+            await _weldRepository.UpdateWorkflowAsync(weld);
+
+            await _weldRepository.UpdateNdtProjectionAsync(
                 weld);
 
             // ==========================================
@@ -561,3 +1561,11 @@ namespace WeldAdminPro.Data.Services.Quality
         }
     }
 }
+
+
+
+
+
+
+
+

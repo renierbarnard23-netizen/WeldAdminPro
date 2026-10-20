@@ -1,11 +1,13 @@
-@page "/production/workorders/new"
+﻿@page "/production/workorders/new"
 
 @attribute [Authorize(Policy = "Permission:Production.CreateWorkOrder")]
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Production
+@using WeldAdminPro.Data.Services.Projects
 @using MudBlazor
 
 @inject ProductionApplicationService ProductionService
+@inject ProjectApplicationService ProjectService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -134,13 +136,13 @@
     private WorkOrderStatus _status =
         WorkOrderStatus.Ready;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _projects =
-            ProductionService.GetProjects();
+            await ProjectService.GetProjectsAsync();
     }
 
-    private void Create()
+    private async Task Create()
     {
         if (_selectedProject == null)
         {
@@ -170,7 +172,7 @@
                 DueDate = _dueDate
             };
 
-            ProductionService.CreateWorkOrder(workOrder);
+            await ProductionService.CreateWorkOrderAsync(workOrder);
 
             Snackbar.Add(
                 "Work Order created successfully.",
@@ -193,3 +195,4 @@
             "/production/workorders");
     }
 }
+

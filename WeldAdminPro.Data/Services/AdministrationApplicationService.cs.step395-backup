@@ -1,0 +1,255 @@
+using System.Linq;
+using System.Collections.Generic;
+using WeldAdminPro.Core.Models;
+using WeldAdminPro.Core.Services;
+using WeldAdminPro.Data.Repositories;
+
+namespace WeldAdminPro.Data.Services
+{
+    public class AdministrationApplicationService
+    {
+        private readonly SystemUserRepository _userRepository;
+        private readonly CompanyRepository _companyRepository;
+        private readonly AuditLogRepository _auditRepository;
+        private readonly ProductionSettingsRepository _settingsRepository;
+        private readonly PasswordHashService _passwordHashService;
+        private readonly AuditService _auditService;
+
+        public AdministrationApplicationService(
+            AuditService auditService)
+        {
+            _auditService = auditService;
+            var connectionString = DatabasePath.GetConnectionString();
+
+            _userRepository = new SystemUserRepository(connectionString);
+            _companyRepository = new CompanyRepository();
+            _auditRepository = new AuditLogRepository(connectionString);
+            _settingsRepository = new ProductionSettingsRepository(); 
+
+            _passwordHashService = new PasswordHashService();
+        }
+
+        private SystemUser? GetUser(Guid userId)
+        {
+            return _userRepository
+                .GetAll()
+                .FirstOrDefault(x => x.Id == userId);
+        }
+
+        public List<SystemUser> GetUsers()
+        {
+            return _userRepository.GetAll();
+        }
+
+        public void UpdateUser(SystemUser user)
+        {
+            _userRepository.Update(user);
+
+            _auditService.Log(
+                "EDIT USER",
+                "User Management",
+                $"Edited user: {user.Username}");
+        }
+
+        public void EnableUser(Guid userId)
+        {
+            var user = GetUser(userId);
+
+            if (user == null)
+                return;
+
+            user.IsActive = true;
+
+            _userRepository.Update(user);
+
+            _auditService.Log(
+                "ENABLE USER",
+                "User Management",
+                $"Enabled user: {user.Username}");
+        }
+
+        public void DisableUser(Guid userId)
+        {
+            var user = GetUser(userId);
+
+            if (user == null)
+                return;
+
+            user.IsActive = false;
+
+            _userRepository.Update(user);
+
+            _auditService.Log(
+                "DISABLE USER",
+                "User Management",
+                $"Disabled user: {user.Username}");
+        }
+
+        public void ResetPassword(Guid userId)
+        {
+            var user = GetUser(userId);
+
+            if (user == null)
+                return;
+
+            user.PasswordHash = _passwordHashService.Hash("password123");
+
+            _userRepository.Update(user);
+
+            _auditService.Log(
+                "RESET PASSWORD",
+                "User Management",
+                $"Password reset for: {user.Username}");
+        }
+
+        public void SetPassword(Guid userId, string password)
+        {
+            if (string.IsNullOrWhiteSpace(password))
+                throw new ArgumentException("Password cannot be empty.");
+
+            var user = GetUser(userId);
+
+            if (user == null)
+                return;
+
+            user.PasswordHash = _passwordHashService.Hash(password);
+
+            _userRepository.Update(user);
+
+            _auditService.Log(
+                "CHANGE PASSWORD",
+                "User Management",
+                $"Password changed for: {user.Username}");
+        }
+
+        public void AddUser(SystemUser user)
+        {
+            if (string.IsNullOrWhiteSpace(user.PasswordHash))
+            {
+                user.PasswordHash =
+                    _passwordHashService.Hash("password123");
+            }
+
+            _userRepository.Add(user);
+
+            _auditService.Log(
+                "CREATE USER",
+                "User Management",
+                $"Created user: {user.Username}");
+        }
+
+
+        public List<Company> GetCompanies()
+        {
+            return _companyRepository.GetAll();
+        }
+
+        public Company? GetCompany(Guid id)
+        {
+            return _companyRepository.GetById(id);
+        }
+
+        public void AddCompany(Company company)
+        {
+            if (company == null)
+                throw new ArgumentNullException(nameof(company));
+
+            if (string.IsNullOrWhiteSpace(company.CompanyName))
+                throw new ArgumentException(
+                    "Company name cannot be empty.");
+
+            if (string.IsNullOrWhiteSpace(company.CompanyCode))
+                throw new ArgumentException(
+                    "Company code cannot be empty.");
+
+            if (_companyRepository.GetByCode(company.CompanyCode) != null)
+                throw new InvalidOperationException(
+                    "A company with this code already exists.");
+
+            _companyRepository.Add(company);
+
+            _auditService.Log(
+                "CREATE COMPANY",
+                "Administration",
+                $"Created company: {company.CompanyName} ({company.CompanyCode})");
+        }
+
+        public void UpdateCompany(Company company)
+        {
+            if (company == null)
+                throw new ArgumentNullException(nameof(company));
+
+            if (string.IsNullOrWhiteSpace(company.CompanyName))
+                throw new ArgumentException(
+                    "Company name cannot be empty.");
+
+            if (string.IsNullOrWhiteSpace(company.CompanyCode))
+                throw new ArgumentException(
+                    "Company code cannot be empty.");
+
+            var existing = _companyRepository.GetByCode(company.CompanyCode);
+
+            if (existing != null && existing.Id != company.Id)
+                throw new InvalidOperationException(
+                    "Another company already uses this company code.");
+
+            _companyRepository.Update(company);
+
+            _auditService.Log(
+                "EDIT COMPANY",
+                "Administration",
+                $"Edited company: {company.CompanyName} ({company.CompanyCode})");
+        }
+
+        public void EnableCompany(Guid companyId)
+        {
+            var company = _companyRepository.GetById(companyId);
+
+            if (company == null)
+                return;
+
+            _companyRepository.SetActive(companyId, true);
+
+            _auditService.Log(
+                "ENABLE COMPANY",
+                "Administration",
+                $"Enabled company: {company.CompanyName}");
+        }
+
+        public void DisableCompany(Guid companyId)
+        {
+            var company = _companyRepository.GetById(companyId);
+
+            if (company == null)
+                return;
+
+            _companyRepository.SetActive(companyId, false);
+
+            _auditService.Log(
+                "DISABLE COMPANY",
+                "Administration",
+                $"Disabled company: {company.CompanyName}");
+        }
+
+        public ProductionSettings GetProductionSettings()
+        {
+            return _settingsRepository.Get();
+        }
+
+        public void SaveProductionSettings(ProductionSettings settings)
+        {
+            _settingsRepository.Save(settings);
+
+            _auditService.Log(
+                "UPDATE PRODUCTION SETTINGS",
+                "Administration",
+                "Production settings updated.");
+        }
+
+        public List<AuditLog> GetAuditLog()
+        {
+            return _auditRepository.GetAll();
+        }
+    }
+
+}

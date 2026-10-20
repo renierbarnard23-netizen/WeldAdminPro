@@ -1,15 +1,18 @@
-@page "/quality/wps"
+﻿@page "/quality/wps"
 
 @attribute [Authorize(Policy = "Permission:Quality.WPS")]
 @using System.IO;
+@using System.Text.Json;
 @using MudBlazor
 @using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Core.Quality.Services
 @using WeldAdminPro.Web.Services.Quality
 @using WeldAdminPro.Web.Components.Shared.Quality
 @using WeldAdminPro.Data.Services
 @using Microsoft.AspNetCore.Components.Forms
 
 @inject WpsApplicationService WpsService
+@inject WpsWorkflowService WpsWorkflow
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
@@ -48,20 +51,21 @@
 <WpsGrid Items="_items"
          OnEdit="EditWps"
          OnDelete="DeleteWps"
-         OnView="ViewWps" />
+         OnView="ViewWps"
+         OnApprove="ApproveWps" />
 
 @code
 {
     private List<Wps> _items = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Load();
+        await LoadAsync();
     }
 
-    private void Load()
+    private async Task LoadAsync()
     {
-        _items = WpsService.GetAll();
+        _items = await WpsService.GetAllAsync();
     }
 
     private async Task NewWps()
@@ -82,30 +86,25 @@
 
         var wps = (Wps)result.Data!;
 
-        WpsService.Save(wps);
+        await WpsService.SaveAsync(wps);
 
         Snackbar.Add("WPS created.", Severity.Success);
 
-        Load();
+        await LoadAsync();
 
         StateHasChanged();
     }
 
     private async Task EditWps(Wps wps)
     {
-        var copy = new Wps
-        {
-            Id = wps.Id,
-            WpsNumber = wps.WpsNumber,
-            Process = wps.Process,
-            MaterialGroup = wps.MaterialGroup,
-            ThicknessMin = wps.ThicknessMin,
-            ThicknessMax = wps.ThicknessMax,
-            LinkedPqrNumber = wps.LinkedPqrNumber,
-            IsApproved = wps.IsApproved,
-            IsActive = wps.IsActive,
-            Revision = wps.Revision
-        };
+
+        // Create a complete detached copy.
+        // This preserves all WPS engineering and document-control fields
+        // while preventing Cancel from modifying the grid record.
+        var copy = JsonSerializer.Deserialize<Wps>(
+            JsonSerializer.Serialize(wps))
+            ?? new Wps();
+
 
         var parameters = new DialogParameters
         {
@@ -121,26 +120,78 @@
         if (result is null || result.Canceled)
             return;
 
-        WpsService.Save((Wps)result.Data!);
+        await WpsService.SaveAsync((Wps)result.Data!);
 
         Snackbar.Add("WPS updated.", Severity.Success);
 
-        Load();
+        await LoadAsync();
 
         StateHasChanged();
     }
 
-    private Task DeleteWps(Wps wps)
+    private async Task ApproveWps(Wps wps)
     {
-        WpsService.Delete(wps.Id);
+        try
+        {
+            var currentItems = await WpsService.GetAllAsync();
+            var current = currentItems
+                .FirstOrDefault(x => x.Id == wps.Id);
+
+            if (current == null)
+            {
+                Snackbar.Add(
+                    "The WPS could not be found.",
+                    Severity.Error);
+
+                return;
+            }
+
+            if (current.IsApproved)
+            {
+                Snackbar.Add(
+                    "This WPS is already approved.",
+                    Severity.Warning);
+
+                return;
+            }
+
+            await WpsWorkflow.ApproveAsync(current);
+
+            await WpsService.SaveAsync(current);
+
+            Snackbar.Add(
+                $"WPS '{current.WpsNumber}' Revision {current.Revision} approved and locked.",
+                Severity.Success);
+
+            await LoadAsync();
+            StateHasChanged();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to approve WPS: {ex.Message}",
+                Severity.Error);
+        }
+    }
+
+    private async Task DeleteWps(Wps wps)
+    {
+        await WpsService.DeleteAsync(wps.Id);
 
         Snackbar.Add("WPS deleted.", Severity.Success);
 
-        Load();
+        await LoadAsync();
 
         StateHasChanged();
 
-        return Task.CompletedTask;
     }
 
     private Task ViewWps(Wps wps)
@@ -198,11 +249,11 @@
             if (result == null || result.Canceled)
                 return;
 
-            WpsService.Save((Wps)result.Data!);
+            await WpsService.SaveAsync((Wps)result.Data!);
 
             Snackbar.Add("Imported successfully.", Severity.Success);
 
-            Load();
+            await LoadAsync();
 
             StateHasChanged();
         }
@@ -212,3 +263,4 @@
         }
     }
 }
+

@@ -1,11 +1,17 @@
-using WeldAdminPro.Core.Quality;
+﻿using WeldAdminPro.Core.Quality;
 using WeldAdminPro.Data.Repositories;
 
 namespace WeldAdminPro.Data.Services
 {
     public class ProjectDocumentService
     {
-        private readonly ProjectDocumentRepository _repo = new();
+        private readonly ProjectDocumentRepository _repo;
+
+        public ProjectDocumentService(ProjectDocumentRepository repo)
+        {
+            _repo = repo
+                ?? throw new ArgumentNullException(nameof(repo));
+        }
 
         private readonly List<ProjectDocument> _defaultDocs = new()
 {

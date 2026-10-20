@@ -1,4 +1,4 @@
-@using MudBlazor
+﻿@using MudBlazor
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Core.Security.Models
 
@@ -44,6 +44,25 @@
 
         <MudItem xs="12" md="6">
 
+            <MudSelect T="Guid?"
+                       Label="Company"
+                       Clearable="true"
+                       @bind-Value="User.CompanyId">
+
+                @foreach (var company in Companies)
+                {
+                    <MudSelectItem T="Guid?"
+                                   Value="@company.Id">
+                        @company.CompanyName (@company.CompanyCode)
+                    </MudSelectItem>
+                }
+
+            </MudSelect>
+
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+
             <MudCheckBox Label="Active"
                          @bind-Value="User.IsActive" />
 
@@ -53,7 +72,93 @@
 
     <MudDivider Class="my-4" />
 
-    <MudButton Variant="Variant.Filled"
+        <MudDivider Class="my-4" />
+
+    <MudText Typo="Typo.subtitle1" Class="mb-2">
+        Additional Company Access
+    </MudText>
+
+    <MudText Typo="Typo.body2" Class="mb-3">
+        Home company access is automatic. Additional companies must be explicitly granted.
+    </MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            <MudSelect T="Guid?"
+                       Label="Additional Company"
+                       Clearable="true"
+                       @bind-Value="_selectedAdditionalCompany">
+
+                @foreach (var company in AvailableAdditionalCompanies)
+                {
+                    <MudSelectItem T="Guid?"
+                                   Value="@company.Id">
+                        @company.CompanyName (@company.CompanyCode)
+                    </MudSelectItem>
+                }
+
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       Disabled="@(!_selectedAdditionalCompany.HasValue)"
+                       OnClick="GrantSelectedCompanyAccess"
+                       Class="mt-2">
+                Grant Access
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+
+    @if (AdditionalCompanyAccess.Any(x => x.IsActive))
+    {
+        <MudTable T="UserCompanyAccess"
+                  Items="@AdditionalCompanyAccess.Where(x => x.IsActive)"
+                  Dense="true"
+                  Hover="true"
+                  Class="mt-3">
+
+            <HeaderContent>
+                <MudTh>Company</MudTh>
+                <MudTh>Valid From</MudTh>
+                <MudTh>Valid Until</MudTh>
+                <MudTh>Granted By</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+
+            <RowTemplate>
+                <MudTd>
+                    @GetCompanyName(context.CompanyId)
+                </MudTd>
+
+                <MudTd>
+                    @(context.ValidFrom?.ToString("yyyy-MM-dd") ?? "No restriction")
+                </MudTd>
+
+                <MudTd>
+                    @(context.ValidUntil?.ToString("yyyy-MM-dd") ?? "No expiry")
+                </MudTd>
+
+                <MudTd>
+                    @context.CreatedBy
+                </MudTd>
+
+                <MudTd>
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Error"
+                               Size="Size.Small"
+                               OnClick="@(() => RevokeCompanyAccess(context.Id))">
+                        Revoke
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+
+        </MudTable>
+    }
+
+    <MudDivider Class="my-4" />
+<MudButton Variant="Variant.Filled"
                Color="Color.Primary"
                OnClick="Save">
 
@@ -73,10 +178,58 @@
         Array.Empty<Role>();
 
     [Parameter]
+    public IReadOnlyList<Company> Companies { get; set; } =
+        Array.Empty<Company>();
+
+    [Parameter]
+    public IReadOnlyList<UserCompanyAccess> AdditionalCompanyAccess { get; set; } =
+        Array.Empty<UserCompanyAccess>();
+
+    [Parameter]
+    public EventCallback<Guid> OnGrantCompanyAccess { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnRevokeCompanyAccess { get; set; }
+
+    [Parameter]
     public EventCallback OnSave { get; set; }
+
+    private Guid? _selectedAdditionalCompany;
+
+    private IEnumerable<Company> AvailableAdditionalCompanies =>
+        Companies.Where(company =>
+            (!User.CompanyId.HasValue ||
+             company.Id != User.CompanyId.Value) &&
+            !AdditionalCompanyAccess.Any(
+                access => access.IsActive &&
+                          access.CompanyId == company.Id));
+    private async Task GrantSelectedCompanyAccess()
+    {
+        if (!_selectedAdditionalCompany.HasValue)
+            return;
+
+        await OnGrantCompanyAccess.InvokeAsync(
+            _selectedAdditionalCompany.Value);
+
+        _selectedAdditionalCompany = null;
+    }
+
+    private async Task RevokeCompanyAccess(Guid accessId)
+    {
+        await OnRevokeCompanyAccess.InvokeAsync(accessId);
+    }
+
+    private string GetCompanyName(Guid companyId)
+    {
+        return Companies
+            .FirstOrDefault(x => x.Id == companyId)
+            ?.CompanyName
+            ?? "Unknown";
+    }
 
     private async Task Save()
     {
         await OnSave.InvokeAsync();
     }
 }
+

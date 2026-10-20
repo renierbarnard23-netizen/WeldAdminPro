@@ -1,0 +1,484 @@
+﻿using System;
+using System.Linq;
+using System.Diagnostics;
+using System.IO;
+using System.Collections.Generic;
+using WeldAdminPro.Core.Models;
+using WeldAdminPro.Core.Security.Abstractions;
+using WeldAdminPro.Core.Guards;
+using WeldAdminPro.Core.Quality;
+using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Data.Services;
+
+namespace WeldAdminPro.Data.Services.Projects
+{
+    public class ProjectApplicationService
+    {
+        private readonly ICurrentUserContext _currentUser;
+        private readonly ProjectRepository _projectRepository;
+        private readonly ProjectDocumentRepository _documentRepository;
+        private readonly ProjectStockUsageRepository _stockRepository;
+        private readonly ProjectMaterialService _materialService;
+        private readonly ProjectDocumentFileRepository _fileRepository;
+        public List<ProjectDocumentFile> GetDocumentFiles(Guid documentId)
+        {
+            return _fileRepository.GetByDocument(documentId);
+        }
+
+        public ProjectApplicationService(ICurrentUserContext currentUser)
+        {
+            _currentUser = currentUser
+                ?? throw new ArgumentNullException(nameof(currentUser));
+
+            _projectRepository = new ProjectRepository();
+            _documentRepository = new ProjectDocumentRepository();
+            _stockRepository = new ProjectStockUsageRepository();
+            _materialService = new ProjectMaterialService();
+
+            _fileRepository = new ProjectDocumentFileRepository();
+        }
+
+        // =============================
+        // Projects
+        // =============================
+
+        public List<Project> GetProjects()
+        {
+            var projects = _projectRepository.GetAll().ToList();
+
+            if (IsAdministrator())
+                return projects;
+
+            RequireCompanyContext();
+
+            return projects
+                .Where(p => p.CompanyId == _currentUser.CompanyId)
+                .ToList();
+        }
+
+        public Project? GetProject(Guid id)
+        {
+            var project = _projectRepository.GetById(id);
+
+            if (project == null)
+                return null;
+
+            EnsureProjectAccess(project);
+
+            return project;
+        }
+
+        public void SaveProject(Project project)
+        {
+            Console.WriteLine("SaveProject called");
+
+            if (project == null)
+                throw new ArgumentNullException(nameof(project));
+
+            ValidateProject(project);
+            ProjectCompletionGuard.ValidateBeforeSave(project);
+
+            if (project.Id == Guid.Empty)
+            {
+                Console.WriteLine("Calling CreateProject");
+                CreateProject(project);
+            }
+            else
+            {
+                Console.WriteLine("Calling UpdateProject");
+                UpdateProject(project);
+            }
+        }
+
+        public void DeleteProject(Guid id)
+        {
+            var project = _projectRepository.GetById(id);
+
+            if (project == null)
+                return;
+
+            EnsureProjectAccess(project);
+
+            _projectRepository.Delete(id);
+        }
+
+        private void CreateProject(Project project)
+        {
+
+            if (!_currentUser.CompanyId.HasValue ||
+                _currentUser.CompanyId.Value == Guid.Empty)
+            {
+                throw new InvalidOperationException(
+                    "The current user is not assigned to a company. " +
+                    "A project cannot be created without a company.");
+            }
+
+            project.CompanyId = _currentUser.CompanyId.Value;
+            Console.WriteLine("CreateProject entered");
+
+            project.CreatedOn = DateTime.Now;
+            project.LastModifiedOn = DateTime.Now;
+
+            project.Status = ProjectStatus.Active;
+            project.IsInvoiced = false;
+            project.IsArchived = false;
+
+            Console.WriteLine("Calling repository.Add");
+
+            _projectRepository.Add(project);
+
+            Console.WriteLine("Returned from repository.Add");
+
+            InitializeProject(project);
+        }
+
+        private void UpdateProject(Project project)
+        {
+            var existing = _projectRepository.GetById(project.Id);
+
+            if (existing == null)
+                throw new InvalidOperationException(
+                    "The project could not be found.");
+
+            EnsureProjectAccess(existing);
+
+            // Project ownership is controlled by the existing project.
+            // The editor cannot move a project between companies.
+            project.CompanyId = existing.CompanyId;
+
+            project.LastModifiedOn = DateTime.Now;
+
+            ApplyInvoiceRules(project);
+
+            _projectRepository.Update(project);
+        }
+
+        private void InitializeProject(Project project)
+        {
+            new ProjectDocumentService()
+                .InitializeProjectDocuments(project.Id);
+        }
+
+        private bool IsAdministrator()
+        {
+            return string.Equals(
+                _currentUser.Role,
+                "Administrator",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void RequireCompanyContext()
+        {
+            if (!_currentUser.IsAuthenticated)
+            {
+                throw new UnauthorizedAccessException(
+                    "The current user is not authenticated.");
+            }
+
+            if (!_currentUser.CompanyId.HasValue ||
+                _currentUser.CompanyId.Value == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException(
+                    "The current user is not assigned to a company.");
+            }
+        }
+
+        private void EnsureProjectAccess(Project project)
+        {
+            if (project == null)
+                throw new ArgumentNullException(nameof(project));
+
+            if (IsAdministrator())
+                return;
+
+            RequireCompanyContext();
+
+            var currentCompanyId = _currentUser.CompanyId!.Value;
+
+            if (!project.CompanyId.HasValue ||
+                project.CompanyId.Value != currentCompanyId)
+            {
+                throw new UnauthorizedAccessException(
+                    "You do not have access to this project.");
+            }
+        }
+
+        private void ValidateProject(Project project)
+        {
+            if (string.IsNullOrWhiteSpace(project.ProjectName))
+                throw new InvalidOperationException("Project name is required.");
+
+            if (string.IsNullOrWhiteSpace(project.Client))
+                throw new InvalidOperationException("Client is required.");
+
+            ValidateCompletion(project);
+        }
+
+        private void ValidateCompletion(Project project)
+        {
+            if (project.Status == ProjectStatus.Completed)
+            {
+                // Future:
+                // Verify compliance
+                // Verify outstanding documents
+                // Verify repairs completed
+            }
+        }
+
+        private void ApplyInvoiceRules(Project project)
+{
+    if (project.IsInvoiced)
+    {
+        if (string.IsNullOrWhiteSpace(project.InvoiceNumber))
+        {
+            throw new InvalidOperationException(
+                "Invoice number is required when a project is marked as invoiced.");
+        }
+
+        project.Status = ProjectStatus.Completed;
+
+        if (!project.CompletedOn.HasValue)
+            project.CompletedOn = DateTime.UtcNow;
+    }
+}
+
+
+        // =============================
+        // Stock
+        // =============================
+
+        public List<ProjectStockUsage> GetStockUsage(Guid projectId)
+        {
+        var project = _projectRepository.GetById(projectId);
+
+        EnsureProjectAccess(project);
+            return _stockRepository.GetByProjectId(projectId);
+        }
+        public List<ProjectStockSummary> GetStockSummary(Guid projectId)
+        {
+        var project = _projectRepository.GetById(projectId);
+
+        EnsureProjectAccess(project);
+            return _stockRepository.GetProjectStockSummary(projectId);
+        }
+
+        // =============================
+        // Documents
+        // =============================
+
+        public List<ProjectDocument> GetDocuments(Guid projectId)
+        {
+        var project = _projectRepository.GetById(projectId);
+
+        EnsureProjectAccess(project);
+            return _documentRepository.GetByProject(projectId);
+        }
+
+        public void RegisterDocumentFile(
+            ProjectDocument document,
+            string storedFilePath)
+        {
+            if (document == null)
+                return;
+
+            if (string.IsNullOrWhiteSpace(storedFilePath))
+                return;
+
+            var file = new ProjectDocumentFile
+            {
+                Id = Guid.NewGuid(),
+                ProjectDocumentId = document.Id,
+                FileName = Path.GetFileName(storedFilePath),
+                FilePath = storedFilePath,
+                UploadedOn = DateTime.Now,
+                IsApproved = false
+            };
+
+            _fileRepository.Add(file);
+
+            if (!document.AllowMultiple)
+                document.FilePath = storedFilePath;
+
+            document.Files.Add(file);
+
+            document.IsUploaded = true;
+            document.UploadedDate = DateTime.Now;
+            document.LastModifiedOn = DateTime.Now;
+
+            _documentRepository.Update(document);
+        }
+
+        public bool ToggleDocumentApproval(ProjectDocument document)
+        {
+            if (document == null)
+                return false;
+
+            // Cannot approve a document that hasn't been uploaded.
+            if (!document.IsUploaded)
+                return false;
+
+            document.IsApproved = !document.IsApproved;
+
+            document.LastModifiedOn = DateTime.Now;
+
+            if (document.IsApproved)
+            {
+                document.ApprovedOn = DateTime.Now;
+                document.ApprovedBy = Environment.UserName;
+            }
+            else
+            {
+                document.ApprovedOn = null;
+                document.ApprovedBy = string.Empty;
+            }
+
+            _documentRepository.Update(document);
+
+            // Keep all uploaded files in sync with the document approval.
+            var files = _fileRepository.GetByDocument(document.Id);
+
+            foreach (var file in files)
+            {
+                file.IsApproved = document.IsApproved;
+
+                _fileRepository.Update(file);
+            }
+
+            return true;
+        }
+
+        public bool OpenDocument(ProjectDocument document)
+        {
+            if (document == null)
+                return false;
+
+            try
+            {
+                // Multi-file document
+                if (document.AllowMultiple)
+                {
+                    var files = _fileRepository.GetByDocument(document.Id);
+
+                    if (files.Count == 0)
+                        return false;
+
+                    foreach (var file in files)
+                    {
+                        if (File.Exists(file.FilePath))
+                        {
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = file.FilePath,
+                                UseShellExecute = true
+                            });
+                        }
+                    }
+
+                    return true;
+                }
+
+                // Single-file document
+                if (string.IsNullOrWhiteSpace(document.FilePath))
+                    return false;
+
+                if (!File.Exists(document.FilePath))
+                    return false;
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = document.FilePath,
+                    UseShellExecute = true
+                });
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        // =============================
+        // Material Summary
+        // =============================
+
+        public List<ProjectStockSummary> GetMaterialSummary(Guid projectId)
+        {
+        var project = _projectRepository.GetById(projectId);
+
+        EnsureProjectAccess(project);
+            return _stockRepository.GetProjectStockSummary(projectId);
+        }
+
+        public void UpdateDocument(ProjectDocument document)
+        {
+            _documentRepository.Update(document);
+        }
+
+        public void AddDocument(ProjectDocument document)
+        {
+            _documentRepository.Add(document);
+        }
+
+        // =============================
+        // MATERIAL MANAGEMENT
+        // =============================
+
+        public List<StockItem> GetStockItems()
+        {
+            return _materialService
+                .GetStockItems()
+                .ToList();
+        }
+
+        public void IssueMaterial(
+            Project project,
+            StockItem item,
+            decimal quantity,
+            string issuedBy)
+        {
+            _materialService.IssueMaterial(
+                project,
+                item,
+                quantity,
+                issuedBy);
+        }
+
+        public void ReturnMaterial(
+            Project project,
+            StockItem item,
+            decimal quantity,
+            decimal unitCost,
+            string issuedBy)
+        {
+            _materialService.ReturnMaterial(
+                project,
+                item,
+                quantity,
+                unitCost,
+                issuedBy);
+        }
+
+        public List<ReturnableItemDto> GetReturnableItems(Guid projectId)
+        {
+        var project = _projectRepository.GetById(projectId);
+
+        EnsureProjectAccess(project);
+            return _materialService
+                .GetReturnableItems(projectId)
+                .ToList();
+        }
+
+        public List<StockTransaction> GetProjectTransactions(Guid projectId)
+        {
+        var project = _projectRepository.GetById(projectId);
+
+        EnsureProjectAccess(project);
+            return _materialService
+                .GetProjectTransactions(projectId)
+                .ToList();
+        }
+    }
+}
+
+

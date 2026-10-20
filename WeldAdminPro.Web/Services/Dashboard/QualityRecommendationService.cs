@@ -1,4 +1,4 @@
-using WeldAdminPro.Core.Quality.Models;
+﻿using WeldAdminPro.Core.Quality.Models;
 
 namespace WeldAdminPro.Web.Services.Dashboard;
 
@@ -8,46 +8,46 @@ public class QualityRecommendationService
     {
         var recommendations = new List<string>();
 
-        if (snapshot.ActiveWps == 0)
+        if (snapshot.ActiveWpsAvailable &&
+            snapshot.ActiveWps == 0)
         {
-            recommendations.Add(
-                "Create and approve Welding Procedure Specifications (WPS) for active fabrication work.");
+            recommendations.Add("Establish or approve an applicable WPS.");
         }
 
-        if (snapshot.ActivePqr == 0)
+        if (snapshot.ActivePqrAvailable &&
+            snapshot.ActivePqr == 0)
         {
-            recommendations.Add(
-                "Complete Procedure Qualification Records (PQRs) to support approved WPS documents.");
+            recommendations.Add("Establish or approve supporting PQR documentation.");
         }
 
-        if (snapshot.MissingDocuments > 0)
+        if (snapshot.QualifiedWeldersAvailable &&
+            snapshot.QualifiedWelders == 0)
         {
-            recommendations.Add(
-                $"Upload or approve the {snapshot.MissingDocuments} outstanding required project document(s).");
+            recommendations.Add("Ensure qualified welders are available for production.");
         }
 
-        if (snapshot.PendingNdt > 0)
+        if (snapshot.PendingNdtAvailable &&
+            snapshot.PendingNdt > 0)
         {
-            recommendations.Add(
-                "Schedule pending NDT inspections to prevent production delays.");
+            recommendations.Add($"Complete {snapshot.PendingNdt} pending NDT inspections.");
         }
 
-        if (snapshot.OpenRepairs > 0)
+        if (snapshot.OpenRepairsAvailable &&
+            snapshot.OpenRepairs > 0)
         {
-            recommendations.Add(
-                "Review and close outstanding weld repairs.");
+            recommendations.Add($"Review and close {snapshot.OpenRepairs} open repairs.");
         }
 
-        if (snapshot.ExpiringQualifications > 0)
+        if (snapshot.MissingDocumentsAvailable &&
+            snapshot.MissingDocuments > 0)
         {
-            recommendations.Add(
-                "Renew welder qualifications that will expire within the next 30 days.");
+            recommendations.Add($"Complete {snapshot.MissingDocuments} missing quality documents.");
         }
 
-        if (!recommendations.Any())
+        if (snapshot.ExpiringQualificationsAvailable &&
+            snapshot.ExpiringQualifications > 0)
         {
-            recommendations.Add(
-                "Quality system performing within acceptable limits.");
+            recommendations.Add($"Review {snapshot.ExpiringQualifications} welder qualifications expiring within 30 days.");
         }
 
         return recommendations;

@@ -177,10 +177,10 @@
 
     private string? _error;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _items = StockService.GetStockItems();
-        _projects = ProjectService.GetProjects();
+        _projects = await ProjectService.GetProjectsAsync();
     }
 
     private async Task Save()

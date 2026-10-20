@@ -79,6 +79,18 @@ namespace WeldAdminPro.Core.Quality.Services
             }
 
             // =========================
+            // NCR VALIDATION
+            // =========================
+
+            if (context.HasOpenNcrs)
+            {
+                result.Success = false;
+
+                result.BlockingIssues.Add(
+                    "Open NCRs prevent weld release.");
+            }
+
+            // =========================
             // MATERIAL TRACEABILITY
             // =========================
 

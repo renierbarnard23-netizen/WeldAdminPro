@@ -1,7 +1,9 @@
 ﻿@page "/quality/welders"
+@attribute [Authorize(Policy = "Permission:Quality.WelderQualifications")]
 @page "/quality/welderqualifications"
 
 @using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Core.Models
 @using WeldAdminPro.Web.Services.Quality
 
 @inject WelderQualificationApplicationService WelderService
@@ -60,6 +62,34 @@
         </MudText>
 
         <MudGrid Class="mt-2">
+
+            @if (_editingId == 0)
+            {
+                <MudItem xs="12" md="4">
+                    <MudSelect T="Guid?"
+                               Label="Owning Company"
+                               @bind-Value="_editor.CompanyId"
+                               Required="true"
+                               Clearable="true">
+                        @foreach (var company in _accessibleCompanies)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)company.Id)">
+                                @company.CompanyName (@company.CompanyCode)
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12" md="4">
+                    <MudTextField T="string"
+                                  Label="Owning Company"
+                                  Value="@GetOwningCompanyDisplay()"
+                                  ReadOnly="true"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+            }
 
             <MudItem xs="12" md="4">
                 <MudTextField T="string"
@@ -134,6 +164,12 @@
             <MudItem xs="12" md="4">
                 <MudDatePicker Label="Expiry Date"
                                @bind-Date="_expiryDate" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSwitch T="bool"
+                           Label="Active Qualification"
+                           Color="Color.Success"
+                           @bind-Value="_editor.IsActive" />
             </MudItem>
 
         </MudGrid>
@@ -259,6 +295,8 @@
 {
     private List<WelderQualification> _qualifications = new();
 
+    private List<Company> _accessibleCompanies = new();
+
     private WelderQualification _editor = NewEditor();
 
     private int _editingId;
@@ -272,17 +310,19 @@
         DateTime.Today.AddMonths(6);
 
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Load();
+        await Load();
     }
 
 
-    private void Load()
+    private async Task Load()
     {
+        _accessibleCompanies =
+            await WelderService.GetAccessibleCompaniesAsync();
+
         _qualifications =
-            WelderService
-                .GetAll()
+            (await WelderService.GetAllAsync())
                 .OrderBy(x => x.WelderNumber)
                 .ThenBy(x => x.Process)
                 .ToList();
@@ -313,6 +353,7 @@
         _editor = new WelderQualification
         {
             Id = qualification.Id,
+            CompanyId = qualification.CompanyId,
             WelderNumber = qualification.WelderNumber,
             Process = qualification.Process,
             MaterialGroup = qualification.MaterialGroup,
@@ -337,7 +378,7 @@
     }
 
 
-    private void Save()
+    private async Task Save()
     {
         try
         {
@@ -350,10 +391,19 @@
 
             if (_editingId == 0)
             {
+                if (!_editor.CompanyId.HasValue ||
+                    _editor.CompanyId.Value == Guid.Empty)
+                {
+                    Snackbar.Add(
+                        "Please select an owning company.",
+                        Severity.Warning);
+                    return;
+                }
+
                 _editor.InitialQualificationDate =
                     _editor.QualificationDate;
 
-                WelderService.Create(_editor);
+                await WelderService.CreateAsync(_editor);
 
                 Snackbar.Add(
                     "Welder qualification created.",
@@ -363,7 +413,7 @@
             {
                 _editor.Id = _editingId;
 
-                WelderService.Update(_editor);
+                await WelderService.UpdateAsync(_editor);
 
                 Snackbar.Add(
                     "Welder qualification updated.",
@@ -372,7 +422,7 @@
 
             _showEditor = false;
 
-            Load();
+            await Load();
         }
         catch (Exception ex)
         {
@@ -383,18 +433,18 @@
     }
 
 
-    private void Renew(
+    private async Task Renew(
         WelderQualification qualification)
     {
         try
         {
-            WelderService.Renew(qualification);
+            await WelderService.RenewAsync(qualification);
 
             Snackbar.Add(
                 $"Qualification for {qualification.WelderNumber} renewed for 6 months.",
                 Severity.Success);
 
-            Load();
+            await Load();
         }
         catch (Exception ex)
         {
@@ -405,19 +455,19 @@
     }
 
 
-    private void Delete(
+    private async Task Delete(
         WelderQualification qualification)
     {
         try
         {
-            WelderService.Delete(
+            await WelderService.DeleteAsync(
                 qualification.Id);
 
             Snackbar.Add(
                 $"Qualification for {qualification.WelderNumber} deleted.",
                 Severity.Success);
 
-            Load();
+            await Load();
         }
         catch (Exception ex)
         {
@@ -427,6 +477,22 @@
         }
     }
 
+
+    private string GetOwningCompanyDisplay()
+    {
+        var company = _accessibleCompanies.FirstOrDefault(
+            x => x.Id == _editor.CompanyId);
+
+        if (company != null)
+        {
+            return $"{company.CompanyName} ({company.CompanyCode})";
+        }
+
+        return _editor.CompanyId.HasValue &&
+               _editor.CompanyId.Value != Guid.Empty
+            ? $"Company ID: {_editor.CompanyId.Value}"
+            : "Unassigned";
+    }
 
     private void Cancel()
     {
@@ -434,9 +500,14 @@
     }
 
 
-    private static string GetStatus(
+        private static string GetStatus(
         WelderQualification qualification)
     {
+        if (!qualification.IsActive)
+        {
+            return "Inactive";
+        }
+
         if (qualification.ExpiryDate < DateTime.Today)
         {
             return "Expired";
@@ -450,11 +521,14 @@
 
         return "Valid";
     }
-
-
     private static Color GetStatusColor(
         WelderQualification qualification)
     {
+        if (!qualification.IsActive)
+        {
+            return Color.Default;
+        }
+
         if (qualification.ExpiryDate < DateTime.Today)
         {
             return Color.Error;
@@ -468,9 +542,7 @@
 
         return Color.Success;
     }
-
-
-    private static WelderQualification NewEditor()
+private static WelderQualification NewEditor()
     {
         return new WelderQualification
         {
@@ -481,3 +553,5 @@
         };
     }
 }
+
+

@@ -1,4 +1,4 @@
-﻿using WeldAdminPro.Core.Security;
+using WeldAdminPro.Core.Security;
 using WeldAdminPro.Core.Security.Definitions;
 
 
@@ -200,6 +200,11 @@ public static class PermissionCatalog
             "WPS Approval",
             "Approve WPS revisions"),
         new(
+            PermissionKeys.Quality.WpqrApproval,
+            PermissionGroups.Quality,
+            "WPQR Approval",
+            "Approve WPQR records and lock approved revisions"),
+        new(
             PermissionKeys.Quality.PQR,
             PermissionGroups.Quality,
             "PQR",
@@ -292,6 +297,11 @@ public static class PermissionCatalog
             PermissionGroups.Quality,
             "QCP Master Activity Library",
             "Manage the QCP Master Activity Library"),
+        new(
+            PermissionKeys.Quality.ITP,
+            PermissionGroups.Quality,
+            "Inspection Test Plan",
+            "Manage project Inspection Test Plans"),
         // ==========================================================
         // ADMINISTRATION
         // ==========================================================

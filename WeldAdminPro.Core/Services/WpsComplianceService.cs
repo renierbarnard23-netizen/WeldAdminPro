@@ -11,7 +11,6 @@ namespace WeldAdminPro.Core.Services
         private readonly QualificationRangeEngine _range = new();
         private readonly PositionQualificationService _positionService = new();
         private readonly ThicknessQualificationService _thicknessService = new();
-        private readonly DiameterQualificationService _diameterService = new();
         private readonly MaterialQualificationService _materialService = new();
 
         public WpsComplianceResult Evaluate(Wps wps, Pqr pqr)
@@ -135,32 +134,6 @@ namespace WeldAdminPro.Core.Services
                     $"{range.MinThickness}-{range.MaxThickness} mm");
             }
 
-            // =====================================
-            // DIAMETER VALIDATION
-            // =====================================
-
-            System.Diagnostics.Debug.WriteLine(
-    $"WPS Diameter: {wps.Diameter}");
-
-            System.Diagnostics.Debug.WriteLine(
-                $"Qualified Diameter Range: " +
-                $"{range.MinDiameter}-{range.MaxDiameter}");
-
-            var diameterQualified =
-                _diameterService.IsQualified(
-                    wps.Diameter,
-                    range.MinDiameter,
-                    range.MaxDiameter);
-
-            if (!diameterQualified)
-            {
-                result.RangeFailures.Add(
-                    $"QW-452: Diameter {wps.Diameter} mm " +
-                    $"outside qualified range " +
-                    $"{range.MinDiameter}-{range.MaxDiameter} mm");
-            }
-
-            // =========================
             // FINAL DECISION
             // =========================
 

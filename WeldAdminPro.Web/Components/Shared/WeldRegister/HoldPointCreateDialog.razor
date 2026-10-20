@@ -1,0 +1,154 @@
+﻿@using MudBlazor
+@using WeldAdminPro.Core.Quality.Enums
+
+<MudDialog>
+    <DialogContent>
+
+        <MudText Typo="Typo.h6" Class="mb-4">
+            Create Weld Hold Point
+        </MudText>
+
+        <MudGrid>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="HoldPointType"
+                           Label="Hold Point Type"
+                           @bind-Value="_holdPointType"
+                           Required="true">
+
+                    @foreach (var type in Enum.GetValues<HoldPointType>())
+                    {
+                        <MudSelectItem T="HoldPointType" Value="@type">
+                            @type
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="HoldPointCategory"
+                           Label="Category"
+                           @bind-Value="_category"
+                           Required="true">
+
+                    @foreach (var category in Enum.GetValues<HoldPointCategory>())
+                    {
+                        <MudSelectItem T="HoldPointCategory" Value="@category">
+                            @category
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="HoldPointApproverRole"
+                           Label="Required Approver Role"
+                           @bind-Value="_requiredApproverRole"
+                           Required="true">
+
+                    @foreach (var role in Enum.GetValues<HoldPointApproverRole>())
+                    {
+                        <MudSelectItem T="HoldPointApproverRole" Value="@role">
+                            @role
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudCheckBox T="bool"
+                             @bind-Value="_isMandatory"
+                             Label="Mandatory Hold Point" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_comments"
+                              Label="Comments"
+                              Lines="3"
+                              Immediate="true" />
+            </MudItem>
+
+        </MudGrid>
+
+        <MudAlert Severity="Severity.Info"
+                  Dense="true"
+                  Class="mt-4">
+            New Hold Points are created as Pending. Approval is performed separately
+            through the controlled Hold Point approval workflow.
+        </MudAlert>
+
+    </DialogContent>
+
+    <DialogActions>
+
+        <MudButton Color="Color.Default"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   Disabled="@(!CanSave)"
+                   OnClick="Save">
+            Create
+        </MudButton>
+
+    </DialogActions>
+</MudDialog>
+
+@code
+{
+    [CascadingParameter]
+    public IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public Guid WeldId { get; set; }
+
+    private HoldPointType _holdPointType = HoldPointType.FitUpInspection;
+    private HoldPointCategory _category = HoldPointCategory.Hold;
+    private HoldPointApproverRole _requiredApproverRole = HoldPointApproverRole.QA;
+    private bool _isMandatory = true;
+    private string _comments = string.Empty;
+
+    private bool CanSave =>
+        WeldId != Guid.Empty &&
+        !string.IsNullOrWhiteSpace(_comments);
+
+    private void Save()
+    {
+        if (!CanSave)
+            return;
+
+        var result = new HoldPointCreateResult
+        {
+            HoldPointType = _holdPointType,
+            Category = _category,
+            RequiredApproverRole = _requiredApproverRole,
+            IsMandatory = _isMandatory,
+            Comments = _comments.Trim()
+        };
+
+        MudDialog.Close(DialogResult.Ok(result));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    public sealed class HoldPointCreateResult
+    {
+        public HoldPointType HoldPointType { get; set; }
+
+        public HoldPointCategory Category { get; set; }
+
+        public HoldPointApproverRole RequiredApproverRole { get; set; }
+
+        public bool IsMandatory { get; set; }
+
+        public string Comments { get; set; } = string.Empty;
+    }
+}

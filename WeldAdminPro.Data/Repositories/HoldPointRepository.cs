@@ -153,6 +153,65 @@ namespace WeldAdminPro.Data.Repositories
             return result;
         }
 
+        public WeldHoldPoint? GetById(
+            Guid holdPointId)
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            var row = connection.QuerySingleOrDefault(
+                @"SELECT *
+                  FROM WeldHoldPoints
+                  WHERE Id = @Id
+                  LIMIT 1",
+                new
+                {
+                    Id = holdPointId.ToString()
+                });
+
+            if (row == null)
+                return null;
+
+            return new WeldHoldPoint
+            {
+                Id =
+                    Guid.Parse((string)row.Id),
+
+                WeldId =
+                    Guid.Parse((string)row.WeldId),
+
+                HoldPointType =
+                    (Core.Quality.Enums.HoldPointType)
+                    Convert.ToInt32(row.HoldPointType),
+
+                Category =
+                    (Core.Quality.Enums.HoldPointCategory)
+                    Convert.ToInt32(row.Category),
+
+                RequiredApproverRole =
+                    (Core.Quality.Enums.HoldPointApproverRole)
+                    Convert.ToInt32(row.RequiredApproverRole),
+
+                Status =
+                    (Core.Quality.Enums.HoldPointStatus)
+                    Convert.ToInt32(row.Status),
+
+                IsMandatory =
+                    Convert.ToBoolean(row.IsMandatory),
+
+                ApprovedBy =
+                    row.ApprovedBy?.ToString() ?? "",
+
+                ApprovedDate =
+                    row.ApprovedDate == null
+                        ? null
+                        : Convert.ToDateTime(row.ApprovedDate),
+
+                Comments =
+                    row.Comments?.ToString() ?? ""
+            };
+        }
         public void Update(
     WeldHoldPoint item)
         {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using WeldAdminPro.Core.Quality.Enums;
 
 namespace WeldAdminPro.Core.Quality.Models
@@ -15,6 +15,13 @@ namespace WeldAdminPro.Core.Quality.Models
 
         public int RepairNumber { get; set; }
 
+
+        /// <summary>
+        /// Globally unique business reference for this repair record.
+        /// Immutable after creation.
+        /// </summary>
+        public string RepairReference { get; set; }
+            = string.Empty;
         public string Reason { get; set; }
             = string.Empty;
 
@@ -28,6 +35,12 @@ namespace WeldAdminPro.Core.Quality.Models
 
         public string ExcavationMethod { get; set; }
             = string.Empty;
+
+        /// <summary>
+        /// Exact WPS revision selected for this repair. Each WPS revision has its own immutable Id.
+        /// Null is retained for legacy repairs created before exact WPS traceability was introduced.
+        /// </summary>
+        public Guid? RepairWpsId { get; set; }
 
         public string RepairWpsNumber { get; set; }
             = string.Empty;

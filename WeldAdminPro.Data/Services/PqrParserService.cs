@@ -74,8 +74,22 @@ namespace WeldAdminPro.Data.Services
             var pqr = Parse(document.FullText, fallbackName);
 
             // Override the fields that should come from page-aware recognition.
-            pqr.MaterialGroup = recognition.Material;
-            pqr.PNumber = recognition.PNumber;
+            // Preserve the proven legacy-parser value when page-aware
+            // recognition does not provide a usable material.
+            if (!string.IsNullOrWhiteSpace(recognition.Material) &&
+                !string.Equals(
+                    recognition.Material,
+                    "UNKNOWN",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                pqr.MaterialGroup = recognition.Material;
+            }
+            // Only replace the legacy P Number when recognition
+            // actually produced a value.
+            if (!string.IsNullOrWhiteSpace(recognition.PNumber))
+            {
+                pqr.PNumber = recognition.PNumber;
+            }
 
             return pqr;
         }
@@ -111,7 +125,7 @@ namespace WeldAdminPro.Data.Services
             };            
 
             // =========================
-            // ✅ PQR NUMBER (MATCH WPS STYLE)
+            // âœ… PQR NUMBER (MATCH WPS STYLE)
             // =========================
 
             if (!string.IsNullOrWhiteSpace(header.PqrNumber))
@@ -127,7 +141,7 @@ namespace WeldAdminPro.Data.Services
             }
 
             // =========================
-            // ✅ SUPPLIER PQR (e.g. 1000)
+            // âœ… SUPPLIER PQR (e.g. 1000)
             // =========================
 
             var suppMatch = Regex.Match(text,
@@ -151,10 +165,10 @@ namespace WeldAdminPro.Data.Services
                 recognition.Material;
 
             // =========================
-            // ✅ P NUMBER (SAFE)
+            // âœ… P NUMBER (SAFE)
             // =========================
 
-            var pMatch = Regex.Match(text, @"P\s*(\d+)\s*[-–]\s*(\d+)|P\s*(\d+)", RegexOptions.IgnoreCase);
+            var pMatch = Regex.Match(text, @"P\s*(\d+)\s*[-â€“]\s*(\d+)|P\s*(\d+)", RegexOptions.IgnoreCase);
 
             if (pMatch.Success)
             {
@@ -167,22 +181,22 @@ namespace WeldAdminPro.Data.Services
             }
 
             // =========================
-            // 🔥 P NUMBER CORRECTIONS (SAFE - DO NOT BREAK EXISTING)
+            // ðŸ”¥ P NUMBER CORRECTIONS (SAFE - DO NOT BREAK EXISTING)
             // =========================
 
-            // Supplier PQR 1000 → P8
+            // Supplier PQR 1000 â†’ P8
             if (pqr.PqrNumber == "1000" && string.IsNullOrWhiteSpace(pqr.PNumber))
             {
                 pqr.PNumber = "P8";
             }
 
-            // DYN-01P → P45
+            // DYN-01P â†’ P45
             if (pqr.PqrNumber == "DYN-01P" && string.IsNullOrWhiteSpace(pqr.PNumber))
             {
                 pqr.PNumber = "P45";
             }
 
-            // SAF2507 → P10H (override incorrect P10)
+            // SAF2507 â†’ P10H (override incorrect P10)
             if (pqr.MaterialGroup == "Duplex SAF2507")
             {
                 pqr.PNumber = "P10H";
@@ -198,7 +212,7 @@ namespace WeldAdminPro.Data.Services
             }
 
             // =========================
-            // 🔥 F NUMBER (MATCH WPS STYLE)
+            // ðŸ”¥ F NUMBER (MATCH WPS STYLE)
             // =========================
 
             pqr.FNumber =
@@ -208,44 +222,44 @@ namespace WeldAdminPro.Data.Services
                     pqr.MaterialGroup);
 
             // =========================
-            // 🔥 F NUMBER CORRECTIONS (SAFE - DO NOT BREAK EXISTING)
+            // ðŸ”¥ F NUMBER CORRECTIONS (SAFE - DO NOT BREAK EXISTING)
             // =========================
 
-            // DYN-PQR-A106B → F6
+            // DYN-PQR-A106B â†’ F6
             if (pqr.PqrNumber == "DYN-PQR-A106B" && string.IsNullOrWhiteSpace(pqr.FNumber))
             {
                 pqr.FNumber = "F6";
             }
 
-            // Supplier 1000 → F6
+            // Supplier 1000 â†’ F6
             if (pqr.PqrNumber == "1000" && string.IsNullOrWhiteSpace(pqr.FNumber))
             {
                 pqr.FNumber = "F6";
             }
 
-            // DYN-01P → F6
+            // DYN-01P â†’ F6
             if (pqr.PqrNumber == "DYN-01P" && string.IsNullOrWhiteSpace(pqr.FNumber))
             {
                 pqr.FNumber = "F6";
             }
 
-            // Nickel SB163 → F41
+            // Nickel SB163 â†’ F41
             if (pqr.PqrNumber == "PQR SB 163" && string.IsNullOrWhiteSpace(pqr.FNumber))
             {
                 pqr.FNumber = "F41";
             }
 
-            // PQ5418-P1 → F51
+            // PQ5418-P1 â†’ F51
             if (pqr.PqrNumber.Contains("PQ5418-P1") && string.IsNullOrWhiteSpace(pqr.FNumber))
             {
                 pqr.FNumber = "F51";
             }
 
             // =========================
-            // 🔥 FINAL CORRECTIONS (TARGETED ONLY)
+            // ðŸ”¥ FINAL CORRECTIONS (TARGETED ONLY)
             // =========================
 
-            // DYN-PQR-430A → P1 + F6
+            // DYN-PQR-430A â†’ P1 + F6
             if (pqr.PqrNumber == "DYN-PQR-430A")
             {
                 if (string.IsNullOrWhiteSpace(pqr.PNumber))
@@ -255,14 +269,100 @@ namespace WeldAdminPro.Data.Services
                     pqr.FNumber = "F6";
             }
 
-            // DYN-01P → ensure F6 (extra safety, does not override existing)
+            // DYN-01P â†’ ensure F6 (extra safety, does not override existing)
             if (pqr.PqrNumber == "DYN-01P" && string.IsNullOrWhiteSpace(pqr.FNumber))
             {
                 pqr.FNumber = "F6";
             }
 
             // =========================
-            // 🔥 THICKNESS (FINAL - ALL REAL PQR FORMATS)
+            // PIPE / DIAMETER DETECTION
+            // =========================
+
+            // The PQR BASE METALS section contains:
+            // NPS/DN, Outside Diameter, Schedule and Thickness.
+            // Example OCR: "| 80 89 80 7.62"
+            // Therefore the second numeric value is the tested
+            // outside diameter.
+            pqr.IsPipe = Regex.IsMatch(
+                text,
+                @"\bPIPE\b",
+                RegexOptions.IgnoreCase);
+
+            if (pqr.IsPipe)
+            {
+                // =========================================================
+                // DIAMETER DETECTION
+                // =========================================================
+                // Prefer the explicit laboratory description:
+                //
+                //     89mm O/D x 8mm WT
+                //
+                // First number = Outside Diameter.
+                // Second number = Wall Thickness.
+                //
+                // This prevents the previous parser from accidentally
+                // storing the wall thickness (8 mm) as the diameter.
+                // =========================================================
+
+                var odMatch = Regex.Match(
+                    text,
+                    @"(\d+(?:[.,]\d+)?)\s*mm\s*O\s*/\s*D\s*[xX×]\s*(\d+(?:[.,]\d+)?)\s*mm\s*W\s*T",
+                    RegexOptions.IgnoreCase);
+
+                if (odMatch.Success &&
+                    double.TryParse(
+                        odMatch.Groups[1].Value.Replace(',', '.'),
+                        NumberStyles.Any,
+                        CultureInfo.InvariantCulture,
+                        out var reportedOd))
+                {
+                    pqr.DiameterTested = reportedOd;
+
+                    Console.WriteLine(
+                        $"[DIAMETER] Explicit O/D detected: {pqr.DiameterTested} mm");
+                }
+                else
+                {
+                    // =====================================================
+                    // FALLBACK - NPS/DN TABLE
+                    // =====================================================
+                    // Expected:
+                    // NPS/DN | Outside Diameter | Schedule | Thickness
+                    //
+                    // Example:
+                    // 80 | 89 | 80 | 7.62
+                    // =====================================================
+
+                    var diameterMatch = Regex.Match(
+                        text,
+                        @"NPS/DN\s*\(mm\).*?(\d+(?:[.,]\d+)?)\s+(\d+(?:[.,]\d+)?)\s+(\d+(?:[.,]\d+)?)\s+(\d+(?:[.,]\d+)?)",
+                        RegexOptions.IgnoreCase);
+
+                    if (diameterMatch.Success &&
+                        double.TryParse(
+                            diameterMatch.Groups[2].Value.Replace(',', '.'),
+                            NumberStyles.Any,
+                            CultureInfo.InvariantCulture,
+                            out var tableDiameter))
+                    {
+                        pqr.DiameterTested = tableDiameter;
+
+                        Console.WriteLine(
+                            $"[DIAMETER] NPS/DN table diameter detected: {pqr.DiameterTested} mm");
+                    }
+                    else
+                    {
+                        Console.WriteLine(
+                            "[DIAMETER] No pipe outside diameter could be extracted.");
+                    }
+                }
+            }
+            Console.WriteLine($"Pipe       : {pqr.IsPipe}");
+            Console.WriteLine($"Test Diameter : {pqr.DiameterTested}");
+
+            // =========================
+            // ðŸ”¥ THICKNESS (FINAL - ALL REAL PQR FORMATS)
             // =========================
 
             var thickness =
@@ -304,33 +404,33 @@ namespace WeldAdminPro.Data.Services
             Console.WriteLine("=========================================");
 
             // =========================
-            // 🔥 POSITION CORRECTIONS (SAFE)
+            // ðŸ”¥ POSITION CORRECTIONS (SAFE)
             // =========================
 
-            // DYN-PQR-430A → 4G
+            // DYN-PQR-430A â†’ 4G
             if (pqr.PqrNumber == "DYN-PQR-430A" && string.IsNullOrWhiteSpace(pqr.QualifiedPosition))
             {
                 pqr.QualifiedPosition = "4G";
             }
 
-            // DYN-01P → 6G
+            // DYN-01P â†’ 6G
             if (pqr.PqrNumber == "DYN-01P" && string.IsNullOrWhiteSpace(pqr.QualifiedPosition))
             {
                 pqr.QualifiedPosition = "6G";
             }
 
             // =========================
-            // 🔥 JOINT (FINAL FIX)
+            // ðŸ”¥ JOINT (FINAL FIX)
             // =========================
 
-            // 1️⃣ Direct detection
+            // 1ï¸âƒ£ Direct detection
             if (Regex.IsMatch(text, @"Groove", RegexOptions.IgnoreCase))
             {
                 pqr.JointType = "Groove";
             }
             else
             {
-                // 2️⃣ Try explicit "Joint: ..."
+                // 2ï¸âƒ£ Try explicit "Joint: ..."
                 var jointMatch = Regex.Match(text,
                     @"Joint\s*[:\-]\s*(\w+)",
                     RegexOptions.IgnoreCase);
@@ -341,7 +441,7 @@ namespace WeldAdminPro.Data.Services
                 }
                 else
                 {
-                    // 3️⃣ Infer from POSITION (pipe welding = groove)
+                    // 3ï¸âƒ£ Infer from POSITION (pipe welding = groove)
                     var jointPositionMatch = Regex.Match(text,
                         @"POSITION\s*[:\-]?\s*(\d+G)",
                         RegexOptions.IgnoreCase);
@@ -359,7 +459,7 @@ namespace WeldAdminPro.Data.Services
             }
 
             // =========================
-            // ✅ RETURN RESULT
+            // âœ… RETURN RESULT
             // =========================
 
             Console.WriteLine("===== PQR PARSED =====");

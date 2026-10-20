@@ -1,6 +1,9 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
+@using WeldAdminPro.Web.Components.Security
 
 @inject NavigationManager Navigation
+
+<CircuitUserContextInitializer />
 
 <Router AppAssembly="typeof(Program).Assembly"
         NotFoundPage="typeof(Pages.NotFound)">
@@ -24,4 +27,6 @@
     </Found>
 
 </Router>
+
+
 

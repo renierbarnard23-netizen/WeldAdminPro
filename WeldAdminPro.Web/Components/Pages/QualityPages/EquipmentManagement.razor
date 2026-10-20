@@ -1,0 +1,376 @@
+@page "/quality/equipment"
+@attribute [Authorize(Policy = "Permission:Quality.Equipment")]
+
+@using Microsoft.AspNetCore.Components.Forms
+@using MudBlazor
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Reporting.Enums
+@using WeldAdminPro.Core.Reporting.Models
+@using WeldAdminPro.Core.Security.Abstractions
+@using WeldAdminPro.Data.Services.Quality
+@using WeldAdminPro.Web.Services.Reporting
+
+@inject EquipmentApplicationService EquipmentService
+@inject DocumentVaultApplicationService DocumentService
+@inject ICurrentUserContext CurrentUser
+@inject ISnackbar Snackbar
+
+<PageTitle>Quality Equipment & Calibration</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    <MudText Typo="Typo.h4" GutterBottom="true">Quality Equipment & Calibration</MudText>
+    <MudText Typo="Typo.body1" Class="mb-4">
+        Controlled inspection equipment register with calibration history and certificate evidence.
+    </MudText>
+
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">Company Context</MudText>
+        @if (_companies.Count == 0)
+        {
+            <MudAlert Severity="Severity.Error">No active companies are available to this user.</MudAlert>
+        }
+        else
+        {
+            <MudSelect T="Guid?" Label="Company" Value="_selectedCompanyId" ValueChanged="CompanyChanged" Required="true">
+                @foreach (var company in _companies)
+                {
+                    <MudSelectItem T="Guid?" Value="@company.Id">
+                        @company.CompanyName (@company.CompanyCode)
+                    </MudSelectItem>
+                }
+            </MudSelect>
+            <MudText Typo="Typo.caption">Equipment and calibration records are maintained against the selected company.</MudText>
+        }
+    </MudPaper>
+
+    <MudGrid>
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6">Equipment Register</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="NewEquipment">
+                        New Equipment
+                    </MudButton>
+                </MudStack>
+
+                <MudTable Items="_equipment" Hover="true" Dense="true" Striped="true">
+                    <HeaderContent>
+                        <MudTh>Equipment</MudTh>
+                        <MudTh>Type</MudTh>
+                        <MudTh>Serial</MudTh>
+                        <MudTh>Calibration</MudTh>
+                        <MudTh>Status</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Equipment">
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => SelectEquipment(context))">
+                                @context.EquipmentNumber
+                            </MudButton>
+                            <MudText Typo="Typo.caption">@context.Description</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Type">@context.EquipmentType</MudTd>
+                        <MudTd DataLabel="Serial">@context.SerialNumber</MudTd>
+                        <MudTd DataLabel="Calibration">
+                            @(context.CalibrationRequired ? $"Every {context.CalibrationIntervalDays} days" : "Not required")
+                        </MudTd>
+                        <MudTd DataLabel="Status">
+                            @(context.IsActive ? "Active" : "Inactive")
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" GutterBottom="true">
+                    @(_editingEquipment.Id == Guid.Empty ? "Add Equipment" : "Edit Equipment")
+                </MudText>
+
+                <MudTextField Label="Equipment Number" @bind-Value="_editingEquipment.EquipmentNumber" Required="true" />
+                <MudTextField Label="Description" @bind-Value="_editingEquipment.Description" Required="true" />
+                <MudTextField Label="Equipment Type" @bind-Value="_editingEquipment.EquipmentType" />
+                <MudTextField Label="Manufacturer" @bind-Value="_editingEquipment.Manufacturer" />
+                <MudTextField Label="Model" @bind-Value="_editingEquipment.Model" />
+                <MudTextField Label="Serial Number" @bind-Value="_editingEquipment.SerialNumber" />
+                <MudCheckBox T="bool" Label="Active" @bind-Value="_editingEquipment.IsActive" />
+                <MudCheckBox T="bool" Label="Calibration Required" @bind-Value="_editingEquipment.CalibrationRequired" />
+                @if (_editingEquipment.CalibrationRequired)
+                {
+                    <MudNumericField T="int" Label="Calibration Interval (days)" Min="1" @bind-Value="_editingEquipment.CalibrationIntervalDays" />
+                }
+                <MudTextField Label="Notes" Lines="3" @bind-Value="_editingEquipment.Notes" />
+
+                <MudStack Row="true" Class="mt-3">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveEquipment">Save</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="NewEquipment">Clear</MudButton>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @if (_selectedEquipment != null)
+    {
+        <MudPaper Class="pa-4 mt-4">
+            <MudText Typo="Typo.h6">Calibration — @_selectedEquipment.EquipmentNumber</MudText>
+            <MudText Typo="Typo.body2" Class="mb-3">
+                @(_selectedEquipment.CalibrationRequired ? "Calibration is required for this equipment." : "Calibration is not required for this equipment.")
+            </MudText>
+
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField Label="Certificate Number" @bind-Value="_newCalibration.CertificateNumber" Required="true" />
+                    <MudDatePicker Label="Calibration Date" @bind-Date="_calibrationDate" Required="true" />
+                    <MudDatePicker Label="Expiry Date" @bind-Date="_expiryDate" Required="true" />
+                    <MudTextField Label="Calibration Provider" @bind-Value="_newCalibration.Provider" />
+                    <MudTextField Label="Standard / Reference" @bind-Value="_newCalibration.Standard" />
+                    <MudTextField Label="Notes" Lines="2" @bind-Value="_newCalibration.Notes" />
+
+                    <MudSelect T="Guid?" Label="Certificate Document" Clearable="true" @bind-Value="_newCalibration.DocumentVaultFileId">
+                        @foreach (var document in _calibrationDocuments)
+                        {
+                            <MudSelectItem T="Guid?" Value="@document.Id">
+                                @document.FileName @(document.IsApproved ? "(Approved)" : "(Pending)")
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudButton Class="mt-3" Variant="Variant.Filled" Color="Color.Primary" OnClick="AddCalibration">
+                        Add Calibration Record
+                    </MudButton>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">Upload Calibration Certificate</MudText>
+                    <InputFile OnChange="UploadCalibrationCertificate" accept=".pdf,.jpg,.jpeg,.png" />
+                    <MudText Typo="Typo.caption" Class="mb-3">
+                        Uploads to the company Quality Master document vault as a Calibration Certificate.
+                    </MudText>
+
+                    @if (_calibrationDocuments.Any(x => !x.IsApproved))
+                    {
+                        <MudText Typo="Typo.subtitle2" Class="mt-2">Pending Certificate Documents</MudText>
+                        @foreach (var document in _calibrationDocuments.Where(x => !x.IsApproved))
+                        {
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Class="my-1">
+                                <MudText Typo="Typo.caption">@document.FileName</MudText>
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Success" OnClick="@(() => ApproveDocument(document))">Approve</MudButton>
+                            </MudStack>
+                        }
+                    }
+
+                    <MudTable Items="_calibrations" Dense="true" Hover="true">
+                        <HeaderContent>
+                            <MudTh>Certificate</MudTh>
+                            <MudTh>Validity</MudTh>
+                            <MudTh>Approval</MudTh>
+                            <MudTh>Action</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Certificate">@context.CertificateNumber</MudTd>
+                            <MudTd DataLabel="Validity">@context.CalibrationDate.ToString("yyyy-MM-dd") → @context.ExpiryDate.ToString("yyyy-MM-dd")</MudTd>
+                            <MudTd DataLabel="Approval">@(context.IsApproved ? $"Approved by {context.ApprovedBy}" : "Pending")</MudTd>
+                            <MudTd DataLabel="Action">
+                                @if (!context.IsApproved)
+                                {
+                                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Success" OnClick="@(() => ApproveCalibration(context))">
+                                        Approve
+                                    </MudButton>
+                                }
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    private List<Equipment> _equipment = new();
+    private List<Company> _companies = new();
+    private Guid? _selectedCompanyId;
+    private Equipment _editingEquipment = new();
+    private Equipment? _selectedEquipment;
+    private List<EquipmentCalibration> _calibrations = new();
+    private List<DocumentVaultFile> _calibrationDocuments = new();
+    private EquipmentCalibration _newCalibration = new();
+    private DateTime? _calibrationDate = DateTime.Today;
+    private DateTime? _expiryDate = DateTime.Today.AddYears(1);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _companies = await EquipmentService.GetAccessibleCompaniesAsync();
+        _selectedCompanyId = CurrentUser.CompanyId;
+        if (!_selectedCompanyId.HasValue && _companies.Count == 1)
+            _selectedCompanyId = _companies[0].Id;
+        await ReloadEquipment();
+    }
+
+    private async Task ReloadEquipment()
+    {
+        if (_selectedCompanyId.HasValue)
+            _equipment = await EquipmentService.GetManagedEquipmentAsync(_selectedCompanyId.Value);
+        else
+            _equipment = new List<Equipment>();
+    }
+
+    private async Task CompanyChanged(Guid? companyId)
+    {
+        _selectedCompanyId = companyId;
+        _selectedEquipment = null;
+        _calibrations = new();
+        _calibrationDocuments = new();
+        await ReloadEquipment();
+    }
+
+    private void NewEquipment()
+    {
+        _selectedEquipment = null;
+        _calibrations = new();
+        _calibrationDocuments = new();
+        _editingEquipment = new Equipment
+        {
+            CompanyId = _selectedCompanyId ?? Guid.Empty,
+            IsActive = true,
+            CalibrationRequired = true,
+            CalibrationIntervalDays = 365
+        };
+    }
+
+    private async Task SelectEquipment(Equipment equipment)
+    {
+        _selectedEquipment = equipment;
+        _editingEquipment = new Equipment
+        {
+            Id = equipment.Id,
+            CompanyId = equipment.CompanyId,
+            EquipmentNumber = equipment.EquipmentNumber,
+            Description = equipment.Description,
+            EquipmentType = equipment.EquipmentType,
+            Manufacturer = equipment.Manufacturer,
+            Model = equipment.Model,
+            SerialNumber = equipment.SerialNumber,
+            IsActive = equipment.IsActive,
+            CalibrationRequired = equipment.CalibrationRequired,
+            CalibrationIntervalDays = equipment.CalibrationIntervalDays,
+            Notes = equipment.Notes,
+            CreatedDate = equipment.CreatedDate,
+            LastModifiedDate = equipment.LastModifiedDate
+        };
+        await ReloadCalibration();
+    }
+
+    private async Task SaveEquipment()
+    {
+        try
+        {
+            if (!_selectedCompanyId.HasValue)
+                throw new InvalidOperationException("Select a company before adding equipment.");
+
+            if (_editingEquipment.Id == Guid.Empty)
+                await EquipmentService.AddEquipmentAsync(_selectedCompanyId.Value, _editingEquipment);
+            else
+                await EquipmentService.UpdateEquipmentAsync(_editingEquipment);
+
+            await ReloadEquipment();
+            Snackbar.Add("Equipment saved.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task ReloadCalibration()
+    {
+        if (_selectedEquipment == null || !_selectedCompanyId.HasValue)
+            return;
+
+        _calibrations = await EquipmentService.GetCalibrationsAsync(_selectedEquipment.Id);
+        _calibrationDocuments = await DocumentService.GetCompanyDocumentsAsync(
+            _selectedCompanyId.Value,
+            DocumentCategoryType.CalibrationCertificate);
+    }
+
+    private async Task UploadCalibrationCertificate(InputFileChangeEventArgs args)
+    {
+        if (!_selectedCompanyId.HasValue)
+            return;
+
+        var file = args.File;
+        if (file == null)
+            return;
+
+        try
+        {
+            await using var stream = file.OpenReadStream(20 * 1024 * 1024);
+            await DocumentService.UploadCompanyDocumentAsync(
+                _selectedCompanyId.Value,
+                file.Name,
+                DocumentCategoryType.CalibrationCertificate,
+                stream,
+                title: $"Calibration Certificate - {_selectedEquipment?.EquipmentNumber}");
+
+            await ReloadCalibration();
+            Snackbar.Add("Calibration certificate uploaded and awaiting approval.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task ApproveDocument(DocumentVaultFile document)
+    {
+        try
+        {
+            await DocumentService.ApproveCompanyDocumentAsync(document.Id);
+            await ReloadCalibration();
+            Snackbar.Add("Calibration certificate document approved.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task AddCalibration()
+    {
+        if (_selectedEquipment == null)
+            return;
+
+        try
+        {
+            _newCalibration.EquipmentId = _selectedEquipment.Id;
+            _newCalibration.CalibrationDate = _calibrationDate?.Date ?? DateTime.Today;
+            _newCalibration.ExpiryDate = _expiryDate?.Date ?? DateTime.Today;
+            _newCalibration.IsApproved = false;
+            await EquipmentService.AddCalibrationAsync(_newCalibration);
+            _newCalibration = new EquipmentCalibration();
+            _calibrationDate = DateTime.Today;
+            _expiryDate = DateTime.Today.AddYears(1);
+            await ReloadCalibration();
+            Snackbar.Add("Calibration record added and awaiting approval.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task ApproveCalibration(EquipmentCalibration calibration)
+    {
+        try
+        {
+            await EquipmentService.ApproveCalibrationAsync(calibration.Id);
+            await ReloadCalibration();
+            Snackbar.Add("Calibration record approved.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

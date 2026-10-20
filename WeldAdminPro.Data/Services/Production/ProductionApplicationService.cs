@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using WeldAdminPro.Core.Analytics.Production;
@@ -8,10 +8,15 @@ using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Data.Services;
 using WeldAdminPro.Data.Services.ProductionEngine;
 
+using WeldAdminPro.Core.Security.Abstractions;
+using WeldAdminPro.Core.Security;
 namespace WeldAdminPro.Data.Services.Production
 {
     public class ProductionApplicationService
     {
+    private readonly ICurrentUserContext _currentUser;
+        private readonly IPermissionAuthorizationService _permissionAuthorization;
+        private readonly IProjectAccessAuthorizationService _projectAccessAuthorization;
         private readonly WorkOrderRepository _repository;
         private readonly ProductionScheduleService _scheduleService;
         private readonly ProductionDelayPredictionService _delayPredictionService;
@@ -40,10 +45,18 @@ namespace WeldAdminPro.Data.Services.Production
                 ProductionCapacityService capacityService,
                 ProductionDelayPredictionService delayPredictionService,
                 TimelineEngine timelineEngine,
-                StockProjectTransactionService stockService
+                StockProjectTransactionService stockService,
                 
+                ICurrentUserContext currentUser,
+                IPermissionAuthorizationService permissionAuthorization,
+                IProjectAccessAuthorizationService projectAccessAuthorization
              )
         {
+            _currentUser = currentUser;
+            _permissionAuthorization = permissionAuthorization
+                ?? throw new ArgumentNullException(nameof(permissionAuthorization));
+            _projectAccessAuthorization = projectAccessAuthorization
+                ?? throw new ArgumentNullException(nameof(projectAccessAuthorization));
             _repository = repository;
             _advisor = advisor;
             _readinessService = readinessService;
@@ -56,32 +69,10 @@ namespace WeldAdminPro.Data.Services.Production
             _stockRepository = stockRepository;
             _workOrderMaterialRepository = workOrderMaterialRepository;
             _reservationService = reservationService;
-            _scheduleService = scheduleService;
-            _capacityService = capacityService;
             _stockService = stockService;
         }
 
         // Temporary compatibility constructor
-        public ProductionApplicationService()
-            : this(
-                new WorkOrderRepository(),
-                new ProjectRepository(),
-                new StockRepository(),
-                new WorkOrderMaterialRepository(),
-                new PersistentReservationService(),
-                new ProductionAdvisorService(),
-                new ProductionReadinessService(
-                    new WorkOrderRepository(),
-                    new WorkOrderShortageDetectionService()),
-                new ProductionAIPlannerService(),
-                new ProductionScheduleService(),
-                new ProductionCapacityService(new WorkOrderRepository()),
-                new ProductionDelayPredictionService(),
-                new TimelineEngine(),
-                new StockProjectTransactionService()  
-                  )
-        {
-        }
 
         // =====================================================
         // Queries
@@ -89,19 +80,36 @@ namespace WeldAdminPro.Data.Services.Production
 
         public List<WorkOrder> GetAllWorkOrders()
         {
-            return _repository
+            var workOrders = _repository
                 .GetAll()
                 .OrderBy(w => w.Priority)
+                .ToList();
+
+            if (string.Equals(_currentUser.Role, "Administrator", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+                return workOrders;
+
+            return workOrders
+                .Where(IsWorkOrderAccessible)
                 .ToList();
         }
 
         public WorkOrder? GetWorkOrder(Guid id)
         {
-            return _repository.GetById(id);
+            var workOrder = _repository.GetById(id);
+
+            if (workOrder == null)
+                return null;
+
+            if (!IsWorkOrderAccessible(workOrder))
+                return null;
+
+            return workOrder;
         }
 
         public WorkOrderReadiness? GetWorkOrderReadiness(Guid id)
         {
+            EnsureWorkOrderAccess(id);
             return _readinessService
                 .GetWorkOrderReadiness()
                 .FirstOrDefault(r => r.WorkOrderId == id);
@@ -109,6 +117,7 @@ namespace WeldAdminPro.Data.Services.Production
 
         public AIProductionRecommendation? GetWorkOrderRecommendation(Guid id)
         {
+            EnsureWorkOrderAccess(id);
             var workOrder = _repository.GetById(id);
 
             if (workOrder == null)
@@ -160,6 +169,14 @@ namespace WeldAdminPro.Data.Services.Production
                     x.Status != WorkOrderStatus.Cancelled)
                 .ToList();
 
+            if (!string.Equals(_currentUser.Role, "Administrator", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                workOrders = workOrders
+                    .Where(IsWorkOrderAccessible)
+                    .ToList();
+            }
+
             var readiness = _readinessService.GetWorkOrderReadiness();
 
             foreach (var wo in workOrders)
@@ -186,8 +203,23 @@ namespace WeldAdminPro.Data.Services.Production
 
         public List<Project> GetProjects()
         {
-            return _projectRepository
+            var projects = _projectRepository
                 .GetAll()
+                .ToList();
+
+            if (string.Equals(_currentUser.Role, "Administrator", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+                return projects;
+
+            if (!_currentUser.IsAuthenticated ||
+                !_currentUser.CompanyId.HasValue ||
+                _currentUser.CompanyId.Value == Guid.Empty)
+                return new List<Project>();
+
+            return projects
+                .Where(p =>
+                    p.CompanyId.HasValue &&
+                    p.CompanyId.Value == _currentUser.CompanyId.Value)
                 .ToList();
         }
 
@@ -195,17 +227,19 @@ namespace WeldAdminPro.Data.Services.Production
         // Commands
         // =====================================================
 
-        public bool StartWorkOrder(Guid id)
+        public async Task<bool> StartWorkOrderAsync(Guid id)
         {
+            await EnsureWorkOrderAccessAsync(
+                id,
+                PermissionKeys.Production.Start);
+
             var workOrder = _repository.GetById(id);
 
             if (workOrder == null)
                 return false;
 
             workOrder.Status = WorkOrderStatus.InProduction;
-
             workOrder.IsPaused = false;
-
             workOrder.ActualStartTime ??= DateTime.Now;
 
             _repository.Update(workOrder);
@@ -213,15 +247,18 @@ namespace WeldAdminPro.Data.Services.Production
             return true;
         }
 
-        public bool PauseWorkOrder(Guid id)
+        public async Task<bool> PauseWorkOrderAsync(Guid id)
         {
+            await EnsureWorkOrderAccessAsync(
+                id,
+                PermissionKeys.Production.EditWorkOrder);
+
             var workOrder = _repository.GetById(id);
 
             if (workOrder == null)
                 return false;
 
             workOrder.Status = WorkOrderStatus.Paused;
-
             workOrder.IsPaused = true;
 
             _repository.Update(workOrder);
@@ -229,19 +266,20 @@ namespace WeldAdminPro.Data.Services.Production
             return true;
         }
 
-        public bool CompleteWorkOrder(Guid id)
+        public async Task<bool> CompleteWorkOrderAsync(Guid id)
         {
+            await EnsureWorkOrderAccessAsync(
+                id,
+                PermissionKeys.Production.Complete);
+
             var workOrder = _repository.GetById(id);
 
             if (workOrder == null)
                 return false;
 
             workOrder.Status = WorkOrderStatus.Completed;
-
             workOrder.IsPaused = false;
-
             workOrder.CompletedOn = DateTime.Now;
-
             workOrder.ActualEndTime = DateTime.Now;
 
             if (workOrder.ActualStartTime.HasValue)
@@ -256,34 +294,62 @@ namespace WeldAdminPro.Data.Services.Production
             return true;
         }
 
-            public bool CancelWorkOrder(Guid id)
-            {
-                var workOrder = _repository.GetById(id);
-
-                if (workOrder == null)
-                    return false;
-
-                workOrder.Status = WorkOrderStatus.Cancelled;
-                workOrder.IsPaused = false;
-
-                _repository.Update(workOrder);
-
-                return true;
-            }
-
-            public bool CreateWorkOrder(WorkOrder workOrder)
-            {
-                _repository.Add(workOrder);
-                return true;
-            }
-
-            public bool UpdateWorkOrder(WorkOrder workOrder)
-            {
-                _repository.Update(workOrder);
-                return true;
-            }
-        public bool AddWorkOrderMaterial(WorkOrderMaterial material)
+        public async Task<bool> CancelWorkOrderAsync(Guid id)
         {
+            await EnsureWorkOrderAccessAsync(
+                id,
+                PermissionKeys.Production.EditWorkOrder);
+
+            var workOrder = _repository.GetById(id);
+
+            if (workOrder == null)
+                return false;
+
+            workOrder.Status = WorkOrderStatus.Cancelled;
+            workOrder.IsPaused = false;
+
+            _repository.Update(workOrder);
+
+            return true;
+        }
+
+        public async Task<bool> CreateWorkOrderAsync(WorkOrder workOrder)
+        {
+            if (workOrder == null)
+                throw new ArgumentNullException(nameof(workOrder));
+
+            await EnsureProjectAccessAsync(
+                workOrder.ProjectId,
+                PermissionKeys.Production.CreateWorkOrder);
+
+            _repository.Add(workOrder);
+
+            return true;
+        }
+
+        public async Task<bool> UpdateWorkOrderAsync(WorkOrder workOrder)
+        {
+            if (workOrder == null)
+                throw new ArgumentNullException(nameof(workOrder));
+
+            await EnsureWorkOrderAccessAsync(
+                workOrder.Id,
+                PermissionKeys.Production.EditWorkOrder);
+
+            _repository.Update(workOrder);
+
+            return true;
+        }
+        public async Task<bool> AddWorkOrderMaterialAsync(
+            WorkOrderMaterial material)
+        {
+            if (material == null)
+                throw new ArgumentNullException(nameof(material));
+
+            await EnsureWorkOrderAccessAsync(
+                material.WorkOrderId,
+                PermissionKeys.Production.IssueMaterial);
+
             _workOrderMaterialRepository.Add(material);
 
             _reservationService.Reserve(material.WorkOrderId);
@@ -291,14 +357,19 @@ namespace WeldAdminPro.Data.Services.Production
             return true;
         }
 
-        public bool IssueMaterial
-            (
-                Project project,
-                StockItem stockItem,
-                int quantity,
-                string issuedBy
-            )
+        public async Task<bool> IssueMaterialAsync(
+            Project project,
+            StockItem stockItem,
+            int quantity,
+            string issuedBy)
         {
+            if (project == null)
+                throw new ArgumentNullException(nameof(project));
+
+            await EnsureProjectAccessAsync(
+                project.Id,
+                PermissionKeys.Production.IssueMaterial);
+
             _stockService.IssueStock(
                 project,
                 stockItem,
@@ -308,5 +379,178 @@ namespace WeldAdminPro.Data.Services.Production
             return true;
         }
 
+
+
+        private async Task EnsureProjectAccessAsync(
+            Guid projectId,
+            string permissionKey)
+        {
+            if (!_currentUser.IsAuthenticated ||
+                string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+            }
+
+            var hasPermission =
+                await _permissionAuthorization.HasPermissionAsync(
+                    _currentUser.UserId,
+                    _currentUser.Role,
+                    permissionKey);
+
+            if (!hasPermission)
+            {
+                throw new UnauthorizedAccessException(
+                    $"You do not have permission to perform '{permissionKey}'.");
+            }
+
+            var project = _projectRepository.GetById(projectId);
+
+            if (project == null)
+            {
+                throw new UnauthorizedAccessException(
+                    "The requested project does not exist or is not accessible.");
+            }
+
+            var hasProjectAccess =
+                await _projectAccessAuthorization.CanAccessProjectAsync(
+                    _currentUser.UserId,
+                    project);
+
+            if (!hasProjectAccess)
+            {
+                throw new UnauthorizedAccessException(
+                    "The requested project is not accessible.");
+            }
+        }
+
+        private async Task EnsureWorkOrderAccessAsync(
+            Guid id,
+            string permissionKey)
+        {
+            if (!_currentUser.IsAuthenticated ||
+                string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+            }
+
+            var hasPermission =
+                await _permissionAuthorization.HasPermissionAsync(
+                    _currentUser.UserId,
+                    _currentUser.Role,
+                    permissionKey);
+
+            if (!hasPermission)
+            {
+                throw new UnauthorizedAccessException(
+                    $"You do not have permission to perform '{permissionKey}'.");
+            }
+
+            var workOrder = _repository.GetById(id);
+
+            if (workOrder == null)
+            {
+                throw new UnauthorizedAccessException(
+                    "The requested work order does not exist or is not accessible.");
+            }
+
+            var project = _projectRepository.GetById(workOrder.ProjectId);
+
+            if (project == null)
+            {
+                throw new UnauthorizedAccessException(
+                    "The requested project does not exist or is not accessible.");
+            }
+
+            var hasProjectAccess =
+                await _projectAccessAuthorization.CanAccessProjectAsync(
+                    _currentUser.UserId,
+                    project);
+
+            if (!hasProjectAccess)
+            {
+                throw new UnauthorizedAccessException(
+                    "The requested work order is not accessible.");
+            }
+        }
+
+        private bool IsWorkOrderAccessible(WorkOrder workOrder)
+        {
+            if (!_currentUser.IsAuthenticated)
+                return false;
+
+            if (string.Equals(_currentUser.Role, "Administrator", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (!_currentUser.CompanyId.HasValue ||
+                _currentUser.CompanyId.Value == Guid.Empty)
+                return false;
+
+            var project = _projectRepository.GetById(workOrder.ProjectId);
+
+            return project != null &&
+                   project.CompanyId.HasValue &&
+                   project.CompanyId.Value == _currentUser.CompanyId.Value;
+        }
+
+        private void EnsureProjectAccess(Guid projectId)
+        {
+            if (!_currentUser.IsAuthenticated)
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+
+            if (string.Equals(_currentUser.Role, "Administrator", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            if (!_currentUser.CompanyId.HasValue ||
+                _currentUser.CompanyId.Value == Guid.Empty)
+                throw new UnauthorizedAccessException(
+                    "A valid company context is required.");
+
+            var project = _projectRepository.GetById(projectId);
+
+            if (project == null ||
+                !project.CompanyId.HasValue ||
+                project.CompanyId.Value != _currentUser.CompanyId.Value)
+                throw new UnauthorizedAccessException(
+                    "You do not have access to this project.");
+        }
+
+        private void EnsureWorkOrderAccess(Guid id)
+        {
+            if (!_currentUser.IsAuthenticated)
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+
+            var workOrder = _repository.GetById(id);
+
+            if (workOrder == null)
+                throw new UnauthorizedAccessException(
+                    "The requested work order does not exist or is not accessible.");
+
+            if (string.Equals(_currentUser.Role, "Administrator", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            if (!_currentUser.CompanyId.HasValue ||
+                _currentUser.CompanyId.Value == Guid.Empty)
+                throw new UnauthorizedAccessException(
+                    "A valid company context is required.");
+
+            var project = _projectRepository.GetById(workOrder.ProjectId);
+
+            if (project == null)
+                throw new UnauthorizedAccessException(
+                    "The requested work order project does not exist or is not accessible.");
+
+            if (!project.CompanyId.HasValue ||
+                project.CompanyId.Value != _currentUser.CompanyId.Value)
+                throw new UnauthorizedAccessException(
+                    "You do not have access to this work order.");
+        }
     }
     }
+

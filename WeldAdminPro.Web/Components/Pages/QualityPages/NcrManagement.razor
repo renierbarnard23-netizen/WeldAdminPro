@@ -9,13 +9,13 @@
 @using WeldAdminPro.Core.Quality.Enums
 @using WeldAdminPro.Core.Quality.Services
 @using Microsoft.JSInterop
-@using WeldAdminPro.Data.Repositories
 @using WeldAdminPro.Web.Services.Quality
 
+@using WeldAdminPro.Data.Services.Quality
 @inject NcrApplicationService NcrService
 @inject NcrDossierPdfService NcrPdfService
 @inject IJSRuntime JS
-@inject WeldRepository WeldRepository
+@inject WeldRegisterApplicationService WeldService
 @inject ISnackbar Snackbar
 
 <PageTitle>NCR Management</PageTitle>
@@ -211,13 +211,6 @@
 
                         <MudGrid>
 
-                            <MudItem xs="12" md="4">
-                                <MudTextField T="string"
-                                              Label="NCR Number"
-                                              Value="@_newNcrNumber"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined" />
-                            </MudItem>
 
                             <MudItem xs="12" md="4">
 
@@ -845,7 +838,6 @@
     private string _newCustomReason = string.Empty;
     private bool _newIsWeldingRelated = true;
 
-    private string _newNcrNumber = string.Empty;
     private string _newDescription = string.Empty;
     private string _newRaisedBy = string.Empty;
     private string _newAssignedTo = string.Empty;
@@ -855,7 +847,7 @@
     private string _createError = string.Empty;
 
 
-    private void ToggleNewNcrForm()
+    private async Task ToggleNewNcrForm()
     {
         if (_showNewNcrForm)
         {
@@ -863,22 +855,18 @@
             return;
         }
 
-        PrepareNewNcr();
+        await PrepareNewNcr();
     }
 
 
-    private void PrepareNewNcr()
+    private async Task PrepareNewNcr()
     {
         _createError = string.Empty;
 
-        _welds =
-            WeldRepository
-                .GetAll()
+            _welds = (await WeldService.GetAllWelds())
                 .OrderBy(w => w.WeldNumber)
                 .ToList();
 
-        _newNcrNumber =
-            NcrService.GetNextNcrNumber();
 
         _selectedWeldId = Guid.Empty;
         _newCategory = "Welding";
@@ -903,7 +891,6 @@
         _newCategory = "Welding";
         _newCustomReason = string.Empty;
         _newIsWeldingRelated = true;
-        _newNcrNumber = string.Empty;
         _newDescription = string.Empty;
         _newRaisedBy = string.Empty;
         _newAssignedTo = string.Empty;
@@ -977,7 +964,6 @@
                 {
                     WeldId = weld?.Id,
                     WeldNumber = weld?.WeldNumber ?? string.Empty,
-                    NcrNumber = _newNcrNumber,
                     Category = _newCategory,
                     CustomReason =
                         _newCategory == "Other"
@@ -991,7 +977,7 @@
                     DueDate = _newDueDate
                 };
 
-            NcrService.Create(ncr);
+            await NcrService.Create(ncr);
 
             LoadNcrs();
 
@@ -1005,7 +991,6 @@
             _newCategory = "Welding";
             _newCustomReason = string.Empty;
             _newIsWeldingRelated = true;
-            _newNcrNumber = string.Empty;
             _newDescription = string.Empty;
             _newRaisedBy = string.Empty;
             _newAssignedTo = string.Empty;
@@ -1335,11 +1320,11 @@
             _selectedNcr.PreventiveAction =
                 _dispositionPreventiveAction.Trim();
 
-            NcrService.Update(
+            await NcrService.Update(
                 _selectedNcr);
 
             var saved =
-                NcrService.SetDisposition(
+                await NcrService.SetDisposition(
                     ncrId,
                     _dispositionType.Value,
                     _dispositionApprovedBy.Trim(),
@@ -1506,7 +1491,7 @@
     }
 
 
-    private void StartRepairExecutionUi()
+    private async Task StartRepairExecutionUi()
     {
         if (_selectedNcr == null)
         {
@@ -1534,7 +1519,7 @@
             _executionPerformedBy.Trim();
 
         var succeeded =
-            NcrService.StartRepairExecution(
+            await NcrService.StartRepairExecution(
                 ncrId,
                 performedBy);
 
@@ -1562,7 +1547,7 @@
     }
 
 
-    private void CompleteRepairExecutionUi()
+    private async Task CompleteRepairExecutionUi()
     {
         if (_selectedNcr == null)
         {
@@ -1590,7 +1575,7 @@
             _executionPerformedBy.Trim();
 
         var succeeded =
-            NcrService.CompleteRepairExecution(
+            await NcrService.CompleteRepairExecutionAsync(
                 ncrId,
                 performedBy);
 
@@ -1617,7 +1602,7 @@
             Severity.Success);
     }
 
-    private void RecordVerificationUi()
+    private async Task RecordVerificationUi()
     {
         if (_selectedNcr == null)
         {
@@ -1655,7 +1640,7 @@
             _verificationBy.Trim();
 
         var succeeded =
-            NcrService.RecordVerification(
+            await NcrService.RecordVerification(
                 ncrId,
                 verifiedBy);
 
@@ -1683,7 +1668,7 @@
     }
 
 
-    private void CloseNcrUi()
+    private async Task CloseNcrUi()
     {
         if (_selectedNcr == null)
         {
@@ -1732,7 +1717,7 @@
             _closureBy.Trim();
 
         var succeeded =
-            NcrService.Close(
+            await NcrService.Close(
                 ncrId,
                 closedBy);
 
@@ -1772,7 +1757,7 @@
     }
 
 
-    private void AdvanceWorkflow()
+    private async Task AdvanceWorkflow()
     {
         if (_selectedNcr == null)
         {
@@ -1807,7 +1792,7 @@
             _selectedNcr.Id;
 
         var moved =
-            NcrService.MoveTo(
+            await NcrService.MoveTo(
                 ncrId,
                 target.Value);
 

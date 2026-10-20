@@ -2,6 +2,7 @@
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Core.Quality.Models
 @using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Data.Services.Quality
 
 <MudDialog>
 
@@ -55,6 +56,35 @@
 
             </MudItem>
 
+            <MudItem xs="12" md="6">
+
+                <MudSelect T="Guid"
+                           Label="Equipment Used (select all that apply)"
+                           MultiSelection="true"
+                           ToStringFunc="@GetEquipmentDisplay"
+                           @bind-SelectedValues="_selectedEquipmentIds"
+                           Required="true"
+                           HelperText="Select every controlled item used for this NDT examination. Calibration is checked for each item where required.">
+
+                    @foreach (var equipment in _equipment)
+                    {
+                        <MudSelectItem T="Guid" Value="@equipment.Id">
+                            @equipment.EquipmentNumber - @equipment.Description
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudDatePicker Label="Inspection Date"
+                               @bind-Date="_inspectionDate"
+                               Required="true" />
+
+            </MudItem>
+
             <MudItem xs="12">
 
                 <MudTextField Label="Inspector"
@@ -87,6 +117,19 @@
 
         </MudGrid>
 
+        @if (_equipment.Count == 0)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+                No controlled equipment is available for this project.
+                Add or assign controlled equipment before capturing the NDT result.
+            </MudAlert>
+        }
+        else if (_selectedEquipmentIds.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                Select at least one controlled equipment item before saving the NDT result.
+            </MudAlert>
+        }
     </DialogContent>
 
     <DialogActions>
@@ -98,6 +141,7 @@
         </MudButton>
 
         <MudButton Color="Color.Primary"
+                   Disabled="@(_selectedEquipmentIds.Count == 0 || _equipment.Count == 0)"
                    OnClick="Save">
 
             Save
@@ -116,19 +160,55 @@
     [Parameter]
     public Weld Weld { get; set; } = default!;
 
-    private WeldNdtResult _result = new();
+    [Parameter]
+    public Guid ProjectId { get; set; }
 
-    protected override void OnInitialized()
+    [Inject]
+    private EquipmentApplicationService EquipmentService { get; set; } = default!;
+
+    private WeldNdtResult _result = new();
+    private List<Equipment> _equipment = new();
+    private IReadOnlyCollection<Guid> _selectedEquipmentIds = Array.Empty<Guid>();
+    private DateTime? _inspectionDate = DateTime.Today;
+
+    protected override async Task OnInitializedAsync()
     {
         _result.Id = Guid.NewGuid();
-
         _result.WeldId = Weld.Id;
+        _result.InspectionDate = DateTime.Today;
+        _equipment = await EquipmentService.GetForProjectAsync(ProjectId);
+    }
 
-        _result.InspectionDate = DateTime.Now;
+    protected override void OnParametersSet()
+    {
+        if (_inspectionDate.HasValue)
+            _result.InspectionDate = _inspectionDate.Value;
+    }
+
+    private string GetEquipmentDisplay(Guid equipmentId)
+    {
+        var equipment = _equipment.FirstOrDefault(e => e.Id == equipmentId);
+        if (equipment is null)
+            return equipmentId.ToString();
+
+        var serial = string.IsNullOrWhiteSpace(equipment.SerialNumber)
+            ? "No serial"
+            : $"SN: {equipment.SerialNumber}";
+
+        return $"{equipment.EquipmentNumber} - {equipment.Description} ({serial})";
     }
 
     private void Save()
     {
+        if (_equipment.Count == 0)
+            return;
+
+        if (_selectedEquipmentIds.Count == 0)
+            return;
+
+        _result.EquipmentIds = _selectedEquipmentIds.ToList();
+        _result.EquipmentId = _result.EquipmentIds[0];
+        _result.InspectionDate = _inspectionDate?.Date ?? DateTime.Today;
         MudDialog.Close(DialogResult.Ok(_result));
     }
 
@@ -137,3 +217,4 @@
         MudDialog.Cancel();
     }
 }
+

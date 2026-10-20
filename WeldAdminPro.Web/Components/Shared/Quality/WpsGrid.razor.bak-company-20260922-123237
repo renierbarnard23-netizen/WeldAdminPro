@@ -1,0 +1,164 @@
+﻿@using MudBlazor
+@using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Core.Security
+@using WeldAdminPro.Web.Components.Security
+@using WeldAdminPro.Web.Components.Shared
+
+<MudTable Items="@Items"
+          Hover="true"
+          Dense="true"
+          Striped="true"
+          Bordered="true"
+          Elevation="1">
+
+    <HeaderContent>
+
+        <MudTh>WPS No.</MudTh>
+        <MudTh>Rev</MudTh>
+        <MudTh>Process</MudTh>
+        <MudTh>Material</MudTh>
+        <MudTh>Thickness</MudTh>
+        <MudTh>PQR</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Approval</MudTh>
+        <MudTh>Compliance</MudTh>
+        <MudTh>Actions</MudTh>
+
+    </HeaderContent>
+
+    <RowTemplate>
+
+        <MudTd DataLabel="WPS">
+            @context.WpsNumber
+        </MudTd>
+
+        <MudTd DataLabel="Revision">
+            @context.Revision
+        </MudTd>
+
+        <MudTd DataLabel="Process">
+            @context.Process
+        </MudTd>
+
+        <MudTd DataLabel="Material">
+            @context.MaterialGroup
+        </MudTd>
+
+        <MudTd DataLabel="Thickness">
+            @($"{context.ThicknessMin} - {context.ThicknessMax} mm")
+        </MudTd>
+
+        <MudTd DataLabel="PQR">
+            @(string.IsNullOrWhiteSpace(context.LinkedPqrNumber)
+                ? "-"
+                : context.LinkedPqrNumber)
+        </MudTd>
+
+        <MudTd DataLabel="Status">
+
+            @if (context.IsActive)
+            {
+                <StatusBadge Text="Active"
+                             BadgeCss="bg-success"/>
+
+
+            }
+            else
+            {
+                <StatusBadge Text="Inactive"
+                             BadgeCss="bg-error"/>
+            }
+
+        </MudTd>
+
+        <MudTd DataLabel="Approval">
+
+            @if (context.IsApproved)
+            {
+                <StatusBadge Text="Approved"
+                             BadgeCss="bg-success" />
+
+                @if (!string.IsNullOrWhiteSpace(context.ApprovedBy))
+                {
+                    <div class="small text-muted mt-1">
+                        @context.ApprovedBy
+                    </div>
+                }
+            }
+            else
+            {
+                <StatusBadge Text="Pending"
+                             BadgeCss="bg-warning text-dark" />
+            }
+
+        </MudTd>
+        
+        <MudTd DataLabel="Compliance">
+
+            @if (context.IsCompliant)
+            {
+                <StatusBadge Text="Compliant"
+                             BadgeCss="bg-success" />
+            }
+            else
+            {
+                <StatusBadge Text="@context.ValidationStatus"
+                             BadgeCss="bg-warning text-dark" />
+            }
+
+        </MudTd>
+
+        <MudTd>
+
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                           Size="Size.Small"
+                           Color="Color.Info"
+                           OnClick="@(() => OnView.InvokeAsync(context))" />
+
+            @if (!context.IsApproved)
+            {
+                <PermissionView Permission="@PermissionKeys.Quality.WpsApproval">
+                    <MudTooltip Text="Approve WPS">
+                        <MudIconButton Icon="@Icons.Material.Filled.CheckCircle"
+                                       Size="Size.Small"
+                                       Color="Color.Success"
+                                       OnClick="@(() => OnApprove.InvokeAsync(context))" />
+                    </MudTooltip>
+                </PermissionView>
+            }
+
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           OnClick="@(() => OnEdit.InvokeAsync(context))" />
+
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Size="Size.Small"
+                           Color="Color.Error"
+                           OnClick="@(() => OnDelete.InvokeAsync(context))" />
+
+        </MudTd>
+
+
+    </RowTemplate>
+
+</MudTable>
+
+@code
+{
+    [Parameter]
+    public List<Wps> Items { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<Wps> OnView { get; set; }
+
+    [Parameter]
+    public EventCallback<Wps> OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<Wps> OnDelete { get; set; }
+
+    [Parameter]
+    public EventCallback<Wps> OnApprove { get; set; }
+}
+

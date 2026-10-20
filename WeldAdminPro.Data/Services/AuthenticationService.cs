@@ -1,4 +1,4 @@
-using WeldAdminPro.Core.Models;
+﻿using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Core.Services;
 
@@ -15,8 +15,7 @@ namespace WeldAdminPro.Data.Services
         public AuthenticationService(
             SystemUserRepository repository)
         {
-            _repository =
-                repository;
+            _repository = repository;
         }
 
         public SystemUser? Authenticate(
@@ -24,8 +23,7 @@ namespace WeldAdminPro.Data.Services
             string password)
         {
             var user =
-                _repository.GetByUsername(
-                    username);
+                _repository.GetByUsername(username);
 
             if (user == null)
             {
@@ -37,12 +35,20 @@ namespace WeldAdminPro.Data.Services
                 return null;
             }
 
-            var hash =
-                _hashService.Hash(password);
-
-            if (user.PasswordHash != hash)
+            if (!_hashService.Verify(
+                    password,
+                    user.PasswordHash))
             {
                 return null;
+            }
+
+            if (_hashService.IsLegacyHash(
+                    user.PasswordHash))
+            {
+                user.PasswordHash =
+                    _hashService.Hash(password);
+
+                _repository.Update(user);
             }
 
             return user;

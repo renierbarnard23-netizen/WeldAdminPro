@@ -1,4 +1,4 @@
-@page "/production"
+﻿@page "/production"
 
 @attribute [Authorize(Policy = "Permission:Production.View")]
 @using MudBlazor
@@ -53,6 +53,8 @@ else
     @*  ======================================================
                 Production Overview
         ====================================================== *@
+
+    
 
     <ProductionKpiCards Snapshot="_snapshot" />
 
@@ -165,3 +167,4 @@ else
         _snapshot = DashboardService.GetDashboard();
     }
 }
+

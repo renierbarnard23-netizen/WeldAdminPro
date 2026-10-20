@@ -1,0 +1,307 @@
+@page "/projects/{Id:guid}"
+
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "Permission:Projects.View")]
+
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Data.Services
+@using WeldAdminPro.Data.Services.Projects
+@using WeldAdminPro.Data.Services.Quality
+@using WeldAdminPro.Web.Components.Shared.Projects
+@using WeldAdminPro.Web.Components.Pages.QualityPages
+
+@inject ProjectCostingService ProjectCostingService
+@inject ProjectApplicationService ProjectService
+@inject WeldTraceabilityApplicationService TraceabilityService
+@inject RepairApplicationService RepairService
+
+<PageTitle>Project Details</PageTitle>
+
+<ProjectDetailsKpiCards Project="_project"
+                        MaterialQuantity="@_materialSummary.Sum(x => x.NetQuantity)"
+                        DocumentCount="@_documents.Count"
+                        TransactionCount="@_transactions.Count"
+                        CompliancePercent="@CalculateCompliance()" />
+
+@if (_project == null)
+{
+    <MudAlert Severity="Severity.Error">
+
+        Project not found.
+
+    </MudAlert>
+}
+else
+{
+    <MudTabs Rounded="true"
+             Elevation="1">
+
+        <MudTabPanel Text="Overview">
+
+            <ProjectIssueMaterialCard StockItems="_stockItems"
+                                      OnIssue="IssueMaterial" />
+
+            <ProjectReturnMaterialCard ReturnableItems="_returnableItems"
+                                       OnReturn="ReturnMaterial" />
+
+            <ProjectHeader Project="_project" />
+
+            <ProjectComplianceBanner Documents="_documents" />
+
+            <ProjectFinancialDashboard Project="_project" />
+
+            <div class="row">
+
+                <div class="col-lg-6">
+
+                    <ProjectEditor Project="_project"
+                                   OnSave="SaveProject" />
+
+                </div>
+
+            </div>
+
+            <div class="row">
+
+                <div class="col-12">
+
+                    <ProjectMaterialCard Summary="_materialSummary" />
+
+                    <ProjectMaterialBreakdownCard Items="_materialBreakdown" />
+
+                    <ProjectRequiredDocumentsCard Documents="_documents"
+                                                  OnDocumentsChanged="RefreshProject" />
+
+                    <ProjectDocumentsCard Documents="_documents"
+                                          OnDocumentsChanged="RefreshProject" />
+
+                    <ProjectComplianceCard Documents="_documents" />
+
+                    <ProjectStockHistoryCard Transactions="_transactions" />
+
+                </div>
+
+            </div>
+
+        </MudTabPanel>
+
+        <MudTabPanel Text="Weld Management">
+
+    @if (_project != null)
+    {
+        <WeldRegister ProjectId="@_project.Id" />
+    }
+
+        </MudTabPanel>
+
+        <MudTabPanel Text="Traceability Matrix">
+
+            <ProjectTraceabilityMatrix
+                Rows="_traceabilityRows" />
+
+        </MudTabPanel>
+
+        <MudTabPanel Text="Repairs">
+
+            <RepairKpiCards Analytics="_repairAnalytics" />
+
+            <MudDivider Class="my-4" />
+
+            <RepairRegister Repairs="_repairs" />
+
+        </MudTabPanel>
+
+    </MudTabs>
+}
+
+@code {
+
+    [Parameter]
+
+    public Guid Id { get; set; }
+
+    private Project? _project;
+
+    private List<ProjectStockSummary> _materialSummary = new();
+
+    private List<WeldAdminPro.Core.Quality.ProjectDocument> _documents = new();
+
+    private List<ProjectStockUsage> _transactions = new();
+
+    private List<StockItem> _stockItems = new();
+
+    private List<ReturnableItemDto> _returnableItems = new();
+
+    private List<ProjectMaterialBreakdown> _materialBreakdown = new();
+
+    private List<WeldTraceabilityRow> _traceabilityRows = new();
+
+    private List<RepairRecord> _repairs = new();
+
+    private RepairAnalytics _repairAnalytics = new();
+
+    private void SaveProject()
+    {
+        if (_project == null)
+            return;
+
+        ProjectService.SaveProject(_project);
+
+        var updatedProject = ProjectService.GetProject(_project.Id);
+
+        if (updatedProject != null)
+        {
+            _project = updatedProject;
+            _materialSummary = ProjectService.GetMaterialSummary(updatedProject.Id);
+            _transactions = ProjectService.GetStockUsage(Id);
+            _stockItems = ProjectService.GetStockItems();
+            _returnableItems = ProjectService.GetReturnableItems(Id);
+            _materialSummary = ProjectService.GetMaterialSummary(updatedProject.Id);
+                        
+        }
+
+
+
+        StateHasChanged();
+    }
+
+    private void IssueMaterial((Guid StockId, decimal Quantity) args)
+    {
+        if (_project == null)
+            return;
+
+        var stock = _stockItems.FirstOrDefault(x => x.Id == args.StockId);
+
+        if (stock == null)
+            return;
+
+        ProjectService.IssueMaterial(
+            _project,
+            stock,
+            args.Quantity,
+            "Web User");
+
+        _materialSummary =
+            ProjectService.GetMaterialSummary(_project.Id);
+
+        _transactions =
+            ProjectService.GetStockUsage(_project.Id);
+
+        _documents =
+            ProjectService.GetDocuments(_project.Id);
+
+        _materialSummary =
+            ProjectService.GetMaterialSummary(_project.Id);
+
+        StateHasChanged();
+    }
+
+    private void ReturnMaterial((Guid StockId, decimal Quantity) args)
+    {
+        if (_project == null)
+            return;
+
+        var item =
+            _returnableItems.FirstOrDefault(x => x.StockItemId == args.StockId);
+
+        if (item == null)
+            return;
+
+        var stock =
+            _stockItems.FirstOrDefault(x => x.Id == item.StockItemId);
+
+        if (stock == null)
+            return;
+
+        ProjectService.ReturnMaterial(
+            _project,
+            stock,
+            args.Quantity,
+            item.UnitCost,
+            "Web User");
+
+        RefreshProject();
+    }
+
+    private void RefreshProject()
+    {
+        if (_project == null)
+            return;
+
+        var projectId = _project.Id;
+
+        _project = ProjectService.GetProject(projectId);
+
+        if (_project == null)
+            return;
+
+        _materialSummary =
+            ProjectService.GetMaterialSummary(projectId);
+
+        _transactions =
+            ProjectService.GetStockUsage(projectId);
+
+        _documents = ProjectService.GetDocuments(projectId);
+            StateHasChanged();
+
+        _returnableItems =
+            ProjectService.GetReturnableItems(projectId);
+
+        _materialSummary =
+            ProjectService.GetMaterialSummary(projectId);
+
+        _traceabilityRows =
+            TraceabilityService.GetProjectRows(projectId).Result;
+
+        _repairs =
+            RepairService.GetProjectRepairs(projectId).Result;
+
+        _repairAnalytics = 
+            RepairService.GetAnalytics(projectId).Result;
+
+        StateHasChanged();
+    }
+
+    protected override void OnInitialized()
+    {
+        _project = ProjectService.GetProject(Id);
+
+        _materialSummary = ProjectService.GetMaterialSummary(Id);
+
+        _documents = ProjectService.GetDocuments(Id);
+
+        _transactions = ProjectService.GetStockUsage(Id);
+
+        _stockItems = ProjectService.GetStockItems();
+
+        _returnableItems = ProjectService.GetReturnableItems(Id);
+
+        _materialBreakdown =
+            ProjectCostingService.GetProjectMaterialBreakdown(Id);
+
+        _traceabilityRows = TraceabilityService.GetProjectRows(Id).Result;
+
+        _repairs = RepairService.GetProjectRepairs(Id).Result;
+
+        _repairAnalytics = RepairService.GetAnalytics(Id).Result;
+    }
+
+    private double CalculateCompliance()
+    {
+        if (_documents.Count == 0)
+            return 0;
+
+        var required =
+            _documents.Where(d => d.IsRequired).ToList();
+
+        if (!required.Any())
+            return 100;
+
+        var approved =
+            required.Count(d => d.IsApproved);
+
+        return approved * 100.0 / required.Count;
+    }
+
+}

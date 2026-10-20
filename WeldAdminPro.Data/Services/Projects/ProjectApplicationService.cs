@@ -1,9 +1,11 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Diagnostics;
 using System.IO;
 using System.Collections.Generic;
 using WeldAdminPro.Core.Models;
+using WeldAdminPro.Core.Security;
+using WeldAdminPro.Core.Security.Abstractions;
 using WeldAdminPro.Core.Guards;
 using WeldAdminPro.Core.Quality;
 using WeldAdminPro.Data.Repositories;
@@ -13,70 +15,294 @@ namespace WeldAdminPro.Data.Services.Projects
 {
     public class ProjectApplicationService
     {
+        private readonly ICurrentUserContext _currentUser;
+        private readonly IProjectAccessAuthorizationService _projectAccessAuthorization;
         private readonly ProjectRepository _projectRepository;
+        private readonly CompanyRepository _companyRepository;
         private readonly ProjectDocumentRepository _documentRepository;
         private readonly ProjectStockUsageRepository _stockRepository;
         private readonly ProjectMaterialService _materialService;
         private readonly ProjectDocumentFileRepository _fileRepository;
-        public List<ProjectDocumentFile> GetDocumentFiles(Guid documentId)
+        private readonly ProjectDocumentService _documentService;
+        private readonly IPermissionAuthorizationService _permissionAuthorization;
+        public async Task<List<ProjectDocumentFile>> GetDocumentFiles(Guid documentId)
         {
+            var documents = _documentRepository.GetAll();
+
+            var document = documents.FirstOrDefault(
+                d => d.Id == documentId);
+
+            if (document == null)
+                throw new UnauthorizedAccessException(
+                    "The requested document does not exist or is not accessible.");
+
+            var project = _projectRepository.GetById(
+                document.ProjectId);
+
+            await EnsureProjectAccessAsync(project);
+
             return _fileRepository.GetByDocument(documentId);
         }
 
-        public ProjectApplicationService()
+                public ProjectApplicationService(
+            ICurrentUserContext currentUser,
+            IProjectAccessAuthorizationService projectAccessAuthorization,
+            IPermissionAuthorizationService permissionAuthorization,
+            ProjectRepository projectRepository,
+            CompanyRepository companyRepository,
+            ProjectDocumentRepository documentRepository,
+            ProjectStockUsageRepository stockRepository,
+            ProjectMaterialService materialService,
+            ProjectDocumentFileRepository fileRepository,
+            ProjectDocumentService documentService)
         {
-            _projectRepository = new ProjectRepository();
-            _documentRepository = new ProjectDocumentRepository();
-            _stockRepository = new ProjectStockUsageRepository();
-            _materialService = new ProjectMaterialService();
+            _currentUser = currentUser
+                ?? throw new ArgumentNullException(nameof(currentUser));
 
-            _fileRepository = new ProjectDocumentFileRepository();
+            _projectAccessAuthorization = projectAccessAuthorization
+                ?? throw new ArgumentNullException(nameof(projectAccessAuthorization));
+
+            _permissionAuthorization = permissionAuthorization
+                ?? throw new ArgumentNullException(nameof(permissionAuthorization));
+
+            _projectRepository = projectRepository
+                ?? throw new ArgumentNullException(nameof(projectRepository));
+
+            _companyRepository = companyRepository
+                ?? throw new ArgumentNullException(nameof(companyRepository));
+
+            _documentRepository = documentRepository
+                ?? throw new ArgumentNullException(nameof(documentRepository));
+
+            _stockRepository = stockRepository
+                ?? throw new ArgumentNullException(nameof(stockRepository));
+
+            _materialService = materialService
+                ?? throw new ArgumentNullException(nameof(materialService));
+
+            _fileRepository = fileRepository
+                ?? throw new ArgumentNullException(nameof(fileRepository));
+
+            _documentService = documentService
+                ?? throw new ArgumentNullException(nameof(documentService));
         }
 
         // =============================
         // Projects
         // =============================
 
-        public List<Project> GetProjects()
+        public async Task<List<Project>> GetProjectsAsync()
         {
-            return _projectRepository.GetAll().ToList();
+            var projects =
+                _projectRepository.GetAll().ToList();
+
+            if (!_currentUser.IsAuthenticated)
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+
+            var userId = _currentUser.UserId;
+
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new UnauthorizedAccessException(
+                    "A valid user identity is required.");
+
+            var accessibleProjects = new List<Project>();
+
+            foreach (var project in projects)
+            {
+                if (await _projectAccessAuthorization
+                    .CanAccessProjectAsync(userId, project))
+                {
+                    accessibleProjects.Add(project);
+                }
+            }
+
+            return accessibleProjects;
         }
 
-        public Project? GetProject(Guid id)
+        public async Task<Project?> GetProjectAsync(Guid id)
         {
-            return _projectRepository.GetById(id);
+            var project =
+                _projectRepository.GetById(id);
+
+            if (project == null)
+                return null;
+
+            if (!_currentUser.IsAuthenticated)
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+
+            var userId = _currentUser.UserId;
+
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new UnauthorizedAccessException(
+                    "A valid user identity is required.");
+
+            var hasAccess =
+                await _projectAccessAuthorization
+                    .CanAccessProjectAsync(userId, project);
+
+            if (!hasAccess)
+                throw new UnauthorizedAccessException(
+                    "The requested project does not exist or is not accessible.");
+
+            return project;
+        }
+        
+        public async Task<List<Company>> GetWeldingCompanyOptionsAsync()
+        {
+            if (!_currentUser.IsAuthenticated ||
+                string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+            }
+
+            var hasPermission =
+                await _permissionAuthorization.HasPermissionAsync(
+                    _currentUser.UserId,
+                    _currentUser.Role,
+                    PermissionKeys.Projects.View);
+
+            if (!hasPermission)
+            {
+                throw new UnauthorizedAccessException(
+                    "You do not have permission to access project records.");
+            }
+
+            var companies = _companyRepository.GetAll();
+            var result = new List<Company>();
+
+            foreach (var company in companies)
+            {
+                if (!company.IsActive)
+                    continue;
+
+                if (await _projectAccessAuthorization.CanAccessCompanyAsync(
+                        _currentUser.UserId,
+                        company.Id))
+                {
+                    result.Add(company);
+                }
+            }
+
+            return result;
         }
 
-        public void SaveProject(Project project)
+        public async Task SaveProjectAsync(Project project)
         {
-            Console.WriteLine("SaveProject called");
 
             if (project == null)
                 throw new ArgumentNullException(nameof(project));
 
+            if (!_currentUser.IsAuthenticated ||
+                string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+            }
+
             ValidateProject(project);
+            await ValidateWeldingSubcontractorAsync(project.WeldingSubcontractorCompanyId);
             ProjectCompletionGuard.ValidateBeforeSave(project);
+
+            var permissionKey =
+                project.Id == Guid.Empty
+                    ? PermissionKeys.Projects.Create
+                    : PermissionKeys.Projects.Edit;
+
+            var hasPermission =
+                await _permissionAuthorization.HasPermissionAsync(
+                    _currentUser.UserId,
+                    _currentUser.Role,
+                    permissionKey);
+
+            if (!hasPermission)
+            {
+                throw new UnauthorizedAccessException(
+                    $"You do not have permission to perform '{permissionKey}'.");
+            }
 
             if (project.Id == Guid.Empty)
             {
-                Console.WriteLine("Calling CreateProject");
                 CreateProject(project);
+                return;
             }
-            else
+
+            var existing =
+                _projectRepository.GetById(project.Id);
+
+            if (existing == null)
+                throw new InvalidOperationException(
+                    "The project could not be found.");
+
+            var hasProjectAccess =
+                await _projectAccessAuthorization.CanAccessProjectAsync(
+                    _currentUser.UserId,
+                    existing);
+
+            if (!hasProjectAccess)
             {
-                Console.WriteLine("Calling UpdateProject");
-                UpdateProject(project);
+                throw new UnauthorizedAccessException(
+                    "The requested project is not accessible.");
             }
+
+            UpdateProject(project, existing);
         }
 
-        public void DeleteProject(Guid id)
+        public async Task DeleteProjectAsync(Guid id)
         {
+
+            if (!_currentUser.IsAuthenticated ||
+                string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+            }
+
+            var project = _projectRepository.GetById(id);
+
+            if (project == null)
+                return;
+
+            var hasPermission =
+                await _permissionAuthorization.HasPermissionAsync(
+                    _currentUser.UserId,
+                    _currentUser.Role,
+                    PermissionKeys.Projects.Delete);
+
+            if (!hasPermission)
+            {
+                throw new UnauthorizedAccessException(
+                    $"You do not have permission to perform '{PermissionKeys.Projects.Delete}'.");
+            }
+
+            var hasProjectAccess =
+                await _projectAccessAuthorization.CanAccessProjectAsync(
+                    _currentUser.UserId,
+                    project);
+
+            if (!hasProjectAccess)
+            {
+                throw new UnauthorizedAccessException(
+                    "The requested project is not accessible.");
+            }
+
             _projectRepository.Delete(id);
         }
 
         private void CreateProject(Project project)
         {
-            Console.WriteLine("CreateProject entered");
+
+            if (!_currentUser.CompanyId.HasValue ||
+                _currentUser.CompanyId.Value == Guid.Empty)
+            {
+                throw new InvalidOperationException(
+                    "The current user is not assigned to a company. " +
+                    "A project cannot be created without a company.");
+            }
+
+            project.CompanyId = _currentUser.CompanyId.Value;
 
             project.CreatedOn = DateTime.Now;
             project.LastModifiedOn = DateTime.Now;
@@ -85,17 +311,20 @@ namespace WeldAdminPro.Data.Services.Projects
             project.IsInvoiced = false;
             project.IsArchived = false;
 
-            Console.WriteLine("Calling repository.Add");
 
             _projectRepository.Add(project);
 
-            Console.WriteLine("Returned from repository.Add");
 
             InitializeProject(project);
         }
 
-        private void UpdateProject(Project project)
+        private void UpdateProject(Project project, Project existing)
         {
+
+            // Project ownership is controlled by the existing project.
+            // The editor cannot move a project between companies.
+            project.CompanyId = existing.CompanyId;
+
             project.LastModifiedOn = DateTime.Now;
 
             ApplyInvoiceRules(project);
@@ -105,8 +334,83 @@ namespace WeldAdminPro.Data.Services.Projects
 
         private void InitializeProject(Project project)
         {
-            new ProjectDocumentService()
-                .InitializeProjectDocuments(project.Id);
+            _documentService.InitializeProjectDocuments(project.Id);
+        }
+
+        private bool IsAdministrator()
+        {
+            return string.Equals(
+                _currentUser.Role,
+                "Administrator",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void RequireCompanyContext()
+        {
+            if (!_currentUser.IsAuthenticated)
+            {
+                throw new UnauthorizedAccessException(
+                    "The current user is not authenticated.");
+            }
+
+            if (!_currentUser.CompanyId.HasValue ||
+                _currentUser.CompanyId.Value == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException(
+                    "The current user is not assigned to a company.");
+            }
+        }
+        private async Task EnsureProjectAccessAsync(Project? project)
+        {
+            if (project == null)
+                throw new UnauthorizedAccessException(
+                    "The requested project does not exist or is not accessible.");
+
+            if (!_currentUser.IsAuthenticated ||
+                string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+            }
+
+            var hasAccess =
+                await _projectAccessAuthorization.CanAccessProjectAsync(
+                    _currentUser.UserId,
+                    project);
+
+            if (!hasAccess)
+            {
+                throw new UnauthorizedAccessException(
+                    "You do not have access to this project.");
+            }
+        }
+
+        private async Task ValidateWeldingSubcontractorAsync(Guid? companyId)
+        {
+            if (!companyId.HasValue || companyId.Value == Guid.Empty)
+                return;
+
+            var company = _companyRepository.GetById(companyId.Value);
+
+            if (company == null)
+            {
+                throw new InvalidOperationException(
+                    "The selected welding/fabrication company does not exist.");
+            }
+
+            if (!company.IsActive)
+            {
+                throw new InvalidOperationException(
+                    "The selected welding/fabrication company is inactive.");
+            }
+
+            if (!await _projectAccessAuthorization.CanAccessCompanyAsync(
+                    _currentUser.UserId,
+                    company.Id))
+            {
+                throw new UnauthorizedAccessException(
+                    "You do not have access to the selected welding/fabrication company.");
+            }
         }
 
         private void ValidateProject(Project project)
@@ -146,18 +450,25 @@ namespace WeldAdminPro.Data.Services.Projects
         if (!project.CompletedOn.HasValue)
             project.CompletedOn = DateTime.UtcNow;
     }
-}
+}
+
 
         // =============================
         // Stock
         // =============================
 
-        public List<ProjectStockUsage> GetStockUsage(Guid projectId)
+        public async Task<List<ProjectStockUsage>> GetStockUsage(Guid projectId)
         {
+        var project = _projectRepository.GetById(projectId);
+
+        await EnsureProjectAccessAsync(project);
             return _stockRepository.GetByProjectId(projectId);
         }
-        public List<ProjectStockSummary> GetStockSummary(Guid projectId)
+        public async Task<List<ProjectStockSummary>> GetStockSummary(Guid projectId)
         {
+        var project = _projectRepository.GetById(projectId);
+
+        await EnsureProjectAccessAsync(project);
             return _stockRepository.GetProjectStockSummary(projectId);
         }
 
@@ -165,88 +476,74 @@ namespace WeldAdminPro.Data.Services.Projects
         // Documents
         // =============================
 
-        public List<ProjectDocument> GetDocuments(Guid projectId)
+        public async Task<List<ProjectDocument>> GetDocuments(Guid projectId)
         {
+        var project = _projectRepository.GetById(projectId);
+
+        await EnsureProjectAccessAsync(project);
             return _documentRepository.GetByProject(projectId);
         }
 
-        public void RegisterDocumentFile(
+        public async Task RegisterDocumentFile(
             ProjectDocument document,
             string storedFilePath)
         {
             if (document == null)
-                return;
+                throw new ArgumentNullException(nameof(document));
 
             if (string.IsNullOrWhiteSpace(storedFilePath))
-                return;
+                throw new ArgumentException(
+                    "Stored file path is required.",
+                    nameof(storedFilePath));
 
-            var file = new ProjectDocumentFile
-            {
-                Id = Guid.NewGuid(),
-                ProjectDocumentId = document.Id,
-                FileName = Path.GetFileName(storedFilePath),
-                FilePath = storedFilePath,
-                UploadedOn = DateTime.Now,
-                IsApproved = false
-            };
+            var project = _projectRepository.GetById(document.ProjectId);
+            await EnsureProjectAccessAsync(project);
 
-            _fileRepository.Add(file);
-
-            if (!document.AllowMultiple)
-                document.FilePath = storedFilePath;
-
-            document.Files.Add(file);
-
+            document.FilePath = storedFilePath;
             document.IsUploaded = true;
-            document.UploadedDate = DateTime.Now;
-            document.LastModifiedOn = DateTime.Now;
+            document.UploadedDate = DateTime.UtcNow;
+            document.LastModifiedOn = DateTime.UtcNow;
 
+
+            if (document.AllowMultiple)
+            {
+                var file = new ProjectDocumentFile
+                {
+                    ProjectDocumentId = document.Id,
+                    FilePath = storedFilePath,
+                    FileName = Path.GetFileName(storedFilePath),
+                    UploadedOn = DateTime.UtcNow,
+                    IsApproved = false
+                };
+
+                _fileRepository.Add(file);
+            }
             _documentRepository.Update(document);
         }
 
-        public bool ToggleDocumentApproval(ProjectDocument document)
+        public async Task<bool> ToggleDocumentApproval(ProjectDocument document)
         {
             if (document == null)
                 return false;
 
-            // Cannot approve a document that hasn't been uploaded.
-            if (!document.IsUploaded)
-                return false;
+            var project = _projectRepository.GetById(document.ProjectId);
+            await EnsureProjectAccessAsync(project);
 
             document.IsApproved = !document.IsApproved;
-
-            document.LastModifiedOn = DateTime.Now;
-
-            if (document.IsApproved)
-            {
-                document.ApprovedOn = DateTime.Now;
-                document.ApprovedBy = Environment.UserName;
-            }
-            else
-            {
-                document.ApprovedOn = null;
-                document.ApprovedBy = string.Empty;
-            }
+            document.LastModifiedOn = DateTime.UtcNow;
 
             _documentRepository.Update(document);
 
-            // Keep all uploaded files in sync with the document approval.
-            var files = _fileRepository.GetByDocument(document.Id);
-
-            foreach (var file in files)
-            {
-                file.IsApproved = document.IsApproved;
-
-                _fileRepository.Update(file);
-            }
-
-            return true;
+            return document.IsApproved;
         }
 
-        public bool OpenDocument(ProjectDocument document)
+        public async Task<bool> OpenDocument(ProjectDocument document)
         {
             if (document == null)
                 return false;
+
+            var project = _projectRepository.GetById(document.ProjectId);
+            await EnsureProjectAccessAsync(project);
 
             try
             {
@@ -298,18 +595,33 @@ namespace WeldAdminPro.Data.Services.Projects
         // Material Summary
         // =============================
 
-        public List<ProjectStockSummary> GetMaterialSummary(Guid projectId)
+        public async Task<List<ProjectStockSummary>> GetMaterialSummary(Guid projectId)
         {
+        var project = _projectRepository.GetById(projectId);
+
+        await EnsureProjectAccessAsync(project);
             return _stockRepository.GetProjectStockSummary(projectId);
         }
 
-        public void UpdateDocument(ProjectDocument document)
+        public async Task UpdateDocument(ProjectDocument document)
         {
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
+
+            var project = _projectRepository.GetById(document.ProjectId);
+            await EnsureProjectAccessAsync(project);
+
             _documentRepository.Update(document);
         }
 
-        public void AddDocument(ProjectDocument document)
+        public async Task AddDocument(ProjectDocument document)
         {
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
+
+            var project = _projectRepository.GetById(document.ProjectId);
+            await EnsureProjectAccessAsync(project);
+
             _documentRepository.Add(document);
         }
 
@@ -324,12 +636,13 @@ namespace WeldAdminPro.Data.Services.Projects
                 .ToList();
         }
 
-        public void IssueMaterial(
+        public async Task IssueMaterial(
             Project project,
             StockItem item,
             decimal quantity,
             string issuedBy)
         {
+            await EnsureProjectAccessAsync(project);
             _materialService.IssueMaterial(
                 project,
                 item,
@@ -337,13 +650,14 @@ namespace WeldAdminPro.Data.Services.Projects
                 issuedBy);
         }
 
-        public void ReturnMaterial(
+        public async Task ReturnMaterial(
             Project project,
             StockItem item,
             decimal quantity,
             decimal unitCost,
             string issuedBy)
         {
+            await EnsureProjectAccessAsync(project);
             _materialService.ReturnMaterial(
                 project,
                 item,
@@ -352,20 +666,25 @@ namespace WeldAdminPro.Data.Services.Projects
                 issuedBy);
         }
 
-        public List<ReturnableItemDto> GetReturnableItems(Guid projectId)
+        public async Task<List<ReturnableItemDto>> GetReturnableItems(Guid projectId)
         {
+        var project = _projectRepository.GetById(projectId);
+
+        await EnsureProjectAccessAsync(project);
             return _materialService
                 .GetReturnableItems(projectId)
                 .ToList();
         }
 
-        public List<StockTransaction> GetProjectTransactions(Guid projectId)
+        public async Task<List<StockTransaction>> GetProjectTransactions(Guid projectId)
         {
+        var project = _projectRepository.GetById(projectId);
+
+        await EnsureProjectAccessAsync(project);
             return _materialService
                 .GetProjectTransactions(projectId)
                 .ToList();
         }
     }
 }
-
 

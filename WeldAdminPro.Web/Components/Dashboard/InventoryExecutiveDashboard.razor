@@ -1,17 +1,16 @@
-@using WeldAdminPro.Core.Analytics.Executive
+﻿@using WeldAdminPro.Core.Analytics.Executive
 @using WeldAdminPro.Core.Models
 
-@using WeldAdminPro.Data.Repositories
 @using WeldAdminPro.Data.Services
 @using WeldAdminPro.Core.Services
 
+@using WeldAdminPro.Data.Services.Inventory
 @inject InventoryRiskSummaryService RiskSummaryService
 @inject StockForecastService ForecastService
 @inject MaterialTrendService TrendService
 @inject MaterialCostIntelligenceService CostService
 @inject InventoryAnomalyDetectionService AnomalyService
-@inject SmartReorderPlannerService SmartReorderPlanner
-@inject StockRepository StockRepository
+@inject StockApplicationService StockService
 
 <PageTitle>Inventory Executive Dashboard</PageTitle>
 
@@ -358,8 +357,7 @@
 
         _anomalies = AnomalyService.DetectAnomalies();
 
-        _reorder = SmartReorderPlanner.GetReorderItems(
-            StockRepository.GetAll());
+        _reorder = StockService.GetSmartReorderItems();
     }
 
     private Color GetForecastColor(string status)

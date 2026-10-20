@@ -25,7 +25,7 @@ public class RepairApplicationService
     private readonly IProjectAccessAuthorizationService _projectAccessAuthorization;
     private readonly ProjectRepository _projectRepository;
     private readonly WpsRepository _wpsRepository;
-
+    private readonly WelderQualificationRepository _welderQualificationRepository;
     public RepairApplicationService(        IWeldService weldService,
         WeldRepository weldRepository,
         ICurrentUserContext currentUser,
@@ -52,7 +52,9 @@ public class RepairApplicationService
         _wpsRepository = wpsRepository
             ?? throw new ArgumentNullException(nameof(wpsRepository));
 
-        _repairRepository =
+        
+        _welderQualificationRepository =
+            new WelderQualificationRepository();_repairRepository =
             new RepairRepository(DatabasePath.GetConnectionString());
 
         _workflowService =
@@ -558,6 +560,116 @@ public class RepairApplicationService
     // REPAIR WORKFLOW OPERATIONS
     // ==================================================
 
+    /// <summary>
+    /// Returns only active, current welders who are qualified for
+    /// the selected repair WPS and weld thickness and belong to
+    /// the responsible welding/fabrication company.
+    /// </summary>
+    public async Task<List<WelderQualification>> GetApplicableRepairWeldersAsync(
+        Guid repairId,
+        Guid? repairWpsId)
+    {
+        var repair = _repairRepository
+            .GetAll()
+            .FirstOrDefault(x => x.Id == repairId);
+
+        if (repair == null)
+        {
+            throw new InvalidOperationException(
+                "Repair record could not be found.");
+        }
+
+        await EnsureRepairAccessAsync(
+            repair,
+            PermissionKeys.Quality.Repairs);
+
+        if (!repairWpsId.HasValue ||
+            repairWpsId.Value == Guid.Empty)
+        {
+            return new List<WelderQualification>();
+        }
+
+        var weld =
+            await _weldService.GetByIdAsync(repair.WeldId);
+
+        if (weld == null)
+        {
+            throw new InvalidOperationException(
+                "The weld linked to this repair could not be found.");
+        }
+
+        var project =
+            _projectRepository.GetById(weld.ProjectId);
+
+        if (project == null)
+        {
+            throw new InvalidOperationException(
+                "The project linked to this repair could not be found.");
+        }
+
+        var weldingCompanyId =
+            project.WeldingSubcontractorCompanyId
+            ?? project.CompanyId;
+
+        if (!weldingCompanyId.HasValue ||
+            weldingCompanyId.Value == Guid.Empty)
+        {
+            throw new InvalidOperationException(
+                "No responsible welding/fabrication company is assigned to this project.");
+        }
+
+        var wps =
+            _wpsRepository.GetById(repairWpsId.Value);
+
+        if (wps == null)
+        {
+            throw new InvalidOperationException(
+                "The selected repair WPS could not be found.");
+        }
+
+        if (!wps.CompanyId.HasValue ||
+            wps.CompanyId.Value != weldingCompanyId.Value)
+        {
+            throw new InvalidOperationException(
+                "The selected repair WPS does not belong to the responsible welding/fabrication company.");
+        }
+
+        if (!wps.IsApproved)
+        {
+            throw new InvalidOperationException(
+                $"Repair WPS '{wps.WpsNumber} Rev {wps.Revision}' is not approved.");
+        }
+
+        if (!wps.IsActive)
+        {
+            throw new InvalidOperationException(
+                $"Repair WPS '{wps.WpsNumber} Rev {wps.Revision}' is not active.");
+        }
+
+        var qualifications =
+            _welderQualificationRepository
+                .GetByCompany(weldingCompanyId.Value)
+                .Where(q =>
+                    q.IsActive &&
+                    q.ExpiryDate >= DateTime.Today)
+                .ToList();
+
+        var validationService =
+            new WelderQualificationValidationService();
+
+        return qualifications
+            .Where(q =>
+                validationService.IsWelderQualifiedForWps(
+                    q,
+                    wps,
+                    weld.Thickness))
+            .GroupBy(
+                q => q.WelderNumber.Trim(),
+                StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .OrderBy(q => q.WelderNumber)
+            .ToList();
+    }
     public async Task<(bool Success, string Error)> AuthorizeRepairAsync(
         RepairRecord repair,
         string authorizedBy)
@@ -771,7 +883,62 @@ public class RepairApplicationService
             {
                 transaction.Rollback();
                 return (false, $"The selected repair WPS material group '{repairWps.MaterialGroup}' does not match the weld material group '{(string.IsNullOrWhiteSpace(weld.MaterialGroup) ? weld.MaterialSpecification : weld.MaterialGroup)}'.");
+            }            // ------------------------------------------------
+            // REPAIR WELDER QUALIFICATION
+            // SERVER-SIDE ENFORCEMENT
+            // ------------------------------------------------
+
+            if (string.IsNullOrWhiteSpace(repairedByWelder))
+            {
+                transaction.Rollback();
+
+                return (
+                    false,
+                    "A qualified repair welder must be selected.");
             }
+
+            var repairQualifications =
+                _welderQualificationRepository
+                    .GetByCompany(weldingCompanyId.Value)
+                    .Where(q =>
+                        q.IsActive &&
+                        q.ExpiryDate >= DateTime.Today &&
+                        string.Equals(
+                            q.WelderNumber.Trim(),
+                            repairedByWelder.Trim(),
+                            StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+            if (repairQualifications.Count == 0)
+            {
+                transaction.Rollback();
+
+                return (
+                    false,
+                    $"Welder '{repairedByWelder.Trim()}' does not have an active, current qualification registered with the project's responsible welding/fabrication company.");
+            }
+
+            var qualificationValidationService =
+                new WelderQualificationValidationService();
+
+            var compatibleQualification =
+                repairQualifications.FirstOrDefault(
+                    q =>
+                        qualificationValidationService
+                            .IsWelderQualifiedForWps(
+                                q,
+                                repairWps,
+                                weld.Thickness));
+
+            if (compatibleQualification == null)
+            {
+                transaction.Rollback();
+
+                return (
+                    false,
+                    $"Welder '{repairedByWelder.Trim()}' is not qualified for repair WPS '{repairWps.WpsNumber} Rev {repairWps.Revision}' at the weld thickness of {weld.Thickness}.");
+            }
+
 
             if (weld.WorkflowStatus != WeldWorkflowStatus.RepairRequired &&
                 weld.WorkflowStatus != WeldWorkflowStatus.UnderRepair)
@@ -968,6 +1135,7 @@ public class RepairApplicationService
         return true;
     }
 }
+
 
 
 

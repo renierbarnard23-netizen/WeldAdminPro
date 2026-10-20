@@ -17,22 +17,25 @@ using var cmd = connection.CreateCommand();
 cmd.CommandText =
 """
 SELECT
+    n.Id AS NcrId,
+    n.NcrNumber,
+    n.WeldId,
+    n.WeldNumber,
+    n.Status,
+    n.DispositionType,
+    r.Id AS RepairId,
     r.RepairNumber,
-    r.NcrId,
-    r.WeldId,
-    r.AuthorizedBy,
-    r.RepairedByWelder,
-    r.Status,
+    r.NcrId AS RepairNcrId,
+    r.Status AS RepairStatus,
+    r.Reason,
     r.RequestedDate,
-    r.CompletedDate,
-    r.Notes
-FROM RepairRecords r
-JOIN NcrRecords n
-    ON n.Id = r.NcrId
+    r.CompletedDate
+FROM NcrRecords n
+LEFT JOIN RepairRecords r
+    ON r.NcrId = n.Id
 WHERE n.NcrNumber = 'NCR-009'
 ORDER BY r.RepairNumber;
 """;
-
 using var reader = cmd.ExecuteReader();
 
 var count = 0;
@@ -71,3 +74,10 @@ else
         "FAIL: Expected exactly one repair.");
     Environment.ExitCode = 1;
 }
+
+
+
+
+
+
+

@@ -1,0 +1,349 @@
+﻿using Microsoft.Data.Sqlite;
+using WeldAdminPro.Core.Models;
+using WeldAdminPro.Core.Quality;
+using WeldAdminPro.Core.Security.Abstractions;
+using WeldAdminPro.Core.Security;
+using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Web.Services.Quality;
+
+namespace WeldAdminPro.Web.Tests;
+
+public sealed class WelderQualificationOwnershipTests
+{
+    [Fact]
+    public async Task CreateWithoutCompany_IsRejected()
+    {
+        using var fixture = new Fixture();
+
+        var qualification = ValidQualification();
+        qualification.CompanyId = null;
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => fixture.Service.CreateAsync(qualification));
+
+        Assert.Empty(fixture.Repository.GetAll());
+    }
+
+    [Fact]
+    public async Task CreateWithUnknownCompany_IsRejected()
+    {
+        using var fixture = new Fixture();
+
+        var qualification = ValidQualification();
+        qualification.CompanyId = Guid.NewGuid();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => fixture.Service.CreateAsync(qualification));
+
+        Assert.Empty(fixture.Repository.GetAll());
+    }
+
+    [Fact]
+    public async Task CreateWithInactiveCompany_IsRejected()
+    {
+        using var fixture = new Fixture();
+        var company = fixture.AddCompany(isActive: false);
+
+        var qualification = ValidQualification();
+        qualification.CompanyId = company.Id;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => fixture.Service.CreateAsync(qualification));
+
+        Assert.Empty(fixture.Repository.GetAll());
+    }
+
+    [Fact]
+    public async Task CreateForInaccessibleCompany_IsRejected()
+    {
+        using var fixture = new Fixture();
+        var company = fixture.AddCompany();
+        fixture.ProjectAccess.CanAccess = false;
+
+        var qualification = ValidQualification();
+        qualification.CompanyId = company.Id;
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => fixture.Service.CreateAsync(qualification));
+
+        Assert.Empty(fixture.Repository.GetAll());
+    }
+
+    [Fact]
+    public async Task CreateWithoutManagementPermission_IsRejected()
+    {
+        using var fixture = new Fixture();
+        fixture.Permissions.HasPermission = false;
+
+        var qualification = ValidQualification();
+        qualification.CompanyId = Guid.NewGuid();
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => fixture.Service.CreateAsync(qualification));
+
+        Assert.Empty(fixture.Repository.GetAll());
+    }
+
+    [Fact]
+    public async Task CreateWhenUnauthenticated_IsRejected()
+    {
+        using var fixture = new Fixture();
+        fixture.User.IsAuthenticated = false;
+
+        var qualification = ValidQualification();
+        qualification.CompanyId = Guid.NewGuid();
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => fixture.Service.CreateAsync(qualification));
+
+        Assert.Empty(fixture.Repository.GetAll());
+    }
+
+    [Fact]
+    public async Task UpdateCannotChangeExistingCompany()
+    {
+        using var fixture = new Fixture();
+        var originalCompany = fixture.AddCompany("Original");
+        var otherCompany = fixture.AddCompany("Other");
+
+        var qualification = ValidQualification();
+        qualification.CompanyId = originalCompany.Id;
+
+        await fixture.Service.CreateAsync(qualification);
+
+        var saved = Assert.Single(fixture.Repository.GetAll());
+        saved.CompanyId = otherCompany.Id;
+        saved.WelderNumber = "WELDER-UPDATED";
+
+        await fixture.Service.UpdateAsync(saved);
+
+        var reloaded = Assert.Single(fixture.Repository.GetAll());
+        Assert.Equal(originalCompany.Id, reloaded.CompanyId);
+        Assert.Equal("WELDER-UPDATED", reloaded.WelderNumber);
+    }
+
+    [Fact]
+    public async Task UpdateForInaccessibleOriginalCompany_IsRejectedWithoutChanges()
+    {
+        using var fixture = new Fixture();
+        var originalCompany = fixture.AddCompany();
+        var otherCompany = fixture.AddCompany("Other");
+
+        var qualification = ValidQualification();
+        qualification.CompanyId = originalCompany.Id;
+
+        await fixture.Service.CreateAsync(qualification);
+
+        var saved = Assert.Single(fixture.Repository.GetAll());
+        var originalWelderNumber = saved.WelderNumber;
+        saved.CompanyId = otherCompany.Id;
+        saved.WelderNumber = "SHOULD-NOT-SAVE";
+
+        fixture.ProjectAccess.CanAccess = false;
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => fixture.Service.UpdateAsync(saved));
+
+        var reloaded = Assert.Single(fixture.Repository.GetAll());
+        Assert.Equal(originalCompany.Id, reloaded.CompanyId);
+        Assert.Equal(originalWelderNumber, reloaded.WelderNumber);
+    }
+
+    private static WelderQualification ValidQualification()
+    {
+        var qualificationDate = DateTime.Today.AddDays(-30);
+
+        return new WelderQualification
+        {
+            WelderNumber = "WELDER-001",
+            Process = "GTAW",
+            MaterialGroup = "8",
+            Position = "6G",
+            ThicknessMin = 1,
+            ThicknessMax = 10,
+            QualificationDate = qualificationDate,
+            InitialQualificationDate = qualificationDate,
+            ExpiryDate = DateTime.Today.AddMonths(6),
+            IsActive = true
+        };
+    }
+
+    private sealed class Fixture : IDisposable
+    {
+        private readonly string _directory;
+        private readonly string _databasePath;
+
+        public WelderQualificationRepository Repository { get; }
+        public CompanyRepository Companies { get; }
+        public TestUserContext User { get; } = new();
+        public TestPermissionAuthorization Permissions { get; } = new();
+        public TestProjectAccessAuthorization ProjectAccess { get; } = new();
+        public WelderQualificationApplicationService Service { get; }
+
+        public Fixture()
+        {
+            _directory = Path.Combine(
+                Path.GetTempPath(),
+                "WeldAdminProOwnershipTests",
+                Guid.NewGuid().ToString("N"));
+
+            Directory.CreateDirectory(_directory);
+            _databasePath = Path.Combine(_directory, "ownership-tests.sqlite");
+
+            CreateSchema();
+
+            Repository = new WelderQualificationRepository(_databasePath);
+            Companies = new CompanyRepository(_databasePath);
+
+            Service = new WelderQualificationApplicationService(
+                Repository,
+                Companies,
+                User,
+                Permissions,
+                ProjectAccess);
+        }
+
+        public Company AddCompany(string suffix = "Company", bool isActive = true)
+        {
+            var company = new Company
+            {
+                Id = Guid.NewGuid(),
+                CompanyName = $"Test {suffix}",
+                CompanyCode = $"T{Guid.NewGuid():N}"[..8].ToUpperInvariant(),
+                IsActive = isActive,
+                CreatedDate = DateTime.UtcNow
+            };
+
+            using var connection = new SqliteConnection($"Data Source={_databasePath}");
+            connection.Open();
+
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+INSERT INTO Companies (Id, CompanyName, CompanyCode, IsActive, CreatedDate)
+VALUES ($id, $name, $code, $active, $created);";
+
+            command.Parameters.AddWithValue("$id", company.Id.ToString());
+            command.Parameters.AddWithValue("$name", company.CompanyName);
+            command.Parameters.AddWithValue("$code", company.CompanyCode);
+            command.Parameters.AddWithValue("$active", company.IsActive ? 1 : 0);
+            command.Parameters.AddWithValue("$created", company.CreatedDate.ToString("O"));
+            command.ExecuteNonQuery();
+
+            return company;
+        }
+
+        private void CreateSchema()
+        {
+            using var connection = new SqliteConnection($"Data Source={_databasePath}");
+            connection.Open();
+
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+CREATE TABLE Companies (
+    Id TEXT PRIMARY KEY,
+    CompanyName TEXT NOT NULL,
+    CompanyCode TEXT NOT NULL,
+    RegistrationNumber TEXT,
+    VatNumber TEXT,
+    VatStatus TEXT,
+    CompanyType TEXT,
+    Telephone TEXT,
+    Mobile TEXT,
+    Email TEXT,
+    Website TEXT,
+    PhysicalAddress TEXT,
+    PostalAddress TEXT,
+    Notes TEXT,
+    IsActive INTEGER NOT NULL,
+    CreatedDate TEXT NOT NULL
+);
+
+CREATE TABLE WelderQualification (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    WelderNumber TEXT NOT NULL,
+    Process TEXT NOT NULL,
+    MaterialGroup TEXT,
+    Position TEXT NOT NULL,
+    ThicknessMin REAL,
+    ThicknessMax REAL,
+    QualificationDate TEXT NOT NULL,
+    InitialQualificationDate TEXT,
+    RenewalDate TEXT,
+    ExpiryDate TEXT NOT NULL,
+    IsActive INTEGER NOT NULL DEFAULT 1,
+    LastRenewedByUserId TEXT,
+    LastRenewedByName TEXT,
+    LastRenewedAt TEXT,
+    PreviousExpiryDate TEXT,
+    CompanyId TEXT
+);
+
+CREATE TABLE WelderQualificationRenewalHistory (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    WelderQualificationId INTEGER NOT NULL,
+    CompanyId TEXT,
+    WelderNumber TEXT NOT NULL,
+    PreviousExpiryDate TEXT,
+    NewExpiryDate TEXT NOT NULL,
+    RenewalDate TEXT NOT NULL,
+    RenewalPeriodMonths INTEGER NOT NULL,
+    RenewedByUserId TEXT NOT NULL,
+    RenewedByUsername TEXT,
+    RenewedByName TEXT NOT NULL,
+    Status TEXT NOT NULL DEFAULT 'Completed'
+);";
+
+            command.ExecuteNonQuery();
+        }
+
+        public void Dispose()
+        {
+            SqliteConnection.ClearAllPools();
+
+            try
+            {
+                Directory.Delete(_directory, recursive: true);
+            }
+            catch
+            {
+                // Leave cleanup failures visible as temporary files rather than
+                // allowing cleanup to hide the actual test result.
+            }
+        }
+    }
+
+    private sealed class TestUserContext : ICurrentUserContext
+    {
+        public bool IsAuthenticated { get; set; } = true;
+        public string UserId => "ownership-test-user";
+        public string Username => "ownership-test";
+        public string FullName => "Ownership Test";
+        public string Role => "Admin";
+        public Guid? CompanyId { get; set; }
+    }
+
+    private sealed class TestPermissionAuthorization : IPermissionAuthorizationService
+    {
+        public bool HasPermission { get; set; } = true;
+
+        public Task<bool> HasPermissionAsync(
+            string userId,
+            string role,
+            string permissionKey) =>
+            Task.FromResult(HasPermission);
+    }
+
+    private sealed class TestProjectAccessAuthorization : IProjectAccessAuthorizationService
+    {
+        public bool CanAccess { get; set; } = true;
+
+        public Task<bool> CanAccessCompanyAsync(string userId, Guid companyId) =>
+            Task.FromResult(CanAccess);
+
+        public Task<bool> CanAccessProjectAsync(
+            string userId,
+            WeldAdminPro.Core.Models.Project project) =>
+            Task.FromResult(CanAccess);
+    }
+}
+

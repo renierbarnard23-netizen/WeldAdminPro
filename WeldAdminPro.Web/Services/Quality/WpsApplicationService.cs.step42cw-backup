@@ -1,0 +1,223 @@
+﻿using WeldAdminPro.Core.Quality;
+using WeldAdminPro.Core.Quality.Services;
+using WeldAdminPro.Core.Services;
+using WeldAdminPro.Data.Repositories;
+
+namespace WeldAdminPro.Web.Services.Quality;
+
+public class WpsApplicationService
+{
+    private readonly WpsRepository _wpsRepository;
+    private readonly PqrRepository _pqrRepository;
+    private readonly WpsGeneratorService _generator;
+    private readonly WpsComplianceService _compliance;
+
+    public WpsApplicationService(
+        WpsRepository wpsRepository,
+        PqrRepository pqrRepository)
+    {
+        _wpsRepository = wpsRepository;
+        _pqrRepository = pqrRepository;
+
+        _generator = new WpsGeneratorService();
+        _compliance = new WpsComplianceService();
+    }
+
+    // =====================================================
+    // WPS QUERIES
+    // =====================================================
+
+    public List<Wps> GetAll()
+    {
+        return _wpsRepository.GetAll();
+    }
+
+    public List<Wps> GetActive()
+    {
+        return _wpsRepository.GetActive();
+    }
+
+    public Wps? Get(string wpsNumber)
+    {
+        return _wpsRepository.GetByWpsNumber(wpsNumber);
+    }
+
+    // =====================================================
+    // PQR QUERIES
+    // =====================================================
+
+    public List<Pqr> GetAvailablePqrs()
+    {
+        return _pqrRepository.GetAll();
+    }
+
+    public Pqr? GetPqr(Guid id)
+    {
+        return _pqrRepository
+            .GetAll()
+            .FirstOrDefault(x => x.Id == id);
+    }
+
+    // =====================================================
+    // GENERATION
+    // =====================================================
+
+    public Wps GenerateFromPqr(Pqr pqr)
+    {
+        if (pqr == null)
+            throw new ArgumentNullException(nameof(pqr));
+
+        return _generator.GenerateFromPqr(pqr);
+    }
+
+    // =====================================================
+    // COMPLIANCE
+    // =====================================================
+
+    public WpsComplianceResult EvaluateCompliance(
+        Wps wps,
+        Pqr pqr)
+    {
+        return _compliance.Evaluate(wps, pqr);
+    }
+
+    // =====================================================
+    // SAVE
+    // =====================================================
+
+    public void Save(Wps wps)
+    {
+        if (wps == null)
+            throw new ArgumentNullException(nameof(wps));
+
+        // Always reload the authoritative current revision from the repository.
+        var existing =
+            _wpsRepository.GetByWpsNumber(wps.WpsNumber);
+
+        // ---------------------------------------------------------
+        // NEW WPS
+        // ---------------------------------------------------------
+
+        if (existing == null)
+        {
+            if (wps.Id == Guid.Empty)
+                wps.Id = Guid.NewGuid();
+
+            if (wps.Revision < 1)
+                wps.Revision = 1;
+
+            wps.IsActive = true;
+
+            _wpsRepository.Add(wps);
+            return;
+        }
+
+        // ---------------------------------------------------------
+        // EXISTING APPROVED WPS
+        //
+        // Approved revisions are immutable.
+        // Editing an approved WPS creates a new revision.
+        // ---------------------------------------------------------
+
+        if (existing.IsApproved)
+        {
+            var revision = existing.CreateRevision(
+                existing.CreatedBy);
+
+            // Apply the edited WPS data onto the new revision.
+            revision.WpsNumber = wps.WpsNumber;
+            revision.Process = wps.Process;
+            revision.ThicknessMin = wps.ThicknessMin;
+            revision.ThicknessMax = wps.ThicknessMax;
+            revision.Diameter = wps.Diameter;
+            revision.FillerMaterial = wps.FillerMaterial;
+            revision.GasType = wps.GasType;
+            revision.AmpsMin = wps.AmpsMin;
+            revision.AmpsMax = wps.AmpsMax;
+            revision.VoltsMin = wps.VoltsMin;
+            revision.VoltsMax = wps.VoltsMax;
+            revision.HeatInputMin = wps.HeatInputMin;
+            revision.HeatInputMax = wps.HeatInputMax;
+            revision.PreheatMin = wps.PreheatMin;
+            revision.PreheatMax = wps.PreheatMax;
+            revision.InterpassMax = wps.InterpassMax;
+            revision.PwhtRequired = wps.PwhtRequired;
+            revision.PqrId = wps.PqrId;
+            revision.LinkedPqrNumber = wps.LinkedPqrNumber;
+            revision.PNumber = wps.PNumber;
+            revision.FNumber = wps.FNumber;
+            revision.Position = wps.Position;
+            revision.MaterialGroup = wps.MaterialGroup;
+            revision.JointType = wps.JointType;
+            revision.JointDesign = wps.JointDesign;
+            revision.Backing = wps.Backing;
+            revision.BackingType = wps.BackingType;
+            revision.IsCompliant = wps.IsCompliant;
+            revision.ValidationStatus = wps.ValidationStatus;
+            revision.CurrentType = wps.CurrentType;
+            revision.Polarity = wps.Polarity;
+            revision.Progression = wps.Progression;
+            revision.JointDiagramPath = wps.JointDiagramPath;
+            revision.PassDiagramPath = wps.PassDiagramPath;
+            revision.QualifiedThicknessRange = wps.QualifiedThicknessRange;
+            revision.ParseConfidence = wps.ParseConfidence;
+            revision.ParseNotes = wps.ParseNotes;
+
+            // New revisions must start as active, unlocked and unapproved.
+            revision.IsApproved = false;
+            revision.IsLocked = false;
+            revision.ApprovedBy = null;
+            revision.ApprovedOn = null;
+            revision.IsActive = true;
+
+            // Deactivate the previous revision only after the new revision
+            // has been constructed successfully.
+            _wpsRepository.DeactivatePrevious(wps.WpsNumber);
+
+            _wpsRepository.Add(revision);
+            return;
+        }
+
+        // ---------------------------------------------------------
+        // EXISTING UNAPPROVED WPS
+        //
+        // Normal editing remains an update.
+        // ---------------------------------------------------------
+
+        wps.Id = existing.Id;
+        wps.Revision = existing.Revision;
+        wps.IsActive = existing.IsActive;
+        wps.PreviousRevisionId = existing.PreviousRevisionId;
+
+        _wpsRepository.Update(wps);
+    }
+
+    // =====================================================
+    // SAVE WITH COMPLIANCE CHECK
+    // =====================================================
+
+    public WpsComplianceResult ValidateAndSave(
+        Wps wps,
+        Pqr pqr)
+    {
+        var result =
+            EvaluateCompliance(wps, pqr);
+
+        if (!result.IsCompliant)
+            return result;
+
+        Save(wps);
+
+        return result;
+    }
+
+    // =====================================================
+    // DELETE
+    // =====================================================
+
+    public void Delete(Guid id)
+    {
+        _wpsRepository.Delete(id);
+    }
+}
+

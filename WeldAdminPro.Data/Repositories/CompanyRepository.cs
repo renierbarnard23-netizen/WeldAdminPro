@@ -1,0 +1,467 @@
+﻿using Microsoft.Data.Sqlite;
+using System;
+using System.Collections.Generic;
+using WeldAdminPro.Core.Models;
+using WeldAdminPro.Data;
+
+namespace WeldAdminPro.Data.Repositories
+{
+    public class CompanyRepository
+    {
+        private readonly string _connectionString;
+
+        public CompanyRepository()
+            : this(DatabasePath.Get())
+        {
+        }
+
+        public CompanyRepository(string databasePath)
+        {
+            if (string.IsNullOrWhiteSpace(databasePath))
+                throw new ArgumentException(
+                    "Database path is required.",
+                    nameof(databasePath));
+
+            _connectionString =
+                $"Data Source={System.IO.Path.GetFullPath(databasePath)}";
+        }
+
+        public List<Company> GetAll()
+        {
+            var list = new List<Company>();
+
+            using var connection =
+                new SqliteConnection(_connectionString);
+
+            connection.Open();
+
+            using var cmd =
+                connection.CreateCommand();
+
+            cmd.CommandText = @"
+                SELECT
+                    Id,
+                    CompanyName,
+                    CompanyCode,
+                    RegistrationNumber,
+                    VatNumber,
+                    VatStatus,
+                    CompanyType,
+                    Telephone,
+                    Mobile,
+                    Email,
+                    Website,
+                    PhysicalAddress,
+                    PostalAddress,
+                    Notes,
+                    IsActive,
+                    CreatedDate
+                FROM Companies
+                ORDER BY CompanyName;
+            ";
+
+            using var reader =
+                cmd.ExecuteReader();
+
+            while (reader.Read())
+            {
+                list.Add(MapCompany(reader));
+            }
+
+            return list;
+        }
+
+        public Company? GetById(Guid id)
+        {
+            using var connection =
+                new SqliteConnection(_connectionString);
+
+            connection.Open();
+
+            using var cmd =
+                connection.CreateCommand();
+
+            cmd.CommandText = @"
+                SELECT
+                    Id,
+                    CompanyName,
+                    CompanyCode,
+                    RegistrationNumber,
+                    VatNumber,
+                    VatStatus,
+                    CompanyType,
+                    Telephone,
+                    Mobile,
+                    Email,
+                    Website,
+                    PhysicalAddress,
+                    PostalAddress,
+                    Notes,
+                    IsActive,
+                    CreatedDate
+                FROM Companies
+                WHERE Id = $id;
+            ";
+
+            cmd.Parameters.AddWithValue(
+                "$id",
+                id.ToString());
+
+            using var reader =
+                cmd.ExecuteReader();
+
+            if (!reader.Read())
+                return null;
+
+            return MapCompany(reader);
+        }
+
+        public Company? GetByCode(string companyCode)
+        {
+            if (string.IsNullOrWhiteSpace(companyCode))
+                return null;
+
+            using var connection =
+                new SqliteConnection(_connectionString);
+
+            connection.Open();
+
+            using var cmd =
+                connection.CreateCommand();
+
+            cmd.CommandText = @"
+                SELECT
+                    Id,
+                    CompanyName,
+                    CompanyCode,
+                    RegistrationNumber,
+                    VatNumber,
+                    VatStatus,
+                    CompanyType,
+                    Telephone,
+                    Mobile,
+                    Email,
+                    Website,
+                    PhysicalAddress,
+                    PostalAddress,
+                    Notes,
+                    IsActive,
+                    CreatedDate
+                FROM Companies
+                WHERE CompanyCode = $companyCode;
+            ";
+
+            cmd.Parameters.AddWithValue(
+                "$companyCode",
+                companyCode.Trim());
+
+            using var reader =
+                cmd.ExecuteReader();
+
+            if (!reader.Read())
+                return null;
+
+            return MapCompany(reader);
+        }
+
+        public void Add(Company company)
+        {
+            if (company == null)
+                throw new ArgumentNullException(
+                    nameof(company));
+
+            using var connection =
+                new SqliteConnection(_connectionString);
+
+            connection.Open();
+
+            using var cmd =
+                connection.CreateCommand();
+
+            cmd.CommandText = @"
+                INSERT INTO Companies
+                (
+                    Id,
+                    CompanyName,
+                    CompanyCode,
+                    RegistrationNumber,
+                    VatNumber,
+                    VatStatus,
+                    CompanyType,
+                    Telephone,
+                    Mobile,
+                    Email,
+                    Website,
+                    PhysicalAddress,
+                    PostalAddress,
+                    Notes,
+                    IsActive,
+                    CreatedDate
+                )
+                VALUES
+                (
+                    $id,
+                    $companyName,
+                    $companyCode,
+                    $registrationNumber,
+                    $vatNumber,
+                    $vatStatus,
+                    $companyType,
+                    $telephone,
+                    $mobile,
+                    $email,
+                    $website,
+                    $physicalAddress,
+                    $postalAddress,
+                    $notes,
+                    $isActive,
+                    $createdDate
+                );
+            ";
+
+            AddCompanyParameters(cmd, company);
+
+            cmd.ExecuteNonQuery();
+        }
+
+        public void Update(Company company)
+        {
+            if (company == null)
+                throw new ArgumentNullException(
+                    nameof(company));
+
+            using var connection =
+                new SqliteConnection(_connectionString);
+
+            connection.Open();
+
+            using var cmd =
+                connection.CreateCommand();
+
+            cmd.CommandText = @"
+                UPDATE Companies
+                SET
+                    CompanyName = $companyName,
+                    CompanyCode = $companyCode,
+                    RegistrationNumber = $registrationNumber,
+                    VatNumber = $vatNumber,
+                    VatStatus = $vatStatus,
+                    CompanyType = $companyType,
+                    Telephone = $telephone,
+                    Mobile = $mobile,
+                    Email = $email,
+                    Website = $website,
+                    PhysicalAddress = $physicalAddress,
+                    PostalAddress = $postalAddress,
+                    Notes = $notes,
+                    IsActive = $isActive
+                WHERE Id = $id;
+            ";
+
+            AddCompanyParameters(cmd, company);
+
+            cmd.ExecuteNonQuery();
+        }
+
+        public void SetActive(
+            Guid id,
+            bool isActive)
+        {
+            using var connection =
+                new SqliteConnection(_connectionString);
+
+            connection.Open();
+
+            using var cmd =
+                connection.CreateCommand();
+
+            cmd.CommandText = @"
+                UPDATE Companies
+                SET IsActive = $active
+                WHERE Id = $id;
+            ";
+
+            cmd.Parameters.AddWithValue(
+                "$active",
+                isActive ? 1 : 0);
+
+            cmd.Parameters.AddWithValue(
+                "$id",
+                id.ToString());
+
+            cmd.ExecuteNonQuery();
+        }
+
+        private static void AddCompanyParameters(
+            SqliteCommand cmd,
+            Company company)
+        {
+            cmd.Parameters.AddWithValue(
+                "$id",
+                company.Id.ToString());
+
+            cmd.Parameters.AddWithValue(
+                "$companyName",
+                company.CompanyName?.Trim() ?? "");
+
+            cmd.Parameters.AddWithValue(
+                "$companyCode",
+                company.CompanyCode?.Trim() ?? "");
+
+            cmd.Parameters.AddWithValue(
+                "$registrationNumber",
+                string.IsNullOrWhiteSpace(company.RegistrationNumber)
+                    ? DBNull.Value
+                    : company.RegistrationNumber.Trim());
+
+            cmd.Parameters.AddWithValue(
+                "$vatNumber",
+                string.IsNullOrWhiteSpace(company.VatNumber)
+                    ? DBNull.Value
+                    : company.VatNumber.Trim());
+
+            cmd.Parameters.AddWithValue(
+                "$vatStatus",
+                string.IsNullOrWhiteSpace(company.VatStatus)
+                    ? "N/A"
+                    : company.VatStatus.Trim());
+
+            cmd.Parameters.AddWithValue(
+                "$companyType",
+                string.IsNullOrWhiteSpace(company.CompanyType)
+                    ? "Other"
+                    : company.CompanyType.Trim());
+
+            cmd.Parameters.AddWithValue(
+                "$telephone",
+                string.IsNullOrWhiteSpace(company.Telephone)
+                    ? DBNull.Value
+                    : company.Telephone.Trim());
+
+            cmd.Parameters.AddWithValue(
+                "$mobile",
+                string.IsNullOrWhiteSpace(company.Mobile)
+                    ? DBNull.Value
+                    : company.Mobile.Trim());
+
+            cmd.Parameters.AddWithValue(
+                "$email",
+                string.IsNullOrWhiteSpace(company.Email)
+                    ? DBNull.Value
+                    : company.Email.Trim());
+
+            cmd.Parameters.AddWithValue(
+                "$website",
+                string.IsNullOrWhiteSpace(company.Website)
+                    ? DBNull.Value
+                    : company.Website.Trim());
+
+            cmd.Parameters.AddWithValue(
+                "$physicalAddress",
+                string.IsNullOrWhiteSpace(company.PhysicalAddress)
+                    ? DBNull.Value
+                    : company.PhysicalAddress.Trim());
+
+            cmd.Parameters.AddWithValue(
+                "$postalAddress",
+                string.IsNullOrWhiteSpace(company.PostalAddress)
+                    ? DBNull.Value
+                    : company.PostalAddress.Trim());
+
+            cmd.Parameters.AddWithValue(
+                "$notes",
+                string.IsNullOrWhiteSpace(company.Notes)
+                    ? DBNull.Value
+                    : company.Notes.Trim());
+
+            cmd.Parameters.AddWithValue(
+                "$isActive",
+                company.IsActive ? 1 : 0);
+
+            cmd.Parameters.AddWithValue(
+                "$createdDate",
+                company.CreatedDate.ToString("O"));
+        }
+
+        private static Company MapCompany(
+            SqliteDataReader reader)
+        {
+            return new Company
+            {
+                Id = Guid.Parse(
+                    reader.GetString(0)),
+
+                CompanyName =
+                    reader.GetString(1),
+
+                CompanyCode =
+                    reader.GetString(2),
+
+                RegistrationNumber =
+                    GetNullableString(reader, 3),
+
+                VatNumber =
+                    GetNullableString(reader, 4),
+
+                VatStatus =
+                    GetStringOrDefault(
+                        reader,
+                        5,
+                        "N/A"),
+
+                CompanyType =
+                    GetStringOrDefault(
+                        reader,
+                        6,
+                        "Other"),
+
+                Telephone =
+                    GetNullableString(reader, 7),
+
+                Mobile =
+                    GetNullableString(reader, 8),
+
+                Email =
+                    GetNullableString(reader, 9),
+
+                Website =
+                    GetNullableString(reader, 10),
+
+                PhysicalAddress =
+                    GetNullableString(reader, 11),
+
+                PostalAddress =
+                    GetNullableString(reader, 12),
+
+                Notes =
+                    GetNullableString(reader, 13),
+
+                IsActive =
+                    reader.GetInt32(14) == 1,
+
+                CreatedDate =
+                    DateTime.Parse(
+                        reader.GetString(15))
+            };
+        }
+
+        private static string GetNullableString(
+            SqliteDataReader reader,
+            int ordinal)
+        {
+            return reader.IsDBNull(ordinal)
+                ? ""
+                : reader.GetString(ordinal);
+        }
+
+        private static string GetStringOrDefault(
+            SqliteDataReader reader,
+            int ordinal,
+            string defaultValue)
+        {
+            return reader.IsDBNull(ordinal)
+                ? defaultValue
+                : reader.GetString(ordinal);
+        }
+    }
+}

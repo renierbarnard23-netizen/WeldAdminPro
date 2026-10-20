@@ -8,7 +8,8 @@ public class QualityAlertService
     {
         var alerts = new List<QualityAlert>();
 
-        if (snapshot.ComplianceScore < 70)
+        if (snapshot.ComplianceScore < 70 &&
+            !string.Equals(snapshot.ComplianceRating, "Restricted", StringComparison.OrdinalIgnoreCase))
         {
             alerts.Add(new QualityAlert
             {
@@ -17,7 +18,8 @@ public class QualityAlertService
             });
         }
 
-        if (snapshot.ActiveWps == 0)
+        if (snapshot.ActiveWpsAvailable &&
+            snapshot.ActiveWps == 0)
         {
             alerts.Add(new QualityAlert
             {
@@ -26,7 +28,8 @@ public class QualityAlertService
             });
         }
 
-        if (snapshot.ActivePqr == 0)
+        if (snapshot.ActivePqrAvailable &&
+            snapshot.ActivePqr == 0)
         {
             alerts.Add(new QualityAlert
             {
@@ -35,7 +38,8 @@ public class QualityAlertService
             });
         }
 
-        if (snapshot.MissingDocuments > 0)
+        if (snapshot.MissingDocumentsAvailable &&
+            snapshot.MissingDocuments > 0)
         {
             alerts.Add(new QualityAlert
             {
@@ -44,7 +48,8 @@ public class QualityAlertService
             });
         }
 
-        if (snapshot.PendingNdt > 0)
+        if (snapshot.PendingNdtAvailable &&
+            snapshot.PendingNdt > 0)
         {
             alerts.Add(new QualityAlert
             {
@@ -53,7 +58,8 @@ public class QualityAlertService
             });
         }
 
-        if (snapshot.OpenRepairs > 0)
+        if (snapshot.OpenRepairsAvailable &&
+            snapshot.OpenRepairs > 0)
         {
             alerts.Add(new QualityAlert
             {
@@ -62,7 +68,8 @@ public class QualityAlertService
             });
         }
 
-        if (snapshot.ExpiringQualifications > 0)
+        if (snapshot.ExpiringQualificationsAvailable &&
+            snapshot.ExpiringQualifications > 0)
         {
             alerts.Add(new QualityAlert
             {

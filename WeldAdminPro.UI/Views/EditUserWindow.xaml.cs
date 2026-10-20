@@ -1,9 +1,11 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Windows;
-using WeldAdminPro.Core.Enums;
 using WeldAdminPro.Core.Models;
+using WeldAdminPro.Core.Security.Models;
 using WeldAdminPro.Core.Services;
+using WeldAdminPro.Data;
+using WeldAdminPro.Data.Repositories.Security;
 
 namespace WeldAdminPro.UI.Views
 {
@@ -12,10 +14,14 @@ namespace WeldAdminPro.UI.Views
         private readonly PasswordHashService
             _hashService = new();
 
+        private readonly RoleRepository _roleRepository;
+
         public SystemUser User { get; }
 
-        public Array Roles =>
-            Enum.GetValues(typeof(SystemRole));
+        public System.Collections.Generic.IReadOnlyList<Role> Roles { get; private set; } =
+            Array.Empty<Role>();
+
+        public Role? SelectedRole { get; set; }
 
         public EditUserWindow(SystemUser user)
         {
@@ -23,7 +29,27 @@ namespace WeldAdminPro.UI.Views
 
             User = user;
 
+            _roleRepository =
+                new RoleRepository(
+                    DatabasePath.GetConnectionString());
+
+            LoadRoles();
+
             DataContext = this;
+        }
+
+        private void LoadRoles()
+        {
+            Roles =
+                _roleRepository
+                    .GetAllAsync()
+                    .GetAwaiter()
+                    .GetResult()
+                    .ToList();
+
+            SelectedRole =
+                Roles.FirstOrDefault(
+                    r => r.Id == User.RoleId);
         }
 
         public string Username
@@ -44,10 +70,10 @@ namespace WeldAdminPro.UI.Views
             set => User.Email = value;
         }
 
-        public SystemRole Role
+        public int RoleId
         {
-            get => User.Role;
-            set => User.Role = value;
+            get => User.RoleId;
+            set => User.RoleId = value;
         }
 
         public bool UserIsActive
@@ -67,6 +93,20 @@ namespace WeldAdminPro.UI.Views
                     _hashService.Hash(
                         PasswordBox.Password);
             }
+
+            if (SelectedRole == null)
+            {
+                MessageBox.Show(
+                    "Please select a role.",
+                    "Role Required",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                return;
+            }
+
+            User.RoleId = SelectedRole.Id;
+            User.RoleName = SelectedRole.Name;
 
             DialogResult = true;
         }

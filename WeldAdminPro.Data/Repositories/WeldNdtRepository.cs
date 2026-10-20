@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using WeldAdminPro.Core.Quality.Models;
 using WeldAdminPro.Core.Quality.Enums;
 using WeldAdminPro.Core.Quality;
@@ -42,6 +43,14 @@ ORDER BY InspectionDate DESC;";
 
                     WeldId = Guid.Parse(
                         reader["WeldId"]?.ToString() ?? Guid.Empty.ToString()),
+
+                    EquipmentId = reader["EquipmentId"] == DBNull.Value ? null : Guid.Parse(reader["EquipmentId"].ToString()!),
+
+                    CalibrationRecordId = reader["CalibrationRecordId"] == DBNull.Value ? null : Guid.Parse(reader["CalibrationRecordId"].ToString()!),
+
+                    EquipmentNumberSnapshot = reader["EquipmentNumberSnapshot"]?.ToString() ?? "",
+                    EquipmentSerialNumberSnapshot = reader["EquipmentSerialNumberSnapshot"]?.ToString() ?? "",
+                    CalibrationCertificateSnapshot = reader["CalibrationCertificateSnapshot"]?.ToString() ?? "",
 
                     NdtMethod =
 Enum.TryParse<NdtMethodType>(
@@ -85,6 +94,154 @@ out var result)
                     IsReinspection =
                         Convert.ToBoolean(
                             reader["IsReinspection"])
+                });
+            }
+
+            foreach (var ndt in list)
+            {
+                ndt.EquipmentUsages = GetEquipmentUsages(ndt.Id);
+                ndt.EquipmentIds = ndt.EquipmentUsages
+                    .Select(x => x.EquipmentId)
+                    .Distinct()
+                    .ToList();
+
+                // Preserve compatibility for historical records that only have
+                // the W17 primary EquipmentId columns.
+                if (ndt.EquipmentIds.Count == 0 && ndt.EquipmentId.HasValue)
+                    ndt.EquipmentIds.Add(ndt.EquipmentId.Value);
+            }
+
+            return list;
+        }
+
+        public WeldNdtResult? GetById(Guid ndtResultId)
+        {
+            if (ndtResultId == Guid.Empty)
+                return null;
+
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+
+            command.CommandText = @"
+SELECT *
+FROM WeldNdtResults
+WHERE Id = $Id
+LIMIT 1;";
+
+            command.Parameters.AddWithValue("$Id", ndtResultId.ToString());
+
+            using var reader = command.ExecuteReader();
+
+            if (!reader.Read())
+                return null;
+
+            var ndt = new WeldNdtResult
+            {
+                Id = Guid.Parse(reader["Id"]?.ToString() ?? Guid.Empty.ToString()),
+
+                WeldId = Guid.Parse(
+                    reader["WeldId"]?.ToString() ?? Guid.Empty.ToString()),
+
+                EquipmentId = reader["EquipmentId"] == DBNull.Value
+                    ? null
+                    : Guid.Parse(reader["EquipmentId"].ToString()!),
+
+                CalibrationRecordId = reader["CalibrationRecordId"] == DBNull.Value
+                    ? null
+                    : Guid.Parse(reader["CalibrationRecordId"].ToString()!),
+
+                EquipmentNumberSnapshot =
+                    reader["EquipmentNumberSnapshot"]?.ToString() ?? "",
+
+                EquipmentSerialNumberSnapshot =
+                    reader["EquipmentSerialNumberSnapshot"]?.ToString() ?? "",
+
+                CalibrationCertificateSnapshot =
+                    reader["CalibrationCertificateSnapshot"]?.ToString() ?? "",
+
+                NdtMethod =
+                    Enum.TryParse<NdtMethodType>(
+                        reader["NdtMethod"]?.ToString(),
+                        out var method)
+                        ? method
+                        : NdtMethodType.RT,
+
+                Result =
+                    Enum.TryParse<NdtResultType>(
+                        reader["Result"]?.ToString(),
+                        out var result)
+                        ? result
+                        : NdtResultType.Pending,
+
+                ReportNumber =
+                    reader["ReportNumber"]?.ToString() ?? "",
+
+                InspectionDate =
+                    DateTime.Parse(
+                        reader["InspectionDate"]?.ToString()
+                        ?? DateTime.MinValue.ToString()),
+
+                InspectorName =
+                    reader["InspectorName"]?.ToString() ?? "",
+
+                AcceptanceCriteria =
+                    reader["AcceptanceCriteria"]?.ToString() ?? "",
+
+                Remarks =
+                    reader["Remarks"]?.ToString() ?? "",
+
+                RequiresRepair =
+                    Convert.ToBoolean(reader["RequiresRepair"]),
+
+                RepairCycle =
+                    Convert.ToInt32(reader["RepairCycle"]),
+
+                IsReinspection =
+                    Convert.ToBoolean(reader["IsReinspection"])
+            };
+
+            ndt.EquipmentUsages = GetEquipmentUsages(ndt.Id);
+
+            ndt.EquipmentIds = ndt.EquipmentUsages
+                .Select(x => x.EquipmentId)
+                .Distinct()
+                .ToList();
+
+            // Preserve compatibility for historical records that only have
+            // the W17 primary EquipmentId columns.
+            if (ndt.EquipmentIds.Count == 0 && ndt.EquipmentId.HasValue)
+                ndt.EquipmentIds.Add(ndt.EquipmentId.Value);
+
+            return ndt;
+        }
+        public List<WeldNdtEquipmentUsage> GetEquipmentUsages(Guid ndtResultId)
+        {
+            var list = new List<WeldNdtEquipmentUsage>();
+
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+SELECT Id, WeldNdtResultId, EquipmentId, CalibrationRecordId,
+       EquipmentNumberSnapshot, EquipmentSerialNumberSnapshot, CalibrationCertificateSnapshot
+FROM WeldNdtEquipmentUsages
+WHERE WeldNdtResultId = $NdtResultId
+ORDER BY rowid;";
+            command.Parameters.AddWithValue("$NdtResultId", ndtResultId.ToString());
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                list.Add(new WeldNdtEquipmentUsage
+                {
+                    Id = Guid.Parse(reader["Id"].ToString()!),
+                    WeldNdtResultId = Guid.Parse(reader["WeldNdtResultId"].ToString()!),
+                    EquipmentId = Guid.Parse(reader["EquipmentId"].ToString()!),
+                    CalibrationRecordId = reader["CalibrationRecordId"] == DBNull.Value ? null : Guid.Parse(reader["CalibrationRecordId"].ToString()!),
+                    EquipmentNumberSnapshot = reader["EquipmentNumberSnapshot"]?.ToString() ?? "",
+                    EquipmentSerialNumberSnapshot = reader["EquipmentSerialNumberSnapshot"]?.ToString() ?? "",
+                    CalibrationCertificateSnapshot = reader["CalibrationCertificateSnapshot"]?.ToString() ?? ""
                 });
             }
 
@@ -135,6 +292,94 @@ public List<WeldNdtResult> GetAll()
         }
 
 
+        public void AttachLegacyEquipmentTraceability(
+            Guid ndtResultId,
+            IReadOnlyCollection<WeldNdtEquipmentUsage> usages)
+        {
+            if (ndtResultId == Guid.Empty)
+                throw new ArgumentException("NDT result ID cannot be empty.", nameof(ndtResultId));
+
+            if (usages == null || usages.Count == 0)
+                throw new ArgumentException("At least one equipment usage is required.", nameof(usages));
+
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            using var transaction = connection.BeginTransaction();
+
+            using (var existingCommand = connection.CreateCommand())
+            {
+                existingCommand.Transaction = transaction;
+                existingCommand.CommandText = @"
+SELECT COUNT(*)
+FROM WeldNdtEquipmentUsages
+WHERE WeldNdtResultId = $ndtId;";
+                existingCommand.Parameters.AddWithValue("$ndtId", ndtResultId.ToString());
+
+                var existingCount = Convert.ToInt32(existingCommand.ExecuteScalar());
+                if (existingCount > 0)
+                    throw new InvalidOperationException(
+                        "This NDT result already has equipment traceability recorded.");
+            }
+
+            var primaryUsage = usages.First();
+
+            using (var updateCommand = connection.CreateCommand())
+            {
+                updateCommand.Transaction = transaction;
+                updateCommand.CommandText = @"
+UPDATE WeldNdtResults
+SET EquipmentId = $equipmentId,
+    CalibrationRecordId = $calibrationId,
+    EquipmentNumberSnapshot = $equipmentSnapshot,
+    EquipmentSerialNumberSnapshot = $serialSnapshot,
+    CalibrationCertificateSnapshot = $calibrationSnapshot
+WHERE Id = $ndtId
+  AND EquipmentId IS NULL;";
+
+                updateCommand.Parameters.AddWithValue("$ndtId", ndtResultId.ToString());
+                updateCommand.Parameters.AddWithValue("$equipmentId", primaryUsage.EquipmentId.ToString());
+                updateCommand.Parameters.AddWithValue("$calibrationId", primaryUsage.CalibrationRecordId?.ToString() ?? (object)DBNull.Value);
+                updateCommand.Parameters.AddWithValue("$equipmentSnapshot", primaryUsage.EquipmentNumberSnapshot ?? "");
+                updateCommand.Parameters.AddWithValue("$serialSnapshot", primaryUsage.EquipmentSerialNumberSnapshot ?? "");
+                updateCommand.Parameters.AddWithValue("$calibrationSnapshot", primaryUsage.CalibrationCertificateSnapshot ?? "");
+
+                if (updateCommand.ExecuteNonQuery() != 1)
+                    throw new InvalidOperationException(
+                        "The NDT result is no longer a legacy record or could not be updated.");
+            }
+
+            foreach (var usage in usages)
+            {
+                var usageId = usage.Id == Guid.Empty ? Guid.NewGuid() : usage.Id;
+
+                using var usageCommand = connection.CreateCommand();
+                usageCommand.Transaction = transaction;
+                usageCommand.CommandText = @"
+INSERT INTO WeldNdtEquipmentUsages
+(
+    Id, WeldNdtResultId, EquipmentId, CalibrationRecordId,
+    EquipmentNumberSnapshot, EquipmentSerialNumberSnapshot, CalibrationCertificateSnapshot
+)
+VALUES
+(
+    $id, $ndtId, $equipmentId, $calibrationId,
+    $equipmentSnapshot, $serialSnapshot, $calibrationSnapshot
+);";
+
+                usageCommand.Parameters.AddWithValue("$id", usageId.ToString());
+                usageCommand.Parameters.AddWithValue("$ndtId", ndtResultId.ToString());
+                usageCommand.Parameters.AddWithValue("$equipmentId", usage.EquipmentId.ToString());
+                usageCommand.Parameters.AddWithValue("$calibrationId", usage.CalibrationRecordId?.ToString() ?? (object)DBNull.Value);
+                usageCommand.Parameters.AddWithValue("$equipmentSnapshot", usage.EquipmentNumberSnapshot ?? "");
+                usageCommand.Parameters.AddWithValue("$serialSnapshot", usage.EquipmentSerialNumberSnapshot ?? "");
+                usageCommand.Parameters.AddWithValue("$calibrationSnapshot", usage.CalibrationCertificateSnapshot ?? "");
+                usageCommand.ExecuteNonQuery();
+            }
+
+            transaction.Commit();
+        }
+
         public void Add(WeldNdtResult ndt)
         {
             using var connection =
@@ -149,6 +394,11 @@ INSERT INTO WeldNdtResults
 (
     Id,
     WeldId,
+    EquipmentId,
+    CalibrationRecordId,
+    EquipmentNumberSnapshot,
+    EquipmentSerialNumberSnapshot,
+    CalibrationCertificateSnapshot,
     NdtMethod,
     Result,
     ReportNumber,
@@ -164,6 +414,11 @@ VALUES
 (
     $id,
     $weldId,
+    $equipmentId,
+    $calibrationId,
+    $equipmentSnapshot,
+    $serialSnapshot,
+    $calibrationSnapshot,
     $method,
     $result,
     $report,
@@ -183,6 +438,26 @@ VALUES
             cmd.Parameters.AddWithValue(
                 "$weldId",
                 ndt.WeldId.ToString());
+
+            cmd.Parameters.AddWithValue(
+                "$equipmentId",
+                ndt.EquipmentId?.ToString() ?? (object)DBNull.Value);
+
+            cmd.Parameters.AddWithValue(
+                "$calibrationId",
+                ndt.CalibrationRecordId?.ToString() ?? (object)DBNull.Value);
+
+            cmd.Parameters.AddWithValue(
+                "$equipmentSnapshot",
+                ndt.EquipmentNumberSnapshot ?? "");
+
+            cmd.Parameters.AddWithValue(
+                "$serialSnapshot",
+                ndt.EquipmentSerialNumberSnapshot ?? "");
+
+            cmd.Parameters.AddWithValue(
+                "$calibrationSnapshot",
+                ndt.CalibrationCertificateSnapshot ?? "");
 
             cmd.Parameters.AddWithValue(
                 "$method",
@@ -225,6 +500,35 @@ VALUES
                 ndt.IsReinspection);
 
             cmd.ExecuteNonQuery();
+
+            foreach (var usage in ndt.EquipmentUsages ?? new List<WeldNdtEquipmentUsage>())
+            {
+                if (usage.Id == Guid.Empty)
+                    usage.Id = Guid.NewGuid();
+
+                usage.WeldNdtResultId = ndt.Id;
+
+                using var usageCommand = connection.CreateCommand();
+                usageCommand.CommandText = @"
+INSERT INTO WeldNdtEquipmentUsages
+(
+    Id, WeldNdtResultId, EquipmentId, CalibrationRecordId,
+    EquipmentNumberSnapshot, EquipmentSerialNumberSnapshot, CalibrationCertificateSnapshot
+)
+VALUES
+(
+    $id, $ndtId, $equipmentId, $calibrationId,
+    $equipmentSnapshot, $serialSnapshot, $calibrationSnapshot
+);";
+                usageCommand.Parameters.AddWithValue("$id", usage.Id.ToString());
+                usageCommand.Parameters.AddWithValue("$ndtId", usage.WeldNdtResultId.ToString());
+                usageCommand.Parameters.AddWithValue("$equipmentId", usage.EquipmentId.ToString());
+                usageCommand.Parameters.AddWithValue("$calibrationId", usage.CalibrationRecordId?.ToString() ?? (object)DBNull.Value);
+                usageCommand.Parameters.AddWithValue("$equipmentSnapshot", usage.EquipmentNumberSnapshot ?? "");
+                usageCommand.Parameters.AddWithValue("$serialSnapshot", usage.EquipmentSerialNumberSnapshot ?? "");
+                usageCommand.Parameters.AddWithValue("$calibrationSnapshot", usage.CalibrationCertificateSnapshot ?? "");
+                usageCommand.ExecuteNonQuery();
+            }
         }
     }
 }

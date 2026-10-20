@@ -1,4 +1,4 @@
-@using WeldAdminPro.Core.Quality
+﻿@using WeldAdminPro.Core.Quality
 @using WeldAdminPro.Web.Services.Quality
 @inject MaterialSearchService SearchService
 
@@ -7,7 +7,7 @@
                  Variant="Variant.Outlined"
                  Dense="true"
                  Clearable="true"
-                 ResetValueOnEmptyText="true"
+                 ResetValueOnEmptyText="false"
                  SearchFunc="Search"
                  ToStringFunc="DisplayMaterial"
                  Value="@Value"

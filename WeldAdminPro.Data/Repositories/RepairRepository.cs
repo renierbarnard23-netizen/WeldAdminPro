@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.Sqlite;
+using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 using WeldAdminPro.Core.Quality.Enums;
@@ -18,25 +18,95 @@ namespace WeldAdminPro.Data.Repositories
         }
 
         public void Add(
-            RepairRecord repair)
+            RepairRecord repair,
+            SqliteConnection connection,
+            SqliteTransaction transaction)
         {
-            using var connection =
-                new SqliteConnection(
-                    _connectionString);
+            if (repair == null)
+                throw new ArgumentNullException(nameof(repair));
 
-            connection.Open();
+            if (connection == null)
+                throw new ArgumentNullException(nameof(connection));
 
-            var command =
+            if (transaction == null)
+                throw new ArgumentNullException(nameof(transaction));
+
+            if (repair.Id == Guid.Empty)
+            {
+                repair.Id = Guid.NewGuid();
+            }
+
+            using (var referenceCommand =
+                connection.CreateCommand())
+            {
+                referenceCommand.Transaction =
+                    transaction;
+
+                referenceCommand.CommandText = @"
+SELECT RepairReference
+FROM RepairRecords
+WHERE RepairReference IS NOT NULL
+  AND TRIM(RepairReference) <> '';
+";
+
+                var highestReferenceNumber = 0;
+
+                using var reader =
+                    referenceCommand.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    var reference =
+                        reader["RepairReference"]?.ToString();
+
+                    if (string.IsNullOrWhiteSpace(reference))
+                        continue;
+
+                    const string prefix = "REP-";
+
+                    if (!reference.StartsWith(
+                            prefix,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var numericPart =
+                        reference.Substring(prefix.Length);
+
+                    if (int.TryParse(
+                            numericPart,
+                            out var referenceNumber))
+                    {
+                        highestReferenceNumber =
+                            Math.Max(
+                                highestReferenceNumber,
+                                referenceNumber);
+                    }
+                }
+
+                var nextReferenceNumber =
+                    highestReferenceNumber + 1;
+
+                repair.RepairReference =
+                    $"REP-{nextReferenceNumber:0000}";
+            }
+
+            using var command =
                 connection.CreateCommand();
 
-            command.CommandText =
-            @"
+            command.Transaction =
+                transaction;
+
+            command.CommandText = @"
 INSERT INTO RepairRecords
 (
     Id,
     WeldId,
     NcrId,
+    RepairWpsId,
     RepairNumber,
+    RepairReference,
     Reason,
     AuthorizedBy,
     RequestedDate,
@@ -54,7 +124,9 @@ VALUES
     $Id,
     $WeldId,
     $NcrId,
+    $RepairWpsId,
     $RepairNumber,
+    $RepairReference,
     $Reason,
     $AuthorizedBy,
     $RequestedDate,
@@ -66,15 +138,10 @@ VALUES
     $Notes,
     $Status,
     $CompletedDate
-)";
+);";
 
-            command.Parameters.AddWithValue(
-                "$Id",
-                repair.Id.ToString());
-
-            command.Parameters.AddWithValue(
-                "$WeldId",
-                repair.WeldId.ToString());
+            command.Parameters.AddWithValue("$Id", repair.Id.ToString());
+            command.Parameters.AddWithValue("$WeldId", repair.WeldId.ToString());
 
             command.Parameters.AddWithValue(
                 "$NcrId",
@@ -83,58 +150,279 @@ VALUES
                     : DBNull.Value);
 
             command.Parameters.AddWithValue(
-                "$RepairNumber",
-                repair.RepairNumber);
+                "$RepairWpsId",
+                repair.RepairWpsId.HasValue
+                    ? repair.RepairWpsId.Value.ToString()
+                    : DBNull.Value);
 
-            command.Parameters.AddWithValue(
-                "$Reason",
-                repair.Reason);
-
-            command.Parameters.AddWithValue(
-                "$AuthorizedBy",
-                repair.AuthorizedBy ?? "");
-
-            command.Parameters.AddWithValue(
-                "$RequestedDate",
-                repair.RequestedDate.ToString("O"));
-
-            command.Parameters.AddWithValue(
-                "$AuthorizedDate",
-                repair.AuthorizedDate?.ToString("O")
-                ?? "");
-
-            command.Parameters.AddWithValue(
-                "$ExcavationMethod",
-                repair.ExcavationMethod ?? "");
-
-            command.Parameters.AddWithValue(
-                "$RepairWpsNumber",
-                repair.RepairWpsNumber ?? "");
-
-            command.Parameters.AddWithValue(
-                "$RepairedByWelder",
-                repair.RepairedByWelder ?? "");
-
-            command.Parameters.AddWithValue(
-                "$ReinspectionResult",
-                repair.ReinspectionResult ?? "");
-
-            command.Parameters.AddWithValue(
-                "$Notes",
-                repair.Notes ?? "");
-
-            command.Parameters.AddWithValue(
-                "$Status",
-                (int)repair.Status);
-
-            command.Parameters.AddWithValue(
-                "$CompletedDate",
-                repair.CompletedDate?.ToString("O")
-                ?? "");
+            command.Parameters.AddWithValue("$RepairNumber", repair.RepairNumber);
+            command.Parameters.AddWithValue("$RepairReference", repair.RepairReference);
+            command.Parameters.AddWithValue("$Reason", repair.Reason);
+            command.Parameters.AddWithValue("$AuthorizedBy", repair.AuthorizedBy ?? "");
+            command.Parameters.AddWithValue("$RequestedDate", repair.RequestedDate.ToString("O"));
+            command.Parameters.AddWithValue("$AuthorizedDate", repair.AuthorizedDate?.ToString("O") ?? "");
+            command.Parameters.AddWithValue("$ExcavationMethod", repair.ExcavationMethod ?? "");
+            command.Parameters.AddWithValue("$RepairWpsNumber", repair.RepairWpsNumber ?? "");
+            command.Parameters.AddWithValue("$RepairedByWelder", repair.RepairedByWelder ?? "");
+            command.Parameters.AddWithValue("$ReinspectionResult", repair.ReinspectionResult ?? "");
+            command.Parameters.AddWithValue("$Notes", repair.Notes ?? "");
+            command.Parameters.AddWithValue("$Status", (int)repair.Status);
+            command.Parameters.AddWithValue("$CompletedDate", repair.CompletedDate?.ToString("O") ?? "");
 
             command.ExecuteNonQuery();
         }
+        public void Add(
+            RepairRecord repair)
+        {
+            if (repair == null)
+            {
+                throw new ArgumentNullException(
+                    nameof(repair));
+            }
 
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            connection.Open();
+
+            using var transaction =
+                connection.BeginTransaction();
+
+            try
+            {
+                if (repair.Id == Guid.Empty)
+                {
+                    repair.Id = Guid.NewGuid();
+                }
+
+                // RepairReference is a global immutable business identifier.
+                // Generate it in the same transaction as the INSERT.
+                using (var referenceCommand =
+                    connection.CreateCommand())
+                {
+                    referenceCommand.Transaction =
+                        transaction;
+
+                    referenceCommand.CommandText = @"
+SELECT RepairReference
+FROM RepairRecords
+WHERE RepairReference IS NOT NULL
+  AND TRIM(RepairReference) <> '';
+";
+
+                    var highestReferenceNumber = 0;
+
+                    using var reader =
+                        referenceCommand.ExecuteReader();
+
+                    while (reader.Read())
+                    {
+                        var reference =
+                            reader["RepairReference"]?.ToString();
+
+                        if (string.IsNullOrWhiteSpace(
+                                reference))
+                        {
+                            continue;
+                        }
+
+                        const string prefix = "REP-";
+
+                        if (!reference.StartsWith(
+                                prefix,
+                                StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        var numericPart =
+                            reference.Substring(
+                                prefix.Length);
+
+                        if (int.TryParse(
+                                numericPart,
+                                out var referenceNumber))
+                        {
+                            highestReferenceNumber =
+                                Math.Max(
+                                    highestReferenceNumber,
+                                    referenceNumber);
+                        }
+                    }
+
+                    var nextReferenceNumber =
+                        highestReferenceNumber + 1;
+
+                    repair.RepairReference =
+                        $"REP-{nextReferenceNumber:0000}";
+                }
+
+                using var command =
+                    connection.CreateCommand();
+
+                command.Transaction =
+                    transaction;
+
+                command.CommandText = @"
+INSERT INTO RepairRecords
+(
+    Id,
+    WeldId,
+    NcrId,
+    RepairWpsId,
+    RepairNumber,
+    RepairReference,
+    Reason,
+    AuthorizedBy,
+    RequestedDate,
+    AuthorizedDate,
+    ExcavationMethod,
+    RepairWpsNumber,
+    RepairedByWelder,
+    ReinspectionResult,
+    Notes,
+    Status,
+    CompletedDate
+)
+VALUES
+(
+    $Id,
+    $WeldId,
+    $NcrId,
+    $RepairWpsId,
+    $RepairNumber,
+    $RepairReference,
+    $Reason,
+    $AuthorizedBy,
+    $RequestedDate,
+    $AuthorizedDate,
+    $ExcavationMethod,
+    $RepairWpsNumber,
+    $RepairedByWelder,
+    $ReinspectionResult,
+    $Notes,
+    $Status,
+    $CompletedDate
+);";
+
+                command.Parameters.AddWithValue(
+                    "$Id",
+                    repair.Id.ToString());
+
+                command.Parameters.AddWithValue(
+                    "$WeldId",
+                    repair.WeldId.ToString());
+
+                command.Parameters.AddWithValue(
+                    "$NcrId",
+                    repair.NcrId.HasValue
+                        ? repair.NcrId.Value.ToString()
+                        : DBNull.Value);
+
+                command.Parameters.AddWithValue(
+                    "$RepairWpsId",
+                    repair.RepairWpsId.HasValue
+                        ? repair.RepairWpsId.Value.ToString()
+                        : DBNull.Value);
+
+                command.Parameters.AddWithValue(
+                    "$RepairNumber",
+                    repair.RepairNumber);
+
+                command.Parameters.AddWithValue(
+                    "$RepairReference",
+                    repair.RepairReference);
+
+                command.Parameters.AddWithValue(
+                    "$Reason",
+                    repair.Reason);
+
+                command.Parameters.AddWithValue(
+                    "$AuthorizedBy",
+                    repair.AuthorizedBy ?? "");
+
+                command.Parameters.AddWithValue(
+                    "$RequestedDate",
+                    repair.RequestedDate.ToString("O"));
+
+                command.Parameters.AddWithValue(
+                    "$AuthorizedDate",
+                    repair.AuthorizedDate?.ToString("O")
+                    ?? "");
+
+                command.Parameters.AddWithValue(
+                    "$ExcavationMethod",
+                    repair.ExcavationMethod ?? "");
+
+                command.Parameters.AddWithValue(
+                    "$RepairWpsNumber",
+                    repair.RepairWpsNumber ?? "");
+
+                command.Parameters.AddWithValue(
+                    "$RepairedByWelder",
+                    repair.RepairedByWelder ?? "");
+
+                command.Parameters.AddWithValue(
+                    "$ReinspectionResult",
+                    repair.ReinspectionResult ?? "");
+
+                command.Parameters.AddWithValue(
+                    "$Notes",
+                    repair.Notes ?? "");
+
+                command.Parameters.AddWithValue(
+                    "$Status",
+                    (int)repair.Status);
+
+                command.Parameters.AddWithValue(
+                    "$CompletedDate",
+                    repair.CompletedDate?.ToString("O")
+                    ?? "");
+
+                command.ExecuteNonQuery();
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        public List<RepairRecord> GetByWeld(
+            Guid weldId,
+            SqliteConnection connection,
+            SqliteTransaction transaction)
+        {
+            if (connection == null)
+                throw new ArgumentNullException(nameof(connection));
+
+            if (transaction == null)
+                throw new ArgumentNullException(nameof(transaction));
+
+            using var command =
+                connection.CreateCommand();
+
+            command.Transaction = transaction;
+
+            command.CommandText =
+            @"
+SELECT *
+FROM RepairRecords
+WHERE WeldId = $WeldId
+ORDER BY RepairNumber";
+
+            command.Parameters.AddWithValue(
+                "$WeldId",
+                weldId.ToString());
+
+            using var reader =
+                command.ExecuteReader();
+
+            return ReadRepairs(reader);
+        }
         public List<RepairRecord> GetByWeld(
             Guid weldId)
         {
@@ -234,6 +522,7 @@ UPDATE RepairRecords
 SET
     
     NcrId = $NcrId,
+    RepairWpsId = $RepairWpsId,
     Reason = $Reason,
     AuthorizedBy = $AuthorizedBy,
     RequestedDate = $RequestedDate,
@@ -255,6 +544,115 @@ WHERE Id = $Id";
                 "$NcrId",
                 repair.NcrId.HasValue
                     ? repair.NcrId.Value.ToString()
+                    : DBNull.Value);
+
+            command.Parameters.AddWithValue(
+                "$RepairWpsId",
+                repair.RepairWpsId.HasValue
+                    ? repair.RepairWpsId.Value.ToString()
+                    : DBNull.Value);
+
+            command.Parameters.AddWithValue(
+                "$Reason",
+                repair.Reason);
+
+            command.Parameters.AddWithValue(
+                "$AuthorizedBy",
+                repair.AuthorizedBy ?? "");
+
+            command.Parameters.AddWithValue(
+                "$RequestedDate",
+                repair.RequestedDate.ToString("O"));
+
+            command.Parameters.AddWithValue(
+                "$AuthorizedDate",
+                repair.AuthorizedDate?.ToString("O")
+                ?? "");
+
+            command.Parameters.AddWithValue(
+                "$ExcavationMethod",
+                repair.ExcavationMethod ?? "");
+
+            command.Parameters.AddWithValue(
+                "$RepairWpsNumber",
+                repair.RepairWpsNumber ?? "");
+
+            command.Parameters.AddWithValue(
+                "$RepairedByWelder",
+                repair.RepairedByWelder ?? "");
+
+            command.Parameters.AddWithValue(
+                "$ReinspectionResult",
+                repair.ReinspectionResult ?? "");
+
+            command.Parameters.AddWithValue(
+                "$Notes",
+                repair.Notes ?? "");
+
+            command.Parameters.AddWithValue(
+                "$Status",
+                (int)repair.Status);
+
+            command.Parameters.AddWithValue(
+                "$CompletedDate",
+                repair.CompletedDate?.ToString("O")
+                ?? "");
+
+            command.ExecuteNonQuery();
+        }
+
+        public void Update(
+            RepairRecord repair,
+            SqliteConnection connection,
+            SqliteTransaction transaction)
+        {
+            if (repair == null)
+                throw new ArgumentNullException(nameof(repair));
+
+            if (connection == null)
+                throw new ArgumentNullException(nameof(connection));
+
+            if (transaction == null)
+                throw new ArgumentNullException(nameof(transaction));
+var command =
+                connection.CreateCommand();
+
+            command.Transaction = transaction;
+
+            command.CommandText =
+            @"
+UPDATE RepairRecords
+SET
+    
+    NcrId = $NcrId,
+    RepairWpsId = $RepairWpsId,
+    Reason = $Reason,
+    AuthorizedBy = $AuthorizedBy,
+    RequestedDate = $RequestedDate,
+    AuthorizedDate = $AuthorizedDate,
+    ExcavationMethod = $ExcavationMethod,
+    RepairWpsNumber = $RepairWpsNumber,
+    RepairedByWelder = $RepairedByWelder,
+    ReinspectionResult = $ReinspectionResult,
+    Notes = $Notes,
+    Status = $Status,
+    CompletedDate = $CompletedDate
+WHERE Id = $Id";
+
+            command.Parameters.AddWithValue(
+                "$Id",
+                repair.Id.ToString());
+
+            command.Parameters.AddWithValue(
+                "$NcrId",
+                repair.NcrId.HasValue
+                    ? repair.NcrId.Value.ToString()
+                    : DBNull.Value);
+
+            command.Parameters.AddWithValue(
+                "$RepairWpsId",
+                repair.RepairWpsId.HasValue
+                    ? repair.RepairWpsId.Value.ToString()
                     : DBNull.Value);
 
             command.Parameters.AddWithValue(
@@ -335,10 +733,22 @@ WHERE Id = $Id";
                                     reader["NcrId"]
                                         .ToString()!),
 
+                        RepairWpsId =
+                            string.IsNullOrWhiteSpace(
+                                reader["RepairWpsId"]?.ToString())
+                                ? null
+                                : Guid.Parse(
+                                    reader["RepairWpsId"]
+                                        .ToString()!),
+
                         RepairNumber =
                             Convert.ToInt32(
                                 reader["RepairNumber"]),
 
+
+                        RepairReference =
+                            reader["RepairReference"]
+                                ?.ToString() ?? "",
                         Reason =
                             reader["Reason"]
                                 ?.ToString() ?? "",
@@ -401,6 +811,8 @@ WHERE Id = $Id";
         }
     }
 }
+
+
 
 
 

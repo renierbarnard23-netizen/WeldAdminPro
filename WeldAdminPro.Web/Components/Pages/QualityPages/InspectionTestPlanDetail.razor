@@ -1,0 +1,693 @@
+﻿@page "/quality/itp/{ProjectId:guid}/plan/{PlanId:guid}"
+@attribute [Authorize(Policy = "Permission:Quality.ITP")]
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Repositories
+@using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Data.Services.Projects
+@using WeldAdminPro.Data.Services.Quality
+
+@inject ProjectApplicationService ProjectService
+@inject ProjectQualityControlPlanApplicationService QcpService
+@inject InspectionTestPlanApplicationService ItpService
+@inject WeldRegisterApplicationService WeldService
+@inject HoldPointApplicationService HoldPointService
+@inject WeldNdtRepository NdtRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Inspection Test Plan Detail</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_project == null || _plan == null)
+    {
+        <MudAlert Severity="Severity.Error">
+            The requested project or Inspection Test Plan could not be found.
+        </MudAlert>
+    }
+    else
+    {
+        <MudPaper Class="pa-4 mb-4">
+            <MudStack Row="true"
+                      Justify="Justify.SpaceBetween"
+                      AlignItems="AlignItems.Center">
+                <div>
+                    <MudText Typo="Typo.h4">Inspection Test Plan</MudText>
+                    <MudText Typo="Typo.subtitle1">
+                        @_project.JobNumber - @_project.ProjectName
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        Client: @_project.Client
+                    </MudText>
+                </div>
+
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.ArrowBack"
+                               OnClick="BackToItp">
+                        ITP REVISIONS
+                    </MudButton>
+
+                    @if (_plan.Status == InspectionTestPlanStatus.Draft)
+                    {
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Success"
+                                   StartIcon="@Icons.Material.Filled.Check"
+                                   OnClick="ApprovePlan"
+                                   Disabled="@(_items.Count == 0)">
+                            APPROVE ITP
+                        </MudButton>
+                    }
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Class="pa-4 mb-4">
+            <MudGrid>
+                <MudItem xs="12" md="3">
+                    <MudText Typo="Typo.caption">ITP Number</MudText>
+                    <MudText Typo="Typo.body1">@_plan.ItpNumber</MudText>
+                </MudItem>
+
+                <MudItem xs="12" md="2">
+                    <MudText Typo="Typo.caption">Revision</MudText>
+                    <MudText Typo="Typo.body1">@_plan.Revision</MudText>
+                </MudItem>
+
+                <MudItem xs="12" md="3">
+                    <MudText Typo="Typo.caption">Status</MudText>
+                    <MudChip T="string"
+                             Color="@GetStatusColor(_plan.Status)"
+                             Size="Size.Small">
+                        @_plan.Status
+                    </MudChip>
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudText Typo="Typo.caption">Title</MudText>
+                    <MudText Typo="Typo.body1">@_plan.Title</MudText>
+                </MudItem>
+
+                @if (!string.IsNullOrWhiteSpace(_plan.Description))
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption">Description</MudText>
+                        <MudText Typo="Typo.body2">@_plan.Description</MudText>
+                    </MudItem>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_plan.ApprovedBy))
+                {
+                    <MudItem xs="12" md="4">
+                        <MudText Typo="Typo.caption">Approved By</MudText>
+                        <MudText Typo="Typo.body2">@_plan.ApprovedBy</MudText>
+                    </MudItem>
+                }
+
+                @if (_plan.ApprovedOn.HasValue)
+                {
+                    <MudItem xs="12" md="4">
+                        <MudText Typo="Typo.caption">Approved On</MudText>
+                        <MudText Typo="Typo.body2">
+                            @_plan.ApprovedOn.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                        </MudText>
+                    </MudItem>
+                }
+
+                @if (_plan.EffectiveDate.HasValue)
+                {
+                    <MudItem xs="12" md="4">
+                        <MudText Typo="Typo.caption">Effective Date</MudText>
+                        <MudText Typo="Typo.body2">
+                            @_plan.EffectiveDate.Value.ToLocalTime().ToString("yyyy-MM-dd")
+                        </MudText>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudPaper>
+
+        @if (_plan.Status == InspectionTestPlanStatus.Draft)
+        {
+            <MudPaper Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" GutterBottom="true">
+                    Add ITP Item From Active QCP
+                </MudText>
+
+                <MudAlert Severity="Severity.Info" Class="mb-4">
+                    ITP items are created as snapshots of the selected active QCP item.
+                    Changes to the QCP after this point do not live-update the ITP item.
+                </MudAlert>
+
+                @if (_activeQcps.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Warning">
+                        No active QCP revision is available for this project.
+                        An active QCP is required before ITP items can be created.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudGrid>
+                        <MudItem xs="12" md="5">
+                            <MudSelect T="Guid?"
+                                       Label="Active QCP Revision"
+                                       @bind-Value="_selectedQcpId"
+                                       @bind-Value:after="OnQcpChangedSync"
+                                       Variant="Variant.Outlined"
+                                       Dense="true"
+                                       Clearable="true">
+                                @foreach (var qcp in _activeQcps)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)qcp.Id)">
+                                        @qcp.QcpNumber Rev @qcp.Revision - @qcp.Title
+                                    </MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="7">
+                            <MudSelect T="Guid?"
+                                       Label="QCP Item"
+                                       @bind-Value="_selectedQcpItemId"
+                                       Variant="Variant.Outlined"
+                                       Dense="true"
+                                       Clearable="true"
+                                       Disabled="@(_selectedQcpId == null || _qcpItems.Count == 0)">
+                                @foreach (var item in _qcpItems)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)item.Id)">
+                                        @item.SequenceNumber - @item.Activity
+                                    </MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="3">
+                            <MudNumericField T="int"
+                                             Label="ITP Sequence"
+                                             @bind-Value="_newSequence"
+                                             Variant="Variant.Outlined"
+                                             Min="1" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="4">
+                            <MudSelect T="InspectionTestPlanExecutionType?"
+                                       Label="Execution Type"
+                                       @bind-Value="_newExecutionType"
+                                       Variant="Variant.Outlined"
+                                       Dense="true">
+                                <MudSelectItem T="InspectionTestPlanExecutionType?"
+                                               Value="@((InspectionTestPlanExecutionType?)InspectionTestPlanExecutionType.HoldPoint)">
+                                    Hold Point
+                                </MudSelectItem>
+                                <MudSelectItem T="InspectionTestPlanExecutionType?"
+                                               Value="@((InspectionTestPlanExecutionType?)InspectionTestPlanExecutionType.NdtResult)">
+                                    NDT Result
+                                </MudSelectItem>
+                                    <MudSelectItem T="InspectionTestPlanExecutionType?"
+                                                   Value="@((InspectionTestPlanExecutionType?)InspectionTestPlanExecutionType.Inspection)">
+                                        Inspection
+                                    </MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="5">
+                            <MudTextField T="string"
+                                          Label="Notes"
+                                          @bind-Value="_newNotes"
+                                          Variant="Variant.Outlined"
+                                          Lines="2" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Add"
+                                       OnClick="AddItem"
+                                       Disabled="@(_selectedQcpId == null || _selectedQcpItemId == null || !_newExecutionType.HasValue)">
+                                ADD ITP ITEM
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                }
+            </MudPaper>
+        }
+
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6" GutterBottom="true">
+                ITP Inspection Items
+            </MudText>
+
+            @if (_items.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info">
+                    No ITP items have been created for this revision.
+                </MudAlert>
+            }
+            else
+            {
+                <MudTable Items="_items"
+                          Hover="true"
+                          Dense="true"
+                          Striped="true"
+                          Bordered="true">
+                    <HeaderContent>
+                        <MudTh>Seq</MudTh>
+                        <MudTh>QCP Lineage</MudTh>
+                        <MudTh>Activity</MudTh>
+                        <MudTh>Acceptance Criteria</MudTh>
+                        <MudTh>Verification</MudTh>
+                        <MudTh>Responsible</MudTh>
+                        <MudTh>Stage</MudTh>
+                        <MudTh>H/W/S</MudTh>
+                        <MudTh>NDT</MudTh>
+                        <MudTh>Mandatory</MudTh>
+                        <MudTh>Execution</MudTh>
+                        <MudTh>Executions</MudTh>
+                        <MudTh>Actions</MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate>
+                        <MudTd DataLabel="Seq">@context.SequenceNumber</MudTd>
+                        <MudTd DataLabel="QCP Lineage">
+                            @{
+                                var lineage = _qcpLineage.GetValueOrDefault(context.Id);
+                            }
+                            @if (lineage.Qcp != null && lineage.QcpItem != null)
+                            {
+                                <MudText Typo="Typo.body2">
+                                    @lineage.Qcp.QcpNumber Rev @lineage.Qcp.Revision
+                                </MudText>
+                                <MudText Typo="Typo.caption">
+                                    Item @lineage.QcpItem.SequenceNumber - @lineage.QcpItem.Activity
+                                </MudText>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption">Lineage unavailable</MudText>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Activity">@context.Activity</MudTd>
+                        <MudTd DataLabel="Acceptance Criteria">@context.AcceptanceCriteria</MudTd>
+                        <MudTd DataLabel="Verification">@context.VerificationMethod</MudTd>
+                        <MudTd DataLabel="Responsible">@context.ResponsibleParty</MudTd>
+                        <MudTd DataLabel="Stage">@context.InspectionStage</MudTd>
+                        <MudTd DataLabel="H/W/S">
+                            @(context.HoldPointCategory?.ToString() ?? "-")
+                        </MudTd>
+                        <MudTd DataLabel="NDT">
+                            @(context.RequiredNdtMethod?.ToString() ?? "-")
+                        </MudTd>
+                        <MudTd DataLabel="Mandatory">
+                            @(context.Mandatory ? "YES" : "NO")
+                        </MudTd>
+                        <MudTd DataLabel="Execution">
+                            @context.ExecutionType
+                        </MudTd>
+                        <MudTd DataLabel="Executions">
+                            @_executionCounts.GetValueOrDefault(context.Id, 0)
+                        </MudTd>
+                        <MudTd DataLabel="Actions">
+                            <MudButton Size="Size.Small"
+                                       Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       OnClick="@(() => OpenExecutionDialogAsync(context))">
+                                LINK EXECUTION
+                            </MudButton>
+
+                            @if (_plan.Status == InspectionTestPlanStatus.Draft)
+                            {
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           Color="Color.Error"
+                                           OnClick="@(() => DeleteItem(context))">
+                                    DELETE
+                                </MudButton>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudPaper>
+    }
+</MudContainer>
+
+
+@code {
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    [Parameter]
+    public Guid PlanId { get; set; }
+
+    private Project? _project;
+    private InspectionTestPlan? _plan;
+
+    private List<ProjectQualityControlPlan> _activeQcps = new();
+    private List<ProjectQualityControlPlanItem> _qcpItems = new();
+    private List<InspectionTestPlanItem> _items = new();
+
+    private Dictionary<Guid, int> _executionCounts = new();
+    private Dictionary<Guid, (ProjectQualityControlPlan? Qcp, ProjectQualityControlPlanItem? QcpItem)> _qcpLineage = new();
+
+    private readonly List<Weld> _projectWelds = new();
+    private readonly List<WeldHoldPoint> _dialogHoldPoints = new();
+    private readonly List<WeldNdtResult> _dialogNdtResults = new();
+
+
+
+
+
+    private Guid? _selectedQcpId;
+    private Guid? _selectedQcpItemId;
+    private int _newSequence = 1;
+    private InspectionTestPlanExecutionType? _newExecutionType;
+    private string _newNotes = string.Empty;
+
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+
+        try
+        {
+            _project = await ProjectService.GetProjectAsync(ProjectId);
+            _plan = await ItpService.GetByIdAsync(PlanId);
+
+            if (_project == null || _plan == null || _plan.ProjectId != ProjectId)
+            {
+                return;
+            }
+
+            _items = await ItpService.GetItemsAsync(PlanId);
+            await LoadQcpLineageAsync();
+            await LoadExecutionCountsAsync();
+            await LoadProjectExecutionSourcesAsync();
+
+            _activeQcps = (await QcpService.GetByProjectAsync(ProjectId))
+                .Where(q => q.IsActive &&
+                            q.Status == WeldAdminPro.Core.Quality.Enums.ProjectQualityControlPlanStatus.Active)
+                .OrderByDescending(q => q.Revision)
+                .ToList();
+
+            if (_activeQcps.Count > 0)
+            {
+                _selectedQcpId = _activeQcps[0].Id;
+                await LoadQcpItemsAsync();
+            }
+
+            _newSequence = _items.Count == 0
+                ? 1
+                : _items.Max(i => i.SequenceNumber) + 1;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task LoadQcpLineageAsync()
+    {
+        _qcpLineage.Clear();
+
+        foreach (var item in _items)
+        {
+            try
+            {
+                _qcpLineage[item.Id] = await ItpService.GetQcpLineageAsync(item.Id);
+            }
+            catch (Exception ex)
+            {
+                _qcpLineage[item.Id] = (null, null);
+
+                Snackbar.Add(
+                    $"Unable to load QCP lineage for ITP item {item.SequenceNumber}: {ex.Message}",
+                    Severity.Warning);
+            }
+        }
+    }
+    private async Task LoadQcpItemsAsync()
+    {
+        _qcpItems.Clear();
+        _selectedQcpItemId = null;
+
+        if (!_selectedQcpId.HasValue)
+        {
+            return;
+        }
+
+        try
+        {
+            _qcpItems = await QcpService.GetItemsAsync(_selectedQcpId.Value);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private void OnQcpChangedSync()
+    {
+        _ = OnQcpChanged(_selectedQcpId);
+    }
+
+    private async Task OnQcpChanged(Guid? value)
+    {
+        _selectedQcpId = value;
+        await LoadQcpItemsAsync();
+    }
+
+    private async Task LoadExecutionCountsAsync()
+    {
+        _executionCounts.Clear();
+
+        foreach (var item in _items)
+        {
+            var executions = await ItpService.GetExecutionsAsync(item.Id);
+            _executionCounts[item.Id] = executions.Count;
+        }
+    }
+
+    private async Task AddItem()
+    {
+        if (!_selectedQcpId.HasValue ||
+            !_selectedQcpItemId.HasValue ||
+            !_newExecutionType.HasValue)
+        {
+            Snackbar.Add(
+                "Select an active QCP revision, QCP item and execution type.",
+                Severity.Warning);
+            return;
+        }
+
+        var qcp = _activeQcps.FirstOrDefault(x => x.Id == _selectedQcpId.Value);
+        var qcpItem = _qcpItems.FirstOrDefault(x => x.Id == _selectedQcpItemId.Value);
+
+        if (qcp == null || qcpItem == null)
+        {
+            Snackbar.Add("The selected QCP revision or item could not be found.", Severity.Error);
+            return;
+        }
+
+        try
+        {
+            var item = new InspectionTestPlanItem
+            {
+                Id = Guid.NewGuid(),
+                InspectionTestPlanId = PlanId,
+                SequenceNumber = _newSequence,
+                QcpRevisionId = qcp.Id,
+                QcpItemId = qcpItem.Id,
+                CustomerQualityRequirementId = qcpItem.CustomerQualityRequirementId,
+                Activity = qcpItem.Activity,
+                AcceptanceCriteria = qcpItem.AcceptanceCriteria,
+                VerificationMethod = qcpItem.VerificationMethod,
+                ResponsibleParty = qcpItem.ResponsibleParty,
+                InspectionStage = qcpItem.InspectionStage,
+                HoldPointCategory = qcpItem.HoldPointCategory,
+                HoldPointType = qcpItem.HoldPointType,
+                RequiredNdtMethod = qcpItem.RequiredNdtMethod,
+                Mandatory = qcpItem.Mandatory,
+                RequiredEvidence = qcpItem.RequiredEvidence,
+                ExecutionType = _newExecutionType.Value.ToString(),
+                Notes = _newNotes.Trim()
+            };
+
+            await ItpService.AddItemAsync(item);
+
+            Snackbar.Add("ITP item added.", Severity.Success);
+
+            _items = await ItpService.GetItemsAsync(PlanId);
+            await LoadQcpLineageAsync();
+            await LoadExecutionCountsAsync();
+
+            _newSequence = _items.Count == 0
+                ? 1
+                : _items.Max(i => i.SequenceNumber) + 1;
+
+            _selectedQcpItemId = null;
+            _newExecutionType = null;
+            _newNotes = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task LoadProjectExecutionSourcesAsync()
+    {
+        _projectWelds.Clear();
+        _dialogHoldPoints.Clear();
+        _dialogNdtResults.Clear();
+
+        var welds = await WeldService.GetProjectWelds(ProjectId);
+
+        _projectWelds.AddRange(welds);
+
+        foreach (var weld in _projectWelds)
+        {
+            _dialogHoldPoints.AddRange(
+                await HoldPointService.GetByWeldAsync(weld.Id));
+
+            _dialogNdtResults.AddRange(
+                NdtRepository.GetByWeld(weld.Id));
+        }
+    }
+
+    private async Task OpenExecutionDialogAsync(
+        InspectionTestPlanItem item)
+    {
+        if (_plan is null ||
+            (_plan.Status != InspectionTestPlanStatus.Draft &&
+             _plan.Status != InspectionTestPlanStatus.Active))
+            return;
+
+        if (string.Equals(item.ExecutionType, InspectionTestPlanExecutionType.Inspection.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            var inspectionParameters = new DialogParameters
+            {
+                ["Item"] = item,
+                ["ProjectWelds"] = _projectWelds
+            };
+
+            var inspectionDialog =
+                await DialogService.ShowAsync<ItpInspectionExecutionDialog>(
+                    "Execute ITP Inspection",
+                    inspectionParameters);
+
+            var inspectionResult = await inspectionDialog.Result;
+
+            if (inspectionResult is null || inspectionResult.Canceled)
+                return;
+
+            await LoadExecutionCountsAsync();
+            StateHasChanged();
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            ["Item"] = item,
+            ["ProjectWelds"] = _projectWelds,
+            ["HoldPoints"] = _dialogHoldPoints,
+            ["NdtResults"] = _dialogNdtResults,
+            ["AllowChanges"] =
+                _plan.Status == InspectionTestPlanStatus.Draft ||
+                _plan.Status == InspectionTestPlanStatus.Active
+        };
+
+        var dialog = await DialogService.ShowAsync<ItpExecutionLinkDialog>(
+            "Link Execution Evidence",
+            parameters);
+
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+            return;
+
+        await LoadExecutionCountsAsync();
+        StateHasChanged();
+    }
+    private async Task DeleteItem(InspectionTestPlanItem item)
+    {
+        try
+        {
+            await ItpService.DeleteItemAsync(item.Id);
+
+            Snackbar.Add("ITP item deleted.", Severity.Success);
+
+            _items = await ItpService.GetItemsAsync(PlanId);
+            await LoadQcpLineageAsync();
+            await LoadExecutionCountsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task ApprovePlan()
+    {
+        try
+        {
+            await ItpService.ApproveAsync(PlanId);
+
+            Snackbar.Add("ITP approved and activated.", Severity.Success);
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private void BackToItp()
+    {
+        Navigation.NavigateTo($"/quality/itp/{ProjectId}");
+    }
+
+    private static Color GetStatusColor(InspectionTestPlanStatus status)
+    {
+        return status switch
+        {
+            InspectionTestPlanStatus.Draft => Color.Warning,
+            InspectionTestPlanStatus.Active => Color.Success,
+            InspectionTestPlanStatus.Superseded => Color.Info,
+            InspectionTestPlanStatus.Closed => Color.Default,
+            _ => Color.Default
+        };
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

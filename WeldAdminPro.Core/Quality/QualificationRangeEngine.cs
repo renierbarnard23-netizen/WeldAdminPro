@@ -43,32 +43,23 @@ using WeldAdminPro.Core.Quality;
             // DIAMETER
             // =========================
 
-            if (pqr.IsPipe)
-            {
-                var d = pqr.DiameterMax;
+            // =========================
+            // DIAMETER
+            // =========================
+            //
+            // The PQR records the actual test coupon diameter.
+            // Diameter qualification restrictions are not applied
+            // at the procedure qualification range level.
+            //
+            // The actual tested diameter remains available through
+            // pqr.DiameterTested.
+            //
+            // Welder-performance diameter restrictions belong in
+            // the welder qualification/performance validation layer.
+            // =========================
 
-                if (d <= 0)
-                {
-                    result.MinDiameter = 0;
-                    result.MaxDiameter = double.MaxValue;
-                }
-                else if (d < 25)
-                {
-                    result.MinDiameter = d;
-                    result.MaxDiameter = d * 2;
-                }
-                else
-                {
-                    result.MinDiameter = 0;
-                    result.MaxDiameter = double.MaxValue;
-                }
-            }
-            else
-            {
-                // Plate qualification
-                result.MinDiameter = 0;
-                result.MaxDiameter = double.MaxValue;
-            }
+            result.MinDiameter = 0;
+            result.MaxDiameter = double.MaxValue;
 
             // =========================
             // POSITION EXPANSION
@@ -93,3 +84,4 @@ using WeldAdminPro.Core.Quality;
             }
         }
     }
+

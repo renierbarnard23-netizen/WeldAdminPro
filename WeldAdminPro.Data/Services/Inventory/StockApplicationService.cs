@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using WeldAdminPro.Core.Analytics.Executive;
@@ -108,6 +108,36 @@ namespace WeldAdminPro.Data.Services.Inventory
         // CATEGORIES
         // ==========================
 
+        public List<Category> GetAllCategories()
+        {
+            return _categoryRepository
+                .GetAll()
+                .ToList();
+        }
+
+        public void AddCategory(string name)
+        {
+            _categoryRepository.Add(name);
+        }
+
+        public void SetCategoryActive(Guid id, bool isActive)
+        {
+            _categoryRepository.SetActive(id, isActive);
+        }
+
+        public bool IsCategoryInUse(string categoryName)
+        {
+            return _categoryRepository.IsCategoryInUse(categoryName);
+        }
+
+        public bool DeleteCategory(Guid id, string categoryName)
+        {
+            if (_categoryRepository.IsCategoryInUse(categoryName))
+                return false;
+
+            _categoryRepository.Delete(id);
+            return true;
+        }
         public List<Category> GetCategories()
         {
             return _categoryRepository

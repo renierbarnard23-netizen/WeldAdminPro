@@ -23,17 +23,26 @@ namespace WeldAdminPro.Data.Repositories
             EnsureTable();
             EnsureColumns();
         }        
+        public WorkOrder? GetById(Guid id)
+        {
+            using var connection =
+                new SqliteConnection(
+                    $"Data Source={DatabasePath.Get()}");
 
-		public WorkOrder? GetById(Guid id)
-		{
-			using var connection = new SqliteConnection($"Data Source={DatabasePath.Get()}");
-			connection.Open();
+            connection.Open();
 
-			using var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT * FROM WorkOrders WHERE Id = @Id";
-            cmd.Parameters.AddWithValue("@Id", id.ToString());
+            using var cmd =
+                connection.CreateCommand();
 
-			using var reader = cmd.ExecuteReader();
+            cmd.CommandText =
+                "SELECT * FROM WorkOrders WHERE Id = @Id";
+
+            cmd.Parameters.AddWithValue(
+                "@Id",
+                id.ToString());
+
+            using var reader =
+                cmd.ExecuteReader();
 
             if (reader.Read())
             {
@@ -49,11 +58,48 @@ namespace WeldAdminPro.Data.Repositories
                                 reader["ProjectId"].ToString()!),
 
                         WorkOrderNumber =
-                            reader["WorkOrderNumber"].ToString() ?? "",
+                            reader["WorkOrderNumber"].ToString()
+                            ?? "",
 
                         Description =
-                            reader["Description"].ToString() ?? "",
+                            reader["Description"].ToString()
+                            ?? "",
 
+                        StartDate =
+                            reader["StartDate"] == DBNull.Value
+                                ? DateTime.Today
+                                : DateTime.Parse(
+                                    reader["StartDate"].ToString()!),
+
+                        EstimatedHours =
+                            reader["EstimatedHours"] == DBNull.Value
+                                ? 0
+                                : Convert.ToDouble(
+                                    reader["EstimatedHours"]),
+
+                        ActualStartTime =
+                            reader["ActualStartTime"] == DBNull.Value
+                                ? null
+                                : DateTime.Parse(
+                                    reader["ActualStartTime"].ToString()!),
+
+                        ActualEndTime =
+                            reader["ActualEndTime"] == DBNull.Value
+                                ? null
+                                : DateTime.Parse(
+                                    reader["ActualEndTime"].ToString()!),
+
+                        ActualHours =
+                            reader["ActualHours"] == DBNull.Value
+                                ? 0
+                                : Convert.ToDouble(
+                                    reader["ActualHours"]),
+
+                        IsPaused =
+                            reader["IsPaused"] == DBNull.Value
+                                ? false
+                                : Convert.ToInt32(
+                                    reader["IsPaused"]) != 0,
                         Status =
                             (WorkOrderStatus)
                             Convert.ToInt32(
@@ -63,14 +109,26 @@ namespace WeldAdminPro.Data.Repositories
                             DateTime.Parse(
                                 reader["CreatedOn"].ToString()!),
 
+                        DueDate =
+                            reader["DueDate"] == DBNull.Value
+                                ? null
+                                : DateTime.Parse(
+                                    reader["DueDate"].ToString()!),
+
                         CompletedOn =
                             reader["CompletedOn"] == DBNull.Value
                                 ? null
                                 : DateTime.Parse(
-                                    reader["CompletedOn"].ToString()!)
+                                    reader["CompletedOn"].ToString()!),
+
+                        Priority =
+                            reader["Priority"] == DBNull.Value
+                                ? 1
+                                : Convert.ToInt32(
+                                    reader["Priority"])
                     };
 
-                var stockRepo = 
+                var stockRepo =
                     new StockRepository();
 
                 wo.MaterialRequirements =
@@ -78,13 +136,20 @@ namespace WeldAdminPro.Data.Repositories
                         .GetByWorkOrderId(wo.Id)
                         .Select(m =>
                         {
-                            var stock = stockRepo.GetByItemCode(m.ItemCode);
-                            
+                            var stock =
+                                stockRepo.GetByItemCode(
+                                    m.ItemCode);
+
                             return new MaterialRequirement
                             {
-                                ItemCode = m.ItemCode,
-                                RequiredQuantity = m.RequiredQuantity,
-                                AvailableQuantity = stock?.Quantity ?? 0
+                                ItemCode =
+                                    m.ItemCode,
+
+                                RequiredQuantity =
+                                    m.RequiredQuantity,
+
+                                AvailableQuantity =
+                                    stock?.Quantity ?? 0
                             };
                         })
                         .ToList();
@@ -233,7 +298,9 @@ SET
     ActualStartTime = @ActualStartTime,
     ActualEndTime = @ActualEndTime,
     ActualHours = @ActualHours,
-    IsPaused = @IsPaused
+    IsPaused = @IsPaused,
+    CompletedOn = @CompletedOn,
+    Priority = @Priority
 WHERE Id = @Id";
 
 			cmd.Parameters.AddWithValue("@Id", workOrder.Id.ToString());
@@ -257,7 +324,25 @@ WHERE Id = @Id";
 
 			cmd.Parameters.AddWithValue("@IsPaused", workOrder.IsPaused ? 1 : 0);
 
-			cmd.Parameters.AddWithValue("@DueDate", workOrder.DueDate.HasValue? workOrder.DueDate.Value.ToString("O"): DBNull.Value);
+			cmd.Parameters.AddWithValue("@DueDate", workOrder.DueDate.HasValue? workOrder.DueDate.Value.ToString("O"): DBNull.Value);
+
+
+			cmd.Parameters.AddWithValue(
+
+			    "@CompletedOn",
+
+			    workOrder.CompletedOn.HasValue
+
+			        ? workOrder.CompletedOn.Value.ToString("O")
+
+			        : DBNull.Value);
+
+
+			cmd.Parameters.AddWithValue(
+
+			    "@Priority",
+
+			    workOrder.Priority);
 
 			cmd.ExecuteNonQuery();
 		}
@@ -536,29 +621,33 @@ WHERE Key='NextWorkOrderNumber'";
             
             cmd.CommandText = @"
                 INSERT INTO WorkOrders
-                (
-                    Id,
-                    ProjectId,
-                    WorkOrderNumber,
-                    Description,
-                    Status,
-                    CreatedOn,
-                    DueDate,
-                    CompletedOn,
-                    Priority
-                )
-                VALUES
-                (
-                    @Id,
-                    @ProjectId,
-                    @WorkOrderNumber,
-                    @Description,
-                    @Status,
-                    @CreatedOn,
-                    @DueDate,
-                    @CompletedOn,
-                    @Priority
-                )";
+(
+    Id,
+    ProjectId,
+    WorkOrderNumber,
+    Description,
+    StartDate,
+    EstimatedHours,
+    Status,
+    CreatedOn,
+    DueDate,
+    CompletedOn,
+    Priority
+)
+VALUES
+(
+    @Id,
+    @ProjectId,
+    @WorkOrderNumber,
+    @Description,
+    @StartDate,
+    @EstimatedHours,
+    @Status,
+    @CreatedOn,
+    @DueDate,
+    @CompletedOn,
+    @Priority
+)";
 
             cmd.Parameters.AddWithValue(
                 "@Id",
@@ -599,6 +688,14 @@ WHERE Key='NextWorkOrderNumber'";
             cmd.Parameters.AddWithValue(
                 "@Priority",
                 workOrder.Priority);
+
+		cmd.Parameters.AddWithValue(
+    "@StartDate",
+    workOrder.StartDate.ToString("O"));
+
+cmd.Parameters.AddWithValue(
+    "@EstimatedHours",
+    workOrder.EstimatedHours);
 
             cmd.ExecuteNonQuery();
         }

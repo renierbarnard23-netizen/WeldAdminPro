@@ -1,0 +1,138 @@
+using WeldAdminPro.Core.Quality;
+using WeldAdminPro.Core.Quality.Services;
+using WeldAdminPro.Core.Services;
+using WeldAdminPro.Data.Repositories;
+
+namespace WeldAdminPro.Web.Services.Quality;
+
+public class WpsApplicationService
+{
+    private readonly WpsRepository _wpsRepository;
+    private readonly PqrRepository _pqrRepository;
+    private readonly WpsGeneratorService _generator;
+    private readonly WpsComplianceService _compliance;
+
+    public WpsApplicationService(
+        WpsRepository wpsRepository,
+        PqrRepository pqrRepository)
+    {
+        _wpsRepository = wpsRepository;
+        _pqrRepository = pqrRepository;
+
+        _generator = new WpsGeneratorService();
+        _compliance = new WpsComplianceService();
+    }
+
+    // =====================================================
+    // WPS QUERIES
+    // =====================================================
+
+    public List<Wps> GetAll()
+    {
+        return _wpsRepository.GetAll();
+    }
+
+    public List<Wps> GetActive()
+    {
+        return _wpsRepository.GetActive();
+    }
+
+    public Wps? Get(string wpsNumber)
+    {
+        return _wpsRepository.GetByWpsNumber(wpsNumber);
+    }
+
+    // =====================================================
+    // PQR QUERIES
+    // =====================================================
+
+    public List<Pqr> GetAvailablePqrs()
+    {
+        return _pqrRepository.GetAll();
+    }
+
+    public Pqr? GetPqr(Guid id)
+    {
+        return _pqrRepository
+            .GetAll()
+            .FirstOrDefault(x => x.Id == id);
+    }
+
+    // =====================================================
+    // GENERATION
+    // =====================================================
+
+    public Wps GenerateFromPqr(Pqr pqr)
+    {
+        if (pqr == null)
+            throw new ArgumentNullException(nameof(pqr));
+
+        return _generator.GenerateFromPqr(pqr);
+    }
+
+    // =====================================================
+    // COMPLIANCE
+    // =====================================================
+
+    public WpsComplianceResult EvaluateCompliance(
+        Wps wps,
+        Pqr pqr)
+    {
+        return _compliance.Evaluate(wps, pqr);
+    }
+
+    // =====================================================
+    // SAVE
+    // =====================================================
+
+    public void Save(Wps wps)
+    {
+        if (wps == null)
+            throw new ArgumentNullException(nameof(wps));
+
+        var existing =
+            _wpsRepository.GetByWpsNumber(wps.WpsNumber);
+
+        if (existing == null)
+        {
+            if (wps.Id == Guid.Empty)
+                wps.Id = Guid.NewGuid();
+
+            _wpsRepository.Add(wps);
+        }
+        else
+        {
+            wps.Id = existing.Id;
+
+            _wpsRepository.Update(wps);
+        }
+    }
+
+    // =====================================================
+    // SAVE WITH COMPLIANCE CHECK
+    // =====================================================
+
+    public WpsComplianceResult ValidateAndSave(
+        Wps wps,
+        Pqr pqr)
+    {
+        var result =
+            EvaluateCompliance(wps, pqr);
+
+        if (!result.IsCompliant)
+            return result;
+
+        Save(wps);
+
+        return result;
+    }
+
+    // =====================================================
+    // DELETE
+    // =====================================================
+
+    public void Delete(Guid id)
+    {
+        _wpsRepository.Delete(id);
+    }
+}

@@ -1,0 +1,546 @@
+﻿@page "/quality/itp/{ProjectId:guid}"
+@attribute [Authorize(Policy = "Permission:Quality.ITP")]
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Data.Services.Projects
+@using WeldAdminPro.Data.Services.Quality
+
+@inject ProjectApplicationService ProjectService
+@inject InspectionTestPlanApplicationService ItpService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Inspection Test Plans</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+
+    @if (_project == null)
+    {
+        <MudAlert Severity="Severity.Error">
+            Project not found.
+        </MudAlert>
+    }
+    else
+    {
+        <MudPaper Class="pa-4 mb-4">
+
+            <MudStack Row="true"
+                      Justify="Justify.SpaceBetween"
+                      AlignItems="AlignItems.Center">
+
+                <div>
+                    <MudText Typo="Typo.h4">
+                        Inspection Test Plans
+                    </MudText>
+
+                    <MudText Typo="Typo.subtitle1">
+                        @_project.JobNumber - @_project.ProjectName
+                    </MudText>
+
+                    <MudText Typo="Typo.body2">
+                        Client: @_project.Client
+                    </MudText>
+                </div>
+
+                <MudStack Row="true" Spacing="2">
+
+                    <MudButton Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.ArrowBack"
+                               OnClick="BackToProjects">
+                        Projects
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="BeginAdd">
+                        New ITP
+                    </MudButton>
+
+                </MudStack>
+
+            </MudStack>
+
+        </MudPaper>
+
+        @if (_editing)
+        {
+            <MudPaper Class="pa-4 mb-4">
+
+                <MudText Typo="Typo.h6" GutterBottom="true">
+                    @(_editingExisting ? "Edit Draft ITP" : "New ITP")
+                </MudText>
+
+                <MudGrid>
+
+                    <MudItem xs="12" md="4">
+                        <MudTextField T="string"
+                                      Label="ITP Number"
+                                      @bind-Value="_editPlan.ItpNumber"
+                                      Required="true"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="2">
+                        <MudTextField T="string"
+                                      Label="Revision"
+                                      @bind-Value="_editPlan.Revision"
+                                      Required="true"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string"
+                                      Label="Title"
+                                      @bind-Value="_editPlan.Title"
+                                      Required="true"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField T="string"
+                                      Label="Description"
+                                      @bind-Value="_editPlan.Description"
+                                      Lines="4"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                </MudGrid>
+
+                <MudStack Row="true"
+                          Justify="Justify.FlexEnd"
+                          Spacing="2"
+                          Class="mt-4">
+
+                    <MudButton Variant="Variant.Text"
+                               OnClick="CancelEdit">
+                        Cancel
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="Save">
+                        Save Draft
+                    </MudButton>
+
+                </MudStack>
+
+            </MudPaper>
+        }
+
+        @if (_revisionEditing)
+        {
+            <MudPaper Class="pa-4 mb-4">
+
+                <MudText Typo="Typo.h6" GutterBottom="true">
+                    Create ITP Revision
+                </MudText>
+
+                <MudText Typo="Typo.body2" Class="mb-3">
+                    Create a new Draft revision from the currently active ITP.
+                </MudText>
+
+                <MudTextField T="string"
+                              Label="New Revision"
+                              @bind-Value="_revision"
+                              Required="true"
+                              Variant="Variant.Outlined" />
+
+                <MudStack Row="true"
+                          Justify="Justify.FlexEnd"
+                          Spacing="2"
+                          Class="mt-4">
+
+                    <MudButton Variant="Variant.Text"
+                               OnClick="CancelRevision">
+                        Cancel
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="SaveRevision">
+                        Create Revision
+                    </MudButton>
+
+                </MudStack>
+
+            </MudPaper>
+        }
+
+        <MudPaper Class="pa-4">
+
+            <MudText Typo="Typo.h6" GutterBottom="true">
+                ITP Revisions
+            </MudText>
+
+            @if (_plans.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info">
+                    No Inspection Test Plans have been created for this project.
+                </MudAlert>
+            }
+            else
+            {
+                <MudTable Items="_plans"
+                          Hover="true"
+                          Dense="true"
+                          Striped="true">
+
+                    <HeaderContent>
+                        <MudTh>ITP Number</MudTh>
+                        <MudTh>Revision</MudTh>
+                        <MudTh>Title</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Prepared</MudTh>
+                        <MudTh>Approved</MudTh>
+                        <MudTh>Actions</MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate>
+
+                        <MudTd DataLabel="ITP Number">
+                            @context.ItpNumber
+                        </MudTd>
+
+                        <MudTd DataLabel="Revision">
+                            @context.Revision
+                        </MudTd>
+
+                        <MudTd DataLabel="Title">
+                            @context.Title
+                        </MudTd>
+
+                        <MudTd DataLabel="Status">
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Color="@GetStatusColor(context.Status)">
+                                @context.Status
+                            </MudChip>
+                        </MudTd>
+
+                        <MudTd DataLabel="Prepared">
+                            @context.PreparedBy
+                            @if (context.PreparedOn.HasValue)
+                            {
+                                <br />
+                                @context.PreparedOn.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                            }
+                        </MudTd>
+
+                        <MudTd DataLabel="Approved">
+                            @if (!string.IsNullOrWhiteSpace(context.ApprovedBy))
+                            {
+                                @context.ApprovedBy
+                                @if (context.ApprovedOn.HasValue)
+                                {
+                                    <br />
+                                    @context.ApprovedOn.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                }
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2">Not approved</MudText>
+                            }
+                        </MudTd>
+
+                        <MudTd DataLabel="Actions">
+
+                            <MudStack Row="true" Spacing="1">
+
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           OnClick="@(() => OpenPlan(context))">
+                                    Open
+                                </MudButton>
+
+                                @if (context.Status == InspectionTestPlanStatus.Draft)
+                                {
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Outlined"
+                                               OnClick="@(() => BeginEdit(context))">
+                                        Edit
+                                    </MudButton>
+
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Outlined"
+                                               Color="Color.Success"
+                                               OnClick="@(() => Approve(context))">
+                                        Approve
+                                    </MudButton>
+
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Outlined"
+                                               Color="Color.Error"
+                                               OnClick="@(() => Delete(context))">
+                                        Delete
+                                    </MudButton>
+                                }
+
+                                @if (context.Status == InspectionTestPlanStatus.Active &&
+                                     context.IsActive)
+                                {
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Outlined"
+                                               Color="Color.Primary"
+                                               OnClick="@(() => BeginRevision(context))">
+                                        Create Revision
+                                    </MudButton>
+                                }
+
+                            </MudStack>
+
+                        </MudTd>
+
+                    </RowTemplate>
+
+                </MudTable>
+            }
+
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    private Project? _project;
+    private List<InspectionTestPlan> _plans = new();
+
+    private bool _editing;
+    private bool _editingExisting;
+    private bool _revisionEditing;
+
+    private InspectionTestPlan _editPlan = new();
+    private string _revision = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _project = await ProjectService.GetProjectAsync(ProjectId);
+
+            if (_project == null)
+            {
+                return;
+            }
+
+            _plans = await ItpService.GetByProjectAsync(ProjectId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to load ITPs: {ex.Message}",
+                Severity.Error);
+        }
+    }
+
+    private void BeginAdd()
+    {
+        _editingExisting = false;
+        _editing = true;
+
+        _editPlan = new InspectionTestPlan
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = ProjectId,
+            Revision = "A",
+            Status = InspectionTestPlanStatus.Draft,
+            IsActive = true
+        };
+    }
+
+    private void BeginEdit(InspectionTestPlan plan)
+    {
+        _editingExisting = true;
+        _editing = true;
+
+        _editPlan = new InspectionTestPlan
+        {
+            Id = plan.Id,
+            ProjectId = plan.ProjectId,
+            ItpNumber = plan.ItpNumber,
+            Revision = plan.Revision,
+            Status = plan.Status,
+            Title = plan.Title,
+            Description = plan.Description,
+            PreparedBy = plan.PreparedBy,
+            PreparedOn = plan.PreparedOn,
+            ApprovedBy = plan.ApprovedBy,
+            ApprovedOn = plan.ApprovedOn,
+            EffectiveDate = plan.EffectiveDate,
+            SupersededOn = plan.SupersededOn,
+            PreviousRevisionId = plan.PreviousRevisionId,
+            IsActive = plan.IsActive
+        };
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (_editingExisting)
+            {
+                await ItpService.UpdateAsync(_editPlan);
+                Snackbar.Add(
+                    "ITP draft updated.",
+                    Severity.Success);
+            }
+            else
+            {
+                await ItpService.AddAsync(_editPlan);
+                Snackbar.Add(
+                    "ITP draft created.",
+                    Severity.Success);
+            }
+
+            _editing = false;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+    }
+
+    private async Task Approve(InspectionTestPlan plan)
+    {
+        try
+        {
+            await ItpService.ApproveAsync(plan.Id);
+
+            Snackbar.Add(
+                $"ITP {plan.ItpNumber} Rev {plan.Revision} approved.",
+                Severity.Success);
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+    }
+
+    private void BeginRevision(InspectionTestPlan plan)
+    {
+        _revisionEditing = true;
+        _revision = string.Empty;
+    }
+
+    private async Task SaveRevision()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_revision))
+            {
+                Snackbar.Add(
+                    "New revision is required.",
+                    Severity.Warning);
+
+                return;
+            }
+
+            var activePlan =
+                _plans.FirstOrDefault(p =>
+                    p.Status == InspectionTestPlanStatus.Active &&
+                    p.IsActive);
+
+            if (activePlan == null)
+            {
+                Snackbar.Add(
+                    "The active ITP revision could not be found.",
+                    Severity.Error);
+
+                return;
+            }
+
+            await ItpService.CreateRevisionAsync(
+                activePlan.Id,
+                _revision.Trim());
+
+            Snackbar.Add(
+                $"ITP revision {_revision.Trim()} created.",
+                Severity.Success);
+
+            _revisionEditing = false;
+            _revision = string.Empty;
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+    }
+
+    private async Task Delete(InspectionTestPlan plan)
+    {
+        try
+        {
+            await ItpService.DeleteAsync(plan.Id);
+
+            Snackbar.Add(
+                $"ITP {plan.ItpNumber} Rev {plan.Revision} deleted.",
+                Severity.Success);
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+    }
+
+    private void OpenPlan(InspectionTestPlan plan)
+    {
+        Navigation.NavigateTo(
+            $"/quality/itp/{ProjectId}/plan/{plan.Id}");
+    }
+
+    private void CancelEdit()
+    {
+        _editing = false;
+    }
+
+    private void CancelRevision()
+    {
+        _revisionEditing = false;
+        _revision = string.Empty;
+    }
+
+    private void BackToProjects()
+    {
+        Navigation.NavigateTo("/quality/itp");
+    }
+
+    private static Color GetStatusColor(
+        InspectionTestPlanStatus status)
+    {
+        return status switch
+        {
+            InspectionTestPlanStatus.Draft => Color.Warning,
+            InspectionTestPlanStatus.Active => Color.Success,
+            InspectionTestPlanStatus.Superseded => Color.Default,
+            InspectionTestPlanStatus.Closed => Color.Dark,
+            _ => Color.Default
+        };
+    }
+}
+

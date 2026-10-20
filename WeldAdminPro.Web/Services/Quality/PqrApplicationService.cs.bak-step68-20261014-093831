@@ -1,0 +1,439 @@
+﻿using WeldAdminPro.Core.Models;
+using WeldAdminPro.Core.Quality;
+using WeldAdminPro.Core.Quality.Services;
+using WeldAdminPro.Core.Security;
+using WeldAdminPro.Core.Security.Abstractions;
+using WeldAdminPro.Core.Interfaces;
+using WeldAdminPro.Data;
+using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Core.Services;
+
+namespace WeldAdminPro.Web.Services.Quality
+{
+    public class PqrApplicationService
+    {        
+        private readonly PqrRepository _repository;
+        private readonly CompanyRepository _companyRepository;
+        private readonly QualificationRangeEngine _rangeEngine = new();
+
+        private readonly ICurrentUserContext _currentUser;
+        private readonly IPermissionAuthorizationService _permissionAuthorization;
+        private readonly IProjectAccessAuthorizationService _projectAccessAuthorization;
+        private readonly PqrWorkflowService _pqrWorkflow;
+
+        public PqrApplicationService(
+            PqrRepository repository,
+            CompanyRepository companyRepository,
+            ICurrentUserContext currentUser,
+            IPermissionAuthorizationService permissionAuthorization,
+            IProjectAccessAuthorizationService projectAccessAuthorization,
+            PqrWorkflowService pqrWorkflow)
+        {
+            _repository = repository;
+            _companyRepository = companyRepository
+                ?? throw new ArgumentNullException(nameof(companyRepository));
+            _currentUser = currentUser;
+            _permissionAuthorization =
+                permissionAuthorization
+                ?? throw new ArgumentNullException(nameof(permissionAuthorization));
+            _projectAccessAuthorization =
+                projectAccessAuthorization
+                ?? throw new ArgumentNullException(nameof(projectAccessAuthorization));
+            _pqrWorkflow = pqrWorkflow;
+        }
+
+        private async Task EnsureAuthenticatedAndHasPqrPermissionAsync()
+        {
+            if (!_currentUser.IsAuthenticated ||
+                string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                throw new UnauthorizedAccessException(
+                    "You must be authenticated to access PQR records.");
+            }
+
+            var hasPermission =
+                await _permissionAuthorization.HasPermissionAsync(
+                    _currentUser.UserId,
+                    _currentUser.Role,
+                    PermissionKeys.Quality.PQR);
+
+            if (!hasPermission)
+            {
+                throw new UnauthorizedAccessException(
+                    "You do not have permission to access PQR records.");
+            }
+        }
+
+        private async Task EnsureCompanyAccessAsync(Guid? companyId)
+        {
+            if (!companyId.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "PQR has no company ownership.");
+            }
+
+            var hasAccess =
+                await _projectAccessAuthorization.CanAccessCompanyAsync(
+                    _currentUser.UserId!,
+                    companyId.Value);
+
+            if (!hasAccess)
+            {
+                throw new UnauthorizedAccessException(
+                    "You do not have access to the company that owns this PQR.");
+            }
+        }
+
+        public async Task<List<Company>> GetAccessibleCompaniesAsync()
+        {
+            await EnsureAuthenticatedAndHasPqrPermissionAsync();
+
+            var companies = _companyRepository.GetAll()
+                .Where(company => company.IsActive)
+                .ToList();
+
+            var accessibleCompanies = new List<Company>();
+
+            foreach (var company in companies)
+            {
+                var hasAccess =
+                    await _projectAccessAuthorization.CanAccessCompanyAsync(
+                        _currentUser.UserId!,
+                        company.Id);
+
+                if (hasAccess)
+                {
+                    accessibleCompanies.Add(company);
+                }
+            }
+
+            return accessibleCompanies;
+        }
+        public async Task<List<Pqr>> GetAllAsync()
+        {
+            await EnsureAuthenticatedAndHasPqrPermissionAsync();
+
+            var all = _repository.GetAll();
+            var accessibleCompanies = new HashSet<Guid>();
+            var result = new List<Pqr>();
+
+            foreach (var pqr in all)
+            {
+                if (!pqr.CompanyId.HasValue)
+                    continue;
+
+                if (accessibleCompanies.Contains(pqr.CompanyId.Value))
+                {
+                    result.Add(pqr);
+                    continue;
+                }
+
+                if (await _projectAccessAuthorization.CanAccessCompanyAsync(
+                    _currentUser.UserId!,
+                    pqr.CompanyId.Value))
+                {
+                    accessibleCompanies.Add(pqr.CompanyId.Value);
+                    result.Add(pqr);
+                }
+            }
+
+            return result;
+        }
+
+        public async Task<Pqr?> GetByIdAsync(Guid id)
+        {
+            await EnsureAuthenticatedAndHasPqrPermissionAsync();
+
+            var pqr = _repository.GetById(id);
+
+            if (pqr == null || !pqr.CompanyId.HasValue)
+                return null;
+
+            if (!await _projectAccessAuthorization.CanAccessCompanyAsync(
+                _currentUser.UserId!,
+                pqr.CompanyId.Value))
+            {
+                return null;
+            }
+
+            return pqr;
+        }
+
+        public async Task<Pqr?> GetByNumberAsync(string number)
+        {
+            await EnsureAuthenticatedAndHasPqrPermissionAsync();
+
+            var pqr = _repository.GetByNumber(number);
+
+            if (pqr == null || !pqr.CompanyId.HasValue)
+                return null;
+
+            if (!await _projectAccessAuthorization.CanAccessCompanyAsync(
+                _currentUser.UserId!,
+                pqr.CompanyId.Value))
+            {
+                return null;
+            }
+
+            return pqr;
+        }
+
+        public async Task SaveAsync(Pqr pqr)
+        {
+            await EnsureAuthenticatedAndHasPqrPermissionAsync();
+
+            if (pqr == null)
+                throw new ArgumentNullException(nameof(pqr));
+
+            var existing =
+                pqr.Id == Guid.Empty
+                    ? null
+                    : _repository.GetById(pqr.Id);
+
+            if (existing == null)
+            {
+                if (!pqr.CompanyId.HasValue)
+                {
+                    if (!_currentUser.CompanyId.HasValue)
+                    {
+                        throw new InvalidOperationException(
+                            "A company must be selected before creating a PQR.");
+                    }
+
+                    pqr.CompanyId = _currentUser.CompanyId.Value;
+                }
+
+                await EnsureCompanyAccessAsync(pqr.CompanyId);
+
+                pqr.IsActive = true;
+                pqr.IsApproved = false;
+                pqr.IsLocked = false;
+                pqr.ApprovedBy = null;
+                pqr.ApprovedOn = null;
+
+                _repository.Add(pqr);
+                return;
+            }
+
+            if (!existing.CompanyId.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "The existing PQR has no company ownership.");
+            }
+
+            await EnsureCompanyAccessAsync(existing.CompanyId);
+
+            if (pqr.CompanyId.HasValue &&
+                pqr.CompanyId.Value != existing.CompanyId.Value)
+            {
+                throw new InvalidOperationException(
+                    "PQR company ownership cannot be changed during editing.");
+            }
+
+            if (pqr.Id != existing.Id)
+            {
+                throw new InvalidOperationException(
+                    "PQR identity cannot be changed during editing.");
+            }
+
+            // ------------------------------------------------
+            // APPROVED PQR = IMMUTABLE
+            //
+            // Editing an approved PQR creates a new revision.
+            // The existing approved revision remains untouched.
+            // ------------------------------------------------
+
+            if (existing.IsApproved)
+            {
+                var username = _currentUser.Username;
+
+                if (string.IsNullOrWhiteSpace(username))
+                {
+                    throw new InvalidOperationException(
+                        "A username is required to create a PQR revision.");
+                }
+
+                var revision = pqr.CreateRevision(username);
+
+                // Governance values come from the authoritative
+                // existing database record, not the edited model.
+                revision.CompanyId = existing.CompanyId;
+                revision.Revision = existing.Revision + 1;
+                revision.PreviousRevisionId = existing.Id;
+                revision.IsApproved = false;
+                revision.ApprovedBy = null;
+                revision.ApprovedOn = null;
+                revision.IsLocked = false;
+                revision.IsActive = true;
+
+                _repository.SaveRevision(
+                    existing,
+                    revision);
+
+                return;
+            }
+
+            // ------------------------------------------------
+            // UNAPPROVED PQR
+            //
+            // Existing unapproved records may still be edited
+            // in place.
+            // ------------------------------------------------
+
+            pqr.CompanyId = existing.CompanyId;
+            pqr.Revision = existing.Revision;
+            pqr.PreviousRevisionId = existing.PreviousRevisionId;
+            pqr.IsActive = true;
+            pqr.IsApproved = false;
+            pqr.IsLocked = false;
+            pqr.ApprovedBy = null;
+            pqr.ApprovedOn = null;
+
+            _repository.Update(pqr);
+        }
+
+        public async Task ApproveAsync(Guid id)
+        {
+            await EnsureAuthenticatedAndHasPqrPermissionAsync();
+
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentException(
+                    "PQR Id is required.",
+                    nameof(id));
+            }
+
+            var pqr = _repository.GetById(id);
+
+            if (pqr == null)
+            {
+                throw new InvalidOperationException(
+                    "The PQR could not be found.");
+            }
+
+            if (!pqr.CompanyId.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "The existing PQR has no company ownership.");
+            }
+
+            await EnsureCompanyAccessAsync(pqr.CompanyId);
+
+            if (pqr.IsApproved)
+            {
+                throw new InvalidOperationException(
+                    "PQR is already approved.");
+            }
+
+            await _pqrWorkflow.ApproveAsync(pqr);
+
+            _repository.Update(pqr);
+        }
+        public async Task DeleteAsync(Guid id)
+        {
+            await EnsureAuthenticatedAndHasPqrPermissionAsync();
+
+            var existing = _repository.GetById(id);
+
+            if (existing == null)
+                return;
+
+            await EnsureCompanyAccessAsync(existing.CompanyId);
+
+            _repository.Delete(id);
+        }
+        public void CalculateQualification(Pqr pqr)
+        {
+            // Preserve values already calculated by the OCR parser.
+            // Only calculate missing qualification data.
+
+            if (pqr.ThicknessQualifiedMax <= 0)
+            {
+                var result = _rangeEngine.Calculate(pqr);
+
+                pqr.ThicknessQualifiedMin = result.MinThickness;
+                pqr.ThicknessQualifiedMax = result.MaxThickness;
+
+            }
+
+
+            // =================================================
+            // DIAMETER QUALIFICATION
+            // =================================================
+            // Diameter qualification must be calculated
+            // independently from thickness qualification.
+            // The OCR parser already supplies DiameterTested.
+            // =================================================
+            if (pqr.IsPipe && pqr.DiameterTested > 0)
+            {
+                var diameterResult = _rangeEngine.Calculate(pqr);
+
+                pqr.DiameterMin = diameterResult.MinDiameter;
+                pqr.DiameterMax = diameterResult.MaxDiameter;
+            }
+
+            if (string.IsNullOrWhiteSpace(pqr.QualifiedPosition))
+            {
+                var result = _rangeEngine.Calculate(pqr);
+
+                pqr.QualifiedPosition = result.QualifiedPosition;
+            }
+
+            if (string.IsNullOrWhiteSpace(pqr.QualifiedPNumberRange))
+            {
+                CalculateMaterialQualification(pqr);
+            }
+        }
+
+        public void CalculateMaterialQualification(Pqr pqr)
+        {
+            if (string.IsNullOrWhiteSpace(pqr.PNumber))
+            {
+                pqr.QualifiedPNumberRange = "Not defined";
+                return;
+            }
+
+            switch (pqr.PNumber.Trim())
+            {
+                case "1":
+                    pqr.QualifiedPNumberRange = "P-No 1 only";
+                    break;
+
+                case "8":
+                    pqr.QualifiedPNumberRange = "P-No 8 only (Stainless)";
+                    break;
+
+                default:
+                    pqr.QualifiedPNumberRange = $"P-No {pqr.PNumber}";
+                    break;
+            }
+        }
+
+        public async Task<int> GetActiveCountAsync()
+        {
+            return (await GetAllAsync())
+                .Count(x => x.IsActive);
+        }
+
+        public async Task<int> GetApprovedCountAsync()
+        {
+            return (await GetAllAsync())
+                .Count(x => x.IsApproved);
+        }
+
+        public async Task<int> GetActiveApprovedCountAsync()
+        {
+            return (await GetAllAsync())
+                .Count(x =>
+                    x.IsActive &&
+                    x.IsApproved);
+        }
+    }
+}
+
+
+
+
+
+
+

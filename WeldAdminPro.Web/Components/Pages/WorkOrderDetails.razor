@@ -1,4 +1,4 @@
-@page "/production/workorder/{Id:guid}"
+﻿@page "/production/workorder/{Id:guid}"
 
 @attribute [Authorize(Policy = "Permission:Production.WorkOrders")]
 @using MudBlazor
@@ -236,23 +236,23 @@ else
             ProductionService.GetTimeline();
     }
 
-    private void Start()
+    private async Task Start()
     {
-        ProductionService.StartWorkOrder(Id);
+        await ProductionService.StartWorkOrderAsync(Id);
 
         Load();
     }
 
-    private void Pause()
+    private async Task Pause()
     {
-        ProductionService.PauseWorkOrder(Id);
+        await ProductionService.PauseWorkOrderAsync(Id);
 
         Load();
     }
 
-    private void Complete()
+    private async Task Complete()
     {
-        ProductionService.CompleteWorkOrder(Id);
+        await ProductionService.CompleteWorkOrderAsync(Id);
 
         Load();
     }

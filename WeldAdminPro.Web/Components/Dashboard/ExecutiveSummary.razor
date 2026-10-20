@@ -1,4 +1,4 @@
-@using MudBlazor
+﻿@using MudBlazor
 @using WeldAdminPro.Data.Services.ProductionEngine
 @using WeldAdminPro.Core.Quality.Models
 
@@ -62,17 +62,20 @@
 
                 </MudListItem>
 
-                <MudListItem T="string">
+                @if (Quality != null)
+                {
+                    <MudListItem T="string">
 
-                    Quality Compliance
+                        Quality Compliance
 
-                    <strong class="ms-2">
+                        <strong class="ms-2">
 
-                        @($"{Quality?.ComplianceScore ?? 0}%")
+                            @(Quality.IsComplete ? $"{Quality.ComplianceScore}%" : "Restricted")
 
-                    </strong>
+                        </strong>
 
-                </MudListItem>
+                    </MudListItem>
+                }
 
             </MudList>
 
@@ -118,10 +121,11 @@
         if (Production.BlockedWorkOrders > 0)
             return "Production is experiencing blocked work orders.";
 
-        if ((Quality?.PendingNdt ?? 0) > 0)
+        if (Quality?.PendingNdtAvailable == true && Quality.PendingNdt > 0)
             return "Complete outstanding NDT inspections.";
 
         return
             "Factory operating normally. No significant risks detected.";
     }
 }
+

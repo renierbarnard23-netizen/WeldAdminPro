@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Data.Repositories;
@@ -10,11 +10,16 @@ namespace WeldAdminPro.Data.Services
 		private readonly StockRepository _stockRepository;
 		private readonly StockProjectTransactionService _transactionService;
 
-		public ProjectMaterialService()
-		{
-			_stockRepository = new StockRepository();
-			_transactionService = new StockProjectTransactionService();
-		}
+		        public ProjectMaterialService(
+            StockRepository stockRepository,
+            StockProjectTransactionService transactionService)
+        {
+            _stockRepository = stockRepository
+                ?? throw new ArgumentNullException(nameof(stockRepository));
+
+            _transactionService = transactionService
+                ?? throw new ArgumentNullException(nameof(transactionService));
+        }
 
 		// ================= STOCK ITEMS =================
 

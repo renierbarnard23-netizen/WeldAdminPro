@@ -1,4 +1,4 @@
-using WeldAdminPro.Core.Models;
+﻿using WeldAdminPro.Core.Models;
 using WeldAdminPro.Core.Quality;
 
 namespace WeldAdminPro.Web.Services.Quality;
@@ -696,7 +696,7 @@ new()
 },
 
     // =====================================================
-// NICKEL & HIGH NICKEL ALLOYS (ASME IX P-No. 41–45)
+// NICKEL & HIGH NICKEL ALLOYS (ASME IX P-No. 41â€“45)
 // =====================================================
 
 new()
@@ -925,7 +925,7 @@ new()
 
 new()
 {
-    Material = "Titanium Plate",
+    Material = "Titanium",
     Specification = "ASTM B265",
     Grade = "Grade 2",
     UNS = "R50400",
@@ -937,7 +937,7 @@ new()
 
 new()
 {
-    Material = "Titanium Plate",
+    Material = "Titanium",
     Specification = "ASTM B265",
     Grade = "Grade 5",
     UNS = "R56400",
@@ -949,7 +949,7 @@ new()
 
 new()
 {
-    Material = "Titanium Plate",
+    Material = "Titanium",
     Specification = "ASTM B265",
     Grade = "Grade 7",
     UNS = "R52400",

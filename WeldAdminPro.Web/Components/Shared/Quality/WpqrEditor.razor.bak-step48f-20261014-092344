@@ -1,0 +1,484 @@
+﻿@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Web.Services.Quality
+
+@inject WpsApplicationService WpsService
+@inject WelderQualificationApplicationService WelderService
+@inject WpqrApplicationService WpqrService
+
+<MudDialog>
+
+    <DialogContent>
+
+        <MudStack Spacing="3">
+
+
+            <MudSelect T="Guid?"
+           Label="Owning Company"
+           Value="Model.CompanyId"
+           ValueChanged="OnCompanyChanged"
+           Variant="Variant.Outlined"
+           Required="true"
+           Disabled="@(Model.Id != Guid.Empty)">
+    @foreach (var company in _availableCompanies)
+    {
+        <MudSelectItem T="Guid?" Value="@((Guid?)company.Id)">
+            @company.CompanyName (@company.CompanyCode)
+        </MudSelectItem>
+    }
+</MudSelect>
+
+            <MudTextField @bind-Value="Model.WpqrNumber"
+                          Label="WPQR Number"
+                          Variant="Variant.Outlined"
+                          Required="true" />
+
+            <MudDivider />
+
+            <MudText Typo="Typo.subtitle1">
+                Qualification References
+            </MudText>
+
+
+            <MudSelect T="Guid?"
+                       Label="WPS"
+                       Value="Model.WpsId"
+                       ValueChanged="OnWpsIdChanged"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       Clearable="true">
+
+                @foreach (var wps in _availableWps)
+                {
+                    <MudSelectItem T="Guid?"
+                                   Value="@wps.Id">
+                        @wps.WpsNumber
+                        | @wps.Process
+                        | @wps.Position
+                    </MudSelectItem>
+                }
+
+            </MudSelect>
+
+            @if (Model.WpsId.HasValue && _selectedWps == null)
+{
+    <MudAlert Severity="Severity.Warning">
+        The currently linked WPS is not available in the approved, active
+        selection list. Its stored reference has been retained. Select an
+        eligible WPS to replace it before saving.
+    </MudAlert>
+}
+@if (_selectedWps != null && (!_selectedWps.IsApproved || !_selectedWps.IsActive))
+{
+    <MudAlert Severity="Severity.Warning">
+        The linked WPS is inactive or not approved. Select an eligible WPS
+        before saving.
+    </MudAlert>
+}
+@if (_selectedWps != null)
+            {
+                <MudAlert Severity="Severity.Info">
+                    <strong>WPS:</strong>
+                    @_selectedWps.WpsNumber
+                    &nbsp; | &nbsp;
+                    <strong>Process:</strong>
+                    @_selectedWps.Process
+                    &nbsp; | &nbsp;
+                    <strong>Thickness:</strong>
+                    @_selectedWps.ThicknessMin -
+                    @_selectedWps.ThicknessMax mm
+                </MudAlert>
+            }
+
+            <MudSelect T="WelderQualification"
+                       Label="Welder Qualification"
+                       Value="_selectedWelder"
+                       ValueChanged="OnWelderChanged"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       Clearable="true"
+                       ToStringFunc="@(x => x == null
+                           ? ""
+                            : $"{x.WelderNumber} | {x.Process} | {x.Position}")">
+
+                @foreach (var welder in _availableWelders
+                    .Where(x => x.IsActive && IsWelderCompatible(x))
+                    .OrderBy(x => x.WelderNumber)
+                    .ThenBy(x => x.Process))
+                {
+                    <MudSelectItem T="WelderQualification"
+                                   Value="@welder">
+                        @welder.WelderNumber
+                        | @welder.Process
+                        | @welder.Position
+                        | @welder.ThicknessDisplay
+                    </MudSelectItem>
+                }
+
+            </MudSelect>
+
+            @if (Model.WelderQualificationId.HasValue && _selectedWelder == null)
+{
+    <MudAlert Severity="Severity.Warning">
+        The currently linked welder qualification could not be loaded.
+        Its stored reference has been retained.
+    </MudAlert>
+}
+@if (_selectedWelder != null && !_selectedWelder.IsActive)
+{
+    <MudAlert Severity="Severity.Warning">
+        The linked welder qualification is inactive. Select an active
+        qualification before saving.
+    </MudAlert>
+}
+@if (_selectedWps != null && _selectedWelder != null &&
+    !IsWelderCompatible(_selectedWelder))
+{
+    <MudAlert Severity="Severity.Warning">
+        The selected welder qualification is not compatible with the
+        selected WPS material group, or its material group is missing.
+        Select a compatible active qualification before saving.
+    </MudAlert>
+}
+@if (_selectedWelder != null)
+            {
+                <MudAlert Severity="Severity.Info">
+                    <strong>Welder:</strong>
+                    @_selectedWelder.WelderNumber
+                    &nbsp; | &nbsp;
+                    <strong>Process:</strong>
+                    @_selectedWelder.Process
+                    &nbsp; | &nbsp;
+                    <strong>Position:</strong>
+                    @_selectedWelder.Position
+                    &nbsp; | &nbsp;
+                    <strong>Thickness:</strong>
+                    @_selectedWelder.ThicknessDisplay
+                    &nbsp; | &nbsp;
+                    <strong>Expiry:</strong>
+                    @_selectedWelder.ExpiryDate.ToString("yyyy-MM-dd")
+                </MudAlert>
+            }
+
+            <MudDivider />
+
+            <MudText Typo="Typo.subtitle1">
+                Qualification Dates
+            </MudText>
+
+            <MudDatePicker @bind-Date="QualificationDate"
+                           Label="Qualification Date"
+                           Variant="Variant.Outlined" />
+
+            <MudDatePicker @bind-Date="RenewalDate"
+                           Label="Renewal Date"
+                           Variant="Variant.Outlined" />
+
+            <MudDatePicker @bind-Date="ExpiryDate"
+                           Label="Expiry Date"
+                           Variant="Variant.Outlined"
+                           Required="true" />
+
+            <MudSwitch @bind-Value="Model.IsActive"
+                       Color="Color.Success"
+                       Label="Active" />
+
+            <MudDivider />
+
+            <MudText Typo="Typo.subtitle1">
+                Approval
+            </MudText>
+
+            <MudAlert Severity="@(Model.IsApproved ? Severity.Success : Severity.Info)">
+                <strong>Status:</strong>
+                @(Model.IsApproved ? "Approved" : "Pending approval")
+                @if (Model.IsLocked)
+                {
+                    <span>ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Locked</span>
+                }
+            </MudAlert>
+
+            <MudText Typo="Typo.body2">
+                <strong>Approved By:</strong>
+                @(string.IsNullOrWhiteSpace(Model.ApprovedBy) ? "Not recorded" : Model.ApprovedBy)
+            </MudText>
+
+            <MudText Typo="Typo.body2">
+                <strong>Approval Role:</strong>
+                @(string.IsNullOrWhiteSpace(Model.ApprovalRole) ? "Not recorded" : Model.ApprovalRole)
+            </MudText>
+
+            <MudText Typo="Typo.body2">
+                <strong>Approved On (UTC):</strong>
+                @(Model.ApprovedOn.HasValue ? Model.ApprovedOn.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm") : "Not recorded")
+            </MudText>
+
+
+            <MudTextField @bind-Value="Model.SignaturePath"
+                          Label="Signature Path"
+                          Variant="Variant.Outlined" />
+
+            <MudTextField @bind-Value="Model.StampPath"
+                          Label="Stamp Path"
+                          Variant="Variant.Outlined" />
+
+            <MudDivider />
+
+            <MudText Typo="Typo.subtitle1">
+                Original Document
+            </MudText>
+
+            <MudTextField @bind-Value="Model.OriginalDocumentPath"
+                          Label="Original Document Path"
+                          Variant="Variant.Outlined" />
+
+        </MudStack>
+
+    </DialogContent>
+
+    <DialogActions>
+
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text">
+            Cancel
+        </MudButton>
+
+        <MudButton OnClick="Save"
+                   Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   Disabled="@(!CanSave)">
+            Save WPQR
+        </MudButton>
+
+    </DialogActions>
+
+</MudDialog>
+
+@code
+{
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public Wpqr Model { get; set; } = new();
+
+    private List<Company> _availableCompanies = new();
+
+    private List<Wps> _availableWps = new();
+
+    private List<WelderQualification> _availableWelders = new();
+
+    private Wps? _selectedWps;
+
+    private WelderQualification? _selectedWelder;
+
+    private DateTime? QualificationDate
+    {
+        get => Model.QualificationDate == default
+            ? null
+            : Model.QualificationDate;
+
+        set => Model.QualificationDate =
+            value ?? DateTime.Today;
+    }
+
+    private DateTime? RenewalDate
+    {
+        get => Model.RenewalDate;
+
+        set => Model.RenewalDate = value;
+    }
+
+    private DateTime? ExpiryDate
+    {
+        get => Model.ExpiryDate == default
+            ? null
+            : Model.ExpiryDate;
+
+        set => Model.ExpiryDate =
+            value ?? DateTime.Today;
+    }
+
+    private bool CanSave =>
+        !string.IsNullOrWhiteSpace(Model.WpqrNumber) &&
+        Model.WpsId.HasValue &&
+        Model.WelderQualificationId.HasValue &&
+        _selectedWps != null &&
+        _selectedWps.IsApproved &&
+        _selectedWps.IsActive &&
+        _selectedWelder != null &&
+        _selectedWelder.IsActive &&
+        IsWelderCompatible(_selectedWelder);
+    protected override async Task OnInitializedAsync()
+    {
+        _availableCompanies =
+            await WpqrService.GetAccessibleCompaniesAsync();
+
+        await LoadRelatedQualificationsAsync();
+    }
+
+    private async Task LoadRelatedQualificationsAsync()
+    {
+        _availableWps =
+            (await WpsService.GetAllAsync())
+                .Where(x =>
+                    Model.CompanyId.HasValue &&
+                    x.CompanyId.HasValue &&
+                    x.CompanyId.Value == Model.CompanyId.Value &&
+                    x.IsApproved &&
+                    x.IsActive)
+                .OrderBy(x => x.WpsNumber)
+                .ThenByDescending(x => x.Revision)
+                .ToList();
+
+        _availableWelders =
+            (await WelderService.GetAccessibleAsync())
+                .Where(x =>
+                    Model.CompanyId.HasValue &&
+                    x.CompanyId.HasValue &&
+                    x.CompanyId.Value == Model.CompanyId.Value)
+                .OrderBy(x => x.WelderNumber)
+                .ThenBy(x => x.Process)
+                .ToList();
+
+        _selectedWps =
+            Model.WpsId.HasValue
+                ? _availableWps.FirstOrDefault(x => x.Id == Model.WpsId.Value)
+                : null;
+
+        _selectedWelder =
+            Model.WelderQualificationId.HasValue
+                ? _availableWelders.FirstOrDefault(x => x.Id == Model.WelderQualificationId.Value)
+                : null;
+    }
+
+    private async Task OnCompanyChanged(Guid? companyId)
+    {
+        if (Model.Id != Guid.Empty)
+        {
+            return;
+        }
+
+        Model.CompanyId = companyId;
+        Model.WpsId = null;
+        Model.WelderQualificationId = null;
+
+        _selectedWps = null;
+        _selectedWelder = null;
+
+        await LoadRelatedQualificationsAsync();
+    }
+
+    {
+        _availableWps =
+            (await WpsService.GetAllAsync())
+                .Where(x =>
+                    Model.CompanyId.HasValue &&
+                    x.CompanyId.HasValue &&
+                    x.CompanyId.Value == Model.CompanyId.Value &&
+                    x.IsApproved &&
+                    x.IsActive)
+                .OrderBy(x => x.WpsNumber)
+                .ThenByDescending(x => x.Revision)
+                .ToList();
+
+        _availableWelders =
+            (await WelderService.GetAccessibleAsync())
+                .Where(x =>
+                    Model.CompanyId.HasValue &&
+                    x.CompanyId.HasValue &&
+                    x.CompanyId.Value == Model.CompanyId.Value)
+                .OrderBy(x => x.WelderNumber)
+                .ThenBy(x => x.Process)
+                .ToList();
+
+        if (Model.WpsId.HasValue)
+        {
+            _selectedWps =
+                _availableWps
+                    .FirstOrDefault(x =>
+                        x.Id == Model.WpsId.Value);
+        }
+
+        if (Model.WelderQualificationId.HasValue)
+        {
+            _selectedWelder =
+                _availableWelders
+                    .FirstOrDefault(x =>
+                        x.Id == Model.WelderQualificationId.Value);
+        }
+    }
+
+    private bool IsWelderCompatible(WelderQualification welder)
+    {
+        if (_selectedWps == null)
+            return false;
+
+        var wpsGroup =
+            WeldAdminPro.Core.Quality.Normalization.ComplianceNormalizer
+                .NormalizeMaterialGroup(_selectedWps.MaterialGroup);
+
+        var welderGroup =
+            WeldAdminPro.Core.Quality.Normalization.ComplianceNormalizer
+                .NormalizeMaterialGroup(welder.MaterialGroup);
+
+        // Unknown material groups cannot establish compatibility.
+        return !string.IsNullOrWhiteSpace(wpsGroup)
+            && !string.IsNullOrWhiteSpace(welderGroup)
+            && wpsGroup == welderGroup;
+    }
+    private void OnWpsIdChanged(Guid? id)
+    {
+        Model.WpsId = id;
+
+        _selectedWps =
+            id.HasValue
+                ? _availableWps.FirstOrDefault(x => x.Id == id.Value)
+                : null;
+    }
+
+    private void OnWelderChanged(
+        WelderQualification? welder)
+    {
+        _selectedWelder = welder;
+
+        Model.WelderQualificationId =
+            welder?.Id;
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Save()
+    {
+        if (!CanSave)
+        {
+            return;
+        }
+
+        if (Model.QualificationDate == default)
+        {
+            Model.QualificationDate =
+                DateTime.Today;
+        }
+
+        if (Model.ExpiryDate == default)
+        {
+            Model.ExpiryDate =
+                DateTime.Today;
+        }
+
+        MudDialog.Close(
+            DialogResult.Ok(Model));
+    }
+}
+
+
+
+
+
+
+

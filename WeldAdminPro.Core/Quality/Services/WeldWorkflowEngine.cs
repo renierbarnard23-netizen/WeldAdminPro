@@ -42,6 +42,9 @@ namespace WeldAdminPro.Core.Quality.Services
                 (WeldWorkflowStatus.NdtPending,
                     WeldWorkflowStatus.NdtInProgress) => true,
 
+                (WeldWorkflowStatus.NdtPending,
+                    WeldWorkflowStatus.RepairRequired) => true,
+
                 (WeldWorkflowStatus.NdtInProgress,
                     WeldWorkflowStatus.Accepted) => true,
 
@@ -98,7 +101,8 @@ namespace WeldAdminPro.Core.Quality.Services
             bool hasApprovedWps = true,
             bool hasValidWelder = true,
             bool hasAcceptedNdt = true,
-            bool hasOpenRepairs = false)
+            bool hasOpenRepairs = false,
+            bool hasOpenNcrs = false)
         {
             var result =
                 new WeldStateTransitionResult();
@@ -132,7 +136,8 @@ namespace WeldAdminPro.Core.Quality.Services
                     hasApprovedWps,
                     hasValidWelder,
                     hasAcceptedNdt,
-                    hasOpenRepairs);
+                    hasOpenRepairs,
+                    hasOpenNcrs);
 
             if (!ruleResult.Success)
             {
@@ -217,6 +222,7 @@ namespace WeldAdminPro.Core.Quality.Services
             bool hasValidWelder,
             bool hasAcceptedNdt,
             bool hasOpenRepairs,
+            bool hasOpenNcrs,
             out string error)
         {
             var result =
@@ -226,7 +232,8 @@ namespace WeldAdminPro.Core.Quality.Services
                     hasApprovedWps,
                     hasValidWelder,
                     hasAcceptedNdt,
-                    hasOpenRepairs);
+                    hasOpenRepairs,
+                    hasOpenNcrs);
 
             error =
                 result.ErrorMessage;
@@ -271,3 +278,5 @@ namespace WeldAdminPro.Core.Quality.Services
         }
     }
 }
+
+

@@ -1,5 +1,7 @@
-@page "/"
+﻿@page "/"
 @attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 
 @using MudBlazor
 @using WeldAdminPro.Web.Services.Dashboard
@@ -10,7 +12,9 @@
 @using WeldAdminPro.Core.Quality.Models
 
 @inject DashboardService DashboardService
+@inject IAuthorizationService AuthorizationService
 @inject QualityDashboardService QualityDashboardService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>WeldAdmin Pro Enterprise</PageTitle>
 
@@ -62,6 +66,8 @@ else
 
         </MudItem>
 
+        @if (_canViewQuality)
+        {
         <MudItem xs="12" lg="4">
 
             <DashboardSection Title="Quality Executive Dashboard"
@@ -74,6 +80,7 @@ else
             </DashboardSection>
 
         </MudItem>
+        }
 
         <MudItem xs="12" lg="6">
 
@@ -99,9 +106,22 @@ else
     {
         _snapshot = DashboardService.GetDashboard();
 
-        _qualitySnapshot =
-            await QualityDashboardService.GetDashboard();
+        var authenticationState =
+            await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        _canViewQuality =
+            (await AuthorizationService.AuthorizeAsync(
+                authenticationState.User,
+                "Permission:Quality.View")).Succeeded;
+
+        if (_canViewQuality)
+        {
+            _qualitySnapshot =
+                await QualityDashboardService.GetDashboard();
+        }
     }
 
     private QualitySnapshot? _qualitySnapshot;
+    private bool _canViewQuality;
 }
+

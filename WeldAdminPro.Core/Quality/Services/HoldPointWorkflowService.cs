@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -46,6 +46,8 @@ namespace WeldAdminPro.Core.Quality.Services
         {
             await EnsureApprovalPermissionAsync();
 
+            EnsurePending(holdPoint);
+
             holdPoint.Status =
                 HoldPointStatus.Approved;
 
@@ -65,11 +67,29 @@ namespace WeldAdminPro.Core.Quality.Services
         {
             await EnsureApprovalPermissionAsync();
 
+            EnsurePending(holdPoint);
+
             holdPoint.Status =
                 HoldPointStatus.Rejected;
 
+            holdPoint.ApprovedBy =
+                string.Empty;
+
+            holdPoint.ApprovedDate =
+                null;
+
             holdPoint.Comments =
                 comments;
+        }
+
+        private static void EnsurePending(
+            WeldHoldPoint holdPoint)
+        {
+            if (holdPoint.Status != HoldPointStatus.Pending)
+            {
+                throw new InvalidOperationException(
+                    $"Hold Point '{holdPoint.HoldPointType}' cannot be changed because its current status is '{holdPoint.Status}'. Only Pending Hold Points can be approved or rejected.");
+            }
         }
 
         private async Task EnsureApprovalPermissionAsync()

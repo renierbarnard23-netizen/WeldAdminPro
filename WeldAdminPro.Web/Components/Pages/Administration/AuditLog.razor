@@ -24,7 +24,40 @@
 }
 else
 {
-    <MudTable Items="_logs"
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+
+        <MudGrid>
+
+            <MudItem xs="12" md="9">
+
+                <MudTextField T="string"
+                              Label="Search audit log"
+                              Placeholder="Username, action, module or details"
+                              @bind-Value="_auditSearchText"
+                              Immediate="true"
+                              Clearable="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+
+                <MudButton Variant="Variant.Outlined"
+                           FullWidth="true"
+                           Class="mt-2"
+                           OnClick="ClearAuditSearch">
+
+                    Clear Search
+
+                </MudButton>
+
+            </MudItem>
+
+        </MudGrid>
+
+    </MudPaper>
+    <MudTable Items="FilteredAuditLogs"
               Dense="true"
               Hover="true"
               Striped="true">
@@ -55,6 +88,44 @@ else
 @code
 {
     private List<WeldAdminPro.Core.Models.AuditLog>? _logs;
+
+    private string _auditSearchText = string.Empty;
+
+    private IEnumerable<WeldAdminPro.Core.Models.AuditLog> FilteredAuditLogs
+    {
+        get
+        {
+            if (_logs is null)
+                return Enumerable.Empty<WeldAdminPro.Core.Models.AuditLog>();
+
+            if (string.IsNullOrWhiteSpace(_auditSearchText))
+                return _logs;
+
+            var search = _auditSearchText.Trim();
+
+            return _logs.Where(log =>
+                log.Username.Contains(
+                    search,
+                    StringComparison.OrdinalIgnoreCase)
+                ||
+                log.Action.Contains(
+                    search,
+                    StringComparison.OrdinalIgnoreCase)
+                ||
+                log.Module.Contains(
+                    search,
+                    StringComparison.OrdinalIgnoreCase)
+                ||
+                log.Details.Contains(
+                    search,
+                    StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private void ClearAuditSearch()
+    {
+        _auditSearchText = string.Empty;
+    }
 
     protected override void OnInitialized()
     {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace WeldAdminPro.Core.Models
 {
@@ -13,6 +13,13 @@ namespace WeldAdminPro.Core.Models
 	public class Project
 	{
         public Guid Id { get; set; } = Guid.Empty;
+public Guid? CompanyId { get; set; }
+
+        /// <summary>
+        /// Company responsible for welding/fabrication activities on the project.
+        /// This may be a subcontractor and is distinct from the project customer/owner.
+        /// </summary>
+        public Guid? WeldingSubcontractorCompanyId { get; set; }
 
         public int JobNumber { get; set; }
 

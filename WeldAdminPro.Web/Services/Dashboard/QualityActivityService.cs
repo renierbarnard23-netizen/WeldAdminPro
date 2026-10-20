@@ -1,4 +1,4 @@
-using WeldAdminPro.Core.Quality.Models;
+﻿using WeldAdminPro.Core.Quality.Models;
 
 namespace WeldAdminPro.Web.Services.Dashboard;
 
@@ -6,14 +6,34 @@ public class QualityActivityService
 {
     public List<string> Build(QualitySnapshot snapshot)
     {
-        var activity = new List<string>();
+        var activities = new List<string>();
 
-        activity.Add($"Compliance score calculated: {snapshot.ComplianceScore}%");
-        activity.Add($"Qualified welders: {snapshot.QualifiedWelders}");
-        activity.Add($"Pending NDT inspections: {snapshot.PendingNdt}");
-        activity.Add($"Open repairs: {snapshot.OpenRepairs}");
-        activity.Add($"Missing documents: {snapshot.MissingDocuments}");
+        if (snapshot.IsComplete)
+        {
+            activities.Add($"Quality compliance score: {snapshot.ComplianceScore}%");
+        }
 
-        return activity;
+        if (snapshot.QualifiedWeldersAvailable)
+        {
+            activities.Add($"Qualified welders: {snapshot.QualifiedWelders}");
+        }
+
+        if (snapshot.PendingNdtAvailable)
+        {
+            activities.Add($"Pending NDT inspections: {snapshot.PendingNdt}");
+        }
+
+        if (snapshot.OpenRepairsAvailable)
+        {
+            activities.Add($"Open repairs: {snapshot.OpenRepairs}");
+        }
+
+        if (snapshot.MissingDocumentsAvailable)
+        {
+            activities.Add($"Missing quality documents: {snapshot.MissingDocuments}");
+        }
+
+        return activities;
     }
 }
+

@@ -1,0 +1,125 @@
+﻿@page "/"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+
+@using MudBlazor
+@using WeldAdminPro.Web.Services.Dashboard
+@using WeldAdminPro.Web.Components.Dashboard
+@using WeldAdminPro.Web.Components.ControlCentres
+@using WeldAdminPro.Web.Components.Shared.Enterprise
+@using WeldAdminPro.Web.Components.Shared.Quality
+@using WeldAdminPro.Core.Quality.Models
+
+@inject DashboardService DashboardService
+@inject IAuthorizationService AuthorizationService
+@inject QualityDashboardService QualityDashboardService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>WeldAdmin Pro Enterprise</PageTitle>
+
+<EnterprisePageHeader Title="Executive Command Center"
+                      Subtitle="Real-time operational intelligence across Production, Projects, Inventory and Quality."
+                      Icon="@Icons.Material.Filled.Dashboard">
+</EnterprisePageHeader>
+
+<ExecutiveSummary Production="_snapshot"
+                  Quality="_qualitySnapshot" />
+
+<MudGrid Class="mb-4">
+
+    <MudItem xs="12">
+        <FactoryAlerts Alerts="_snapshot?.Alerts" />
+        <ExecutiveProductionKpis Snapshot="_snapshot" />
+    </MudItem>
+
+</MudGrid>
+
+@if (_snapshot == null)
+{
+    <MudPaper Class="pa-8 my-6">
+
+        <MudStack AlignItems="AlignItems.Center"
+                  Justify="Justify.Center"
+                  Spacing="2">
+
+            <MudProgressCircular Indeterminate="true"
+                                 Color="Color.Primary" />
+
+            <MudText>
+
+                Loading Executive Dashboard...
+
+            </MudText>
+
+        </MudStack>
+
+    </MudPaper>
+}
+else
+{
+    <MudGrid Spacing="3">
+
+        <MudItem xs="12" lg="8">
+
+            <OperationsControlCentre Snapshot="_snapshot" />
+
+        </MudItem>
+
+        @if (_canViewQuality)
+        {
+        <MudItem xs="12" lg="4">
+
+            <DashboardSection Title="Quality Executive Dashboard"
+                              Icon="@Icons.Material.Filled.Verified">
+
+                <QualityKpiCards Snapshot="_qualitySnapshot" />
+
+                <QualityAlerts Snapshot="_qualitySnapshot" />
+
+            </DashboardSection>
+
+        </MudItem>
+        }
+
+        <MudItem xs="12" lg="6">
+
+            <InventoryExecutiveDashboard />
+
+        </MudItem>
+
+        <MudItem xs="12" lg="6">
+
+            <ExecutiveProjectRiskDashboard />
+
+        </MudItem>
+
+    </MudGrid>
+}
+
+@code
+{
+    private WeldAdminPro.Data.Services.ProductionEngine.ProductionSnapshot?
+        _snapshot;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _snapshot = DashboardService.GetDashboard();
+
+        var authenticationState =
+            await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        _canViewQuality =
+            (await AuthorizationService.AuthorizeAsync(
+                authenticationState.User,
+                "Permission:Quality.View")).Succeeded;
+
+        if (_canViewQuality)
+        {
+            _qualitySnapshot =
+                await QualityDashboardService.GetDashboard();
+        }
+    }
+
+    private QualitySnapshot? _qualitySnapshot;
+    private bool _canViewQuality;
+}

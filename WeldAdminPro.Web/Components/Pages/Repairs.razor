@@ -1,7 +1,9 @@
 ﻿@page "/quality/repairs"
+@attribute [Authorize(Policy = "Permission:Quality.Repairs")]
 
 @using MudBlazor
 @using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Core.Quality
 @using WeldAdminPro.Core.Quality.Enums
 @using WeldAdminPro.Data.Services.Quality
 @using WeldAdminPro.Web.Components.Shared.Quality
@@ -182,22 +184,45 @@
                         }
                         else if (_selectedRepair.Status == RepairStatus.ExcavationInProgress)
                         {
-                            <MudTextField T="string"
-                                          Label="Repair Welder"
-                                          Variant="Variant.Outlined"
-                                          @bind-Value="_repairWelder"
-                                          Disabled="_actionBusy" />
+                            <MudSelect T="string"
+           Label="Repair Welder"
+           Variant="Variant.Outlined"
+           Value="_repairWelder"
+           ValueChanged="OnRepairWelderSelected"
+           Disabled="_actionBusy">
+    @foreach (var welder in _repairWelderOptions)
+    {
+        <MudSelectItem T="string" Value="@welder.WelderNumber">
+            @welder.WelderNumber
+        </MudSelectItem>
+    }
+</MudSelect>
 
-                            <MudTextField T="string"
-                                          Label="Repair WPS Number"
-                                          Variant="Variant.Outlined"
-                                          @bind-Value="_repairWpsNumber"
-                                          Disabled="_actionBusy" />
+                            <MudSelect T="Guid?"
+                                       Label="Repair WPS"
+                                       Variant="Variant.Outlined"
+                                       Value="_repairWpsId"
+                                       ValueChanged="OnRepairWpsSelected"
+                                       Disabled="_actionBusy">
+                                @foreach (var wps in _repairWpsOptions)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)wps.Id)">
+                                        @wps.WpsNumber â€” Rev @wps.Revision
+                                    </MudSelectItem>
+                                }
+                            </MudSelect>
+
+                            @if (_repairWpsOptions.Count == 0)
+                            {
+                                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                                    No approved and active WPS revisions applicable to this weld's company and material group were found.
+                                </MudAlert>
+                            }
 
                             <MudButton Variant="Variant.Filled"
                                        Color="Color.Warning"
                                        StartIcon="@Icons.Material.Filled.Build"
-                                       Disabled="_actionBusy"
+                                       Disabled="_actionBusy || !_repairWpsId.HasValue || string.IsNullOrWhiteSpace(_repairWelder)"
                                        OnClick="StartSelectedRepairWelding">
                                 Start Repair Welding
                             </MudButton>
@@ -217,37 +242,6 @@
                                        OnClick="SendSelectedForReinspection">
                                 Send For Reinspection
                             </MudButton>
-                        }
-                        else if (_selectedRepair.Status == RepairStatus.PendingReinspection)
-                        {
-                            <MudTextField T="string"
-                                          Label="Reinspection Result / Reference"
-                                          HelperText="Record the inspection result or report reference."
-                                          Variant="Variant.Outlined"
-                                          Lines="3"
-                                          @bind-Value="_reinspectionResult"
-                                          Disabled="_actionBusy" />
-
-                            <MudStack Row="true"
-                                      Spacing="2">
-
-                                <MudButton Variant="Variant.Filled"
-                                           Color="Color.Success"
-                                           StartIcon="@Icons.Material.Filled.CheckCircle"
-                                           Disabled="_actionBusy"
-                                           OnClick="AcceptSelectedRepair">
-                                    Accept Repair
-                                </MudButton>
-
-                                <MudButton Variant="Variant.Filled"
-                                           Color="Color.Error"
-                                           StartIcon="@Icons.Material.Filled.Cancel"
-                                           Disabled="_actionBusy"
-                                           OnClick="RejectSelectedRepair">
-                                    Reject Repair
-                                </MudButton>
-
-                            </MudStack>
                         }
                         else if (_selectedRepair.Status == RepairStatus.Accepted)
                         {
@@ -271,6 +265,15 @@
                                 Repair failed reinspection. The repair cannot be closed
                                 in its current state.
                             </MudAlert>
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Warning"
+                                       StartIcon="@Icons.Material.Filled.Replay"
+                                       Disabled="_actionBusy"
+                                       OnClick="StartNewRepairCycle"
+                                       Class="mt-3">
+                                Start New Repair Cycle
+                            </MudButton>
                         }
                         else if (_selectedRepair.Status == RepairStatus.Closed)
                         {
@@ -412,9 +415,9 @@
     private string _authorizedBy = string.Empty;
     private string _excavationMethod = string.Empty;
     private string _repairWelder = string.Empty;
-    private string _repairWpsNumber = string.Empty;
-    private string _reinspectionResult = string.Empty;
-
+    private Guid? _repairWpsId;
+    private List<Wps> _repairWpsOptions = new();
+    private List<WelderQualification> _repairWelderOptions = new();
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
@@ -454,13 +457,14 @@
 
             _selectedRepair ??=
                 _repairs
-                    .OrderBy(r => r.RepairNumber)
+                    .OrderByDescending(r => r.RepairNumber)
                     .First();
 
             _selectedRepairId =
                 _selectedRepair.Id;
 
             LoadFieldsFromSelectedRepair();
+            await LoadRepairWpsOptionsAsync();
         }
         catch (Exception ex)
         {
@@ -474,7 +478,7 @@
         }
     }
 
-    private Task OnRepairSelected(
+    private async Task OnRepairSelected(
         Guid? repairId)
     {
         _selectedRepairId =
@@ -487,20 +491,19 @@
                 : null;
 
         LoadFieldsFromSelectedRepair();
-
-        return Task.CompletedTask;
+        await LoadRepairWpsOptionsAsync();
     }
 
-    private void LoadFieldsFromSelectedRepair()
+    private async Task LoadFieldsFromSelectedRepair()
     {
         if (_selectedRepair == null)
         {
             _authorizedBy = string.Empty;
             _excavationMethod = string.Empty;
             _repairWelder = string.Empty;
-            _repairWpsNumber = string.Empty;
-            _reinspectionResult = string.Empty;
-
+            _repairWpsId = null;
+            _repairWpsOptions.Clear();
+            _repairWelderOptions.Clear();
             return;
         }
 
@@ -516,13 +519,71 @@
             _selectedRepair.RepairedByWelder
             ?? string.Empty;
 
-        _repairWpsNumber =
-            _selectedRepair.RepairWpsNumber
-            ?? string.Empty;
+        _repairWpsId = _selectedRepair.RepairWpsId;
+            if (_repairWpsId.HasValue)
+            {
+                _repairWelderOptions =
+                    await RepairService.GetApplicableRepairWeldersAsync(
+                        _selectedRepair.Id,
+                        _repairWpsId);
+            }
+    }
 
-        _reinspectionResult =
-            _selectedRepair.ReinspectionResult
-            ?? string.Empty;
+    private async Task LoadRepairWpsOptionsAsync()
+    {
+        _repairWpsOptions = new List<Wps>();
+
+        if (_selectedRepair == null)
+            return;
+
+        try
+        {
+            _repairWpsOptions =
+                await RepairService.GetApplicableRepairWpsAsync(
+                    _selectedRepair.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to load applicable repair WPSs: {ex.Message}",
+                Severity.Error);
+        }
+    }
+
+    private async Task OnRepairWpsSelected(Guid? wpsId)
+    {
+        _repairWpsId = wpsId;
+        _repairWelder = string.Empty;
+        _repairWelderOptions.Clear();
+
+        if (!_repairWpsId.HasValue ||
+            _selectedRepair == null)
+        {
+            return;
+        }
+
+        try
+        {
+            _repairWelderOptions =
+                await RepairService.GetApplicableRepairWeldersAsync(
+                    _selectedRepair.Id,
+                    _repairWpsId);
+
+            if (_repairWelderOptions.Count == 0)
+            {
+                Snackbar.Add(
+                    "No active and currently qualified welders are available for the selected repair WPS.",
+                    Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            _repairWelderOptions.Clear();
+
+            Snackbar.Add(
+                $"Unable to load qualified repair welders: {ex.Message}",
+                Severity.Error);
+        }
     }
 
     private async Task AuthorizeSelectedRepair()
@@ -530,13 +591,10 @@
         if (_selectedRepair == null)
             return;
 
-        await ExecuteAction(
-            () => RepairService.AuthorizeRepair(
+        await ExecuteActionAsync(
+            () => RepairService.AuthorizeRepairAsync(
                 _selectedRepair,
-                _authorizedBy,
-                out var error)
-                    ? (true, string.Empty)
-                    : (false, error),
+                _authorizedBy),
             "Repair authorized.");
     }
 
@@ -545,16 +603,17 @@
         if (_selectedRepair == null)
             return;
 
-        await ExecuteAction(
-            () => RepairService.StartExcavation(
+        await ExecuteActionAsync(
+            () => RepairService.StartExcavationAsync(
                 _selectedRepair,
-                _excavationMethod,
-                out var error)
-                    ? (true, string.Empty)
-                    : (false, error),
+                _excavationMethod),
             "Excavation started.");
     }
 
+    private void OnRepairWelderSelected(string welderNumber)
+    {
+        _repairWelder = welderNumber ?? string.Empty;
+    }
     private async Task StartSelectedRepairWelding()
     {
         if (_selectedRepair == null)
@@ -564,7 +623,7 @@
             () => RepairService.StartRepairWeldingAsync(
                 _selectedRepair,
                 _repairWelder,
-                _repairWpsNumber),
+                _repairWpsId),
             "Repair welding started.");
     }
 
@@ -579,36 +638,57 @@
             "Repair sent for reinspection.");
     }
 
-    private async Task AcceptSelectedRepair()
+            private async Task StartNewRepairCycle()
     {
-        if (_selectedRepair == null)
+        if (_selectedRepair == null || _actionBusy)
             return;
 
-        await ExecuteAction(
-            () => RepairService.AcceptRepair(
-                _selectedRepair,
-                _reinspectionResult,
-                out var error)
-                    ? (true, string.Empty)
-                    : (false, error),
-            "Repair accepted.");
+        try
+        {
+            _actionBusy = true;
+
+            var rejectedRepair = _selectedRepair;
+
+            var newRepair =
+                await RepairService.CreateNextRepairCycleAsync(
+                    rejectedRepair,
+                    Environment.UserName);
+
+            Snackbar.Add(
+                $"New repair cycle #{newRepair.RepairNumber} created.",
+                Severity.Success);
+
+            await LoadData();
+
+            _selectedRepair =
+                _repairs.FirstOrDefault(
+                    r => r.Id == newRepair.Id);
+
+            if (_selectedRepair != null)
+            {
+                _selectedRepairId =
+                    _selectedRepair.Id;
+
+                LoadFieldsFromSelectedRepair();
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to create new repair cycle: {ex.Message}",
+                Severity.Error);
+        }
+        finally
+        {
+            _actionBusy = false;
+        }
     }
-
-    private async Task RejectSelectedRepair()
-    {
-        if (_selectedRepair == null)
-            return;
-
-        await ExecuteAction(
-            () => RepairService.RejectRepair(
-                _selectedRepair,
-                _reinspectionResult,
-                out var error)
-                    ? (true, string.Empty)
-                    : (false, error),
-            "Repair rejected.");
-    }
-
     private async Task CloseSelectedRepair()
     {
         if (_selectedRepair == null || _actionBusy)
@@ -620,12 +700,13 @@
 
             var repair = _selectedRepair;
 
-            if (!RepairService.CloseRepair(
-                repair,
-                out var repairError))
+            var closeResult =
+                await RepairService.CloseRepairAsync(repair);
+
+            if (!closeResult.Success)
             {
                 Snackbar.Add(
-                    repairError,
+                    closeResult.Error,
                     Severity.Error);
 
                 return;
@@ -645,19 +726,25 @@
                         "Repair closed, but the linked NCR could not be found.",
                         Severity.Warning);
                 }
-                else if (!NcrService.CompleteRepairExecution(
-                    ncr.Id,
-                    repair.RepairedByWelder ?? "Repair Management"))
-                {
-                    Snackbar.Add(
-                        "Repair closed, but the linked NCR could not be moved to Pending Verification.",
-                        Severity.Warning);
-                }
                 else
                 {
-                    Snackbar.Add(
-                        "Repair closed and linked NCR moved to Pending Verification.",
-                        Severity.Success);
+                    var ncrResult =
+                        await NcrService.CompleteRepairExecutionAsync(
+                            ncr.Id,
+                            repair.RepairedByWelder ?? "Repair Management");
+
+                    if (!ncrResult)
+                    {
+                        Snackbar.Add(
+                            "Repair closed, but the linked NCR could not be moved to Pending Verification.",
+                            Severity.Warning);
+                    }
+                    else
+                    {
+                        Snackbar.Add(
+                            "Repair closed and linked NCR moved to Pending Verification.",
+                            Severity.Success);
+                    }
                 }
             }
             else
@@ -680,7 +767,6 @@
             _actionBusy = false;
         }
     }
-
     private async Task ExecuteAction(
         Func<(bool Success, string Error)> action,
         string successMessage)
@@ -829,3 +915,9 @@
         };
     }
 }
+
+
+
+
+
+

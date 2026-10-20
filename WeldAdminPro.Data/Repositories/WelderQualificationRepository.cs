@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using Microsoft.Data.Sqlite;
 using WeldAdminPro.Core.Interfaces;
 using WeldAdminPro.Core.Quality;
@@ -8,7 +8,28 @@ namespace WeldAdminPro.Data.Repositories
     public class WelderQualificationRepository
     : IWelderQualificationRepository
     {
-        private string _connectionString => $"Data Source={DatabasePath.Get()}";
+        private readonly string _databasePath;
+
+        private string _connectionString => $"Data Source={_databasePath}";
+
+        public WelderQualificationRepository()
+            : this(DatabasePath.Get())
+        {
+        }
+
+        public WelderQualificationRepository(string databasePath)
+        {
+            if (string.IsNullOrWhiteSpace(databasePath))
+                throw new ArgumentException(
+                    "Database path is required.",
+                    nameof(databasePath));
+
+            _databasePath = System.IO.Path.GetFullPath(databasePath);
+
+            var directory = System.IO.Path.GetDirectoryName(_databasePath);
+            if (!string.IsNullOrWhiteSpace(directory))
+                System.IO.Directory.CreateDirectory(directory);
+        }
 
         public void Add(WelderQualification wq)
         {
@@ -19,6 +40,7 @@ namespace WeldAdminPro.Data.Repositories
             cmd.CommandText = @"
                 INSERT INTO WelderQualification 
             (
+                    CompanyId,
                     WelderNumber,
                     Process,
                     MaterialGroup,
@@ -28,10 +50,16 @@ namespace WeldAdminPro.Data.Repositories
                     QualificationDate,
                     InitialQualificationDate,
                     RenewalDate,
-                    ExpiryDate
+                    ExpiryDate,
+                    IsActive,
+                    LastRenewedByUserId,
+                    LastRenewedByName,
+                    LastRenewedAt,
+                    PreviousExpiryDate
             )
                 VALUES
                 (
+                    $CompanyId,
                     $name,
                     $process,
                     $material,
@@ -41,9 +69,16 @@ namespace WeldAdminPro.Data.Repositories
                     $qualDate,
                     $initialDate,
                     $renewalDate,
-                    $expDate
+                    $expDate,
+                    $isActive,
+                    $lastRenewedByUserId,
+                    $lastRenewedByName,
+                    $lastRenewedAt,
+                    $previousExpiryDate
             );";
 
+            cmd.Parameters.AddWithValue("$CompanyId",
+                wq.CompanyId?.ToString() ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("$name", wq.WelderNumber);
             cmd.Parameters.AddWithValue("$process", wq.Process);
             cmd.Parameters.AddWithValue("$material", wq.MaterialGroup);
@@ -53,9 +88,14 @@ namespace WeldAdminPro.Data.Repositories
             cmd.Parameters.AddWithValue("$position", wq.Position);
             cmd.Parameters.AddWithValue("$qualDate", wq.QualificationDate.ToString("yyyy-MM-dd"));
             cmd.Parameters.AddWithValue("$expDate", wq.ExpiryDate.ToString("yyyy-MM-dd"));
+            cmd.Parameters.AddWithValue("$isActive", wq.IsActive ? 1 : 0);
 
             cmd.Parameters.AddWithValue("$initialDate", wq.InitialQualificationDate.ToString("yyyy-MM-dd"));
             cmd.Parameters.AddWithValue("$renewalDate", wq.RenewalDate == null ? DBNull.Value : wq.RenewalDate.Value.ToString("yyyy-MM-dd"));
+            cmd.Parameters.AddWithValue("$lastRenewedByUserId", (object?)wq.LastRenewedByUserId ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("$lastRenewedByName", (object?)wq.LastRenewedByName ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("$lastRenewedAt", wq.LastRenewedAt.HasValue ? wq.LastRenewedAt.Value.ToString("yyyy-MM-dd HH:mm:ss") : (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("$previousExpiryDate", wq.PreviousExpiryDate.HasValue ? wq.PreviousExpiryDate.Value.ToString("yyyy-MM-dd") : (object)DBNull.Value);
 
             cmd.ExecuteNonQuery();
         }
@@ -70,6 +110,15 @@ namespace WeldAdminPro.Data.Repositories
                     x.WelderNumber == welderNumber);
         }
 
+        public List<WelderQualification> GetByCompany(Guid companyId)
+        {
+            if (companyId == Guid.Empty)
+                throw new ArgumentException("Company Id is required.", nameof(companyId));
+
+            return GetAll()
+                .Where(x => x.CompanyId == companyId)
+                .ToList();
+        }
         public List<WelderQualification> GetAll()
         {
             var list = new List<WelderQualification>();
@@ -105,6 +154,19 @@ namespace WeldAdminPro.Data.Repositories
                     RenewalDate = string.IsNullOrWhiteSpace(reader["RenewalDate"]?.ToString())
                         ? null
                         : DateTime.Parse(reader["RenewalDate"]!.ToString()!),
+
+                    CompanyId =
+                        reader["CompanyId"] == DBNull.Value
+                            ? null
+                            : Guid.Parse(reader["CompanyId"].ToString()!),
+
+                    IsActive =
+                        reader["IsActive"] != DBNull.Value &&
+                        Convert.ToInt32(reader["IsActive"]) == 1,
+                    LastRenewedByUserId = reader["LastRenewedByUserId"] == DBNull.Value ? null : reader["LastRenewedByUserId"].ToString(),
+                    LastRenewedByName = reader["LastRenewedByName"] == DBNull.Value ? null : reader["LastRenewedByName"].ToString(),
+                    LastRenewedAt = reader["LastRenewedAt"] == DBNull.Value ? null : DateTime.Parse(reader["LastRenewedAt"].ToString()!),
+                    PreviousExpiryDate = reader["PreviousExpiryDate"] == DBNull.Value ? null : DateTime.Parse(reader["PreviousExpiryDate"].ToString()!),
                 });
             }
 
@@ -129,8 +191,10 @@ WHERE Process = $process;";
             {
                 var expiry = DateTime.Parse(reader.GetString(10));
 
-                // 🔥 ISO RULE: Only valid (not expired)
-                if (expiry >= DateTime.Today)
+                // ðŸ”¥ ISO RULE: Only valid (not expired)
+                if (reader["IsActive"] != DBNull.Value &&
+    Convert.ToInt32(reader["IsActive"]) == 1 &&
+    expiry >= DateTime.Today)
                 {
                     list.Add(new WelderQualification
                     {
@@ -142,7 +206,20 @@ WHERE Process = $process;";
                         ThicknessMin = reader.IsDBNull(5) ? 0 : reader.GetDouble(5),
                         ThicknessMax = reader.IsDBNull(6) ? 0 : reader.GetDouble(6),
                         QualificationDate = DateTime.Parse(reader.GetString(7)),
-                        ExpiryDate = expiry
+                        ExpiryDate = expiry,
+
+                        CompanyId =
+                            reader["CompanyId"] == DBNull.Value
+                                ? null
+                                : Guid.Parse(reader["CompanyId"].ToString()!),
+
+                    IsActive =
+                        reader["IsActive"] != DBNull.Value &&
+                        Convert.ToInt32(reader["IsActive"]) == 1,
+                    LastRenewedByUserId = reader["LastRenewedByUserId"] == DBNull.Value ? null : reader["LastRenewedByUserId"].ToString(),
+                    LastRenewedByName = reader["LastRenewedByName"] == DBNull.Value ? null : reader["LastRenewedByName"].ToString(),
+                    LastRenewedAt = reader["LastRenewedAt"] == DBNull.Value ? null : DateTime.Parse(reader["LastRenewedAt"].ToString()!),
+                    PreviousExpiryDate = reader["PreviousExpiryDate"] == DBNull.Value ? null : DateTime.Parse(reader["PreviousExpiryDate"].ToString()!),
                     });
                 }
             }
@@ -159,6 +236,7 @@ WHERE Process = $process;";
             cmd.CommandText = @"
             UPDATE WelderQualification
             SET
+                CompanyId = $CompanyId,
                 WelderNumber = $welder,
                 Process = $process,
                 MaterialGroup = $material,
@@ -169,10 +247,17 @@ WHERE Process = $process;";
 
                 QualificationDate = $qualDate,
                 RenewalDate = $renewalDate,
-                ExpiryDate = $expiryDate
+                ExpiryDate = $expiryDate,
+                IsActive = $isActive,
+                LastRenewedByUserId = $lastRenewedByUserId,
+                LastRenewedByName = $lastRenewedByName,
+                LastRenewedAt = $lastRenewedAt,
+                PreviousExpiryDate = $previousExpiryDate
 
             WHERE Id = $id";
 
+            cmd.Parameters.AddWithValue("$CompanyId",
+                wq.CompanyId?.ToString() ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("$welder", wq.WelderNumber);
             cmd.Parameters.AddWithValue("$process", wq.Process);
             cmd.Parameters.AddWithValue("$material", wq.MaterialGroup);
@@ -186,12 +271,200 @@ WHERE Process = $process;";
             cmd.Parameters.AddWithValue("$renewalDate", wq.RenewalDate?.ToString("yyyy-MM-dd") ?? "");
 
             cmd.Parameters.AddWithValue("$expiryDate", wq.ExpiryDate.ToString("yyyy-MM-dd"));
+            cmd.Parameters.AddWithValue("$isActive", wq.IsActive ? 1 : 0);
+            cmd.Parameters.AddWithValue("$lastRenewedByUserId", (object?)wq.LastRenewedByUserId ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("$lastRenewedByName", (object?)wq.LastRenewedByName ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("$lastRenewedAt", wq.LastRenewedAt.HasValue ? wq.LastRenewedAt.Value.ToString("yyyy-MM-dd HH:mm:ss") : (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("$previousExpiryDate", wq.PreviousExpiryDate.HasValue ? wq.PreviousExpiryDate.Value.ToString("yyyy-MM-dd") : (object)DBNull.Value);
 
             cmd.Parameters.AddWithValue("$id", wq.Id);
 
             cmd.ExecuteNonQuery();
         }
 
+        public void RenewWithHistory(
+            int qualificationId,
+            Guid? companyId,
+            string welderNumber,
+            DateTime previousExpiryDate,
+            DateTime newExpiryDate,
+            DateTime renewalDate,
+            int renewalPeriodMonths,
+            string renewedByUserId,
+            string? renewedByUsername,
+            string renewedByName,
+            string? lastRenewedByUserId,
+            string? lastRenewedByName,
+            DateTime? lastRenewedAt,
+            DateTime? previousExpiryDateAudit)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+
+            connection.Open();
+
+            using var transaction = connection.BeginTransaction();
+
+            try
+            {
+                using var updateCommand = connection.CreateCommand();
+
+                updateCommand.Transaction = transaction;
+
+                updateCommand.CommandText = @"
+                    UPDATE WelderQualification
+                    SET
+                        RenewalDate = $renewalDate,
+                        ExpiryDate = $expiryDate,
+                        IsActive = 1,
+                        LastRenewedByUserId = $lastRenewedByUserId,
+                        LastRenewedByName = $lastRenewedByName,
+                        LastRenewedAt = $lastRenewedAt,
+                        PreviousExpiryDate = $previousExpiryDate
+                    WHERE Id = $id;
+                ";
+
+                updateCommand.Parameters.AddWithValue(
+                    "$renewalDate",
+                    renewalDate.ToString("yyyy-MM-dd"));
+
+                updateCommand.Parameters.AddWithValue(
+                    "$expiryDate",
+                    newExpiryDate.ToString("yyyy-MM-dd"));
+
+                updateCommand.Parameters.AddWithValue(
+                    "$lastRenewedByUserId",
+                    (object?)lastRenewedByUserId ?? DBNull.Value);
+
+                updateCommand.Parameters.AddWithValue(
+                    "$lastRenewedByName",
+                    (object?)lastRenewedByName ?? DBNull.Value);
+
+                updateCommand.Parameters.AddWithValue(
+                    "$lastRenewedAt",
+                    lastRenewedAt.HasValue
+                        ? lastRenewedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")
+                        : (object)DBNull.Value);
+
+                updateCommand.Parameters.AddWithValue(
+                    "$previousExpiryDate",
+                    previousExpiryDateAudit.HasValue
+                        ? previousExpiryDateAudit.Value.ToString("yyyy-MM-dd")
+                        : (object)DBNull.Value);
+
+                updateCommand.Parameters.AddWithValue(
+                    "$id",
+                    qualificationId);
+
+                var rowsAffected = updateCommand.ExecuteNonQuery();
+
+                if (rowsAffected != 1)
+                {
+                    throw new InvalidOperationException(
+                        "The welder qualification could not be updated during renewal.");
+                }
+
+                using var historyCommand = connection.CreateCommand();
+
+                historyCommand.Transaction = transaction;
+
+                historyCommand.CommandText = @"
+                    INSERT INTO WelderQualificationRenewalHistory
+                    (
+                        WelderQualificationId,
+                        CompanyId,
+                        WelderNumber,
+                        PreviousExpiryDate,
+                        NewExpiryDate,
+                        RenewalDate,
+                        RenewalPeriodMonths,
+                        RenewedByUserId,
+                        RenewedByUsername,
+                        RenewedByName,
+                        Status
+                    )
+                    VALUES
+                    (
+                        $qualificationId,
+                        $companyId,
+                        $welderNumber,
+                        $previousExpiryDate,
+                        $newExpiryDate,
+                        $renewalDate,
+                        $renewalPeriodMonths,
+                        $renewedByUserId,
+                        $renewedByUsername,
+                        $renewedByName,
+                        'Completed'
+                    );
+                ";
+
+                historyCommand.Parameters.AddWithValue(
+                    "$qualificationId",
+                    qualificationId);
+
+                historyCommand.Parameters.AddWithValue(
+                    "$companyId",
+                    companyId.HasValue
+                        ? companyId.Value.ToString()
+                        : (object)DBNull.Value);
+
+                historyCommand.Parameters.AddWithValue(
+                    "$welderNumber",
+                    welderNumber);
+
+                historyCommand.Parameters.AddWithValue(
+                    "$previousExpiryDate",
+                    previousExpiryDate.ToString("yyyy-MM-dd"));
+
+                historyCommand.Parameters.AddWithValue(
+                    "$newExpiryDate",
+                    newExpiryDate.ToString("yyyy-MM-dd"));
+
+                historyCommand.Parameters.AddWithValue(
+                    "$renewalDate",
+                    renewalDate.ToString("yyyy-MM-dd"));
+
+                historyCommand.Parameters.AddWithValue(
+                    "$renewalPeriodMonths",
+                    renewalPeriodMonths);
+
+                historyCommand.Parameters.AddWithValue(
+                    "$renewedByUserId",
+                    renewedByUserId);
+
+                historyCommand.Parameters.AddWithValue(
+                    "$renewedByUsername",
+                    (object?)renewedByUsername ?? DBNull.Value);
+
+                historyCommand.Parameters.AddWithValue(
+                    "$renewedByName",
+                    renewedByName);
+
+                var historyRowsAffected =
+                    historyCommand.ExecuteNonQuery();
+
+                if (historyRowsAffected != 1)
+                {
+                    throw new InvalidOperationException(
+                        "The welder qualification renewal history could not be created.");
+                }
+
+                transaction.Commit();
+            }
+            catch
+            {
+                try
+                {
+                    transaction.Rollback();
+                }
+                catch
+                {
+                    // Preserve the original exception.
+                }
+
+                throw;
+            }
+        }
         public void Delete(int id)
         {
             using var connection = new SqliteConnection(_connectionString);
@@ -210,6 +483,7 @@ WHERE Process = $process;";
                 GetAll()
                 .Where(x =>
                     x.WelderNumber == welderNumber &&
+                    x.IsActive &&
                     x.ExpiryDate >= DateTime.Today)
                 .ToList();
 
@@ -223,6 +497,7 @@ WHERE Process = $process;";
             return GetAll().Any(x =>
                 x.WelderNumber == welderNumber &&
                 x.Process == process &&
+                x.IsActive &&
                 x.ExpiryDate >= DateTime.Today);
         }
 
@@ -301,3 +576,10 @@ WHERE Process = $process;";
                     
         }
     }
+
+
+
+
+
+
+

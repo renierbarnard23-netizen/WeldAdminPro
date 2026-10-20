@@ -1,0 +1,41 @@
+﻿@page "/quality/itp"
+@attribute [Authorize(Policy = "Permission:Quality.ITP")]
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Projects
+@using WeldAdminPro.Web.Components.Shared.Projects
+
+@inject ProjectApplicationService ProjectService
+@inject NavigationManager Navigation
+
+<PageTitle>Inspection Test Plans</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" GutterBottom="true">
+        Inspection Test Plans
+    </MudText>
+
+    <MudText Typo="Typo.subtitle1" Class="mb-4">
+        Select a project to manage its Inspection Test Plan.
+    </MudText>
+
+    <ProjectSelectorGrid Projects="_projects"
+                         OpenProject="OpenProject"
+                         OpenButtonText="Open ITP" />
+</MudContainer>
+
+@code {
+    private List<Project> _projects = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _projects = await ProjectService.GetProjectsAsync();
+    }
+
+    private void OpenProject(Project project)
+    {
+        Navigation.NavigateTo(
+            $"/quality/itp/{project.Id}");
+    }
+}

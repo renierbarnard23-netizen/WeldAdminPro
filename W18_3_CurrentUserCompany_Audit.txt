@@ -1,0 +1,790 @@
+﻿
+  WeldAdminPro.Core\Services\CurrentUserService.cs:1:using WeldAdminPro.Core.Models;
+  WeldAdminPro.Core\Services\CurrentUserService.cs:2:
+  WeldAdminPro.Core\Services\CurrentUserService.cs:3:namespace WeldAdminPro.Core.Services
+  WeldAdminPro.Core\Services\CurrentUserService.cs:4:{
+> WeldAdminPro.Core\Services\CurrentUserService.cs:5:    public static class CurrentUserService
+  WeldAdminPro.Core\Services\CurrentUserService.cs:6:    {
+> WeldAdminPro.Core\Services\CurrentUserService.cs:7:        public static SystemUser? CurrentUser
+  WeldAdminPro.Core\Services\CurrentUserService.cs:8:        {
+  WeldAdminPro.Core\Services\CurrentUserService.cs:9:            get;
+  WeldAdminPro.Core\Services\CurrentUserService.cs:10:            set;
+  WeldAdminPro.Core\Services\CurrentUserService.cs:11:        }
+  WeldAdminPro.Core\Services\CurrentUserService.cs:12:
+  WeldAdminPro.Core\Services\CurrentUserService.cs:13:        public static bool IsLoggedIn =>
+> WeldAdminPro.Core\Services\CurrentUserService.cs:14:            CurrentUser != null;
+  WeldAdminPro.Core\Services\CurrentUserService.cs:15:
+  WeldAdminPro.Core\Services\CurrentUserService.cs:16:        public static void Logout()
+  WeldAdminPro.Core\Services\CurrentUserService.cs:17:        {
+> WeldAdminPro.Core\Services\CurrentUserService.cs:18:            CurrentUser = null;
+  WeldAdminPro.Core\Services\CurrentUserService.cs:19:        }
+  WeldAdminPro.Core\Services\CurrentUserService.cs:20:    }
+  WeldAdminPro.Core\Services\CurrentUserService.cs:21:}
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:20:        private readonly AuditService 
+_auditService;
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:21:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:22:        private readonly 
+IUserCompanyAccessRepository _userCompanyAccessRepository;
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:23:        private readonly 
+IPermissionAuthorizationService _permissionAuthorization;
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:24:        private readonly ICurrentUserContext 
+_currentUser;
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:25:        public AdministrationApplicationService(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:26:            AuditService auditService,
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:27:            IUserCompanyAccessRepository 
+userCompanyAccessRepository,
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:28:            IPermissionAuthorizationService 
+permissionAuthorization,
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:29:            ICurrentUserContext currentUser)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:30:        {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:31:            _auditService = auditService;
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:32:            _userCompanyAccessRepository = 
+userCompanyAccessRepository
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:33:                ?? throw new 
+ArgumentNullException(nameof(userCompanyAccessRepository));
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:34:            _permissionAuthorization = 
+permissionAuthorization
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:35:                ?? throw new 
+ArgumentNullException(nameof(permissionAuthorization));
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:36:            _currentUser = currentUser
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:37:                ?? throw new 
+ArgumentNullException(nameof(currentUser));
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:38:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:39:            var connectionString = 
+DatabasePath.GetConnectionString();
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:40:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:41:            _userRepository = new 
+SystemUserRepository(connectionString);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:42:            _companyRepository = new 
+CompanyRepository();
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:43:            _companyComplianceRepository = new 
+CompanyComplianceRepository();
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:44:            _auditRepository = new 
+AuditLogRepository(connectionString);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:45:            _settingsRepository = new 
+ProductionSettingsRepository(); 
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:58:        {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:59:            return _userRepository.GetAll();
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:60:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:61:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:62:        public void UpdateUser(SystemUser user)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:63:        {
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:64:            _userRepository.Update(user);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:65:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:66:            _auditService.Log(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:67:                "EDIT USER",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:68:                "User Management",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:69:                $"Edited user: {user.Username}");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:70:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:71:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:72:        public void EnableUser(Guid userId)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:77:                return;
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:78:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:79:            user.IsActive = true;
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:80:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:81:            _userRepository.Update(user);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:82:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:83:            _auditService.Log(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:84:                "ENABLE USER",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:85:                "User Management",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:86:                $"Enabled user: {user.Username}");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:87:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:88:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:89:        public void DisableUser(Guid userId)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:94:                return;
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:95:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:96:            user.IsActive = false;
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:97:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:98:            _userRepository.Update(user);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:99:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:100:            _auditService.Log(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:101:                "DISABLE USER",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:102:                "User Management",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:103:                $"Disabled user: 
+{user.Username}");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:104:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:105:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:106:        public string? ResetPassword(Guid userId)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:114:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:115:            user.PasswordHash =
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:116:                
+_passwordHashService.Hash(temporaryPassword);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:117:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:118:            _userRepository.Update(user);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:119:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:120:            _auditService.Log(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:121:                "RESET PASSWORD",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:122:                "User Management",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:123:                $"Password reset for: 
+{user.Username}");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:124:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:125:            return temporaryPassword;
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:126:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:166:                return;
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:167:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:168:            user.PasswordHash = 
+_passwordHashService.Hash(password);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:169:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:170:            _userRepository.Update(user);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:171:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:172:            _auditService.Log(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:173:                "CHANGE PASSWORD",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:174:                "User Management",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:175:                $"Password changed for: 
+{user.Username}");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:176:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:177:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:178:        public string AddUser(SystemUser user)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:230:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:231:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:232:        public async Task 
+GrantUserCompanyAccessAsync(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:233:            Guid userId,
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:234:            Guid companyId,
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:235:            DateTime? validFrom = null,
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:236:            DateTime? validUntil = null,
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:237:            string? notes = null)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:238:        {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:239:            await EnsureSecurityPermissionAsync();
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:240:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:241:            if (userId == Guid.Empty)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:242:                throw new ArgumentException(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:243:                    "User ID is required.",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:244:                    nameof(userId));
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:245:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:246:            if (companyId == Guid.Empty)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:247:                throw new ArgumentException(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:248:                    "Company ID is required.",
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:249:                    nameof(companyId));
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:250:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:251:            if (validFrom.HasValue &&
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:252:                validUntil.HasValue &&
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:253:                validUntil.Value < 
+validFrom.Value)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:254:            {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:255:                throw new ArgumentException(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:256:                    "Valid until date cannot be 
+earlier than valid from date.");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:257:            }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:261:            if (user == null)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:262:                throw new 
+InvalidOperationException(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:263:                    "User was not found.");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:264:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:265:            var company = 
+_companyRepository.GetById(companyId);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:266:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:267:            if (company == null)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:268:                throw new 
+InvalidOperationException(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:269:                    "Company was not found.");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:270:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:271:            // Home-company access is implicit.
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:272:            if (user.CompanyId.HasValue &&
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:273:                user.CompanyId.Value == companyId)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:274:            {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:275:                throw new 
+InvalidOperationException(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:276:                    "The user's home company 
+already grants access. " +
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:277:                    "Additional company access is 
+not required.");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:278:            }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:279:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:280:            if (await _userCompanyAccessRepository
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:281:                .HasActiveAccessAsync(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:282:                    userId.ToString(),
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:283:                    companyId))
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:284:            {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:285:                throw new 
+InvalidOperationException(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:286:                    "The user already has active 
+access to this company.");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:287:            }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:288:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:289:            var access = new UserCompanyAccess
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:290:            {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:291:                Id = Guid.NewGuid(),
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:292:                UserId = userId.ToString(),
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:293:                CompanyId = companyId,
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:294:                IsActive = true,
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:295:                ValidFrom = validFrom,
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:296:                ValidUntil = validUntil,
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:297:                CreatedOn = DateTime.UtcNow,
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:298:                CreatedBy = 
+string.IsNullOrWhiteSpace(_currentUser.Username)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:299:                    ? "System"
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:300:                    : 
+_currentUser.Username.Trim(),
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:301:                Notes = notes
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:302:            };
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:303:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:304:            await 
+_userCompanyAccessRepository.AddAsync(access);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:305:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:306:            _auditService.Log(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:307:                "GRANT COMPANY ACCESS",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:308:                "User Management",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:344:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:345:            await _userCompanyAccessRepository
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:346:                .DeactivateAsync(accessId);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:347:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:348:            var company = 
+_companyRepository.GetById(access.CompanyId);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:349:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:350:            _auditService.Log(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:351:                "REVOKE COMPANY ACCESS",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:352:                "User Management",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:353:                $"Revoked {user.Username} access 
+to " +
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:354:                $"{company?.CompanyName ?? 
+access.CompanyId.ToString()}.");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:355:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:356:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:357:        private async Task 
+EnsureSecurityPermissionAsync()
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:358:        {
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:359:            if (!_currentUser.IsAuthenticated ||
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:360:                
+string.IsNullOrWhiteSpace(_currentUser.UserId))
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:361:            {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:362:                throw new 
+UnauthorizedAccessException(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:363:                    "Authentication is 
+required.");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:364:            }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:365:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:366:            var allowed =
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:367:                await 
+_permissionAuthorization.HasPermissionAsync(
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:368:                    _currentUser.UserId,
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:369:                    _currentUser.Role,
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:370:                    
+PermissionKeys.Administration.Security);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:371:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:372:            if (!allowed)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:373:            {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:374:                throw new 
+UnauthorizedAccessException(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:375:                    "Administration.Security 
+permission is required.");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:376:            }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:377:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:411:                "Administration",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:412:                $"Created company: 
+{company.CompanyName} ({company.CompanyCode})");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:413:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:414:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:415:        public void UpdateCompany(Company company)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:416:        {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:417:            if (company == null)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:418:                throw new 
+ArgumentNullException(nameof(company));
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:419:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:420:            if 
+(string.IsNullOrWhiteSpace(company.CompanyName))
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:421:                throw new ArgumentException(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:422:                    "Company name cannot be 
+empty.");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:423:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:430:            if (existing != null && existing.Id 
+!= company.Id)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:431:                throw new 
+InvalidOperationException(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:432:                    "Another company already uses 
+this company code.");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:433:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:434:            _companyRepository.Update(company);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:435:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:436:            _auditService.Log(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:437:                "EDIT COMPANY",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:438:                "Administration",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:439:                $"Edited company: 
+{company.CompanyName} ({company.CompanyCode})");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:440:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:441:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:442:        public void EnableCompany(Guid companyId)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:443:        {
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:444:            var company = 
+_companyRepository.GetById(companyId);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:445:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:446:            if (company == null)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:447:                return;
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:448:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:449:            
+_companyRepository.SetActive(companyId, true);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:450:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:451:            _auditService.Log(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:452:                "ENABLE COMPANY",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:453:                "Administration",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:454:                $"Enabled company: 
+{company.CompanyName}");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:455:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:456:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:457:        public void DisableCompany(Guid companyId)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:458:        {
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:459:            var company = 
+_companyRepository.GetById(companyId);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:460:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:461:            if (company == null)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:462:                return;
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:463:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:464:            
+_companyRepository.SetActive(companyId, false);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:465:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:466:            _auditService.Log(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:467:                "DISABLE COMPANY",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:468:                "Administration",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:469:                $"Disabled company: 
+{company.CompanyName}");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:470:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:471:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:472:        // 
+==================================================
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:473:        // COMPANY CONTACTS
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:474:        // 
+==================================================
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:475:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:476:        public List<CompanyContact> 
+GetCompanyContacts(Guid companyId)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:477:        {
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:478:            return 
+_companyComplianceRepository.GetContacts(companyId);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:479:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:480:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:481:        public CompanyContact? 
+GetPrimaryCompanyContact(Guid companyId)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:482:        {
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:483:            return 
+_companyComplianceRepository.GetPrimaryContact(companyId);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:484:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:485:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:486:        public void 
+AddCompanyContact(CompanyContact contact)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:487:        {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:488:            if (contact == null)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:489:                throw new 
+ArgumentNullException(nameof(contact));
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:490:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:491:            
+_companyComplianceRepository.AddContact(contact);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:495:                "Administration",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:496:                $"Created contact: 
+{contact.ContactName}");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:497:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:498:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:499:        public void 
+UpdateCompanyContact(CompanyContact contact)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:500:        {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:501:            if (contact == null)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:502:                throw new 
+ArgumentNullException(nameof(contact));
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:503:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:504:            
+_companyComplianceRepository.UpdateContact(contact);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:505:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:506:            _auditService.Log(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:507:                "EDIT COMPANY CONTACT",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:508:                "Administration",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:509:                $"Edited contact: 
+{contact.ContactName}");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:510:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:511:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:512:        public void SetCompanyContactActive(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:529:        // COMPANY REQUIREMENTS
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:530:        // 
+==================================================
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:531:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:532:        public List<CompanyRequirement> 
+GetCompanyRequirements(
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:533:            Guid companyId)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:534:        {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:535:            return 
+_companyComplianceRepository.GetRequirements(
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:536:                companyId);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:537:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:538:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:539:        public void AddCompanyRequirement(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:540:            CompanyRequirement requirement)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:541:        {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:542:            if (requirement == null)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:543:                throw new 
+ArgumentNullException(nameof(requirement));
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:544:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:549:                "Administration",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:550:                $"Created requirement: 
+{requirement.RequirementName}");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:551:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:552:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:553:        public void UpdateCompanyRequirement(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:554:            CompanyRequirement requirement)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:555:        {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:556:            if (requirement == null)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:557:                throw new 
+ArgumentNullException(nameof(requirement));
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:558:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:559:            
+_companyComplianceRepository.UpdateRequirement(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:560:                requirement);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:561:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:562:            _auditService.Log(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:563:                "EDIT COMPANY REQUIREMENT",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:564:                "Administration",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:565:                $"Edited requirement: 
+{requirement.RequirementName}");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:566:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:567:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:569:        // COMPANY DOCUMENTS
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:570:        // 
+==================================================
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:571:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:572:        public List<CompanyDocument> 
+GetCompanyDocuments(
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:573:            Guid companyId)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:574:        {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:575:            return 
+_companyComplianceRepository.GetDocuments(
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:576:                companyId);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:577:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:578:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:579:        public List<CompanyDocument> 
+GetCompanyDocumentsRequiringAttention(
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:580:            Guid companyId,
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:581:            DateTime today)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:582:        {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:583:            return _companyComplianceRepository
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:584:                
+.GetDocumentsRequiringAttention(companyId, today);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:585:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:586:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:587:        public void AddCompanyDocument(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:588:            CompanyDocument document)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:589:        {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:590:            if (document == null)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:591:                throw new 
+ArgumentNullException(nameof(document));
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:592:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:597:                "Administration",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:598:                $"Added company document: 
+{document.DocumentName}");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:599:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:600:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:601:        public void UpdateCompanyDocument(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:602:            CompanyDocument document)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:603:        {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:604:            if (document == null)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:605:                throw new 
+ArgumentNullException(nameof(document));
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:606:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:607:            
+_companyComplianceRepository.UpdateDocument(document);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:608:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:609:            _auditService.Log(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:610:                "EDIT COMPANY DOCUMENT",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:611:                "Administration",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:612:                $"Edited company document: 
+{document.DocumentName}");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:613:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:614:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:615:        public void SetCompanyDocumentActive(
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:631:        {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:632:            return _settingsRepository.Get();
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:633:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:634:
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:635:        public void 
+SaveProductionSettings(ProductionSettings settings)
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:636:        {
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:637:            _settingsRepository.Save(settings);
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:638:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:639:            _auditService.Log(
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:640:                "UPDATE PRODUCTION SETTINGS",
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:641:                "Administration",
+> WeldAdminPro.Data\Services\AdministrationApplicationService.cs:642:                "Production settings updated.");
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:643:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:644:
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:645:        public List<AuditLog> GetAuditLog()
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:646:        {
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:647:            return _auditRepository.GetAll();
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:648:        }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:649:    }
+  WeldAdminPro.Data\Services\AdministrationApplicationService.cs:650:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:162:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:163:            
+<MudTd>@context.Username</MudTd>
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:164:            
+<MudTd>@context.FullName</MudTd>
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:165:            
+<MudTd>@context.RoleName</MudTd>
+> WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:166:            
+<MudTd>@GetCompanyName(context.CompanyId)</MudTd>
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:167:            <MudTd>@(context.IsActive ? 
+"Yes" : "No")</MudTd>
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:168:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:169:        </RowTemplate>
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:170:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:171:    </MudTable>
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:172:}
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:173:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:174:    @if (_showEditor && _editingUser is 
+not null)
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:180:            Companies="_companies"
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:181:            
+AdditionalCompanyAccess="_additionalCompanyAccess"
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:182:            
+OnGrantCompanyAccess="GrantCompanyAccess"
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:183:            
+OnRevokeCompanyAccess="RevokeCompanyAccess"
+> WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:184:            OnSave="SaveUser" />
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:185:    }
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:186:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:187:    @if 
+(!string.IsNullOrWhiteSpace(_temporaryPassword))
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:188:    {
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:189:        <MudPaper Class="pa-4 mb-4" 
+Elevation="2">
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:190:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:191:            <MudAlert 
+Severity="Severity.Warning">
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:192:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:235:            <MudStack Row="true" 
+Class="mt-3">
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:236:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:237:                <MudButton 
+Color="Color.Primary"
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:238:                       
+Variant="Variant.Filled"
+> WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:239:                       
+OnClick="SavePassword">
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:240:
+> WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:241:                    Save
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:242:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:243:                </MudButton>
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:244:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:245:                <MudButton 
+Variant="Variant.Outlined"
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:246:                       
+OnClick="CancelPasswordEditor">
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:247:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:248:                    Cancel
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:249:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:301:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:302:        LoadUsers();
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:303:    }
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:304:
+> WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:305:    private void SaveUser()
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:306:    {
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:307:        if (_editingUser is null)
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:308:            return;
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:309:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:310:        if (_isNewUser)
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:311:        {
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:312:            _temporaryPassword =
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:313:                
+AdministrationService.AddUser(_editingUser);
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:314:        }
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:315:        else
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:316:        {
+> WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:317:            
+AdministrationService.UpdateUser(_editingUser);
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:318:        }
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:319:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:320:        LoadUsers();
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:321:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:322:        CloseEditor();
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:323:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:324:        StateHasChanged();
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:325:    }
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:338:            FullName = 
+_selectedUser.FullName,
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:339:            Email = _selectedUser.Email,
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:340:            RoleId = _selectedUser.RoleId,
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:341:            RoleName = 
+_selectedUser.RoleName,
+> WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:342:            CompanyId = 
+_selectedUser.CompanyId,
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:343:            IsActive = 
+_selectedUser.IsActive,
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:344:            PasswordHash = 
+_selectedUser.PasswordHash,
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:345:            CreatedDate = 
+_selectedUser.CreatedDate,
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:346:            LastLoginDate = 
+_selectedUser.LastLoginDate
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:347:        };
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:348:        _additionalCompanyAccess =
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:349:            await AdministrationService
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:350:                
+.GetUserCompanyAccessAsync(_editingUser.Id);
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:351:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:352:        _showEditor = true;
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:353:    }
+> WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:354:    private async Task 
+GrantCompanyAccess(Guid companyId)
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:355:    {
+> WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:356:        if (_editingUser is null || 
+companyId == Guid.Empty || _companyAccessBusy)
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:357:            return;
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:358:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:359:        try
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:360:        {
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:361:            _companyAccessBusy = true;
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:362:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:363:            await 
+AdministrationService.GrantUserCompanyAccessAsync(
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:364:                _editingUser.Id,
+> WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:365:                companyId);
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:366:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:367:            _additionalCompanyAccess =
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:368:                await AdministrationService
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:369:                    
+.GetUserCompanyAccessAsync(_editingUser.Id);
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:370:        }
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:371:        catch (Exception ex)
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:372:        {
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:373:            Console.Error.WriteLine(
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:433:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:434:            if 
+(_selectedCompanyFilter.HasValue)
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:435:            {
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:436:                query = query.Where(user =>
+> WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:437:                    user.CompanyId == 
+_selectedCompanyFilter.Value);
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:438:            }
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:439:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:440:            return query;
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:441:        }
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:442:    }
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:443:
+> WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:444:    private string GetCompanyName(Guid? 
+companyId)
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:445:    {
+> WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:446:        if (!companyId.HasValue)
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:447:            return "Unassigned";
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:448:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:449:        return _companies
+> WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:450:            .FirstOrDefault(x => x.Id == 
+companyId.Value)
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:451:            ?.CompanyName
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:452:            ?? "Unknown";
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:453:    }
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:454:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:455:    private void ClearUserFilters()
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:456:    {
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:457:        _userSearchText = string.Empty;
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:458:        _selectedCompanyFilter = null;
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:565:    {
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:566:        _showPasswordEditor = false;
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:567:    }
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:568:
+> WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:569:    private void SavePassword()
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:570:    {
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:571:        if (_selectedUser == null)
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:572:            return;
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:573:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:574:        if 
+(string.IsNullOrWhiteSpace(_newPassword))
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:575:            return;
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:576:
+  WeldAdminPro.Web\Components\Pages\Administration\UserManagement.razor:577:        if (_newPassword != 
+_confirmPassword)
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:46:
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:47:            <MudSelect T="Guid?"
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:48:                       Label="Company"
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:49:                       Clearable="true"
+> WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:50:                       
+@bind-Value="User.CompanyId">
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:51:
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:52:                @foreach (var company in 
+Companies)
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:53:                {
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:54:                    <MudSelectItem T="Guid?"
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:55:                                   
+Value="@company.Id">
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:56:                        @company.CompanyName 
+(@company.CompanyCode)
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:57:                    </MudSelectItem>
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:58:                }
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:128:            </HeaderContent>
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:129:
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:130:            <RowTemplate>
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:131:                <MudTd>
+> WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:132:                    
+@GetCompanyName(context.CompanyId)
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:133:                </MudTd>
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:134:
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:135:                <MudTd>
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:136:                    
+@(context.ValidFrom?.ToString("yyyy-MM-dd") ?? "No restriction")
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:137:                </MudTd>
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:138:
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:139:                <MudTd>
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:140:                    
+@(context.ValidUntil?.ToString("yyyy-MM-dd") ?? "No expiry")
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:159:
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:160:    <MudDivider Class="my-4" />
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:161:<MudButton Variant="Variant.Filled"
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:162:               Color="Color.Primary"
+> WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:163:               OnClick="Save">
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:164:
+> WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:165:        Save
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:166:
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:167:    </MudButton>
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:168:
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:169:</MudPaper>
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:170:
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:171:@code
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:172:{
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:173:    [Parameter]
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:191:    [Parameter]
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:192:    public EventCallback<Guid> 
+OnRevokeCompanyAccess { get; set; }
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:193:
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:194:    [Parameter]
+> WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:195:    public EventCallback OnSave { get; set; }
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:196:
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:197:    private Guid? _selectedAdditionalCompany;
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:198:
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:199:    private IEnumerable<Company> 
+AvailableAdditionalCompanies =>
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:200:        Companies.Where(company =>
+> WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:201:            (!User.CompanyId.HasValue ||
+> WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:202:             company.Id != 
+User.CompanyId.Value) &&
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:203:            !AdditionalCompanyAccess.Any(
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:204:                access => access.IsActive &&
+> WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:205:                          access.CompanyId == 
+company.Id));
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:206:    private async Task 
+GrantSelectedCompanyAccess()
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:207:    {
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:208:        if 
+(!_selectedAdditionalCompany.HasValue)
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:209:            return;
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:210:
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:211:        await 
+OnGrantCompanyAccess.InvokeAsync(
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:212:            _selectedAdditionalCompany.Value);
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:213:
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:218:    {
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:219:        await 
+OnRevokeCompanyAccess.InvokeAsync(accessId);
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:220:    }
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:221:
+> WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:222:    private string GetCompanyName(Guid 
+companyId)
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:223:    {
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:224:        return Companies
+> WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:225:            .FirstOrDefault(x => x.Id == 
+companyId)
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:226:            ?.CompanyName
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:227:            ?? "Unknown";
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:228:    }
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:229:
+> WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:230:    private async Task Save()
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:231:    {
+> WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:232:        await OnSave.InvokeAsync();
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:233:    }
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:234:}
+  WeldAdminPro.Web\Components\Shared\Administration\UserEditor.razor:235:
+
+

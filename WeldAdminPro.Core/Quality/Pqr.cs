@@ -1,10 +1,16 @@
-
+﻿
 
 namespace WeldAdminPro.Core.Quality
 {
     public class Pqr
     {
         public Guid Id { get; set; }
+
+        /// <summary>
+        /// Company that owns this PQR.
+        /// Ownership is enforced by the application service.
+        /// </summary>
+        public Guid? CompanyId { get; set; }
         public string PqrNumber { get; set; } = string.Empty;
         public DateTime QualificationDate { get; set; }
         public string QualifiedBy { get; set; } = string.Empty;
@@ -17,6 +23,12 @@ namespace WeldAdminPro.Core.Quality
 
         public string BaseMaterial1Specification { get; set; } = "";
         public string BaseMaterial2Specification { get; set; } = "";
+
+        public string BaseMaterial1Grade { get; set; } = "";
+        public string BaseMaterial2Grade { get; set; } = "";
+
+        public string BaseMaterial1UNS { get; set; } = "";
+        public string BaseMaterial2UNS { get; set; } = "";
 
         public string Position { get; set; } = string.Empty;
 
@@ -53,6 +65,12 @@ namespace WeldAdminPro.Core.Quality
 
         public string JointType { get; set; } = "";
 
+        // =====================================================
+        // PIPE DIAMETER
+        // =====================================================
+        // Actual diameter used on the PQR test coupon.
+        public double DiameterTested { get; set; }
+
         public double DiameterMin { get; set; }
         public double DiameterMax { get; set; }
         public bool IsPipe { get; set; }
@@ -62,6 +80,7 @@ namespace WeldAdminPro.Core.Quality
         public string? ApprovedBy { get; set; }
         public bool IsLocked { get; set; }
         public int Revision { get; set; }
+        public Guid? PreviousRevisionId { get; set; }
         public bool IsActive { get; set; }
 
         // =========================
@@ -113,5 +132,31 @@ namespace WeldAdminPro.Core.Quality
         public string BackingGas { get; set; } = "";
         public double BackingGasFlowRate { get; set; }
         public string PNumber2 { get; set; } = "";
+
+        /// <summary>
+        /// Creates a new PQR revision while preserving
+        /// the complete qualified engineering record.
+        /// The current revision becomes the previous revision.
+        /// </summary>
+        public Pqr CreateRevision(string username)
+        {
+            var revision = (Pqr)MemberwiseClone();
+
+            var previousId = Id;
+
+            revision.Id = Guid.NewGuid();
+            revision.PreviousRevisionId = previousId;
+            revision.Revision = Revision + 1;
+            revision.IsApproved = false;
+            revision.ApprovedOn = null;
+            revision.ApprovedBy = null;
+            revision.IsLocked = false;
+            revision.IsActive = true;
+            revision.QualificationDate = QualificationDate;
+
+            return revision;
+        }
     }
 }
+
+

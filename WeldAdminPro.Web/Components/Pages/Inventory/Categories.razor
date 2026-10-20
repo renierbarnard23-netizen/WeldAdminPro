@@ -1,0 +1,307 @@
+﻿@page "/inventory/categories"
+
+@attribute [Authorize(Policy = "Permission:Inventory.View")]
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services.Inventory
+
+@inject StockApplicationService StockService
+@inject NavigationManager Navigation
+
+<PageTitle>Category Management</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+
+    <MudStack Row="true"
+              AlignItems="AlignItems.Center"
+              Justify="Justify.SpaceBetween"
+              Class="mb-4">
+
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h4">
+                Category Management
+            </MudText>
+
+            <MudText Typo="Typo.body2"
+                     Color="Color.Secondary">
+                Manage inventory categories and their active status.
+            </MudText>
+        </MudStack>
+
+        <MudStack Row="true" Spacing="2">
+
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.ArrowBack"
+                       OnClick="BackToInventory">
+                Back to Inventory
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenAddDialog">
+                Add Category
+            </MudButton>
+
+        </MudStack>
+
+    </MudStack>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="@_messageSeverity"
+                  Class="mb-4">
+            @_message
+        </MudAlert>
+    }
+
+    <MudPaper Class="pa-4">
+
+        <MudTable Items="_categories"
+                  Hover="true"
+                  Dense="true"
+                  Striped="true">
+
+            <HeaderContent>
+                <MudTh>Category</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh Class="text-end">Actions</MudTh>
+            </HeaderContent>
+
+            <RowTemplate>
+
+                <MudTd DataLabel="Category">
+                    @context.Name
+                </MudTd>
+
+                <MudTd DataLabel="Status">
+
+                    @if (context.IsActive)
+                    {
+                        <MudChip T="string"
+                                 Color="Color.Success"
+                                 Size="Size.Small">
+                            Active
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string"
+                                 Color="Color.Default"
+                                 Size="Size.Small">
+                            Disabled
+                        </MudChip>
+                    }
+
+                </MudTd>
+
+                <MudTd DataLabel="Actions">
+
+                    <MudStack Row="true"
+                              Justify="Justify.FlexEnd"
+                              Spacing="1">
+
+                        @if (context.IsActive)
+                        {
+                            <MudButton Size="Size.Small"
+                                       Variant="Variant.Outlined"
+                                       Color="Color.Warning"
+                                       StartIcon="@Icons.Material.Filled.Block"
+                                       OnClick="@(() => DisableCategory(context))">
+                                Disable
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Size="Size.Small"
+                                       Variant="Variant.Outlined"
+                                       Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.CheckCircle"
+                                       OnClick="@(() => EnableCategory(context))">
+                                Enable
+                            </MudButton>
+                        }
+
+                        <MudButton Size="Size.Small"
+                                   Variant="Variant.Outlined"
+                                   Color="Color.Error"
+                                   StartIcon="@Icons.Material.Filled.Delete"
+                                   OnClick="@(() => DeleteCategory(context))">
+                            Delete
+                        </MudButton>
+
+                    </MudStack>
+
+                </MudTd>
+
+            </RowTemplate>
+
+            <NoRecordsContent>
+                <MudText Class="pa-4"
+                         Color="Color.Secondary">
+                    No categories found.
+                </MudText>
+            </NoRecordsContent>
+
+        </MudTable>
+
+    </MudPaper>
+
+</MudContainer>
+
+@if (_showAddDialog)
+{
+    <MudDialog @bind-Visible="_showAddDialog">
+
+        <DialogContent>
+
+            <MudText Typo="Typo.h6" Class="mb-4">
+                Add Inventory Category
+            </MudText>
+
+            <MudTextField @bind-Value="_newCategoryName"
+                          Label="Category Name"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Required="true"
+                          AutoFocus="true" />
+
+        </DialogContent>
+
+        <DialogActions>
+
+            <MudButton Variant="Variant.Text"
+                       OnClick="CloseAddDialog">
+                Cancel
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="@string.IsNullOrWhiteSpace(_newCategoryName)"
+                       OnClick="AddCategory">
+                Add Category
+            </MudButton>
+
+        </DialogActions>
+
+    </MudDialog>
+}
+
+@code
+{
+    private List<Category> _categories = new();
+
+    private bool _showAddDialog;
+
+    private string _newCategoryName = string.Empty;
+
+    private string _message = string.Empty;
+
+    private Severity _messageSeverity = Severity.Info;
+
+    protected override void OnInitialized()
+    {
+        LoadCategories();
+    }
+
+    private void LoadCategories()
+    {
+        _categories = StockService.GetAllCategories();
+    }
+
+    private void OpenAddDialog()
+    {
+        _newCategoryName = string.Empty;
+        _showAddDialog = true;
+        ClearMessage();
+    }
+
+    private void CloseAddDialog()
+    {
+        _showAddDialog = false;
+        _newCategoryName = string.Empty;
+    }
+
+    private void AddCategory()
+    {
+        if (string.IsNullOrWhiteSpace(_newCategoryName))
+            return;
+
+        StockService.AddCategory(_newCategoryName.Trim());
+
+        CloseAddDialog();
+        LoadCategories();
+
+        ShowMessage(
+            "Category added successfully.",
+            Severity.Success);
+    }
+
+    private void EnableCategory(Category category)
+    {
+        StockService.SetCategoryActive(
+            category.Id,
+            true);
+
+        LoadCategories();
+
+        ShowMessage(
+            $"Category '{category.Name}' enabled.",
+            Severity.Success);
+    }
+
+    private void DisableCategory(Category category)
+    {
+        StockService.SetCategoryActive(
+            category.Id,
+            false);
+
+        LoadCategories();
+
+        ShowMessage(
+            $"Category '{category.Name}' disabled.",
+            Severity.Success);
+    }
+
+    private void DeleteCategory(Category category)
+    {
+        var deleted = StockService.DeleteCategory(
+            category.Id,
+            category.Name);
+
+        if (!deleted)
+        {
+            ShowMessage(
+                $"Category '{category.Name}' cannot be deleted because it is currently used by stock items.",
+                Severity.Warning);
+
+            return;
+        }
+
+        LoadCategories();
+
+        ShowMessage(
+            $"Category '{category.Name}' deleted.",
+            Severity.Success);
+    }
+
+    private void BackToInventory()
+    {
+        Navigation.NavigateTo("/inventory");
+    }
+
+    private void ShowMessage(
+        string message,
+        Severity severity)
+    {
+        _message = message;
+        _messageSeverity = severity;
+    }
+
+    private void ClearMessage()
+    {
+        _message = string.Empty;
+    }
+}
+

@@ -1,0 +1,762 @@
+============================================================
+W18.1 FOCUSED WPS/PQR FILTERING AUDIT
+Read-only source audit - no database access
+============================================================
+
+============================================================
+FILE: .\WeldAdminPro.Data\Services\Quality\RepairApplicationService.cs
+============================================================
+LINES 500-565
+        return analyticsService.Generate(repairs);
+    }
+
+    /// <summary>
+    /// Returns only WPS revisions that are applicable to the selected repair:
+    /// the project's welding/fabrication subcontractor, approved, active, and matching the weld material group.
+    /// </summary>
+    public async Task<List<Wps>> GetApplicableRepairWpsAsync(
+        Guid repairId)
+    {
+        var repair = _repairRepository.GetAll()
+            .FirstOrDefault(x => x.Id == repairId);
+
+        if (repair == null)
+            throw new InvalidOperationException("Repair record could not be found.");
+
+        await EnsureRepairAccessAsync(
+            repair,
+            PermissionKeys.Quality.Repairs);
+
+        var weld = await _weldService.GetByIdAsync(repair.WeldId);
+        if (weld == null)
+            throw new InvalidOperationException("The weld linked to this repair could not be found.");
+
+        var project = _projectRepository.GetById(weld.ProjectId);
+        if (project == null ||
+            !project.WeldingSubcontractorCompanyId.HasValue ||
+            project.WeldingSubcontractorCompanyId.Value == Guid.Empty)
+            return new List<Wps>();
+
+        var weldingCompanyId = project.WeldingSubcontractorCompanyId.Value;
+
+        var weldMaterial = ComplianceNormalizer.NormalizeMaterialGroup(
+            string.IsNullOrWhiteSpace(weld.MaterialGroup)
+                ? weld.MaterialSpecification
+                : weld.MaterialGroup);
+
+        if (string.IsNullOrWhiteSpace(weldMaterial))
+            return new List<Wps>();
+
+        return _wpsRepository.GetByCompany(weldingCompanyId)
+            .Where(x => x.IsApproved && x.IsActive)
+            .Where(x => ComplianceNormalizer.NormalizeMaterialGroup(x.MaterialGroup) == weldMaterial)
+            .OrderBy(x => x.WpsNumber)
+            .ThenByDescending(x => x.Revision)
+            .ToList();
+    }
+
+    // ==================================================
+    // REPAIR WORKFLOW OPERATIONS
+    // ==================================================
+
+    public async Task<(bool Success, string Error)> AuthorizeRepairAsync(
+        RepairRecord repair,
+        string authorizedBy)
+    {
+        await EnsureRepairAccessAsync(
+            repair,
+            PermissionKeys.Quality.Repairs);
+
+        if (AuthorizeRepair(repair, authorizedBy, out var error))
+            return (true, string.Empty);
+
+        return (false, error);
+    }
+
+
+LINES 690-745
+            var weld = await _weldRepository.GetByIdAsync(
+                repair.WeldId,
+                connection,
+                transaction);
+
+            if (weld == null)
+            {
+                transaction.Rollback();
+                return (false, "The weld linked to this repair could not be found.");
+            }
+
+            var project = _projectRepository.GetById(weld.ProjectId);
+            if (project == null)
+            {
+                transaction.Rollback();
+                return (false, "The project linked to this repair could not be found.");
+            }
+
+            if (!project.WeldingSubcontractorCompanyId.HasValue ||
+                project.WeldingSubcontractorCompanyId.Value == Guid.Empty)
+            {
+                transaction.Rollback();
+                return (false, "The project has no welding/fabrication subcontractor assigned, so a repair WPS cannot be selected.");
+            }
+
+            var repairWps = _wpsRepository.GetById(
+                repairWpsId.Value,
+                connection,
+                transaction);
+
+            if (repairWps == null)
+            {
+                transaction.Rollback();
+                return (false, "The selected repair WPS revision could not be found.");
+            }
+
+            if (!repairWps.CompanyId.HasValue ||
+                repairWps.CompanyId.Value != project.WeldingSubcontractorCompanyId.Value)
+            {
+                transaction.Rollback();
+                return (false, "The selected repair WPS does not belong to the project's welding/fabrication subcontractor.");
+            }
+
+            if (!repairWps.IsApproved)
+            {
+                transaction.Rollback();
+                return (false, $"Repair WPS '{repairWps.WpsNumber} Rev {repairWps.Revision}' is not approved and cannot be used for repair welding.");
+            }
+
+            if (!repairWps.IsActive)
+            {
+                transaction.Rollback();
+                return (false, $"Repair WPS '{repairWps.WpsNumber} Rev {repairWps.Revision}' is not active and cannot be used for repair welding.");
+            }
+
+            var weldMaterial = ComplianceNormalizer.NormalizeMaterialGroup(
+
+============================================================
+FILE: .\WeldAdminPro.Web\Services\Quality\WpsApplicationService.cs
+============================================================
+LINES 130-270
+    // =====================================================
+    // WPS QUERIES
+    // =====================================================
+
+    /// <summary>
+    /// Returns approved and active WPS revisions applicable to the
+    /// welding company assigned to the project.
+    /// </summary>
+    public async Task<List<Wps>> GetForProjectAsync(Guid projectId)
+    {
+        if (projectId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Project ID is required.",
+                nameof(projectId));
+        }
+
+        if (!_currentUser.IsAuthenticated ||
+            string.IsNullOrWhiteSpace(_currentUser.UserId))
+        {
+            throw new UnauthorizedAccessException(
+                "Authentication is required.");
+        }
+
+        var project = _projectRepository.GetById(projectId);
+
+        if (project == null)
+        {
+            throw new KeyNotFoundException(
+                "The project was not found.");
+        }
+
+        if (!await _projectAccessAuthorization.CanAccessProjectAsync(
+                _currentUser.UserId,
+                project))
+        {
+            throw new UnauthorizedAccessException(
+                "You do not have access to this project.");
+        }
+
+        var weldingCompanyId =
+            project.WeldingSubcontractorCompanyId
+            ?? project.CompanyId;
+
+        if (!weldingCompanyId.HasValue ||
+            weldingCompanyId.Value == Guid.Empty)
+        {
+            return new List<Wps>();
+        }
+
+        await EnsureWpsReadAccessAsync(weldingCompanyId.Value);
+
+        return _wpsRepository
+            .GetByCompany(weldingCompanyId.Value)
+            .Where(wps =>
+                wps.IsApproved &&
+                wps.IsActive)
+            .OrderBy(wps => wps.WpsNumber)
+            .ThenByDescending(wps => wps.Revision)
+            .ToList();
+    }
+
+    public async Task<List<Wps>> GetAllAsync()
+    {
+        if (!_currentUser.IsAuthenticated ||
+            string.IsNullOrWhiteSpace(_currentUser.UserId))
+        {
+            throw new UnauthorizedAccessException(
+                "Authentication is required.");
+        }
+
+        var hasPermission =
+            await _permissionAuthorization.HasPermissionAsync(
+                _currentUser.UserId,
+                _currentUser.Role,
+                PermissionKeys.Quality.WPS);
+
+        if (!hasPermission)
+        {
+            throw new UnauthorizedAccessException(
+                "You do not have permission to access WPS records.");
+        }
+
+        var all = _wpsRepository.GetAll();
+        var result = new List<Wps>();
+
+        foreach (var wps in all)
+        {
+            if (wps.CompanyId.HasValue &&
+                await _projectAccessAuthorization.CanAccessCompanyAsync(
+                    _currentUser.UserId,
+                    wps.CompanyId.Value))
+            {
+                result.Add(wps);
+            }
+        }
+
+        return result;
+    }
+
+    public async Task<List<Wps>> GetActiveAsync()
+    {
+        if (!_currentUser.IsAuthenticated ||
+            string.IsNullOrWhiteSpace(_currentUser.UserId))
+        {
+            throw new UnauthorizedAccessException(
+                "Authentication is required.");
+        }
+
+        var hasPermission =
+            await _permissionAuthorization.HasPermissionAsync(
+                _currentUser.UserId,
+                _currentUser.Role,
+                PermissionKeys.Quality.WPS);
+
+        if (!hasPermission)
+        {
+            throw new UnauthorizedAccessException(
+                "You do not have permission to access WPS records.");
+        }
+
+        var all = _wpsRepository.GetActive();
+        var result = new List<Wps>();
+
+        foreach (var wps in all)
+        {
+            if (wps.CompanyId.HasValue &&
+                await _projectAccessAuthorization.CanAccessCompanyAsync(
+                    _currentUser.UserId,
+                    wps.CompanyId.Value))
+            {
+                result.Add(wps);
+            }
+        }
+
+        return result;
+    }
+
+    public async Task<Wps?> GetAsync(string wpsNumber)
+    {
+        if (!_currentUser.IsAuthenticated ||
+
+============================================================
+FILE: .\WeldAdminPro.Web\Components\Pages\Repairs.razor
+============================================================
+LINES 440-530
+                return;
+            }
+
+            if (previousSelection.HasValue)
+            {
+                _selectedRepair =
+                    _repairs.FirstOrDefault(
+                        r => r.Id == previousSelection.Value);
+            }
+
+            _selectedRepair ??=
+                _repairs
+                    .OrderByDescending(r => r.RepairNumber)
+                    .First();
+
+            _selectedRepairId =
+                _selectedRepair.Id;
+
+            LoadFieldsFromSelectedRepair();
+            await LoadRepairWpsOptionsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to load repair information: {ex.Message}",
+                Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnRepairSelected(
+        Guid? repairId)
+    {
+        _selectedRepairId =
+            repairId;
+
+        _selectedRepair =
+            repairId.HasValue
+                ? _repairs.FirstOrDefault(
+                    r => r.Id == repairId.Value)
+                : null;
+
+        LoadFieldsFromSelectedRepair();
+        await LoadRepairWpsOptionsAsync();
+    }
+
+    private void LoadFieldsFromSelectedRepair()
+    {
+        if (_selectedRepair == null)
+        {
+            _authorizedBy = string.Empty;
+            _excavationMethod = string.Empty;
+            _repairWelder = string.Empty;
+            _repairWpsId = null;
+            _repairWpsOptions.Clear();
+
+            return;
+        }
+
+        _authorizedBy =
+            _selectedRepair.AuthorizedBy
+            ?? string.Empty;
+
+        _excavationMethod =
+            _selectedRepair.ExcavationMethod
+            ?? string.Empty;
+
+        _repairWelder =
+            _selectedRepair.RepairedByWelder
+            ?? string.Empty;
+
+        _repairWpsId = _selectedRepair.RepairWpsId;
+    }
+
+    private async Task LoadRepairWpsOptionsAsync()
+    {
+        _repairWpsOptions = new List<Wps>();
+
+        if (_selectedRepair == null)
+            return;
+
+        try
+        {
+            _repairWpsOptions =
+                await RepairService.GetApplicableRepairWpsAsync(
+                    _selectedRepair.Id);
+        }
+        catch (Exception ex)
+
+============================================================
+FILE: .\WeldAdminPro.Data\Repositories\WpsRepository.cs
+============================================================
+SEARCH RELEVANT WPS METHODS
+71: CompanyId,
+74: MaterialGroup,
+83: IsApproved,
+85: ApprovedOn,
+86: ApprovedBy,
+87: Revision,
+88: IsActive,
+89: PreviousRevisionId
+94: $companyId,
+97: $materialGroup,
+106: $approved,
+108: $approvedOn,
+109: $approvedBy,
+110: $revision,
+111: $isActive,
+112: $previousRevisionId
+121: "$companyId",
+122: (object?)wps.CompanyId?.ToString()
+133: "$materialGroup",
+134: wps.MaterialGroup);
+174: "$approved",
+175: wps.IsApproved ? 1 : 0);
+182: "$approvedOn",
+183: (object?)wps.ApprovedOn?.ToString("s")
+187: "$approvedBy",
+188: (object?)wps.ApprovedBy
+192: "$revision",
+193: wps.Revision);
+196: "$isActive",
+197: wps.IsActive ? 1 : 0);
+201: "$previousRevisionId",
+202: (object?)wps.PreviousRevisionId?.ToString()
+219: MaterialGroup TEXT,
+229: IsApproved INTEGER NOT NULL DEFAULT 0,
+231: ApprovedOn TEXT,
+232: ApprovedBy TEXT,
+233: Revision INTEGER NOT NULL DEFAULT 0,
+234: IsActive INTEGER NOT NULL DEFAULT 1
+249: IX_Wps_Approved
+250: ON Wps(IsApproved);
+254: ON Wps(IsActive);
+264: public List<Wps> GetByCompany(Guid companyId)
+266: if (companyId == Guid.Empty)
+267: throw new ArgumentException("Company Id is required.", nameof(companyId));
+270: .Where(x => x.CompanyId == companyId)
+291: Revision DESC;";
+364: IsActive DESC,
+365: Revision DESC
+407: IsActive DESC,
+408: Revision DESC
+462: CompanyId =
+463: reader["CompanyId"] == DBNull.Value
+466: reader["CompanyId"].ToString()!),
+476: MaterialGroup =
+478: reader["MaterialGroup"]?.ToString())
+479: ? reader["MaterialGroup"]!.ToString()!
+523: IsApproved =
+525: reader["IsApproved"]) == 1,
+531: ApprovedOn =
+532: reader["ApprovedOn"] == DBNull.Value
+535: reader["ApprovedOn"]
+538: ApprovedBy =
+539: reader["ApprovedBy"]?.ToString(),
+541: Revision =
+542: reader["Revision"] != DBNull.Value
+544: reader["Revision"])
+547: PreviousRevisionId =
+548: reader["PreviousRevisionId"] == DBNull.Value
+551: reader["PreviousRevisionId"]?.ToString(),
+552: out var previousRevisionId)
+553: ? previousRevisionId
+556: IsActive =
+557: reader["IsActive"] != DBNull.Value
+560: reader["IsActive"]) == 1
+589: CompanyId = $companyId,
+592: MaterialGroup = $materialGroup,
+602: IsApproved = $approved,
+604: ApprovedOn = $approvedOn,
+605: ApprovedBy = $approvedBy,
+606: Revision = $revision,
+607: IsActive = $isActive,
+608: PreviousRevisionId = $previousRevisionId
+617: "$companyId",
+618: (object?)wps.CompanyId?.ToString()
+629: "$materialGroup",
+630: wps.MaterialGroup);
+670: "$approved",
+671: wps.IsApproved ? 1 : 0);
+678: "$approvedOn",
+679: (object?)wps.ApprovedOn?.ToString("s")
+683: "$approvedBy",
+684: (object?)wps.ApprovedBy
+688: "$revision",
+689: wps.Revision);
+692: "$isActive",
+693: wps.IsActive ? 1 : 0);
+697: "$previousRevisionId",
+698: (object?)wps.PreviousRevisionId?.ToString()
+703: public void SaveRevision(
+705: Wps revision)
+710: if (revision == null)
+711: throw new ArgumentNullException(nameof(revision));
+717: if (string.IsNullOrWhiteSpace(revision.WpsNumber))
+719: "Revision WPS Number is required.");
+726: revision.WpsNumber =
+727: revision.WpsNumber
+733: revision.WpsNumber,
+737: "Previous and new WPS revisions must have the same WPS Number.");
+752: // Deactivate the previous revision.
+761: SET IsActive = 0
+774: "The previous WPS revision could not be deactivated.");
+779: // Insert the new revision.
+782: if (revision.Id == Guid.Empty)
+783: revision.Id = Guid.NewGuid();
+793: CompanyId,
+796: MaterialGroup,
+805: IsApproved,
+807: ApprovedOn,
+808: ApprovedBy,
+809: Revision,
+810: IsActive,
+811: PreviousRevisionId
+816: $companyId,
+819: $materialGroup,
+828: $approved,
+830: $approvedOn,
+831: $approvedBy,
+832: $revision,
+833: $isActive,
+834: $previousRevisionId
+839: revision.Id.ToString());
+843: "$companyId",
+844: (object?)revision.CompanyId?.ToString()
+848: revision.WpsNumber);
+852: revision.Process);
+855: "$materialGroup",
+856: revision.MaterialGroup);
+860: revision.ThicknessMin);
+864: revision.ThicknessMax);
+868: (object?)revision.PqrId?.ToString()
+873: (object?)revision.PNumber
+878: (object?)revision.FNumber
+883: (object?)revision.Position
+888: (object?)revision.JointType
+893: revision.Diameter);
+896: "$approved",
+897: revision.IsApproved ? 1 : 0);
+901: revision.IsLocked ? 1 : 0);
+904: "$approvedOn",
+905: (object?)revision.ApprovedOn?.ToString("s")
+909: "$approvedBy",
+910: (object?)revision.ApprovedBy
+914: "$revision",
+915: revision.Revision);
+918: "$isActive",
+919: revision.IsActive ? 1 : 0);
+922: "$previousRevisionId",
+923: (object?)revision.PreviousRevisionId?.ToString()
+932: "The new WPS revision could not be inserted.");
+985: WHERE IsActive = 1
+988: Revision DESC;";
+1002: public int GetNextRevision(
+1014: return all.Max(x => x.Revision) + 1;
+1025: x.IsActive)
+1030: item.IsActive = false;
+
+============================================================
+FILE: .\WeldAdminPro.Core\Quality\Wps.cs
+============================================================
+COMPLETE WPS MODEL
+namespace WeldAdminPro.Core.Quality
+{
+    public class Wps
+    {
+        public Guid Id { get; set; }
+
+/// <summary>
+/// Company that owns this WPS.
+/// Ownership is enforced by the application service.
+/// </summary>
+public Guid? CompanyId { get; set; }
+
+        public string WpsNumber { get; set; } = "";
+        public string Process { get; set; } = "";
+
+        public double ThicknessMin { get; set; }
+        public double ThicknessMax { get; set; }
+
+        public double Diameter { get; set; }
+
+        public string FillerMaterial { get; set; } = "";
+        public string GasType { get; set; } = "";
+
+        public double AmpsMin { get; set; }
+        public double AmpsMax { get; set; }
+
+        public double VoltsMin { get; set; }
+        public double VoltsMax { get; set; }
+
+        public double HeatInputMin { get; set; }
+        public double HeatInputMax { get; set; }
+
+        public double PreheatMin { get; set; }
+        public double PreheatMax { get; set; }
+
+        public string WelderNumber { get; set; } = "";
+        public double? InterpassMax { get; set; }
+        public bool PwhtRequired { get; set; }
+        private (double min, double max) ExtractTestThickness(string text)
+        {
+            var parts = text.Split('-', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 2 &&
+                double.TryParse(parts[0].Trim(), out double min) &&
+                double.TryParse(parts[1].Trim(), out double max))
+            {
+                return (min, max);
+            }
+            throw new FormatException("Invalid thickness range format. Expected format: 'min - max'.");
+        }
+
+        public Guid? PqrId { get; set; }
+        public string? LinkedPqrNumber { get; set; }
+
+        public string? PNumber { get; set; }
+        public string? FNumber { get; set; }
+        public string? Position { get; set; }
+        public string MaterialGroup { get; set; } = "";
+
+        public string? JointType { get; set; }
+        public string JointDesign { get; set; } = "";
+
+        public string Backing { get; set; } = "";
+        public string BackingType { get; set; } = "";
+
+        public bool IsApproved { get; set; }
+        public bool IsLocked { get; set; }
+        public DateTime? ApprovedOn { get; set; }
+        public string? ApprovedBy { get; set; }
+
+        public double ParseConfidence
+        {
+            get;
+            set;
+        }
+
+        public string ParseNotes
+        {
+            get;
+            set;
+        } = "";
+
+        public Guid? PreviousRevisionId
+        {
+            get;
+            set;
+        }
+
+        public DateTime CreatedOn
+        {
+            get;
+            set;
+        } = DateTime.UtcNow;
+
+        public string CreatedBy
+        {
+            get;
+            set;
+        } = "";
+
+        public string ImportSource
+        {
+            get;
+            set;
+        } = "";
+
+        public int Revision { get; set; }
+        public bool IsActive { get; set; }
+
+        // 🔥 Compliance
+        public bool IsCompliant { get; set; }
+        public string ValidationStatus { get; set; } = "";
+
+        // 🔥 Essential Variables
+        public string CurrentType { get; set; } = "";
+        public string Polarity { get; set; } = "";
+        public string Progression { get; set; } = "";
+
+        // 🔥 Visual Traceability
+        public string JointDiagramPath { get; set; } = "";
+        public string PassDiagramPath { get; set; } = "";
+
+        // 🔥 Audit
+        public string QualifiedThicknessRange { get; set; } = "";
+
+
+        public Wps CreateRevision(
+        string username)
+        {
+            return new Wps
+            {
+                Id = Guid.NewGuid(),
+
+                PreviousRevisionId =
+                    Id,
+
+                Revision =
+                    Revision + 1,
+
+                IsApproved =
+                    false,
+
+                IsLocked =
+                    false,
+
+                ApprovedBy =
+                    null,
+
+                ApprovedOn =
+                    null,
+
+                IsActive =
+                    true,
+
+                CreatedOn =
+                    DateTime.UtcNow,
+
+                CreatedBy =
+                    username,
+
+                ImportSource =
+                    ImportSource,
+
+                // =====================================
+                // COPY ENGINEERING DATA
+                // =====================================
+
+                WpsNumber = WpsNumber,
+                Process = Process,
+                ThicknessMin = ThicknessMin,
+                ThicknessMax = ThicknessMax,
+                Diameter = Diameter,
+                FillerMaterial = FillerMaterial,
+                GasType = GasType,
+                AmpsMin = AmpsMin,
+                AmpsMax = AmpsMax,
+                VoltsMin = VoltsMin,
+                VoltsMax = VoltsMax,
+                HeatInputMin = HeatInputMin,
+                HeatInputMax = HeatInputMax,
+                PreheatMin = PreheatMin,
+                PreheatMax = PreheatMax,
+                InterpassMax = InterpassMax,
+                PwhtRequired = PwhtRequired,
+                PqrId = PqrId,
+                LinkedPqrNumber = LinkedPqrNumber,
+                PNumber = PNumber,
+                FNumber = FNumber,
+                Position = Position,
+                MaterialGroup = MaterialGroup,
+                JointType = JointType,
+                JointDesign = JointDesign,
+                Backing = Backing,
+                BackingType = BackingType,
+                IsCompliant = IsCompliant,
+                ValidationStatus = ValidationStatus,
+                CurrentType = CurrentType,
+                Polarity = Polarity,
+                Progression = Progression,
+                JointDiagramPath = JointDiagramPath,
+                PassDiagramPath = PassDiagramPath,
+                QualifiedThicknessRange =
+                    QualifiedThicknessRange,
+
+                ParseConfidence =
+                    ParseConfidence,
+
+                ParseNotes =
+                    ParseNotes
+            };
+        }
+    }
+}

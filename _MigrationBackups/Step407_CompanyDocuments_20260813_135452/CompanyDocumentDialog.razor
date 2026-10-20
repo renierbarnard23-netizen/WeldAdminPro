@@ -1,0 +1,341 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Data.Services
+
+@inject DocumentStorageService DocumentStorageService
+@inject AdministrationApplicationService AdministrationService
+
+<MudDialog>
+
+    <DialogContent>
+
+        <MudText Typo="Typo.h6" Class="mb-4">
+            Add Company Document
+        </MudText>
+
+        <div class="row">
+
+            <div class="col-md-6 mt-3">
+
+                <MudSelect T="string"
+                           Label="Document Type"
+                           @bind-Value="_document.DocumentType"
+                           Variant="Variant.Outlined"
+                           Required="true">
+
+                    <MudSelectItem Value="@("Company Registration")">
+                        Company Registration
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="@("VAT Certificate")">
+                        VAT Certificate
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="@("Tax Clearance")">
+                        Tax Clearance
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="@("B-BBEE Certificate")">
+                        B-BBEE Certificate
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="@("Insurance")">
+                        Insurance
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="@("Bank Confirmation")">
+                        Bank Confirmation
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="@("ISO Certificate")">
+                        ISO Certificate
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="@("Welding / Quality Certificate")">
+                        Welding / Quality Certificate
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="@("Client Approval")">
+                        Client Approval
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="@("Other")">
+                        Other
+                    </MudSelectItem>
+
+                </MudSelect>
+
+            </div>
+
+            <div class="col-md-6 mt-3">
+
+                <MudTextField T="string"
+                              Label="Document Name"
+                              @bind-Value="_document.DocumentName"
+                              Variant="Variant.Outlined"
+                              Required="true" />
+
+            </div>
+
+            <div class="col-md-4 mt-3">
+
+                <MudDatePicker Label="Issue Date"
+                               @bind-Date="_document.IssueDate"
+                               Variant="Variant.Outlined"
+                               Clearable="true" />
+
+            </div>
+
+            <div class="col-md-4 mt-3">
+
+                <MudDatePicker Label="Expiry Date"
+                               @bind-Date="_document.ExpiryDate"
+                               Variant="Variant.Outlined"
+                               Clearable="true" />
+
+            </div>
+
+            <div class="col-md-4 mt-3">
+
+                <MudDatePicker Label="Review Date"
+                               @bind-Date="_document.ReviewDate"
+                               Variant="Variant.Outlined"
+                               Clearable="true" />
+
+            </div>
+
+            <div class="col-md-4 mt-3">
+
+                <MudCheckBox T="bool"
+                             Label="Requires Renewal"
+                             @bind-Value="_document.RequiresRenewal"
+                             Color="Color.Primary" />
+
+            </div>
+
+            <div class="col-md-4 mt-3">
+
+                <MudNumericField T="int"
+                                 Label="Reminder Days"
+                                 @bind-Value="_document.ReminderDays"
+                                 Variant="Variant.Outlined"
+                                 Min="0"
+                                 Max="3650" />
+
+            </div>
+
+            <div class="col-md-4 mt-3">
+
+                <MudCheckBox T="bool"
+                             Label="Not Applicable"
+                             @bind-Value="_document.IsNA"
+                             Color="Color.Primary" />
+
+            </div>
+
+            @if (_document.IsNA)
+            {
+                <div class="col-md-12 mt-3">
+
+                    <MudTextField T="string"
+                                  Label="N/A Reason"
+                                  @bind-Value="_document.NAReason"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  Required="true" />
+
+                </div>
+            }
+
+            @if (!_document.IsNA)
+            {
+                <div class="col-md-12 mt-4">
+
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">
+                        Document File
+                    </MudText>
+
+                    <InputFile OnChange="OnFileSelected" />
+
+                    @if (!string.IsNullOrWhiteSpace(_fileName))
+                    {
+                        <MudAlert Severity="Severity.Info"
+                                  Class="mt-3">
+
+                            Selected file:
+                            @_fileName
+
+                        </MudAlert>
+                    }
+
+                    @if (_uploadError)
+                    {
+                        <MudAlert Severity="Severity.Error"
+                                  Class="mt-3">
+
+                            Please select a document file before uploading.
+
+                        </MudAlert>
+                    }
+
+                </div>
+            }
+
+        </div>
+
+    </DialogContent>
+
+    <DialogActions>
+
+        <MudButton Color="Color.Secondary"
+                   OnClick="Cancel"
+                   Disabled="_saving">
+
+            Cancel
+
+        </MudButton>
+
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   Disabled="_saving"
+                   OnClick="Save">
+
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small"
+                                     Indeterminate="true"
+                                     Class="me-2" />
+            }
+
+            Save Document
+
+        </MudButton>
+
+    </DialogActions>
+
+</MudDialog>
+
+@code
+{
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public Guid CompanyId { get; set; }
+
+    private CompanyDocument _document = new()
+    {
+        DocumentType = "",
+        DocumentName = "",
+        FileName = "",
+        FilePath = "",
+        RequiresRenewal = true,
+        ReminderDays = 30,
+        IsNA = false,
+        NAReason = "",
+        UploadedDate = DateTime.UtcNow,
+        UploadedBy = "System",
+        IsActive = true
+    };
+
+    private IBrowserFile? _selectedFile;
+
+    private string? _fileName;
+
+    private bool _saving;
+
+    private bool _uploadError;
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+
+        _fileName = _selectedFile.Name;
+
+        _uploadError = false;
+    }
+
+    private void Cancel()
+    {
+        if (_saving)
+            return;
+
+        MudDialog.Cancel();
+    }
+
+    private async Task Save()
+    {
+        if (_saving)
+            return;
+
+        _uploadError = false;
+
+        if (string.IsNullOrWhiteSpace(_document.DocumentType))
+            return;
+
+        if (string.IsNullOrWhiteSpace(_document.DocumentName))
+            return;
+
+        if (_document.IsNA &&
+            string.IsNullOrWhiteSpace(_document.NAReason))
+            return;
+
+        if (!_document.IsNA &&
+            _selectedFile is null)
+        {
+            _uploadError = true;
+            return;
+        }
+
+        _saving = true;
+
+        try
+        {
+            _document.CompanyId = CompanyId;
+
+            if (!_document.IsNA &&
+                _selectedFile is not null)
+            {
+                await using var stream =
+                    _selectedFile.OpenReadStream(
+                        1024 * 1024 * 100);
+
+                var storedPath =
+                    await DocumentStorageService
+                        .SaveCompanyDocumentAsync(
+                            CompanyId,
+                            _selectedFile.Name,
+                            stream);
+
+                _document.FileName =
+                    _selectedFile.Name;
+
+                _document.FilePath =
+                    storedPath;
+            }
+            else
+            {
+                _document.FileName = "";
+                _document.FilePath = "";
+            }
+
+            _document.UploadedDate =
+                DateTime.UtcNow;
+
+            AdministrationService
+                .AddCompanyDocument(_document);
+
+            MudDialog.Close(
+                DialogResult.Ok(true));
+        }
+        catch
+        {
+            _uploadError = true;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

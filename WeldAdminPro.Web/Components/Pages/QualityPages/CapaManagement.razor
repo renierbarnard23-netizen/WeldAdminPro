@@ -1,0 +1,490 @@
+@page "/quality/capa"
+
+@using WeldAdminPro.Web.Components.Security
+@using MudBlazor
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Data.Services.Quality
+
+@attribute [Authorize(Policy = "Permission:Quality.NCR")]
+
+@inject CapaApplicationService CapaService
+@inject ISnackbar Snackbar
+
+<PageTitle>CAPA Management</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+
+    <MudStack Row="true"
+              Justify="Justify.SpaceBetween"
+              AlignItems="AlignItems.Center"
+              Class="mb-4">
+
+        <div>
+            <MudText Typo="Typo.h4">
+                CAPA Management
+            </MudText>
+
+            <MudText Typo="Typo.subtitle1"
+                     Color="Color.Secondary">
+                Corrective and preventive action register
+            </MudText>
+        </div>
+
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="LoadCapas">
+
+            Refresh
+
+        </MudButton>
+
+    </MudStack>
+
+    <MudGrid>
+
+        <MudItem xs="12" lg="8">
+
+            <MudPaper Class="pa-4">
+
+                <MudText Typo="Typo.h6"
+                         Class="mb-3">
+                    CAPA Register
+                </MudText>
+
+                <MudTable T="CapaRecord"
+                          Items="_capas"
+                          Hover="true"
+                          Dense="true"
+                          Striped="true"
+                          Breakpoint="Breakpoint.Sm"
+                          SelectedItem="_selectedCapa"
+                          SelectedItemChanged="SelectCapa">
+
+                    <HeaderContent>
+
+                        <MudTh>CAPA</MudTh>
+                        <MudTh>Title</MudTh>
+                        <MudTh>Assigned To</MudTh>
+                        <MudTh>Due Date</MudTh>
+                        <MudTh>Priority</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Effective</MudTh>
+
+                    </HeaderContent>
+
+                    <RowTemplate>
+
+                        <MudTd DataLabel="CAPA">
+                            @context.CapaNumber
+                        </MudTd>
+
+                        <MudTd DataLabel="Title">
+                            @context.Title
+                        </MudTd>
+
+                        <MudTd DataLabel="Assigned To">
+                            @context.AssignedTo
+                        </MudTd>
+
+                        <MudTd DataLabel="Due Date">
+                            @context.DueDate.ToString("yyyy-MM-dd")
+                        </MudTd>
+
+                        <MudTd DataLabel="Priority">
+
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Color="@GetPriorityColor(context.Priority)">
+                                @context.Priority.ToString()
+                            </MudChip>
+
+                        </MudTd>
+
+                        <MudTd DataLabel="Status">
+
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Color="@GetStatusColor(context.Status)">
+                                @context.Status.ToString()
+                            </MudChip>
+
+                        </MudTd>
+
+                        <MudTd DataLabel="Effective">
+
+                            @if (context.IsEffective)
+                            {
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="Color.Success">
+                                    Yes
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="Color.Default">
+                                    No
+                                </MudChip>
+                            }
+
+                        </MudTd>
+
+                    </RowTemplate>
+
+                    <NoRecordsContent>
+
+                        <MudText Class="pa-4">
+                            No CAPA records found.
+                        </MudText>
+
+                    </NoRecordsContent>
+
+                    <PagerContent>
+                        <MudTablePager />
+                    </PagerContent>
+
+                </MudTable>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <MudItem xs="12" lg="4">
+
+            <MudPaper Class="pa-4">
+
+                <MudText Typo="Typo.h6"
+                         Class="mb-3">
+                    CAPA Details
+                </MudText>
+
+                @if (_selectedCapa == null)
+                {
+                    <MudAlert Severity="Severity.Info">
+                        Select a CAPA from the register to view its details.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudStack Row="true"
+                              Justify="Justify.SpaceBetween"
+                              AlignItems="AlignItems.Center"
+                              Class="mb-3">
+
+                        <MudText Typo="Typo.subtitle1">
+                            <b>@_selectedCapa.CapaNumber</b>
+                        </MudText>
+
+                        @if (_selectedCapa.Status != CapaStatus.Verified)
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Verified"
+                                       OnClick="VerifySelectedCapa">
+
+                                Verify CAPA
+
+                            </MudButton>
+                        }
+
+                    </MudStack>
+
+                    <MudDivider Class="my-3" />
+
+                    <MudText Typo="Typo.caption">
+                        Title
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @DisplayValue(_selectedCapa.Title)
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        NCR
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @_selectedCapa.NcrId
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        Status
+                    </MudText>
+
+                    <div class="mb-3">
+
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@GetStatusColor(_selectedCapa.Status)">
+                            @_selectedCapa.Status.ToString()
+                        </MudChip>
+
+                    </div>
+
+                    <MudText Typo="Typo.caption">
+                        Priority
+                    </MudText>
+
+                    <div class="mb-3">
+
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@GetPriorityColor(_selectedCapa.Priority)">
+                            @_selectedCapa.Priority.ToString()
+                        </MudChip>
+
+                    </div>
+
+                    <MudText Typo="Typo.caption">
+                        Root Cause
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @DisplayValue(_selectedCapa.RootCause)
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        Corrective Action
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @DisplayValue(_selectedCapa.CorrectiveAction)
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        Preventive Action
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @DisplayValue(_selectedCapa.PreventiveAction)
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        Assigned To
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @DisplayValue(_selectedCapa.AssignedTo)
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        Due Date
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @_selectedCapa.DueDate.ToString("yyyy-MM-dd")
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        Created By
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @DisplayValue(_selectedCapa.CreatedBy)
+                    </MudText>
+
+                    <MudText Typo="Typo.caption">
+                        Created Date
+                    </MudText>
+
+                    <MudText Class="mb-3">
+                        @_selectedCapa.CreatedDate.ToString("yyyy-MM-dd HH:mm")
+                    </MudText>
+
+                    @if (_selectedCapa.CompletedDate.HasValue)
+                    {
+                        <MudText Typo="Typo.caption">
+                            Completed Date
+                        </MudText>
+
+                        <MudText Class="mb-3">
+                            @_selectedCapa.CompletedDate.Value.ToString("yyyy-MM-dd HH:mm")
+                        </MudText>
+                    }
+
+                    @if (_selectedCapa.IsEffective)
+                    {
+                        <MudAlert Severity="Severity.Success"
+                                  Dense="true"
+                                  Class="mt-3">
+
+                            CAPA is effective.
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                _selectedCapa.VerifiedBy))
+                            {
+                                <span>
+                                    Verified by @_selectedCapa.VerifiedBy
+                                </span>
+                            }
+
+                            @if (_selectedCapa.VerifiedDate.HasValue)
+                            {
+                                <span>
+                                    on @_selectedCapa.VerifiedDate.Value
+                                        .ToString("yyyy-MM-dd HH:mm")
+                                </span>
+                            }
+
+                        </MudAlert>
+                    }
+
+                }
+
+            </MudPaper>
+
+        </MudItem>
+
+    </MudGrid>
+
+</MudContainer>
+
+@code
+{
+    private List<CapaRecord> _capas = new();
+
+    private CapaRecord? _selectedCapa;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCapas();
+    }
+
+    private async Task LoadCapas()
+    {
+        try
+        {
+            _capas =
+                (await CapaService
+                    .GetAll())
+                    .OrderByDescending(x => x.CreatedDate)
+                    .ToList();
+
+            if (_selectedCapa != null)
+            {
+                _selectedCapa =
+                    _capas.FirstOrDefault(
+                        x => x.Id == _selectedCapa.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to load CAPA register: {ex.Message}",
+                Severity.Error);
+        }
+    }
+
+    private void SelectCapa(CapaRecord? capa)
+    {
+        _selectedCapa = capa;
+    }
+
+    private async Task VerifySelectedCapa()
+    {
+        if (_selectedCapa == null)
+        {
+            Snackbar.Add(
+                "Select a CAPA before verification.",
+                Severity.Warning);
+
+            return;
+        }
+
+        if (_selectedCapa.Status == CapaStatus.Verified)
+        {
+            Snackbar.Add(
+                "This CAPA has already been verified.",
+                Severity.Warning);
+
+            return;
+        }
+
+        try
+        {
+            var capaId = _selectedCapa.Id;
+
+            await CapaService.Verify(
+                _selectedCapa,
+                Environment.UserName);
+
+            await LoadCapas();
+
+            _selectedCapa =
+                _capas.FirstOrDefault(
+                    x => x.Id == capaId);
+
+            Snackbar.Add(
+                "CAPA verified successfully.",
+                Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to verify CAPA: {ex.Message}",
+                Severity.Error);
+        }
+    }
+
+    private static string DisplayValue(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? "Not recorded"
+            : value;
+    }
+
+    private static Color GetPriorityColor(
+        CapaPriority priority)
+    {
+        return priority switch
+        {
+            CapaPriority.Low =>
+                Color.Default,
+
+            CapaPriority.Medium =>
+                Color.Info,
+
+            CapaPriority.High =>
+                Color.Warning,
+
+            CapaPriority.Critical =>
+                Color.Error,
+
+            _ =>
+                Color.Default
+        };
+    }
+
+    private static Color GetStatusColor(
+        CapaStatus status)
+    {
+        return status switch
+        {
+            CapaStatus.Open =>
+                Color.Error,
+
+            CapaStatus.Investigation =>
+                Color.Warning,
+
+            CapaStatus.CorrectiveAction =>
+                Color.Warning,
+
+            CapaStatus.Verification =>
+                Color.Info,
+
+            CapaStatus.Verified =>
+                Color.Success,
+
+            CapaStatus.Closed =>
+                Color.Dark,
+
+            _ =>
+                Color.Default
+        };
+    }
+}

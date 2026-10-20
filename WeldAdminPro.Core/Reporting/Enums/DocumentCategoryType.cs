@@ -1,4 +1,4 @@
-namespace WeldAdminPro.Core.Reporting.Enums
+﻿namespace WeldAdminPro.Core.Reporting.Enums
 {
     public enum DocumentCategoryType
     {
@@ -15,6 +15,8 @@ namespace WeldAdminPro.Core.Reporting.Enums
         CalibrationCertificate = 5,
 
         InspectionReport = 6,
+        PQR = 7,
+
 
         Other = 99
     }

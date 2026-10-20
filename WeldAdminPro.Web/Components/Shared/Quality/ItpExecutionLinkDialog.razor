@@ -1,0 +1,321 @@
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Data.Services.Quality
+
+@inject InspectionTestPlanApplicationService ItpService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+
+    <DialogContent>
+
+        @if (Item != null)
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                <strong>ITP Item:</strong>
+                @Item.SequenceNumber - @Item.Activity
+            </MudAlert>
+
+            <MudSelect T="InspectionTestPlanExecutionType"
+                       Label="Execution Type"
+                       Variant="Variant.Outlined"
+                       @bind-Value="_executionType">
+
+                <MudSelectItem Value="InspectionTestPlanExecutionType.HoldPoint">
+                    Hold Point
+                </MudSelectItem>
+
+                <MudSelectItem Value="InspectionTestPlanExecutionType.NdtResult">
+                    NDT Result
+                </MudSelectItem>
+
+            </MudSelect>
+
+            @if (_executionType == InspectionTestPlanExecutionType.HoldPoint)
+            {
+                <MudSelect T="Guid?"
+                           Label="Existing Hold Point"
+                           Variant="Variant.Outlined"
+                           Class="mt-4"
+                           @bind-Value="_holdPointId">
+
+                    <MudSelectItem T="Guid?" Value="@((Guid?)null)">
+                        Select Hold Point
+                    </MudSelectItem>
+
+                    @foreach (var holdPoint in HoldPoints)
+                    {
+                        var weld = ProjectWelds
+                            .FirstOrDefault(w => w.Id == holdPoint.WeldId);
+
+                        <MudSelectItem T="Guid?" Value="@holdPoint.Id">
+                            @GetHoldPointDisplay(holdPoint, weld)
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+            }
+            else
+            {
+                <MudSelect T="Guid?"
+                           Label="Existing NDT Result"
+                           Variant="Variant.Outlined"
+                           Class="mt-4"
+                           @bind-Value="_ndtResultId">
+
+                    <MudSelectItem T="Guid?" Value="@((Guid?)null)">
+                        Select NDT Result
+                    </MudSelectItem>
+
+                    @foreach (var ndt in NdtResults)
+                    {
+                        var weld = ProjectWelds
+                            .FirstOrDefault(w => w.Id == ndt.WeldId);
+
+                        <MudSelectItem T="Guid?" Value="@ndt.Id">
+                            @GetNdtDisplay(ndt, weld)
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+            }
+
+            <MudTextField T="string"
+                          Label="Link Notes"
+                          Variant="Variant.Outlined"
+                          Class="mt-4"
+                          @bind-Value="_notes" />
+
+            @if (_executions.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">
+                    Existing Linked Executions
+                </MudText>
+
+                <MudTable Items="_executions"
+                          Dense="true"
+                          Hover="true"
+                          Bordered="true">
+
+                    <HeaderContent>
+                        <MudTh>Type</MudTh>
+                        <MudTh>Record</MudTh>
+                        <MudTh>Linked By</MudTh>
+                        <MudTh>Linked On</MudTh>
+                        <MudTh>Notes</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate>
+                        <MudTd DataLabel="Type">
+                            @context.ExecutionType
+                        </MudTd>
+
+                        <MudTd DataLabel="Record">
+                            @context.ExecutionRecordId
+                        </MudTd>
+
+                        <MudTd DataLabel="Linked By">
+                            @context.LinkedBy
+                        </MudTd>
+
+                        <MudTd DataLabel="Linked On">
+                            @context.LinkedOn.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                        </MudTd>
+
+                        <MudTd DataLabel="Notes">
+                            @context.Notes
+                        </MudTd>
+
+                        <MudTd>
+                            @if (AllowChanges)
+                            {
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Text"
+                                           Color="Color.Error"
+                                           OnClick="@(() => UnlinkExecutionAsync(context.Id))">
+                                    UNLINK
+                                </MudButton>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+
+                </MudTable>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-4">
+                    No executions are currently linked to this ITP item.
+                </MudAlert>
+            }
+        }
+
+    </DialogContent>
+
+    <DialogActions>
+
+        <MudButton Variant="Variant.Text"
+                   OnClick="Cancel">
+            CLOSE
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(!CanLink)"
+                   OnClick="LinkExecutionAsync">
+            LINK EXECUTION
+        </MudButton>
+
+    </DialogActions>
+
+</MudDialog>
+
+@code
+{
+    [CascadingParameter]
+    public IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public InspectionTestPlanItem Item { get; set; } = new();
+
+    [Parameter]
+    public List<Weld> ProjectWelds { get; set; } = new();
+
+    [Parameter]
+    public List<WeldHoldPoint> HoldPoints { get; set; } = new();
+
+    [Parameter]
+    public List<WeldNdtResult> NdtResults { get; set; } = new();
+
+    [Parameter]
+    public bool AllowChanges { get; set; }
+
+    private InspectionTestPlanExecutionType _executionType =
+        InspectionTestPlanExecutionType.HoldPoint;
+
+    private Guid? _holdPointId;
+    private Guid? _ndtResultId;
+    private string _notes = string.Empty;
+
+    private List<InspectionTestPlanExecution> _executions = new();
+
+    private bool CanLink =>
+        AllowChanges &&
+        ((_executionType == InspectionTestPlanExecutionType.HoldPoint &&
+          _holdPointId.HasValue) ||
+         (_executionType == InspectionTestPlanExecutionType.NdtResult &&
+          _ndtResultId.HasValue));
+
+    protected override async Task OnInitializedAsync()
+    {
+        _executionType = ParseExecutionType(Item.ExecutionType);
+
+        _executions =
+            await ItpService.GetExecutionsAsync(Item.Id);
+    }
+
+    private static InspectionTestPlanExecutionType ParseExecutionType(
+        string executionType)
+    {
+        return Enum.TryParse<InspectionTestPlanExecutionType>(
+            executionType,
+            true,
+            out var result)
+                ? result
+                : InspectionTestPlanExecutionType.HoldPoint;
+    }
+
+    private string GetHoldPointDisplay(
+        WeldHoldPoint holdPoint,
+        Weld? weld)
+    {
+        var weldNumber = string.IsNullOrWhiteSpace(weld?.WeldNumber)
+            ? holdPoint.WeldId.ToString()
+            : weld.WeldNumber;
+
+        return $"{weldNumber} | {holdPoint.HoldPointType} | " +
+               $"{holdPoint.Category} | {holdPoint.Status}";
+    }
+
+    private string GetNdtDisplay(
+        WeldNdtResult ndt,
+        Weld? weld)
+    {
+        var weldNumber = string.IsNullOrWhiteSpace(weld?.WeldNumber)
+            ? ndt.WeldId.ToString()
+            : weld.WeldNumber;
+
+        return $"{weldNumber} | {ndt.NdtMethod} | " +
+               $"{ndt.Result} | {ndt.ReportNumber}";
+    }
+
+    private async Task LinkExecutionAsync()
+    {
+        if (!CanLink)
+            return;
+
+        try
+        {
+            var executionRecordId =
+                _executionType ==
+                InspectionTestPlanExecutionType.HoldPoint
+                    ? _holdPointId!.Value.ToString()
+                    : _ndtResultId!.Value.ToString();
+
+            await ItpService.LinkExecutionAsync(
+                Item.Id,
+                _executionType,
+                executionRecordId,
+                _notes.Trim());
+
+            _executions =
+                await ItpService.GetExecutionsAsync(Item.Id);
+
+            _holdPointId = null;
+            _ndtResultId = null;
+            _notes = string.Empty;
+
+            Snackbar.Add(
+                "Execution record linked to the ITP item.",
+                Severity.Success);
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task UnlinkExecutionAsync(Guid executionId)
+    {
+        if (!AllowChanges)
+            return;
+
+        try
+        {
+            await ItpService.UnlinkExecutionAsync(executionId);
+
+            _executions =
+                await ItpService.GetExecutionsAsync(Item.Id);
+
+            Snackbar.Add(
+                "Execution record unlinked from the ITP item.",
+                Severity.Success);
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

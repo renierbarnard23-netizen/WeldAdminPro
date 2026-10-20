@@ -9,6 +9,12 @@ namespace WeldAdminPro.Data.Services
 {
 	public class ProductionScheduleService
 	{
+         private readonly ProductionSettingsRepository _settingsRepository;
+
+         public ProductionScheduleService()
+         {
+                 _settingsRepository = new ProductionSettingsRepository();
+         }
 		public List<ProductionScheduleItem> GetSchedule()
 		{
 			var repo = new WorkOrderRepository();
@@ -44,10 +50,18 @@ namespace WeldAdminPro.Data.Services
 					$"{wo.WorkOrderNumber} | Estimated Hours = {wo.EstimatedHours}");
 
                 double hours = wo.EstimatedHours > 0 ? wo.EstimatedHours : 8;
-                double days =
-					Math.Max(
-						1,
-						Math.Ceiling(hours / 8.0));
+						var settings = _settingsRepository.Get();
+						double dailyCapacity = settings.DailyCapacity;
+
+						if (dailyCapacity <= 0)
+						{
+						    dailyCapacity = 8;
+						}
+
+						double days =
+						         Math.Max(
+						                 1,
+						                 Math.Ceiling(hours / dailyCapacity));
 
                 var schedule = new ProductionScheduleItem
 				{

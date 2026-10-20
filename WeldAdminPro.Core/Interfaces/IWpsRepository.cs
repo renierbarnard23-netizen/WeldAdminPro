@@ -1,4 +1,4 @@
-using WeldAdminPro.Core.Quality;
+﻿using WeldAdminPro.Core.Quality;
 
 namespace WeldAdminPro.Core.Interfaces
 {
@@ -17,5 +17,7 @@ namespace WeldAdminPro.Core.Interfaces
         void DeactivatePrevious(string wpsNumber);
 
         int GetNextRevision(string wpsNumber);
+
+        void SaveRevision(Wps previous, Wps revision);
     }
 }

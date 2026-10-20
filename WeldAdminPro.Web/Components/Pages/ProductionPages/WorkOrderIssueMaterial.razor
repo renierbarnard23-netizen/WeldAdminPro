@@ -1,12 +1,14 @@
-@page "/production/workorders/issue/{Id:guid}"
+﻿@page "/production/workorders/issue/{Id:guid}"
 
 @attribute [Authorize(Policy = "Permission:Production.IssueMaterial")]
 @using MudBlazor
 @using WeldAdminPro.Core.Models
 @using WeldAdminPro.Data.Services.Production
+@using WeldAdminPro.Data.Services.Projects
 
 @inject NavigationManager Navigation
 @inject ProductionApplicationService ProductionService
+@inject ProjectApplicationService ProjectService
 @inject ISnackbar Snackbar
 
 <PageTitle>Issue Material</PageTitle>
@@ -202,12 +204,12 @@
 
     private decimal _quantity = 1;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Load();
+        await LoadAsync();
     }
 
-    private void Load()
+    private async Task LoadAsync()
     {
         _loading = true;
 
@@ -219,8 +221,7 @@
             return;
         }
 
-        _project = ProductionService
-            .GetProjects()
+        _project = (await ProjectService.GetProjectsAsync())
             .FirstOrDefault(x => x.Id == _workOrder.ProjectId);
 
         _stockItems =
@@ -232,7 +233,7 @@
         _loading = false;
     }
 
-    private void IssueMaterial()
+    private async Task IssueMaterial()
     {
         if (_workOrder == null)
         {
@@ -272,7 +273,7 @@
 
         try
         {
-            ProductionService.IssueMaterial(
+            await ProductionService.IssueMaterialAsync(
                 _project,
                 _selectedItem,
                 (int)_quantity,
@@ -301,3 +302,4 @@
     }
 
 }
+

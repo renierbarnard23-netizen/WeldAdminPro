@@ -1,0 +1,175 @@
+﻿===== FILE =====
+.\WeldAdminPro.Web\Components\Pages\QualityPages\InspectionTestPlanDetail.razor
+
+===== HOLD POINT REFERENCES =====
+16: @inject HoldPointRepository HoldPointRepository
+208: Value="@((InspectionTestPlanExecutionType?)InspectionTestPlanExecutionType.HoldPoint)">
+300: @(context.HoldPointCategory?.ToString() ?? "-")
+358: private readonly List<WeldHoldPoint> _dialogHoldPoints = new();
+521: HoldPointCategory = qcpItem.HoldPointCategory,
+522: HoldPointType = qcpItem.HoldPointType,
+555: _dialogHoldPoints.Clear();
+564: _dialogHoldPoints.AddRange(
+565: HoldPointRepository.GetByWeld(weld.Id));
+582: ["HoldPoints"] = _dialogHoldPoints,
+621: await ItpService.ApproveAsync(PlanId);
+
+===== INJECTION / SERVICES =====
+1: @page "/quality/itp/{ProjectId:guid}/plan/{PlanId:guid}"
+2: @attribute [Authorize(Policy = "Permission:Quality.ITP")]
+12: @inject ProjectApplicationService ProjectService
+13: @inject ProjectQualityControlPlanApplicationService QcpService
+14: @inject InspectionTestPlanApplicationService ItpService
+15: @inject WeldRegisterApplicationService WeldService
+16: @inject HoldPointRepository HoldPointRepository
+17: @inject WeldNdtRepository NdtRepository
+18: @inject NavigationManager Navigation
+19: @inject ISnackbar Snackbar
+20: @inject IDialogService DialogService
+55: OnClick="BackToItp">
+56: ITP REVISIONS
+59: @if (_plan.Status == InspectionTestPlanStatus.Draft)
+66: APPROVE ITP
+76: <MudText Typo="Typo.caption">ITP Number</MudText>
+77: <MudText Typo="Typo.body1">@_plan.ItpNumber</MudText>
+137: @if (_plan.Status == InspectionTestPlanStatus.Draft)
+141: Add ITP Item From Active QCP
+145: ITP items are created as snapshots of the selected active QCP item.
+146: Changes to the QCP after this point do not live-update the ITP item.
+153: An active QCP is required before ITP items can be created.
+195: Label="ITP Sequence"
+202: <MudSelect T="InspectionTestPlanExecutionType?"
+207: <MudSelectItem T="InspectionTestPlanExecutionType?"
+208: Value="@((InspectionTestPlanExecutionType?)InspectionTestPlanExecutionType.HoldPoint)">
+211: <MudSelectItem T="InspectionTestPlanExecutionType?"
+212: Value="@((InspectionTestPlanExecutionType?)InspectionTestPlanExecutionType.NdtResult)">
+232: ADD ITP ITEM
+242: ITP Inspection Items
+248: No ITP items have been created for this revision.
+322: @if (_plan.Status == InspectionTestPlanStatus.Draft)
+348: private InspectionTestPlan? _plan;
+352: private List<InspectionTestPlanItem> _items = new();
+368: private InspectionTestPlanExecutionType? _newExecutionType;
+385: _plan = await ItpService.GetByIdAsync(PlanId);
+392: _items = await ItpService.GetItemsAsync(PlanId);
+431: _qcpLineage[item.Id] = await ItpService.GetQcpLineageAsync(item.Id);
+438: $"Unable to load QCP lineage for ITP item {item.SequenceNumber}: {ex.Message}",
+480: var executions = await ItpService.GetExecutionsAsync(item.Id);
+508: var item = new InspectionTestPlanItem
+511: InspectionTestPlanId = PlanId,
+530: await ItpService.AddItemAsync(item);
+532: Snackbar.Add("ITP item added.", Severity.Success);
+534: _items = await ItpService.GetItemsAsync(PlanId);
+565: HoldPointRepository.GetByWeld(weld.Id));
+568: NdtRepository.GetByWeld(weld.Id));
+573: InspectionTestPlanItem item)
+575: if (_plan?.Status != InspectionTestPlanStatus.Draft)
+584: ["AllowChanges"] = _plan.Status == InspectionTestPlanStatus.Draft
+587: var dialog = await DialogService.ShowAsync<ItpExecutionLinkDialog>(
+599: private async Task DeleteItem(InspectionTestPlanItem item)
+603: await ItpService.DeleteItemAsync(item.Id);
+605: Snackbar.Add("ITP item deleted.", Severity.Success);
+607: _items = await ItpService.GetItemsAsync(PlanId);
+621: await ItpService.ApproveAsync(PlanId);
+623: Snackbar.Add("ITP approved and activated.", Severity.Success);
+633: private void BackToItp()
+635: Navigation.NavigateTo($"/quality/itp/{ProjectId}");
+638: private static Color GetStatusColor(InspectionTestPlanStatus status)
+642: InspectionTestPlanStatus.Draft => Color.Warning,
+643: InspectionTestPlanStatus.Active => Color.Success,
+644: InspectionTestPlanStatus.Superseded => Color.Info,
+645: InspectionTestPlanStatus.Closed => Color.Default,
+
+===== INTERACTIVE ELEMENTS =====
+53: <MudButton Variant="Variant.Outlined"
+55: OnClick="BackToItp">
+61: <MudButton Variant="Variant.Filled"
+64: OnClick="ApprovePlan"
+160: <MudSelect T="Guid?"
+162: @bind-Value="_selectedQcpId"
+163: @bind-Value:after="OnQcpChangedSync"
+169: <MudSelectItem T="Guid?" Value="@((Guid?)qcp.Id)">
+177: <MudSelect T="Guid?"
+179: @bind-Value="_selectedQcpItemId"
+186: <MudSelectItem T="Guid?" Value="@((Guid?)item.Id)">
+196: @bind-Value="_newSequence"
+202: <MudSelect T="InspectionTestPlanExecutionType?"
+204: @bind-Value="_newExecutionType"
+207: <MudSelectItem T="InspectionTestPlanExecutionType?"
+211: <MudSelectItem T="InspectionTestPlanExecutionType?"
+221: @bind-Value="_newNotes"
+227: <MudButton Variant="Variant.Filled"
+230: OnClick="AddItem"
+315: <MudButton Size="Size.Small"
+318: OnClick="@(() => OpenExecutionDialogAsync(context))">
+324: <MudButton Size="Size.Small"
+327: OnClick="@(() => DeleteItem(context))">
+
+===== HOLD POINT METHODS / EXECUTION =====
+16: @inject HoldPointRepository HoldPointRepository
+20: @inject IDialogService DialogService
+64: OnClick="ApprovePlan"
+66: APPROVE ITP
+107: @if (!string.IsNullOrWhiteSpace(_plan.ApprovedBy))
+110: <MudText Typo="Typo.caption">Approved By</MudText>
+111: <MudText Typo="Typo.body2">@_plan.ApprovedBy</MudText>
+115: @if (_plan.ApprovedOn.HasValue)
+118: <MudText Typo="Typo.caption">Approved On</MudText>
+120: @_plan.ApprovedOn.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+202: <MudSelect T="InspectionTestPlanExecutionType?"
+203: Label="Execution Type"
+204: @bind-Value="_newExecutionType"
+207: <MudSelectItem T="InspectionTestPlanExecutionType?"
+208: Value="@((InspectionTestPlanExecutionType?)InspectionTestPlanExecutionType.HoldPoint)">
+211: <MudSelectItem T="InspectionTestPlanExecutionType?"
+212: Value="@((InspectionTestPlanExecutionType?)InspectionTestPlanExecutionType.NdtResult)">
+231: Disabled="@(_selectedQcpId == null || _selectedQcpItemId == null || !_newExecutionType.HasValue)">
+269: <MudTh>Execution</MudTh>
+270: <MudTh>Executions</MudTh>
+300: @(context.HoldPointCategory?.ToString() ?? "-")
+308: <MudTd DataLabel="Execution">
+309: @context.ExecutionType
+311: <MudTd DataLabel="Executions">
+312: @_executionCounts.GetValueOrDefault(context.Id, 0)
+318: OnClick="@(() => OpenExecutionDialogAsync(context))">
+319: LINK EXECUTION
+354: private Dictionary<Guid, int> _executionCounts = new();
+358: private readonly List<WeldHoldPoint> _dialogHoldPoints = new();
+359: private readonly List<WeldNdtResult> _dialogNdtResults = new();
+368: private InspectionTestPlanExecutionType? _newExecutionType;
+375: await LoadAsync();
+378: private async Task LoadAsync()
+394: await LoadExecutionCountsAsync();
+395: await LoadProjectExecutionSourcesAsync();
+474: private async Task LoadExecutionCountsAsync()
+476: _executionCounts.Clear();
+480: var executions = await ItpService.GetExecutionsAsync(item.Id);
+481: _executionCounts[item.Id] = executions.Count;
+489: !_newExecutionType.HasValue)
+492: "Select an active QCP revision, QCP item and execution type.",
+521: HoldPointCategory = qcpItem.HoldPointCategory,
+522: HoldPointType = qcpItem.HoldPointType,
+526: ExecutionType = _newExecutionType.Value.ToString(),
+536: await LoadExecutionCountsAsync();
+543: _newExecutionType = null;
+552: private async Task LoadProjectExecutionSourcesAsync()
+555: _dialogHoldPoints.Clear();
+556: _dialogNdtResults.Clear();
+564: _dialogHoldPoints.AddRange(
+565: HoldPointRepository.GetByWeld(weld.Id));
+567: _dialogNdtResults.AddRange(
+572: private async Task OpenExecutionDialogAsync(
+578: var parameters = new DialogParameters
+582: ["HoldPoints"] = _dialogHoldPoints,
+583: ["NdtResults"] = _dialogNdtResults,
+587: var dialog = await DialogService.ShowAsync<ItpExecutionLinkDialog>(
+588: "Link Execution Evidence",
+591: var result = await dialog.Result;
+596: await LoadExecutionCountsAsync();
+609: await LoadExecutionCountsAsync();
+617: private async Task ApprovePlan()
+621: await ItpService.ApproveAsync(PlanId);
+623: Snackbar.Add("ITP approved and activated.", Severity.Success);
+625: await LoadAsync();
+
+===== AUDIT COMPLETE — NO CHANGES MADE =====

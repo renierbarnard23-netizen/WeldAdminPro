@@ -3,16 +3,17 @@
 @attribute [Authorize(Policy = "Permission:Quality.WeldRegister")]
 @using MudBlazor
 @using WeldAdminPro.Core.Models
-@using WeldAdminPro.Data.Repositories
 @using WeldAdminPro.Core.Quality
 @using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Data.Services.Quality
+@using WeldAdminPro.Web.Services.Quality
 
 @inject ISnackbar Snackbar
 
-@inject WelderQualificationRepository QualificationRepository
-@inject WpsRepository WpsRepository
+@inject WelderQualificationApplicationService QualificationService
+@inject WpsApplicationService WpsService
 
-@inject WeldRepository WeldRepository
+@inject WeldRegisterApplicationService WeldService
 @inject NavigationManager Navigation
 
 <PageTitle>New Weld</PageTitle>
@@ -54,16 +55,19 @@
 
         <MudItem xs="12" md="6">
 
-            <MudSelect T="string"
+            <MudSelect T="Guid?"
                        Label="WPS"
-                       @bind-Value="_weld.WpsNumber">
+                       Value="_weld.WpsId"
+                       ValueChanged="OnWpsChanged"
+                       Required="true"
+                       RequiredError="Please select an approved WPS revision.">
 
                 @foreach (var wps in _wpsList)
                 {
-                    <MudSelectItem T="string"
-                                   Value="@wps.WpsNumber">
+                    <MudSelectItem T="Guid?"
+                                   Value="@((Guid?)wps.Id)">
 
-                        @wps.WpsNumber
+                        @($"{wps.WpsNumber} - Rev {wps.Revision}")
 
                     </MudSelectItem>
                 }
@@ -79,7 +83,7 @@
                        Value="_weld.WelderNumber"
                        ValueChanged="OnWelderChanged">
 
-                @foreach (var welder in _qualifiedWelders)
+                @foreach (var welder in FilteredQualifiedWelders)
                 {
                     <MudSelectItem T="string"
                                    Value="@welder.WelderNumber">
@@ -242,9 +246,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _wpsList = WpsRepository.GetAll();
+        _wpsList = await WpsService.GetForProjectAsync(ProjectId);
 
-        _qualifiedWelders = QualificationRepository.GetAll();
+        _qualifiedWelders = await QualificationService.GetAllAsync();
 
         _weld.ProjectId = ProjectId;
 
@@ -257,7 +261,7 @@
             WeldWorkflowStatus.Draft;
 
         _weld.WeldNumber =
-            await WeldRepository.GetNextWeldNumberAsync(ProjectId);
+            await WeldService.GetNextWeldNumberAsync(ProjectId);
     }
 
     private async Task Save()
@@ -272,11 +276,28 @@
         _weld.WorkflowStatus =
             WeldWorkflowStatus.Draft;
 
-        if (string.IsNullOrWhiteSpace(_weld.WpsNumber))
+        if (!_weld.WpsId.HasValue ||
+            _weld.WpsId.Value == Guid.Empty)
         {
-            Snackbar.Add("Please select a WPS.", Severity.Warning);
+            Snackbar.Add(
+                "Please select an approved WPS revision.",
+                Severity.Warning);
             return;
         }
+
+        var selectedWps =
+            _wpsList.FirstOrDefault(x =>
+                x.Id == _weld.WpsId.Value);
+
+        if (selectedWps == null)
+        {
+            Snackbar.Add(
+                "The selected WPS revision is no longer available.",
+                Severity.Warning);
+            return;
+        }
+
+        _weld.WpsNumber = selectedWps.WpsNumber;
 
         if (string.IsNullOrWhiteSpace(_weld.WelderNumber))
         {
@@ -295,7 +316,7 @@
 
         try
         {
-            await WeldRepository.AddAsync(_weld);
+            await WeldService.AddWeldAsync(_weld);
 
             Snackbar.Add(
                 "Weld successfully created.",
@@ -312,12 +333,101 @@
         }
     }
 
+    private IEnumerable<WelderQualification> FilteredQualifiedWelders
+    {
+        get
+        {
+            var candidates = _qualifiedWelders
+                .Where(x => x.IsActive)
+                .Where(x => x.ExpiryDate.Date >= DateTime.Today);
+
+            var selectedWps = _wpsList.FirstOrDefault(x =>
+                _weld.WpsId.HasValue &&
+                x.Id == _weld.WpsId.Value);
+
+            if (selectedWps == null)
+            {
+                return candidates
+                    .OrderBy(x => x.WelderNumber);
+            }
+
+            var wpsProcess = NormalizeProcess(selectedWps.Process);
+            var wpsMaterial = WeldAdminPro.Core.Quality.Normalization.ComplianceNormalizer.NormalizeMaterialGroup(selectedWps.MaterialGroup);
+
+            if (!string.IsNullOrWhiteSpace(wpsProcess))
+            {
+                candidates = candidates.Where(x =>
+                    string.Equals(
+                        NormalizeProcess(x.Process),
+                        wpsProcess,
+                        StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(wpsMaterial))
+            {
+                candidates = candidates.Where(x =>
+                    string.Equals(
+                        WeldAdminPro.Core.Quality.Normalization.ComplianceNormalizer.NormalizeMaterialGroup(x.MaterialGroup),
+                        wpsMaterial,
+                        StringComparison.OrdinalIgnoreCase));
+            }
+
+            // A new weld initially has thickness 0. Do not hide every welder
+            // until the user has entered a positive weld thickness.
+            if (_weld.Thickness > 0)
+            {
+                candidates = candidates.Where(x =>
+                    _weld.Thickness >= x.ThicknessMin &&
+                    _weld.Thickness <= x.ThicknessMax);
+            }
+
+            return candidates
+                .OrderBy(x => x.WelderNumber);
+        }
+    }
+
+    private static string NormalizeSelectionValue(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? string.Empty
+            : value.Trim().Replace(" ", string.Empty);
+    }
+
+    private static string NormalizeProcess(string? value)
+    {
+        var normalized = NormalizeSelectionValue(value).ToUpperInvariant();
+
+        return normalized switch
+        {
+            "TIG" => "GTAW",
+            "GTAW" => "GTAW",
+            "MIG" => "GMAW",
+            "MAG" => "GMAW",
+            "GMAW" => "GMAW",
+            _ => normalized
+        };
+    }
+    private Task OnWpsChanged(Guid? wpsId)
+    {
+        _weld.WpsId = wpsId;
+
+        var selectedWps =
+            wpsId.HasValue
+                ? _wpsList.FirstOrDefault(x => x.Id == wpsId.Value)
+                : null;
+
+        _weld.WpsNumber =
+            selectedWps?.WpsNumber ?? string.Empty;
+
+        return Task.CompletedTask;
+    }
+
     private Task OnWelderChanged(string? welderNumber)
 {
     _weld.WelderNumber = welderNumber ?? "";
 
     _selectedQualification =
-        _qualifiedWelders.FirstOrDefault(x =>
+        FilteredQualifiedWelders.FirstOrDefault(x =>
             x.WelderNumber == _weld.WelderNumber);
 
     if (_selectedQualification != null)
@@ -336,3 +446,9 @@
     _weld.Thickness <= _selectedQualification.ThicknessMax;
         
 }
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-﻿using WeldAdminPro.Core.Security;
+using WeldAdminPro.Core.Security;
 using WeldAdminPro.Web.Models.Navigation;
 using WeldAdminPro.Web.Services.Security;
 using WeldAdminPro.Data.Services.Security;
@@ -230,6 +230,13 @@ public class NavigationService
 
                     new()
                     {
+                        Text = "Inspection Test Plans",
+                        Url = "/quality/itp",
+                        Permission = PermissionKeys.Quality.ITP
+                    },
+
+                    new()
+                    {
                         Text = "QCP Master Activity Library",
                         Url = "/quality/qcp-master",
                         Permission = PermissionKeys.Quality.QCPMaster
@@ -245,7 +252,14 @@ public class NavigationService
                     new()
                     {
                         Text = "Welder Qualifications",
-                        Url = "/quality/welders"
+                        Url = "/quality/welderqualifications"
+                    },
+
+                    new()
+                    {
+                        Text = "WPQR",
+                        Url = "/quality/wpqr",
+                        Permission = PermissionKeys.Quality.WPQR
                     },
 
                     new()
@@ -407,6 +421,7 @@ public class NavigationService
         return copy;
     }
 }
+
 
 
 

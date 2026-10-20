@@ -66,6 +66,16 @@
     <MudItem xs="12" sm="6" md="3">
         <MudButton FullWidth="true"
                    Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.SettingsInputComponent"
+                   OnClick="@(() => Nav.NavigateTo("/quality/equipment"))">
+            Equipment & Calibration
+        </MudButton>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudButton FullWidth="true"
+                   Variant="Variant.Filled"
                    Color="Color.Dark"
                    StartIcon="@Icons.Material.Filled.Folder"
                    OnClick="@(() => Nav.NavigateTo("/quality/documents"))">

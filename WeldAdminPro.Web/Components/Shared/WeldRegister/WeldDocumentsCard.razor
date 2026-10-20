@@ -1,0 +1,244 @@
+﻿@using MudBlazor
+@using WeldAdminPro.Core.Reporting.Enums
+@using WeldAdminPro.Core.Reporting.Models
+@using WeldAdminPro.Core.Security
+@using WeldAdminPro.Web.Services.Reporting
+@using Microsoft.AspNetCore.Components.Forms
+
+@inject DocumentVaultApplicationService DocumentService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudPaper Class="pa-4 mt-4">
+
+    <MudStack Row="true"
+              Justify="Justify.SpaceBetween"
+              AlignItems="AlignItems.Center"
+              Class="mb-3">
+
+        <MudText Typo="Typo.h6">
+            Weld Documents
+        </MudText>
+
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.UploadFile"
+                   Disabled="@(_weldId == Guid.Empty)"
+                   OnClick="OpenUpload">
+            Upload
+        </MudButton>
+
+    </MudStack>
+
+    @if (_weldId == Guid.Empty)
+    {
+        <MudAlert Severity="Severity.Info">
+            Select a weld to view documents.
+        </MudAlert>
+    }
+    else if (!_documents.Any())
+    {
+        <MudAlert Severity="Severity.Info">
+            No documents linked to this weld.
+        </MudAlert>
+    }
+    else
+    {
+        <MudStack Spacing="2">
+
+            @foreach (var document in _documents)
+            {
+                <MudPaper Outlined="true" Class="pa-3">
+
+                    <MudStack Row="true"
+                              Justify="Justify.SpaceBetween"
+                              AlignItems="AlignItems.Start">
+
+                        <MudStack Spacing="0">
+
+                            <MudText Typo="Typo.subtitle2">
+                                @document.FileName
+                            </MudText>
+
+                            <MudText Typo="Typo.caption">
+                                @document.Category
+                            </MudText>
+
+                            @if (!string.IsNullOrWhiteSpace(document.DocumentNumber))
+                            {
+                                <MudText Typo="Typo.caption">
+                                    Document No: @document.DocumentNumber
+                                </MudText>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(document.Revision))
+                            {
+                                <MudText Typo="Typo.caption">
+                                    Revision: @document.Revision
+                                </MudText>
+                            }
+
+                        </MudStack>
+
+                        <MudStack Row="true"
+                                  AlignItems="AlignItems.Center"
+                                  Spacing="1">
+
+                            @if (document.IsApproved)
+                            {
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="Color.Success"
+                                         Variant="Variant.Outlined">
+                                    Approved
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="Color.Warning"
+                                         Variant="Variant.Outlined">
+                                    Pending
+                                </MudChip>
+
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           Color="Color.Success"
+                                           StartIcon="@Icons.Material.Filled.CheckCircle"
+                                           OnClick="@(() => Approve(document))">
+                                    Approve
+                                </MudButton>
+                            }
+
+                        </MudStack>
+
+                    </MudStack>
+
+                    <MudText Typo="Typo.caption" Class="mt-2">
+                        Uploaded by @document.UploadedBy
+                        on @document.UploadedDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                    </MudText>
+
+                </MudPaper>
+            }
+
+        </MudStack>
+    }
+
+</MudPaper>
+
+@code
+{
+    [Parameter]
+    public Guid WeldId { get; set; }
+
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    [Parameter]
+    public EventCallback Changed { get; set; }
+
+    private List<DocumentVaultFile> _documents = new();
+
+    private Guid _weldId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_weldId != WeldId)
+        {
+            _weldId = WeldId;
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_weldId == Guid.Empty)
+        {
+            _documents.Clear();
+            return;
+        }
+
+        _documents =
+            await DocumentService.GetWeldDocumentsAsync(_weldId, ProjectId);
+    }
+
+    private async Task OpenUpload()
+    {
+        if (_weldId == Guid.Empty)
+            return;
+
+        var parameters =
+            new DialogParameters
+            {
+                {
+                    nameof(WeldDocumentUploadDialog.WeldId),
+                    _weldId
+                },
+                {
+                    nameof(WeldDocumentUploadDialog.ProjectId),
+                    ProjectId
+                }
+            };
+
+        var options =
+            new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            };
+
+        var dialog =
+            await DialogService.ShowAsync<WeldDocumentUploadDialog>(
+                "Upload Weld Document",
+                parameters,
+                options);
+
+        var result = await dialog.Result;
+
+        if (result?.Canceled != false)
+            return;
+
+        await LoadAsync();
+        await Changed.InvokeAsync();
+    }
+
+    private async Task Approve(DocumentVaultFile document)
+    {
+        try
+        {
+            await DocumentService.ApproveWeldDocumentAsync(
+                document.Id);
+
+            Snackbar.Add(
+                $"Document '{document.FileName}' approved.",
+                Severity.Success);
+
+            await LoadAsync();
+            await Changed.InvokeAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Document approval failed: {ex.Message}",
+                Severity.Error);
+        }
+    }
+}
+
+
+

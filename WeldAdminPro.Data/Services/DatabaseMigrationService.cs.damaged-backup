@@ -1,0 +1,719 @@
+﻿using Dapper;
+using Microsoft.Data.Sqlite;
+using System;
+using System.Linq;
+using WeldAdminPro.Core.Security.Catalog;
+using WeldAdminPro.Data.Services.Security;
+
+namespace WeldAdminPro.Data.Services
+{
+    public class DatabaseMigrationService
+    {
+        private readonly string _connectionString;
+
+        public DatabaseMigrationService(
+            string connectionString)
+        {
+            _connectionString =
+                connectionString;
+        }
+
+        public void ApplyMigrations()
+        {
+            using var connection =
+                new SqliteConnection(
+                    _connectionString);
+
+            connection.Open();
+
+            int currentVersion = 0;
+
+            if (TableExists(connection, "DatabaseVersions"))
+            {
+                currentVersion =
+                    connection.QueryFirstOrDefault<int?>(
+                        @"SELECT MAX(SchemaVersion)
+              FROM DatabaseVersions")
+                    ?? 0;
+            }
+
+            if (currentVersion < 1)
+            {
+                ApplyVersion1(connection);
+            }
+
+            if (currentVersion < 2)
+            {
+                ApplyVersion2(connection);
+            }
+
+            if (currentVersion < 3)
+            {
+                ApplyVersion3(connection);
+            }
+
+            if (currentVersion < 4)
+            {
+                ApplyVersion4(connection);
+            }
+
+            if (currentVersion < 5)
+            {
+                ApplyVersion5(connection);
+            }
+
+            if (currentVersion < 6)
+            {
+                ApplyVersion6(connection);
+            }
+
+            if (currentVersion < 7)
+            {
+                ApplyVersion7(connection);
+            }
+            if (currentVersion < 8)
+            {
+                ApplyVersion8(connection);
+            }
+            if (currentVersion < 9)
+            {
+                ApplyVersion9(connection);
+            }
+
+            if (currentVersion < 10)
+            {
+                ApplyVersion10(connection);
+            }
+
+            if (currentVersion < 11)
+            {
+                ApplyVersion11(connection);
+            }
+
+            if (currentVersion < 12)
+            {
+                ApplyVersion12(connection);
+            }
+
+            if (currentVersion < 13)
+            {
+                ApplyVersion13(connection);
+            }
+
+            if (currentVersion < 14)
+            {
+                ApplyVersion14(connection);
+            }
+            if (currentVersion < 15)
+            {
+                ApplyVersion15(connection);
+            }
+
+            if (currentVersion < 16)
+            {
+                ApplyVersion16(connection);
+            }
+
+            if (currentVersion < 17)
+            {
+                ApplyVersion17(connection);
+            }
+
+
+            // =====================================
+            if (currentVersion < 18)
+            {
+                ApplyVersion18(connection);
+            }
+
+            // =====================================
+            // VERSION 19 - MULTI-COMPANY USER ACCESS
+            // =====================================
+            if (currentVersion < 19)
+            {
+                ApplyVersion19(connection);
+            }
+
+            // =====================================
+            // VERSION 20 - QUALITY MASTER OWNERSHIP
+            // =====================================
+            if (currentVersion < 20)
+            {
+                ApplyVersion20(connection);
+            }
+
+            // =====================================
+            // VERSION 21 - COMPANY DOCUMENT VAULT OWNERSHIP
+            // =====================================
+            if (currentVersion < 21)
+            {
+                ApplyVersion21(connection);
+            }
+
+            // VERSION 22 - PQR REVISION LINEAGE
+            if (currentVersion < 22)
+            {
+                ApplyVersion22(connection);
+            }
+
+            // VERSION 23 - UNIQUE NCR NUMBER PROTECTION
+            if (currentVersion < 23)
+            {
+                ApplyVersion23(connection);
+            }
+
+            // VERSION 24 - EXACT REPAIR WPS REVISION TRACEABILITY
+            if (currentVersion < 24)
+            {
+                ApplyVersion24(connection);
+            }
+
+            // VERSION 25 - PROJECT WELDING SUBCONTRACTOR OWNERSHIP
+            if (currentVersion < 25)
+            {
+                ApplyVersion25(connection);
+            }
+
+            // VERSION 26 - EXACT WELD WPS REVISION TRACEABILITY
+            if (currentVersion < 26)
+            {
+                ApplyVersion26(connection);
+            }
+
+            if (currentVersion < 27)
+            {
+                ApplyVersion27(connection);
+            }
+
+            // VERSION 28 - MULTIPLE NDT EQUIPMENT TRACEABILITY
+            if (currentVersion < 28)
+            {
+                ApplyVersion28(connection);
+            }
+
+            // VERSION 29 - PROJECT QUALITY CONTROL PLAN
+            if (currentVersion < 29)
+            {
+                ApplyVersion29(connection);
+            }
+
+            // VERSION 30 - PROJECT QUALITY CONTROL PLAN ITEMS
+            if (currentVersion < 30)
+            {
+                ApplyVersion30(connection);
+            }
+
+            // VERSION 31 - QCP ITEM APPROVAL HISTORY
+            if (currentVersion < 31)
+            {
+                ApplyVersion31(connection);
+            }
+
+            // VERSION 32 - QCP MASTER ACTIVITY LIBRARY
+            if (currentVersion < 32)
+            {
+                ApplyVersion32(connection);
+            }
+
+            // VERSION 33 - INSPECTION TEST PLAN FOUNDATION
+            if (currentVersion < 33)
+            {
+                ApplyVersion33(connection);
+            }
+
+        // VERSION 34 - ITP INSPECTION EXECUTION
+            if (currentVersion < 34)
+            {
+                ApplyVersion34(connection);
+            }
+        }
+
+            // =====================================
+        // VERSION 35 - PROFESSIONAL WELDING QUALIFICATION FOUNDATION
+        // =====================================
+        private void ApplyVersion35(SqliteConnection connection)
+        {
+            connection.Execute(@"
+CREATE TABLE IF NOT EXISTS PqrTestResults
+(
+    Id TEXT NOT NULL PRIMARY KEY,
+    PqrId TEXT NOT NULL,
+    CompanyId TEXT NULL,
+
+    TestSequence INTEGER NOT NULL DEFAULT 0,
+    TestType TEXT NOT NULL DEFAULT '',
+    TestMethod TEXT NULL,
+    SpecimenNumber TEXT NULL,
+
+    TestDate TEXT NULL,
+    LaboratoryName TEXT NULL,
+    LaboratoryReportNumber TEXT NULL,
+    ExaminerName TEXT NULL,
+    AcceptanceCriteria TEXT NULL,
+
+    ResultStatus TEXT NOT NULL DEFAULT '',
+    ResultSummary TEXT NULL,
+
+    ResultValue REAL NULL,
+    ResultUnit TEXT NULL,
+
+    TensileStrength REAL NULL,
+    YieldStrength REAL NULL,
+    Elongation REAL NULL,
+    ReductionOfArea REAL NULL,
+
+    BendAngle REAL NULL,
+    BendDiameter REAL NULL,
+    BendType TEXT NULL,
+
+    ImpactTemperature REAL NULL,
+    ImpactEnergy REAL NULL,
+    ImpactSpecimenType TEXT NULL,
+
+    FailureLocation TEXT NULL,
+    FailureType TEXT NULL,
+
+    MacroResult TEXT NULL,
+    MacroEtchMethod TEXT NULL,
+
+    Remarks TEXT NULL,
+
+    ReportDocumentPath TEXT NULL,
+    CertificateDocumentPath TEXT NULL,
+    PhotoPath TEXT NULL,
+
+    CreatedOn TEXT NOT NULL,
+    CreatedBy TEXT NOT NULL,
+
+    FOREIGN KEY(PqrId)
+        REFERENCES Pqr(Id)
+);
+
+CREATE INDEX IF NOT EXISTS IX_PqrTestResults_PqrId
+    ON PqrTestResults(PqrId);
+
+CREATE INDEX IF NOT EXISTS IX_PqrTestResults_CompanyId
+    ON PqrTestResults(CompanyId);
+
+CREATE INDEX IF NOT EXISTS IX_PqrTestResults_Pqr_TestSequence
+    ON PqrTestResults(PqrId, TestSequence);
+
+
+CREATE TABLE IF NOT EXISTS PqrQualificationRanges
+(
+    Id TEXT NOT NULL PRIMARY KEY,
+    PqrId TEXT NOT NULL,
+    CompanyId TEXT NULL,
+
+    StandardCode TEXT NULL,
+    StandardEdition TEXT NULL,
+    RuleSetVersion TEXT NULL,
+
+    PNumberMin TEXT NULL,
+    PNumberMax TEXT NULL,
+    PNumberRange TEXT NULL,
+
+    ThicknessMin REAL NULL,
+    ThicknessMax REAL NULL,
+
+    DiameterMin REAL NULL,
+    DiameterMax REAL NULL,
+
+    PositionRange TEXT NULL,
+    FNumberRange TEXT NULL,
+    MaterialRange TEXT NULL,
+    ProcessRange TEXT NULL,
+
+    QualifiedJointType TEXT NULL,
+    QualifiedBacking TEXT NULL,
+    QualifiedPWHT TEXT NULL,
+
+    CalculationStatus TEXT NOT NULL DEFAULT '',
+    CalculationNotes TEXT NULL,
+
+    CalculatedOn TEXT NULL,
+    CalculatedBy TEXT NULL,
+
+    FOREIGN KEY(PqrId)
+        REFERENCES Pqr(Id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS UX_PqrQualificationRanges_PqrId
+    ON PqrQualificationRanges(PqrId);
+
+CREATE INDEX IF NOT EXISTS IX_PqrQualificationRanges_CompanyId
+    ON PqrQualificationRanges(CompanyId);
+
+
+CREATE TABLE IF NOT EXISTS WpsPqrLinks
+(
+    Id TEXT NOT NULL PRIMARY KEY,
+    WpsId TEXT NOT NULL,
+    PqrId TEXT NOT NULL,
+    CompanyId TEXT NULL,
+
+    RelationshipType TEXT NOT NULL DEFAULT 'Supporting',
+    IsActive INTEGER NOT NULL DEFAULT 1,
+
+    LinkedOn TEXT NOT NULL,
+    LinkedBy TEXT NOT NULL,
+
+    FOREIGN KEY(WpsId)
+        REFERENCES Wps(Id),
+
+    FOREIGN KEY(PqrId)
+        REFERENCES Pqr(Id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS UX_WpsPqrLinks_Wps_Pqr
+    ON WpsPqrLinks(WpsId, PqrId);
+
+CREATE INDEX IF NOT EXISTS IX_WpsPqrLinks_WpsId
+    ON WpsPqrLinks(WpsId);
+
+CREATE INDEX IF NOT EXISTS IX_WpsPqrLinks_PqrId
+    ON WpsPqrLinks(PqrId);
+
+CREATE INDEX IF NOT EXISTS IX_WpsPqrLinks_CompanyId
+    ON WpsPqrLinks(CompanyId);
+
+
+CREATE TABLE IF NOT EXISTS WelderQualificationTests
+(
+    Id TEXT NOT NULL PRIMARY KEY,
+    WelderQualificationId INTEGER NOT NULL,
+    CompanyId TEXT NULL,
+
+    TestDate TEXT NULL,
+    TestNumber TEXT NULL,
+
+    StandardCode TEXT NULL,
+    StandardEdition TEXT NULL,
+
+    WpsId TEXT NULL,
+    PqrId TEXT NULL,
+    WpqrId TEXT NULL,
+
+    Process TEXT NOT NULL DEFAULT '',
+    ProcessType TEXT NULL,
+    ManualOrAutomatic TEXT NULL,
+
+    MaterialSpecification TEXT NULL,
+    MaterialGrade TEXT NULL,
+    MaterialGroup TEXT NULL,
+    PNumber TEXT NULL,
+    PNumber2 TEXT NULL,
+
+    CouponType TEXT NULL,
+    ThicknessTested REAL NULL,
+    DiameterTested REAL NULL,
+    IsPipe INTEGER NOT NULL DEFAULT 0,
+
+    JointType TEXT NULL,
+    JointDesign TEXT NULL,
+    GrooveAngle REAL NULL,
+    RootFace REAL NULL,
+    RootGap REAL NULL,
+    Backing TEXT NULL,
+    BackingType TEXT NULL,
+    BackGouging TEXT NULL,
+
+    Position TEXT NULL,
+    Progression TEXT NULL,
+
+    FillerSpecification TEXT NULL,
+    FillerClassification TEXT NULL,
+    FNumber TEXT NULL,
+    ANumber TEXT NULL,
+    FillerDiameter REAL NULL,
+    ProductForm TEXT NULL,
+
+    ShieldingGas TEXT NULL,
+    ShieldingGasComposition TEXT NULL,
+    ShieldingGasFlowRate REAL NULL,
+    BackingGas TEXT NULL,
+    BackingGasFlowRate REAL NULL,
+
+    CurrentType TEXT NULL,
+    Polarity TEXT NULL,
+    TransferMode TEXT NULL,
+    Amperage REAL NULL,
+    Voltage REAL NULL,
+    TravelSpeed REAL NULL,
+    HeatInput REAL NULL,
+
+    PreheatTemperature REAL NULL,
+    InterpassTemperature REAL NULL,
+    PostWeldHeatTreatment TEXT NULL,
+
+    CreatedOn TEXT NOT NULL,
+    CreatedBy TEXT NOT NULL,
+
+    FOREIGN KEY(WelderQualificationId)
+        REFERENCES WelderQualification(Id),
+
+    FOREIGN KEY(WpsId)
+        REFERENCES Wps(Id),
+
+    FOREIGN KEY(PqrId)
+        REFERENCES Pqr(Id),
+
+    FOREIGN KEY(WpqrId)
+        REFERENCES Wpqr(Id)
+);
+
+CREATE INDEX IF NOT EXISTS IX_WelderQualificationTests_WelderQualificationId
+    ON WelderQualificationTests(WelderQualificationId);
+
+CREATE INDEX IF NOT EXISTS IX_WelderQualificationTests_CompanyId
+    ON WelderQualificationTests(CompanyId);
+
+CREATE INDEX IF NOT EXISTS IX_WelderQualificationTests_WpsId
+    ON WelderQualificationTests(WpsId);
+
+CREATE INDEX IF NOT EXISTS IX_WelderQualificationTests_PqrId
+    ON WelderQualificationTests(PqrId);
+
+CREATE INDEX IF NOT EXISTS IX_WelderQualificationTests_WpqrId
+    ON WelderQualificationTests(WpqrId);
+
+
+CREATE TABLE IF NOT EXISTS WelderQualificationTestResults
+(
+    Id TEXT NOT NULL PRIMARY KEY,
+    WelderQualificationTestId TEXT NOT NULL,
+    CompanyId TEXT NULL,
+
+    TestSequence INTEGER NOT NULL DEFAULT 0,
+    TestType TEXT NOT NULL DEFAULT '',
+    TestMethod TEXT NULL,
+    SpecimenNumber TEXT NULL,
+
+    TestDate TEXT NULL,
+    LaboratoryName TEXT NULL,
+    LaboratoryReportNumber TEXT NULL,
+    ExaminerName TEXT NULL,
+    AcceptanceCriteria TEXT NULL,
+
+    ResultStatus TEXT NOT NULL DEFAULT '',
+    ResultSummary TEXT NULL,
+
+    ResultValue REAL NULL,
+    ResultUnit TEXT NULL,
+
+    TensileStrength REAL NULL,
+    YieldStrength REAL NULL,
+    Elongation REAL NULL,
+    ReductionOfArea REAL NULL,
+
+    BendAngle REAL NULL,
+    BendDiameter REAL NULL,
+    BendType TEXT NULL,
+
+    ImpactTemperature REAL NULL,
+    ImpactEnergy REAL NULL,
+    ImpactSpecimenType TEXT NULL,
+
+    FailureLocation TEXT NULL,
+    FailureType TEXT NULL,
+
+    MacroResult TEXT NULL,
+    MacroEtchMethod TEXT NULL,
+
+    Remarks TEXT NULL,
+
+    ReportDocumentPath TEXT NULL,
+    CertificateDocumentPath TEXT NULL,
+    PhotoPath TEXT NULL,
+
+    CreatedOn TEXT NOT NULL,
+    CreatedBy TEXT NOT NULL,
+
+    FOREIGN KEY(WelderQualificationTestId)
+        REFERENCES WelderQualificationTests(Id)
+);
+
+CREATE INDEX IF NOT EXISTS IX_WelderQualificationTestResults_TestId
+    ON WelderQualificationTestResults(WelderQualificationTestId);
+
+CREATE INDEX IF NOT EXISTS IX_WelderQualificationTestResults_CompanyId
+    ON WelderQualificationTestResults(CompanyId);
+
+CREATE INDEX IF NOT EXISTS IX_WelderQualificationTestResults_Test_Sequence
+    ON WelderQualificationTestResults(WelderQualificationTestId, TestSequence);
+
+
+CREATE TABLE IF NOT EXISTS WelderQualificationRanges
+(
+    Id TEXT NOT NULL PRIMARY KEY,
+    WelderQualificationId INTEGER NOT NULL,
+    CompanyId TEXT NULL,
+
+    StandardCode TEXT NULL,
+    StandardEdition TEXT NULL,
+    RuleSetVersion TEXT NULL,
+
+    Process TEXT NULL,
+    PNumber TEXT NULL,
+    MaterialGroup TEXT NULL,
+    FNumber TEXT NULL,
+
+    ThicknessMin REAL NULL,
+    ThicknessMax REAL NULL,
+
+    DiameterMin REAL NULL,
+    DiameterMax REAL NULL,
+
+    PositionRange TEXT NULL,
+    ProgressionRange TEXT NULL,
+
+    JointType TEXT NULL,
+    Backing TEXT NULL,
+
+    FillerClassification TEXT NULL,
+    FillerDiameter REAL NULL,
+
+    GasRange TEXT NULL,
+
+    QualificationStatus TEXT NOT NULL DEFAULT '',
+    CalculationNotes TEXT NULL,
+
+    CalculatedOn TEXT NULL,
+    CalculatedBy TEXT NULL,
+
+    FOREIGN KEY(WelderQualificationId)
+        REFERENCES WelderQualification(Id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS UX_WelderQualificationRanges_QualificationId
+    ON WelderQualificationRanges(WelderQualificationId);
+
+CREATE INDEX IF NOT EXISTS IX_WelderQualificationRanges_CompanyId
+    ON WelderQualificationRanges(CompanyId);
+
+CREATE INDEX IF NOT EXISTS IX_WelderQualificationRanges_Status
+    ON WelderQualificationRanges(QualificationStatus);
+
+
+");
+
+            RecordVersion(
+                connection,
+                35,
+                "1.35.0",
+                "Professional welding qualification foundation");
+        }
+        // VERSION 34 - ITP INSPECTION EXECUTION
+        private void ApplyVersion34(SqliteConnection connection)
+        {
+            connection.Execute(@"
+CREATE TABLE IF NOT EXISTS InspectionTestPlanInspectionExecutions
+(
+    Id TEXT NOT NULL PRIMARY KEY,
+    InspectionTestPlanItemId TEXT NOT NULL,
+    WeldId TEXT NOT NULL,
+
+    Status INTEGER NOT NULL DEFAULT 0,
+    Result INTEGER NOT NULL DEFAULT 0,
+
+    InspectionDate TEXT NULL,
+    InspectorName TEXT NOT NULL DEFAULT '',
+    Findings TEXT NOT NULL DEFAULT '',
+    Remarks TEXT NOT NULL DEFAULT '',
+
+    ExecutedBy TEXT NOT NULL,
+    ExecutedOn TEXT NOT NULL,
+
+    CompletedBy TEXT NULL,
+    CompletedOn TEXT NULL,
+
+    FOREIGN KEY(InspectionTestPlanItemId)
+        REFERENCES InspectionTestPlanItems(Id),
+
+    FOREIGN KEY(WeldId)
+        REFERENCES Welds(Id)
+);
+
+CREATE INDEX IF NOT EXISTS IX_InspectionTestPlanInspectionExecutions_ItemId
+    ON InspectionTestPlanInspectionExecutions(InspectionTestPlanItemId);
+
+CREATE INDEX IF NOT EXISTS IX_InspectionTestPlanInspectionExecutions_WeldId
+    ON InspectionTestPlanInspectionExecutions(WeldId);
+
+CREATE INDEX IF NOT EXISTS IX_InspectionTestPlanInspectionExecutions_Item_Status
+    ON InspectionTestPlanInspectionExecutions(InspectionTestPlanItemId, Status);
+");
+
+            RecordVersion(
+                connection,
+                34,
+                "1.34.0",
+                "ITP inspection execution");
+        }
+        // =====================================
+        // VERSION 32 - QCP MASTER ACTIVITY LIBRARY
+        // =====================================
+        private void ApplyVersion32(SqliteConnection connection)
+        {
+            connection.Execute(@"
+CREATE TABLE IF NOT EXISTS QcpMasterActivities
+(
+    Id TEXT PRIMARY KEY,
+    Code TEXT NOT NULL,
+    Name TEXT NOT NULL,
+    Category TEXT NOT NULL,
+    Description TEXT,
+    AcceptanceCriteria TEXT,
+    VerificationMethod TEXT,
+    ResponsibleParty TEXT,
+    InspectionStage TEXT,
+    HoldPointCategory INTEGER,
+    HoldPointType INTEGER,
+    RequiredNdtMethod INTEGER,
+    Mandatory INTEGER NOT NULL DEFAULT 0,
+    RequiredEvidence TEXT,
+    Applicability TEXT,
+    ConditionType TEXT,
+    SourceReference TEXT,
+    Notes TEXT,
+    IsActive INTEGER NOT NULL DEFAULT 1,
+    CreatedBy TEXT,
+    CreatedOn TEXT NOT NULL,
+    ModifiedBy TEXT,
+    ModifiedOn TEXT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS UX_QcpMasterActivities_Code
+    ON QcpMasterActivities(Code);
+
+CREATE INDEX IF NOT EXISTS IX_QcpMasterActivities_Category
+    ON QcpMasterActivities(Category);
+
+CREATE INDEX IF NOT EXISTS IX_QcpMasterActivities_IsActive
+    ON QcpMasterActivities(IsActive);
+");
+
+            RecordVersion(
+                connection,
+                32,
+                "1.32.0",
+                "QCP Master Activity Library persistence");
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

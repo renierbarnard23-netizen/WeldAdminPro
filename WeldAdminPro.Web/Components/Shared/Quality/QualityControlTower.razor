@@ -1,4 +1,4 @@
-@using MudBlazor
+﻿@using MudBlazor
 @using WeldAdminPro.Core.Quality.Models
 
 @if (Snapshot == null)
@@ -41,7 +41,7 @@ else
                          Align="Align.Center"
                          Color="@GetReadinessColor()">
 
-                    @GetReadinessScore()%
+                    @(CanCalculateReadiness() ? $"{GetReadinessScore()}%" : "Restricted")
 
                 </MudText>
 
@@ -66,7 +66,7 @@ else
             </MudText>
 
             <MudText Typo="Typo.h4" Color="Color.Primary">
-                @Snapshot.ComplianceScore%
+                @(Snapshot.IsComplete ? $"{Snapshot.ComplianceScore}%" : "Restricted")
             </MudText>
         </MudPaper>
     </MudItem>
@@ -78,7 +78,7 @@ else
             </MudText>
 
             <MudText Typo="Typo.h4" Color="@GetReadinessColor()">
-                @GetReadinessScore()%
+                @(CanCalculateReadiness() ? $"{GetReadinessScore()}%" : "Restricted")
             </MudText>
         </MudPaper>
     </MudItem>
@@ -90,7 +90,7 @@ else
             </MudText>
 
             <MudText Typo="Typo.h5">
-                @Snapshot.QualifiedWelders
+                @(Snapshot.QualifiedWeldersAvailable ? Snapshot.QualifiedWelders.ToString() : "Restricted")
             </MudText>
         </MudPaper>
     </MudItem>
@@ -123,8 +123,8 @@ else
 
                     <MudItem xs="6">
                         <MudChip T="string"
-                            Color="@(Snapshot.ActiveWps > 0 ? Color.Success : Color.Error)">
-                            @(Snapshot.ActiveWps > 0 ? "Ready" : "Missing")
+                            Color="@GetWpsColor()">
+                            @GetWpsStatus()
                         </MudChip>
                     </MudItem>
 
@@ -134,8 +134,8 @@ else
 
                     <MudItem xs="6">
                         <MudChip T="string"
-                            Color="@(Snapshot.ActivePqr > 0 ? Color.Success : Color.Error)">
-                            @(Snapshot.ActivePqr > 0 ? "Ready" : "Missing")
+                            Color="@GetPqrColor()">
+                            @GetPqrStatus()
                         </MudChip>
                     </MudItem>
 
@@ -145,8 +145,8 @@ else
 
                     <MudItem xs="6">
                         <MudChip T="string"
-                            Color="@(Snapshot.MissingDocuments == 0 ? Color.Success : Color.Warning)">
-                            @(Snapshot.MissingDocuments == 0 ? "Complete" : $"{Snapshot.MissingDocuments} Missing")
+                            Color="@GetDocumentsColor()">
+                            @GetDocumentsStatus()
                         </MudChip>
                     </MudItem>
 
@@ -156,8 +156,8 @@ else
 
                     <MudItem xs="6">
                         <MudChip T="string"
-                            Color="@(Snapshot.PendingNdt == 0 ? Color.Success : Color.Warning)">
-                            @(Snapshot.PendingNdt == 0 ? "Ready" : $"{Snapshot.PendingNdt} Pending")
+                            Color="@GetNdtColor()">
+                            @GetNdtStatus()
                         </MudChip>
                     </MudItem>
 
@@ -167,8 +167,8 @@ else
 
                     <MudItem xs="6">
                         <MudChip T="string"
-                            Color="@(Snapshot.OpenRepairs == 0 ? Color.Success : Color.Warning)">
-                            @(Snapshot.OpenRepairs == 0 ? "None" : Snapshot.OpenRepairs.ToString())
+                            Color="@GetRepairsColor()">
+                            @GetRepairsStatus()
                         </MudChip>
                     </MudItem>
 
@@ -182,7 +182,7 @@ else
                 </MudText>
 
                 <MudProgressLinear Class="mt-4"
-                                   Value="@GetReadinessScore()"
+                                   Value="@(CanCalculateReadiness() ? GetReadinessScore() : 0)"
                                    Color="@GetReadinessColor()"
                                    Rounded="true"
                                    Size="Size.Large" />
@@ -191,7 +191,7 @@ else
                          Typo="Typo.subtitle2"
                          Class="mt-2">
 
-                    @GetReadinessScore()% Ready for Production
+                    @(CanCalculateReadiness() ? $"{GetReadinessScore()}%" : "Restricted") Ready for Production
 
                 </MudText>
 
@@ -229,7 +229,7 @@ else
 
     private Color GetStatusColor()
     {
-        if (Snapshot == null)
+        if (Snapshot == null || !Snapshot.IsComplete)
             return Color.Default;
 
         if (Snapshot.ComplianceScore >= 90)
@@ -246,6 +246,9 @@ else
         if (Snapshot == null)
             return "Loading";
 
+        if (!Snapshot.IsComplete)
+            return "RESTRICTED";
+
         if (Snapshot.ComplianceScore >= 90)
             return "LOW RISK";
 
@@ -255,6 +258,105 @@ else
         return "HIGH RISK";
     }
 
+        private bool CanCalculateReadiness()
+    {
+        if (Snapshot == null)
+            return false;
+
+        return Snapshot.IsComplete
+            && Snapshot.ActiveWpsAvailable
+            && Snapshot.ActivePqrAvailable
+            && Snapshot.QualifiedWeldersAvailable
+            && Snapshot.PendingNdtAvailable
+            && Snapshot.OpenRepairsAvailable
+            && Snapshot.MissingDocumentsAvailable;
+    }
+
+    private Color GetWpsColor()
+    {
+        if (Snapshot == null || !Snapshot.ActiveWpsAvailable)
+            return Color.Default;
+
+        return Snapshot.ActiveWps > 0 ? Color.Success : Color.Error;
+    }
+
+    private string GetWpsStatus()
+    {
+        if (Snapshot == null || !Snapshot.ActiveWpsAvailable)
+            return "Restricted";
+
+        return Snapshot.ActiveWps > 0 ? "Ready" : "Missing";
+    }
+
+    private Color GetPqrColor()
+    {
+        if (Snapshot == null || !Snapshot.ActivePqrAvailable)
+            return Color.Default;
+
+        return Snapshot.ActivePqr > 0 ? Color.Success : Color.Error;
+    }
+
+    private string GetPqrStatus()
+    {
+        if (Snapshot == null || !Snapshot.ActivePqrAvailable)
+            return "Restricted";
+
+        return Snapshot.ActivePqr > 0 ? "Ready" : "Missing";
+    }
+
+    private Color GetDocumentsColor()
+    {
+        if (Snapshot == null || !Snapshot.MissingDocumentsAvailable)
+            return Color.Default;
+
+        return Snapshot.MissingDocuments == 0 ? Color.Success : Color.Warning;
+    }
+
+    private string GetDocumentsStatus()
+    {
+        if (Snapshot == null || !Snapshot.MissingDocumentsAvailable)
+            return "Restricted";
+
+        return Snapshot.MissingDocuments == 0
+            ? "Complete"
+            : $"{Snapshot.MissingDocuments} Missing";
+    }
+
+    private Color GetNdtColor()
+    {
+        if (Snapshot == null || !Snapshot.PendingNdtAvailable)
+            return Color.Default;
+
+        return Snapshot.PendingNdt == 0 ? Color.Success : Color.Warning;
+    }
+
+    private string GetNdtStatus()
+    {
+        if (Snapshot == null || !Snapshot.PendingNdtAvailable)
+            return "Restricted";
+
+        return Snapshot.PendingNdt == 0
+            ? "Ready"
+            : $"{Snapshot.PendingNdt} Pending";
+    }
+
+    private Color GetRepairsColor()
+    {
+        if (Snapshot == null || !Snapshot.OpenRepairsAvailable)
+            return Color.Default;
+
+        return Snapshot.OpenRepairs == 0 ? Color.Success : Color.Warning;
+    }
+
+    private string GetRepairsStatus()
+    {
+        if (Snapshot == null || !Snapshot.OpenRepairsAvailable)
+            return "Restricted";
+
+        return Snapshot.OpenRepairs == 0
+            ? "None"
+            : Snapshot.OpenRepairs.ToString();
+    }
     private int GetReadinessScore()
     {
         if (Snapshot == null)
@@ -277,6 +379,9 @@ else
 
     private Color GetReadinessColor()
     {
+        if (!CanCalculateReadiness())
+            return Color.Default;
+
         var score = GetReadinessScore();
 
         if (score >= 90)
@@ -288,3 +393,5 @@ else
         return Color.Error;
     }
 }
+
+

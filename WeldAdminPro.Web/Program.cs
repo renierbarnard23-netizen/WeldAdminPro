@@ -1,4 +1,4 @@
-﻿using WeldAdminPro.Core.Quality.Services;
+using WeldAdminPro.Core.Quality.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor.Services;
@@ -154,6 +154,7 @@ builder.Services.AddScoped<IWpqrRepository>(sp =>
     sp.GetRequiredService<WpqrRepository>());
 
 builder.Services.AddScoped<WpqrApplicationService>();
+builder.Services.AddScoped<WpqrWorkflowService>();
 
 // Register the concrete repository
 builder.Services.AddScoped<WeldRepository>();
@@ -250,6 +251,17 @@ builder.Services.AddScoped<EquipmentApplicationService>();
 
 builder.Services.AddScoped<ProjectDocumentRepository>();
 
+builder.Services.AddScoped<HoldPointRepository>(_ =>
+    new HoldPointRepository(DatabasePath.GetConnectionString()));
+builder.Services.AddScoped<InspectionTestPlanInspectionExecutionApplicationService>();
+builder.Services.AddScoped<InspectionTestPlanRepository>(_ =>
+    new InspectionTestPlanRepository(DatabasePath.GetConnectionString()));
+
+builder.Services.AddScoped<InspectionTestPlanItemRepository>();
+builder.Services.AddScoped<InspectionTestPlanExecutionRepository>();
+builder.Services.AddScoped<InspectionTestPlanInspectionExecutionRepository>(_ =>
+    new InspectionTestPlanInspectionExecutionRepository(
+        DatabasePath.GetConnectionString()));
 builder.Services.AddScoped<ProjectQualityControlPlanRepository>(_ =>
     new ProjectQualityControlPlanRepository(
         DatabasePath.GetConnectionString()));
@@ -307,6 +319,7 @@ builder.Services.AddScoped<WeldRegisterApplicationService>();
 builder.Services.AddScoped<CapaApplicationService>();
 builder.Services.AddScoped<CustomerQualityRequirementApplicationService>();
 builder.Services.AddScoped<ProjectQualityControlPlanApplicationService>();
+builder.Services.AddScoped<InspectionTestPlanApplicationService>();
 builder.Services.AddScoped<QcpMasterActivityApplicationService>();
 
 builder.Services.AddScoped<WeldTraceabilityApplicationService>();
@@ -316,6 +329,7 @@ builder.Services.AddScoped<RepairApplicationService>();
 builder.Services.AddScoped<IWeldService, WeldService>();
 builder.Services.AddScoped<WeldWorkflowEngine>();
 builder.Services.AddScoped<WeldReleaseValidationService>();
+builder.Services.AddScoped<WeldItpComplianceService>();
 builder.Services.AddScoped<WeldReleaseContextBuilder>();
 
 builder.Services.AddSingleton<TesseractService>();
@@ -422,7 +436,8 @@ builder.Services.AddScoped<
             WeldAdminPro.Data.Services.Security.PermissionAuthorizationService>());
 
 builder.Services.AddScoped<
-    WeldAdminPro.Core.Quality.Services.HoldPointWorkflowService>();
+    WeldAdminPro.Core.Quality.Services.HoldPointWorkflowService>();
+    builder.Services.AddScoped<HoldPointApplicationService>();
 
 // --------------------------------------------------
 
@@ -480,6 +495,12 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+
+
+
+
+
 
 
 

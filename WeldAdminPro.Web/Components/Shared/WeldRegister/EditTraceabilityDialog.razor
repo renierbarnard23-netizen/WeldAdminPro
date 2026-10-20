@@ -1,8 +1,8 @@
-@using MudBlazor
+﻿@using MudBlazor
 @using WeldAdminPro.Core.Quality.Models
-@using WeldAdminPro.Data.Repositories
+@using WeldAdminPro.Data.Services.Quality
 
-@inject WeldTraceabilityRepository Repository
+@inject WeldTraceabilityApplicationService TraceabilityService
 
 <CascadingValue Value="MudDialog">
 
@@ -68,22 +68,22 @@
     [Parameter]
     public WeldTraceabilityRecord Record { get; set; } = new();
 
-    private void Save()
+    private async Task Save()
     {
         var existing =
-            Repository.GetByWeld(Record.WeldId)
+            (await TraceabilityService.GetByWeld(Record.WeldId))
                       .Any(x => x.Id == Record.Id);
 
         if (existing)
         {
-            Repository.Update(Record);
+            await TraceabilityService.UpdateTraceability(Record);
         }
         else
         {
             if (Record.Id == Guid.Empty)
                 Record.Id = Guid.NewGuid();
 
-            Repository.Add(Record);
+            await TraceabilityService.AddTraceability(Record);
         }
 
         MudDialog.Close(DialogResult.Ok(Record));
@@ -94,3 +94,4 @@
         MudDialog.Cancel();
     }
 }
+

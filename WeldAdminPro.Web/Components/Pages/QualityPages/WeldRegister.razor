@@ -12,16 +12,15 @@
 
 @using WeldAdminPro.Web.Components.Shared.Dialogs
 
-@using WeldAdminPro.Data.Repositories
 
-@inject WeldRepository WeldRepository
 @inject NavigationManager Navigation
 @inject IDialogService DialogService
 
 @inject WeldRegisterApplicationService WeldService
+@inject UserContextService UserContext
+@inject WeldTraceabilityApplicationService TraceabilityService
 @inject WeldWorkflowEngine WorkflowEngine
 
-@inject WeldTraceabilityRepository TraceabilityRepository
 
 @inject ISnackbar Snackbar
 
@@ -191,7 +190,24 @@
 
             <MudDivider Class="my-4" />
             <WeldTraceabilityCard Records="_traceability"
-                                  Edit="EditTraceability" />
+                      WeldNumber="@(_selectedWeld?.WeldNumber ?? string.Empty)"
+                      WpsNumber="@(_selectedWeld?.WpsNumber ?? string.Empty)"
+                      WelderQualification="@(_selectedWeld?.WelderNumber ?? string.Empty)"
+                      NdtStatus="@(_ndtHistory.FirstOrDefault()?.Result.ToString() ?? string.Empty)"
+                      WeldStatus="@(_selectedWeld?.Status.ToString() ?? string.Empty)"
+                      Edit="EditTraceability" />
+
+            @if (_selectedWeld != null)
+            {
+                <WeldDocumentsCard WeldId="_selectedWeld.Id"
+                                   ProjectId="ProjectId"
+                                   Changed="WeldDocumentsChanged" />
+
+                <MudDivider Class="my-4" />
+
+                <WeldHoldPointsCard WeldId="_selectedWeld.Id"
+                                    ProjectId="ProjectId" />
+            }
 
         </MudItem>
 
@@ -201,7 +217,10 @@
 
         <MudItem xs="12">
 
-            <WeldNdtHistoryCard Results="_ndtHistory" />
+            <WeldNdtHistoryCard Results="_ndtHistory"
+                                ProjectId="ProjectId"
+                                WeldNumber="@(_selectedWeld?.WeldNumber ?? string.Empty)"
+                                LegacyTraceabilityReviewed="ReviewLegacyNdtTraceabilityAsync" />
 
         </MudItem>
 
@@ -253,7 +272,7 @@
 
     private List<WeldTraceabilityRecord> _traceability = new();
 
-    private Task SelectedWeldChanged(Weld? weld)
+    private async Task SelectedWeldChanged(Weld? weld)
     {
         _selectedWeld = weld;
 
@@ -263,14 +282,14 @@
             _history.Clear();
             _traceability.Clear();
 
-            return Task.CompletedTask;
+            return;
         }
 
-        _ndtHistory = WeldService.GetNdt(weld.Id);
-        _history = WeldService.GetHistory(weld.Id);
-        _traceability = TraceabilityRepository.GetByWeld(weld.Id);
+        _ndtHistory = await WeldService.GetNdtAsync(weld.Id);
+        _history = await WeldService.GetHistoryAsync(weld.Id);
+        _traceability = await TraceabilityService.GetByWeld(weld.Id);
 
-        return Task.CompletedTask;
+        return;
     }
 
     private IReadOnlyList<WeldWorkflowStatus>
@@ -295,7 +314,7 @@
             await WeldService.TransitionWorkflowAsync(
                 weld,
                 targetStatus,
-                Environment.UserName);
+                UserContext.Username);
 
             _welds =
                 await WeldService.GetProjectWelds(
@@ -308,15 +327,15 @@
             if (_selectedWeld != null)
             {
                 _ndtHistory =
-                    WeldService.GetNdt(
+                    await WeldService.GetNdtAsync(
                         _selectedWeld.Id);
 
                 _history =
-                    WeldService.GetHistory(
+                    await WeldService.GetHistoryAsync(
                         _selectedWeld.Id);
 
                 _traceability =
-                    TraceabilityRepository.GetByWeld(
+                    await TraceabilityService.GetByWeld(
                         _selectedWeld.Id);
             }
 
@@ -366,7 +385,7 @@
         if (result is { Canceled: false })
         {
             _welds =
-                await WeldRepository.GetByProjectAsync(ProjectId);
+            await WeldService.GetProjectWelds(ProjectId);
 
             StateHasChanged();
         }
@@ -394,10 +413,10 @@
 
         if (result is { Canceled: false })
         {
-            await WeldRepository.DeleteAsync(weld.Id);
+            await WeldService.DeleteWeldAsync(weld.Id);
 
             _welds =
-                await WeldRepository.GetByProjectAsync(ProjectId);
+            await WeldService.GetProjectWelds(ProjectId);
         }
 
         _selectedWeld = null;
@@ -405,15 +424,67 @@
         StateHasChanged();
     }
 
+    private async Task ReviewLegacyNdtTraceabilityAsync(
+        WeldNdtHistoryCard.LegacyTraceabilityReviewRequest request)
+    {
+        if (_selectedWeld == null || request.Ndt.WeldId != _selectedWeld.Id)
+            return;
+
+        try
+        {
+            await WeldService.ReviewLegacyNdtTraceabilityAsync(
+                _selectedWeld.Id,
+                request.Ndt.Id,
+                request.Review.EquipmentIds,
+                request.Review.ReviewRemarks);
+
+            _ndtHistory = await WeldService.GetNdtAsync(_selectedWeld.Id);
+            _history = await WeldService.GetHistoryAsync(_selectedWeld.Id);
+
+            Snackbar.Add(
+                $"Legacy NDT traceability reviewed and linked for weld '{_selectedWeld.WeldNumber}'.",
+                Severity.Success);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Legacy NDT traceability review failed: {ex.Message}",
+                Severity.Error);
+        }
+    }
+
     private async Task CaptureNdt()
     {
         if (_selectedWeld == null)
             return;
 
+        // NDT capture is only valid once the weld reaches
+        // NdtPending or NdtInProgress. The service remains
+        // the authoritative server-side workflow guard.
+        if (
+            _selectedWeld.WorkflowStatus !=
+            WeldWorkflowStatus.NdtPending &&
+            _selectedWeld.WorkflowStatus !=
+            WeldWorkflowStatus.NdtInProgress)
+        {
+            Snackbar.Add(
+                $"NDT cannot be captured yet. Weld '{_selectedWeld.WeldNumber}' " +
+                $"is currently in workflow status '{_selectedWeld.WorkflowStatus}'. " +
+                "Please advance the weld workflow before capturing NDT.",
+                Severity.Warning);
+
+            return;
+        }
+
         var parameters = new DialogParameters
-    {
-        { nameof(CaptureNdtDialog.Weld), _selectedWeld }
-    };
+        {
+            { nameof(CaptureNdtDialog.Weld), _selectedWeld },
+            { nameof(CaptureNdtDialog.ProjectId), ProjectId }
+        };
 
         var options = new DialogOptions
         {
@@ -439,70 +510,154 @@
         if (selectedWeld == null)
             return;
 
-        await WeldService.CaptureNdtAsync(selectedWeld, ndt);
+        try
+        {
+            await WeldService.CaptureNdtAsync(selectedWeld, ndt);
 
-        _welds = await WeldService.GetProjectWelds(ProjectId);
+            _welds =
+                await WeldService.GetProjectWelds(ProjectId);
 
-        _ndtHistory = WeldService.GetNdt(selectedWeld.Id);
+            _selectedWeld =
+                _welds.FirstOrDefault(
+                    w => w.Id == selectedWeld.Id);
 
-        _history = WeldService.GetHistory(selectedWeld.Id);
+            _ndtHistory =
+                await WeldService.GetNdtAsync(selectedWeld.Id);
 
-        StateHasChanged();
+            _history =
+                await WeldService.GetHistoryAsync(selectedWeld.Id);
+
+            Snackbar.Add(
+                $"NDT result captured for weld '{selectedWeld.WeldNumber}'.",
+                Severity.Success);
+
+            StateHasChanged();
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(
+                ex.Message,
+                Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"NDT capture failed: {ex.Message}",
+                Severity.Error);
+        }
     }
-
-    private async Task EditTraceability()
+    private async Task EditTraceability(Guid traceabilityId)
     {
         var selectedWeld = _selectedWeld;
 
         if (selectedWeld == null)
             return;
 
-        var latest = _traceability.LastOrDefault();
+        WeldTraceabilityRecord? sourceRecord = null;
 
-        if (latest == null)
+        // Guid.Empty means "Add a new traceability record".
+        if (traceabilityId != Guid.Empty)
         {
-            latest = new WeldTraceabilityRecord
+            sourceRecord =
+                _traceability.FirstOrDefault(
+                    x => x.Id == traceabilityId);
+
+            if (sourceRecord == null)
             {
-                Id = Guid.NewGuid(),
-                WeldId = selectedWeld.Id,
-                WpsNumber = selectedWeld.WpsNumber,
-                WelderQualification = selectedWeld.WelderNumber,
-                MaterialHeatNumber = selectedWeld.MaterialHeat1
+                Snackbar.Add(
+                    "The selected traceability record could not be found.",
+                    Severity.Warning);
+
+                return;
+            }
+        }
+
+        WeldTraceabilityRecord workingRecord;
+
+        // --------------------------------------------------------
+        // ADD
+        // --------------------------------------------------------
+
+        if (sourceRecord == null)
+        {
+            workingRecord =
+                new WeldTraceabilityRecord
+                {
+                    Id = Guid.NewGuid(),
+                    WeldId = selectedWeld.Id,
+                    WpsNumber = selectedWeld.WpsNumber,
+                    WelderQualification = selectedWeld.WelderNumber,
+                    MaterialHeatNumber = selectedWeld.MaterialHeat1
+                };
+        }
+
+        // --------------------------------------------------------
+        // EDIT
+        //
+        // Create a working copy so Cancel cannot modify the
+        // currently displayed record in memory.
+        // --------------------------------------------------------
+
+        else
+        {
+            workingRecord =
+                new WeldTraceabilityRecord
+                {
+                    Id = sourceRecord.Id,
+                    WeldId = sourceRecord.WeldId,
+                    WpsNumber = sourceRecord.WpsNumber,
+                    PqrNumber = sourceRecord.PqrNumber,
+                    WelderQualification = sourceRecord.WelderQualification,
+                    MaterialHeatNumber = sourceRecord.MaterialHeatNumber,
+                    ConsumableBatch = sourceRecord.ConsumableBatch,
+                    NdtReportNumber = sourceRecord.NdtReportNumber,
+                    ReleaseCertificate = sourceRecord.ReleaseCertificate
+                };
+        }
+
+        var parameters =
+            new DialogParameters
+            {
+                [nameof(EditTraceabilityDialog.Record)] =
+                    workingRecord
             };
-        }
 
-        var parameters = new DialogParameters
-    {
-        {
-            nameof(EditTraceabilityDialog.Record),
-            latest
-        }
-    };
-
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseOnEscapeKey = true
-        };
+        var options =
+            new DialogOptions
+            {
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
 
         var dialog =
             await DialogService.ShowAsync<EditTraceabilityDialog>(
-                "Edit Traceability",
+                sourceRecord == null
+                    ? "Add Traceability"
+                    : "Edit Traceability",
                 parameters,
                 options);
 
-        var result = await dialog.Result;
+        var result =
+            await dialog.Result;
 
         if (result?.Canceled != false)
             return;
 
+        // Reload the complete list so Add/Edit is immediately
+        // reflected in the UI.
         _traceability =
-            TraceabilityRepository.GetByWeld(selectedWeld.Id);
+            await TraceabilityService.GetByWeld(
+                selectedWeld.Id);
 
         StateHasChanged();
     }
+    private Task WeldDocumentsChanged()
+    {
+        StateHasChanged();
 
+        return Task.CompletedTask;
+    }
     private IEnumerable<Weld> FilteredWelds =>
     _welds.Where(w =>
 
@@ -569,3 +724,14 @@
         .OrderBy(w => w)!;
 
 }
+
+
+
+
+
+
+
+
+
+
+

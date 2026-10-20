@@ -1,6 +1,5 @@
-using System;
+﻿using System;
 using System.Linq;
-using System.Windows;
 using WeldAdminPro.Core.Services;
 using WeldAdminPro.Data.Repositories;
 using WeldAdminPro.Core.Quality;
@@ -11,15 +10,26 @@ namespace WeldAdminPro.Data.Services
     {
         private readonly WpsRepository _wpsRepo = new();
         private readonly PqrRepository _pqrRepo = new();
+        private readonly WelderQualificationRepository _welderQualificationRepo = new();
         private readonly ProjectDocumentRepository _docRepo = new();
         private readonly WpsComplianceService _wpsCompliance = new();
 
-        public ProjectComplianceResult Evaluate(Guid projectId)
+        public ProjectComplianceResult Evaluate(Guid projectId, Guid companyId)
         {
+            if (projectId == Guid.Empty)
+                throw new ArgumentException(
+                    "Project Id is required.",
+                    nameof(projectId));
+
+            if (companyId == Guid.Empty)
+                throw new ArgumentException(
+                    "Company Id is required.",
+                    nameof(companyId));
+
             var result = new ProjectComplianceResult();
 
-            // ⚠️ TEMP: No ProjectId link yet → use ALL WPS
-            var wpsList = _wpsRepo.GetAll();
+            var wpsList = _wpsRepo.GetByCompany(companyId);
+            var pqrList = _pqrRepo.GetByCompany(companyId);
 
             result.TotalWps = wpsList.Count;
 
@@ -27,15 +37,18 @@ namespace WeldAdminPro.Data.Services
             {
                 if (wps.PqrId == null)
                 {
-                    result.Issues.Add($"WPS {wps.WpsNumber}: No PQR linked");
+                    result.Issues.Add(
+                        $"WPS {wps.WpsNumber}: No PQR linked");
                     continue;
                 }
 
-                var pqr = _pqrRepo.GetById(wps.PqrId.Value);
+                var pqr = pqrList.FirstOrDefault(
+                    x => x.Id == wps.PqrId.Value);
 
                 if (pqr == null)
                 {
-                    result.Issues.Add($"WPS {wps.WpsNumber}: Invalid PQR reference");
+                    result.Issues.Add(
+                        $"WPS {wps.WpsNumber}: Invalid or cross-company PQR reference");
                     continue;
                 }
 
@@ -47,33 +60,39 @@ namespace WeldAdminPro.Data.Services
                 }
                 else
                 {
-                    result.Issues.Add($"WPS {wps.WpsNumber}: Not compliant");
+                    result.Issues.Add(
+                        $"WPS {wps.WpsNumber}: Not compliant");
                 }
             }
 
             // =========================
             // WELDERS
             // =========================
-            var welderService = new WelderValidationService();
-            var (expired, _) = welderService.Check();
+            var companyWelders =
+                _welderQualificationRepo.GetByCompany(companyId);
+
+            var expired =
+                companyWelders.Count(
+                    w => w.ExpiryDate < DateTime.Today);
 
             if (expired > 0)
             {
-                result.Issues.Add($"{expired} welders expired");
+                result.Issues.Add(
+                    $"{expired} welders expired");
             }
-
 
             // =========================
             // DOCUMENTS (ISO 3834 CORE)
             // =========================
             var docs = _docRepo.GetByProject(projectId);
 
-            var requiredDocs = docs.Where(d => d.IsRequired).ToList();
+            var requiredDocs =
+                docs.Where(d => d.IsRequired).ToList();
 
             if (requiredDocs.Any())
             {
-                var uploaded = requiredDocs.Count(d => d.IsUploaded);
-                var approved = requiredDocs.Count(d => d.IsApproved);
+                var approved =
+                    requiredDocs.Count(d => d.IsApproved);
 
                 result.DocumentCompliancePercent =
                     (double)approved / requiredDocs.Count * 100;
@@ -81,10 +100,16 @@ namespace WeldAdminPro.Data.Services
                 foreach (var doc in requiredDocs)
                 {
                     if (!doc.IsUploaded)
-                        result.Issues.Add($"Missing document: {doc.DocumentType}");
+                    {
+                        result.Issues.Add(
+                            $"Missing document: {doc.DocumentType}");
+                    }
 
                     if (doc.IsUploaded && !doc.IsApproved)
-                        result.Issues.Add($"Not approved: {doc.DocumentType}");
+                    {
+                        result.Issues.Add(
+                            $"Not approved: {doc.DocumentType}");
+                    }
                 }
             }
             else

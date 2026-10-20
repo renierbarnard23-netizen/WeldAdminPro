@@ -1,0 +1,452 @@
+﻿@using MudBlazor
+@using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Web.Services.Quality
+
+@inject HoldPointApplicationService HoldPointService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudPaper Class="pa-4 mt-4">
+
+    <MudStack Row="true"
+              Justify="Justify.SpaceBetween"
+              AlignItems="AlignItems.Center"
+              Class="mb-3">
+
+        <MudText Typo="Typo.h6">
+            Weld Hold Points
+        </MudText>
+
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Disabled="@(_weldId == Guid.Empty)"
+                   OnClick="OpenCreateDialogAsync">
+            Add Hold Point
+        </MudButton>
+
+    </MudStack>
+
+    @if (_weldId == Guid.Empty)
+    {
+        <MudAlert Severity="Severity.Info">
+            Select a weld to view Hold Points.
+        </MudAlert>
+    }
+    else if (!_holdPoints.Any())
+    {
+        <MudAlert Severity="Severity.Info">
+            No Hold Points are currently defined for this weld.
+        </MudAlert>
+    }
+    else
+    {
+        <MudTable T="WeldHoldPoint"
+                  Items="_holdPoints"
+                  Dense="true"
+                  Hover="true"
+                  Striped="true">
+
+            <HeaderContent>
+                <MudTh>Type</MudTh>
+                <MudTh>Category</MudTh>
+                <MudTh>Approver</MudTh>
+                <MudTh>Mandatory</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Approved By</MudTh>
+                <MudTh>Approved Date</MudTh>
+                <MudTh>Comments</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+
+            <RowTemplate>
+
+                <MudTd DataLabel="Type">
+                    @context.HoldPointType
+                </MudTd>
+
+                <MudTd DataLabel="Category">
+                    @context.Category
+                </MudTd>
+
+                <MudTd DataLabel="Approver">
+                    @context.RequiredApproverRole
+                </MudTd>
+
+                <MudTd DataLabel="Mandatory">
+                    @if (context.IsMandatory)
+                    {
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="Color.Warning"
+                                 Variant="Variant.Outlined">
+                            Mandatory
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Variant="Variant.Outlined">
+                            Optional
+                        </MudChip>
+                    }
+                </MudTd>
+
+                <MudTd DataLabel="Status">
+                    @if (context.Status == HoldPointStatus.Approved)
+                    {
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="Color.Success"
+                                 Variant="Variant.Outlined">
+                            Approved
+                        </MudChip>
+                    }
+                    else if (context.Status == HoldPointStatus.Rejected)
+                    {
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="Color.Error"
+                                 Variant="Variant.Outlined">
+                            Rejected
+                        </MudChip>
+                    }
+                    else if (context.Status == HoldPointStatus.Waived)
+                    {
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="Color.Info"
+                                 Variant="Variant.Outlined">
+                            Waived
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="Color.Warning"
+                                 Variant="Variant.Outlined">
+                            Pending
+                        </MudChip>
+                    }
+                </MudTd>
+
+                <MudTd DataLabel="Approved By">
+                    @if (!string.IsNullOrWhiteSpace(context.ApprovedBy))
+                    {
+                        @context.ApprovedBy
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </MudTd>
+
+                <MudTd DataLabel="Approved Date">
+                    @if (context.ApprovedDate.HasValue)
+                    {
+                        @context.ApprovedDate.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </MudTd>
+
+                <MudTd DataLabel="Comments">
+                    @if (!string.IsNullOrWhiteSpace(context.Comments))
+                    {
+                        @context.Comments
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </MudTd>
+
+                <MudTd DataLabel="Actions">
+
+                    @if (context.Status == HoldPointStatus.Pending)
+                    {
+                        <MudStack Row="true" Spacing="1">
+
+                            <MudButton Size="Size.Small"
+                                       Variant="Variant.Outlined"
+                                       Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.CheckCircle"
+                                       OnClick="@(() => ApproveAsync(context))">
+                                Approve
+                            </MudButton>
+
+                            <MudButton Size="Size.Small"
+                                       Variant="Variant.Outlined"
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.Cancel"
+                                       OnClick="@(() => RejectAsync(context))">
+                                Reject
+                            </MudButton>
+
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+
+                </MudTd>
+
+            </RowTemplate>
+
+        </MudTable>
+    }
+
+</MudPaper>
+
+@code
+{
+    [Parameter]
+    public Guid WeldId { get; set; }
+
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    [Parameter]
+    public EventCallback Changed { get; set; }
+
+    private List<WeldHoldPoint> _holdPoints = new();
+
+    private Guid _weldId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_weldId != WeldId)
+        {
+            _weldId = WeldId;
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_weldId == Guid.Empty)
+        {
+            _holdPoints.Clear();
+            return;
+        }
+
+        try
+        {
+            _holdPoints =
+                await HoldPointService.GetByWeldAsync(_weldId);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _holdPoints.Clear();
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            _holdPoints.Clear();
+            Snackbar.Add(
+                $"Hold Point loading failed: {ex.Message}",
+                Severity.Error);
+        }
+    }
+
+    private async Task OpenCreateDialogAsync()
+    {
+        if (_weldId == Guid.Empty)
+            return;
+
+        var parameters = new DialogParameters
+        {
+            { nameof(HoldPointCreateDialog.WeldId), _weldId }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog =
+            await DialogService.ShowAsync<HoldPointCreateDialog>(
+                "Add Weld Hold Point",
+                parameters,
+                options);
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false } ||
+            result.Data is not HoldPointCreateDialog.HoldPointCreateResult createResult)
+        {
+            return;
+        }
+
+        try
+        {
+            await HoldPointService.CreateAsync(
+                _weldId,
+                createResult.HoldPointType,
+                createResult.Category,
+                createResult.RequiredApproverRole,
+                createResult.IsMandatory,
+                createResult.Comments);
+
+            Snackbar.Add(
+                "Hold Point created successfully.",
+                Severity.Success);
+
+            await LoadAsync();
+            await Changed.InvokeAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Hold Point creation failed: {ex.Message}",
+                Severity.Error);
+        }
+    }
+
+    private async Task ApproveAsync(WeldHoldPoint holdPoint)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                {
+                    nameof(HoldPointDecisionDialog.HoldPoint),
+                    holdPoint
+                },
+                {
+                    nameof(HoldPointDecisionDialog.Decision),
+                    HoldPointDecisionDialog.HoldPointDecision.Approve
+                }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            };
+
+            var dialog =
+                await DialogService.ShowAsync<HoldPointDecisionDialog>(
+                    "Approve Hold Point",
+                    parameters,
+                    options);
+
+            var result = await dialog.Result;
+
+            if (result is not { Canceled: false } ||
+                result.Data is not HoldPointDecisionDialog.HoldPointDecisionResult decision)
+            {
+                return;
+            }
+
+            await HoldPointService.ApproveAsync(
+                holdPoint.Id,
+                decision.ApprovedBy,
+                decision.Comments);
+
+            Snackbar.Add(
+                "Hold Point approved.",
+                Severity.Success);
+
+            await LoadAsync();
+            await Changed.InvokeAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Hold Point approval failed: {ex.Message}",
+                Severity.Error);
+        }
+    }
+
+    private async Task RejectAsync(WeldHoldPoint holdPoint)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                {
+                    nameof(HoldPointDecisionDialog.HoldPoint),
+                    holdPoint
+                },
+                {
+                    nameof(HoldPointDecisionDialog.Decision),
+                    HoldPointDecisionDialog.HoldPointDecision.Reject
+                }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            };
+
+            var dialog =
+                await DialogService.ShowAsync<HoldPointDecisionDialog>(
+                    "Reject Hold Point",
+                    parameters,
+                    options);
+
+            var result = await dialog.Result;
+
+            if (result is not { Canceled: false } ||
+                result.Data is not HoldPointDecisionDialog.HoldPointDecisionResult decision)
+            {
+                return;
+            }
+
+            await HoldPointService.RejectAsync(
+                holdPoint.Id,
+                decision.Comments);
+
+            Snackbar.Add(
+                "Hold Point rejected.",
+                Severity.Success);
+
+            await LoadAsync();
+            await Changed.InvokeAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Hold Point rejection failed: {ex.Message}",
+                Severity.Error);
+        }
+    }
+}
+
+

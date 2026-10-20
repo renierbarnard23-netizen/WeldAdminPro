@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using WeldAdminPro.Core.Models;
 using WeldAdminPro.Core.Quality.Enums;
@@ -12,8 +12,11 @@ namespace WeldAdminPro.Core.Quality.Services
             Weld weld,
             List<WeldNdtResult> ndtResults,
             List<RepairRecord> repairs,
+            List<WeldTraceabilityRecord> traceability,
             bool hasApprovedWps,
-            bool hasQualifiedWelder)
+            bool hasQualifiedWelder,
+            bool hasCalibrationCompliance,
+            bool hasOpenNcrs)
         {
             var context =
                 new WeldReleaseContext();
@@ -47,21 +50,42 @@ namespace WeldAdminPro.Core.Quality.Services
 
             context.HasOpenRepairs =
                 repairs.Any(x =>
-                    x.Status !=
-                    RepairStatus.Closed);
+                    x.Status ==
+                        RepairStatus.Requested ||
+                    x.Status ==
+                        RepairStatus.Authorized ||
+                    x.Status ==
+                        RepairStatus.ExcavationInProgress ||
+                    x.Status ==
+                        RepairStatus.RepairWeldingInProgress ||
+                    x.Status ==
+                        RepairStatus.PendingReinspection);
+
+            // =========================
+            // OPEN NCRs
+            // =========================
+
+            context.HasOpenNcrs =
+                hasOpenNcrs;
 
             // =========================
             // FUTURE MODULE PLACEHOLDERS
             // =========================
 
             context.HasMaterialTraceability =
-                true;
+                traceability != null &&
+                traceability.Any(x =>
+                    !string.IsNullOrWhiteSpace(
+                        x.MaterialHeatNumber));
 
             context.HasValidConsumables =
-                true;
+                traceability != null &&
+                traceability.Any(x =>
+                    !string.IsNullOrWhiteSpace(
+                        x.ConsumableBatch));
 
             context.HasCalibrationCompliance =
-                true;
+                hasCalibrationCompliance;
 
             return context;
         }

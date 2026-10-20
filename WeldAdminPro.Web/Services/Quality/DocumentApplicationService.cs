@@ -1,16 +1,28 @@
 using WeldAdminPro.Core.Quality;
+using WeldAdminPro.Core.Security;
+using WeldAdminPro.Core.Security.Abstractions;
 using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Data.Services.Projects;
 
 namespace WeldAdminPro.Web.Services.Quality;
 
 public class DocumentApplicationService
 {
     private readonly ProjectDocumentRepository _repository;
+    private readonly ICurrentUserContext _currentUser;
+    private readonly IPermissionAuthorizationService _permissionAuthorization;
+    private readonly ProjectApplicationService _projectService;
 
     public DocumentApplicationService(
-        ProjectDocumentRepository repository)
+        ProjectDocumentRepository repository,
+        ICurrentUserContext currentUser,
+        IPermissionAuthorizationService permissionAuthorization,
+        ProjectApplicationService projectService)
     {
         _repository = repository;
+        _currentUser = currentUser;
+        _permissionAuthorization = permissionAuthorization;
+        _projectService = projectService;
     }
 
     public int GetRequiredDocumentCount()
@@ -34,12 +46,46 @@ public class DocumentApplicationService
             .Count(x => x.IsApproved);
     }
 
-    public int GetMissingDocumentCount()
+    public async Task<int> GetMissingDocumentCountAsync()
     {
-        return _repository
-            .GetAll()
-            .Count(x =>
-                x.IsRequired &&
-                !x.IsUploaded);
+        if (!_currentUser.IsAuthenticated)
+        {
+            throw new UnauthorizedAccessException(
+                "Authentication is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(_currentUser.UserId))
+        {
+            throw new UnauthorizedAccessException(
+                "Authenticated user ID is required.");
+        }
+
+        var allowed =
+            await _permissionAuthorization.HasPermissionAsync(
+                _currentUser.UserId,
+                _currentUser.Role,
+                PermissionKeys.Quality.View);
+
+        if (!allowed)
+        {
+            throw new UnauthorizedAccessException(
+                "You do not have permission to view Quality document metrics.");
+        }
+
+        var accessibleProjects =
+            await _projectService.GetProjectsAsync();
+
+        var missingCount = 0;
+
+        foreach (var project in accessibleProjects)
+        {
+            missingCount += _repository
+                .GetByProject(project.Id)
+                .Count(x =>
+                    x.IsRequired &&
+                    !x.IsUploaded);
+        }
+
+        return missingCount;
     }
 }

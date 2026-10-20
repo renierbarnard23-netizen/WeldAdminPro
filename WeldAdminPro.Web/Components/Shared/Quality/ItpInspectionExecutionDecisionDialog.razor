@@ -1,0 +1,162 @@
+﻿@using MudBlazor
+@using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Data.Services.Quality
+
+@inject InspectionTestPlanInspectionExecutionApplicationService InspectionExecutionService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            Complete ITP Inspection Execution
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            <strong>Weld:</strong> @Execution.WeldId<br />
+            <strong>Current Status:</strong> @Execution.Status<br />
+            <strong>Current Result:</strong> @Execution.Result
+        </MudAlert>
+
+        <MudSelect T="InspectionTestPlanInspectionResult"
+                   Label="Inspection Result"
+                   Variant="Variant.Outlined"
+                   @bind-Value="_result"
+                   Required="true"
+                   Class="mb-4">
+
+            <MudSelectItem Value="@InspectionTestPlanInspectionResult.Accept">
+                Accept
+            </MudSelectItem>
+
+            <MudSelectItem Value="@InspectionTestPlanInspectionResult.Reject">
+                Reject
+            </MudSelectItem>
+
+            <MudSelectItem Value="@InspectionTestPlanInspectionResult.ConditionalAccept">
+                Conditional Accept
+            </MudSelectItem>
+
+        </MudSelect>
+
+        <MudDatePicker Label="Inspection Date"
+                       Variant="Variant.Outlined"
+                       @bind-Date="_inspectionDate"
+                       Class="mb-4" />
+
+        <MudTextField T="string"
+                      Label="Inspector"
+                      Variant="Variant.Outlined"
+                      @bind-Value="_inspectorName"
+                      Required="true"
+                      RequiredError="Inspector name is required."
+                      Class="mb-4" />
+
+        <MudTextField T="string"
+                      Label="Findings"
+                      Variant="Variant.Outlined"
+                      Lines="5"
+                      @bind-Value="_findings"
+                      Class="mb-4" />
+
+        <MudTextField T="string"
+                      Label="Remarks"
+                      Variant="Variant.Outlined"
+                      Lines="4"
+                      @bind-Value="_remarks" />
+
+    </DialogContent>
+
+    <DialogActions>
+
+        <MudButton Variant="Variant.Text"
+                   OnClick="Cancel">
+            Back
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="@GetResultColor()"
+                   Disabled="@(!CanComplete)"
+                   OnClick="CompleteAsync">
+            COMPLETE INSPECTION
+        </MudButton>
+
+    </DialogActions>
+</MudDialog>
+
+@code
+{
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public InspectionTestPlanInspectionExecution Execution { get; set; } = new();
+
+    private InspectionTestPlanInspectionResult _result;
+    private DateTime? _inspectionDate;
+    private string _inspectorName = string.Empty;
+    private string _findings = string.Empty;
+    private string _remarks = string.Empty;
+
+    private bool CanComplete =>
+        _result != InspectionTestPlanInspectionResult.Pending &&
+        !string.IsNullOrWhiteSpace(_inspectorName);
+
+    protected override void OnInitialized()
+    {
+        _result = Execution.Result == InspectionTestPlanInspectionResult.Pending
+            ? InspectionTestPlanInspectionResult.Accept
+            : Execution.Result;
+
+        _inspectionDate = Execution.InspectionDate;
+        _inspectorName = Execution.InspectorName ?? string.Empty;
+        _findings = Execution.Findings ?? string.Empty;
+        _remarks = Execution.Remarks ?? string.Empty;
+    }
+
+    private Color GetResultColor()
+    {
+        return _result switch
+        {
+            InspectionTestPlanInspectionResult.Accept => Color.Success,
+            InspectionTestPlanInspectionResult.Reject => Color.Error,
+            InspectionTestPlanInspectionResult.ConditionalAccept => Color.Warning,
+            _ => Color.Primary
+        };
+    }
+
+    private async Task CompleteAsync()
+    {
+        if (!CanComplete)
+            return;
+
+        try
+        {
+            await InspectionExecutionService.CompleteAsync(
+                Execution.Id,
+                _result,
+                _inspectionDate,
+                _inspectorName.Trim(),
+                _findings.Trim(),
+                _remarks.Trim());
+
+            Snackbar.Add(
+                $"Inspection execution completed: {_result}.",
+                Severity.Success);
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

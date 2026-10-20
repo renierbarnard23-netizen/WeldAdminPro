@@ -1,5 +1,10 @@
 @using MudBlazor
 @using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Services
+@using WeldAdminPro.Web.Services.Quality
+
+@inject WpsApplicationService WpsService
 
 <MudDialog>
 
@@ -9,45 +14,512 @@
             @(_isNew ? "New WPS" : "Edit WPS")
         </MudText>
 
-        <MudTextField @bind-Value="Model.WpsNumber"
-                      Label="WPS Number"
-                      Required="true" />
+        <MudPaper Class="pa-4 mb-4" Elevation="1">
+            <MudText Typo="Typo.h6" Class="mb-3">
+                Owning Company
+            </MudText>
 
-        <MudTextField @bind-Value="Model.Process"
-                      Label="Process" />
+            <MudSelect T="Guid?"
+                       Label="Owning Company"
+                       Value="Model.CompanyId"
+                       ValueChanged="OnCompanyChanged"
+                       Disabled="@(!_isNew)"
+                       Required="true">
+                @foreach (var company in _availableCompanies)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)company.Id)">
+                        @company.CompanyName (@company.CompanyCode)
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudPaper>
 
-        <MudTextField @bind-Value="Model.MaterialGroup"
-                      Label="Material Group" />
+        @* =====================================================
+           PQR SELECTION / GENERATION
+           ===================================================== *@
 
-        <MudNumericField T="double"
-                         @bind-Value="Model.ThicknessMin"
-                         Label="Minimum Thickness (mm)" />
+        <MudPaper Class="pa-4 mb-4" Elevation="1">
 
-        <MudNumericField T="double"
-                         @bind-Value="Model.ThicknessMax"
-                         Label="Maximum Thickness (mm)" />
+            <MudText Typo="Typo.h6" Class="mb-3">
+                PQR Qualification
+            </MudText>
+
+            <MudSelect T="Pqr"
+                       Label="Linked PQR"
+                       Value="_selectedPqr"
+                       ValueChanged="OnPqrChanged"
+                       ToStringFunc="@(p => p?.PqrNumber ?? "")"
+                       Clearable="true">
+
+                @foreach (var pqr in _availablePqrs)
+                {
+                    <MudSelectItem T="Pqr" Value="@pqr">
+                        @pqr.PqrNumber
+                        — @pqr.Process
+                        — @pqr.QualifiedPosition
+                    </MudSelectItem>
+                }
+
+            </MudSelect>
+
+            @if (_selectedPqr != null)
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-3">
+
+                    PQR:
+                    <strong>@_selectedPqr.PqrNumber</strong>
+
+                    &nbsp; | &nbsp;
+
+                    Process:
+                    <strong>@_selectedPqr.Process</strong>
+
+                    &nbsp; | &nbsp;
+
+                    Position:
+                    <strong>@_selectedPqr.QualifiedPosition</strong>
+
+                    &nbsp; | &nbsp;
+
+                    Thickness:
+                    <strong>@_selectedPqr.ThicknessQualifiedMin -
+                        @_selectedPqr.ThicknessQualifiedMax mm</strong>
+
+                </MudAlert>
+            }
+
+        </MudPaper>
+
+
+        @* =====================================================
+           COMPLIANCE STATUS
+           ===================================================== *@
+
+        <MudPaper Class="pa-4 mb-4"
+                  Elevation="1">
+
+            @if (_compliance == null)
+            {
+                <MudAlert Severity="Severity.Warning">
+                    Select a PQR to validate this WPS.
+                </MudAlert>
+            }
+            else if (_compliance.IsCompliant)
+            {
+                <MudAlert Severity="Severity.Success"
+                          Variant="Variant.Filled">
+
+                    <strong>WPS COMPLIANT</strong>
+
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Error"
+                          Variant="Variant.Filled">
+
+                    <strong>WPS NOT COMPLIANT</strong>
+
+                </MudAlert>
+            }
+
+        </MudPaper>
+
+
+        @* =====================================================
+           VALIDATION DETAILS
+           ===================================================== *@
+
+        @if (_compliance != null && !_compliance.IsCompliant)
+        {
+            <MudExpansionPanels Class="mb-4">
+
+                @if (_compliance.ValidationErrors.Any())
+                {
+                    <MudExpansionPanel Text="Validation Errors">
+
+                        @foreach (var error in _compliance.ValidationErrors)
+                        {
+                            <MudAlert Severity="Severity.Error"
+                                      Dense="true"
+                                      Class="mb-2">
+                                @error
+                            </MudAlert>
+                        }
+
+                    </MudExpansionPanel>
+                }
+
+                @if (_compliance.EssentialFailures.Any())
+                {
+                    <MudExpansionPanel Text="Essential Variable Failures">
+
+                        @foreach (var error in _compliance.EssentialFailures)
+                        {
+                            <MudAlert Severity="Severity.Error"
+                                      Dense="true"
+                                      Class="mb-2">
+                                @error
+                            </MudAlert>
+                        }
+
+                    </MudExpansionPanel>
+                }
+
+                @if (_compliance.RangeFailures.Any())
+                {
+                    <MudExpansionPanel Text="Qualification Range Failures">
+
+                        @foreach (var error in _compliance.RangeFailures)
+                        {
+                            <MudAlert Severity="Severity.Error"
+                                      Dense="true"
+                                      Class="mb-2">
+                                @error
+                            </MudAlert>
+                        }
+
+                    </MudExpansionPanel>
+                }
+
+            </MudExpansionPanels>
+        }
+
+
+        @* =====================================================
+           GENERAL
+           ===================================================== *@
+
+        <MudText Typo="Typo.h6" Class="mb-3">
+            General
+        </MudText>
+
+        <MudGrid>
+
+            <MudItem xs="12" md="6">
+
+                <MudTextField @bind-Value="Model.WpsNumber"
+                              Label="WPS Number"
+                              Required="true"
+                              Immediate="true" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudTextField @bind-Value="Model.Process"
+                              Label="Welding Process"
+                              Immediate="true" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudTextField @bind-Value="Model.MaterialGroup"
+                              Label="Material Group"
+                              Immediate="true" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudTextField @bind-Value="Model.PNumber"
+                              Label="P-Number"
+                              Immediate="true" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudTextField @bind-Value="Model.FNumber"
+                              Label="F-Number"
+                              Immediate="true" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudSelect T="string"
+                           Label="Position"
+                           @bind-Value="Model.Position" @bind-Value:after="EvaluateCompliance">
+
+                    <MudSelectItem Value="@("1G")">1G</MudSelectItem>
+                    <MudSelectItem Value="@("2G")">2G</MudSelectItem>
+                    <MudSelectItem Value="@("3G")">3G</MudSelectItem>
+                    <MudSelectItem Value="@("4G")">4G</MudSelectItem>
+                    <MudSelectItem Value="@("5G")">5G</MudSelectItem>
+                    <MudSelectItem Value="@("6G")">6G</MudSelectItem>
+                    <MudSelectItem Value="@("ALL")">ALL</MudSelectItem>
+
+                </MudSelect>
+
+            </MudItem>
+
+        </MudGrid>
+
+
+        @* =====================================================
+           THICKNESS / DIAMETER
+           ===================================================== *@
+
+        <MudText Typo="Typo.h6"
+                 Class="mb-3 mt-5">
+
+            Thickness & Diameter
+
+        </MudText>
+
+        <MudGrid>
+
+            <MudItem xs="12" md="4">
+
+                <MudNumericField T="double"
+                                 @bind-Value="Model.ThicknessMin" @bind-Value:after="EvaluateCompliance"
+                                 Label="Minimum Thickness (mm)"
+                                 Immediate="true" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+
+                <MudNumericField T="double"
+                                 @bind-Value="Model.ThicknessMax" @bind-Value:after="EvaluateCompliance"
+                                 Label="Maximum Thickness (mm)"
+                                 Immediate="true" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+
+                <MudNumericField T="double"
+                                 @bind-Value="Model.Diameter" @bind-Value:after="EvaluateCompliance"
+                                 Label="Diameter (mm)"
+                                 Immediate="true" />
+
+            </MudItem>
+
+        </MudGrid>
+
+
+        @* =====================================================
+           JOINT
+           ===================================================== *@
+
+        <MudText Typo="Typo.h6"
+                 Class="mb-3 mt-5">
+
+            Joint
+
+        </MudText>
+
+        <MudGrid>
+
+            <MudItem xs="12" md="6">
+
+                <MudSelect T="string"
+                           Label="Joint Type"
+                           @bind-Value="Model.JointType">
+
+                    <MudSelectItem Value="@("Groove")">
+                        Groove
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="@("Fillet")">
+                        Fillet
+                    </MudSelectItem>
+
+                </MudSelect>
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudTextField @bind-Value="Model.JointDesign"
+                              Label="Joint Design"
+                              Immediate="true" />
+
+            </MudItem>
+
+        </MudGrid>
+
+
+        @* =====================================================
+           WELDING VARIABLES
+           ===================================================== *@
+
+        <MudText Typo="Typo.h6"
+                 Class="mb-3 mt-5">
+
+            Welding Variables
+
+        </MudText>
+
+        <MudGrid>
+
+            <MudItem xs="12" md="4">
+
+                <MudNumericField T="double"
+                                 @bind-Value="Model.PreheatMin"
+                                 Label="Minimum Preheat (°C)"
+                                 Immediate="true" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+
+                <MudNumericField T="double"
+                                 @bind-Value="Model.PreheatMax"
+                                 Label="Maximum Preheat (°C)"
+                                 Immediate="true" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+
+                <MudNumericField T="double?"
+                                 @bind-Value="Model.InterpassMax"
+                                 Label="Maximum Interpass (°C)"
+                                 Immediate="true" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudTextField @bind-Value="Model.CurrentType"
+                              Label="Current Type"
+                              Immediate="true" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudTextField @bind-Value="Model.Polarity"
+                              Label="Polarity"
+                              Immediate="true" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudTextField @bind-Value="Model.Progression"
+                              Label="Progression"
+                              Immediate="true" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudCheckBox @bind-Value="Model.PwhtRequired"
+                             Label="PWHT Required" />
+
+            </MudItem>
+
+        </MudGrid>
+
+
+        @* =====================================================
+           FILLER / GAS
+           ===================================================== *@
+
+        <MudText Typo="Typo.h6"
+                 Class="mb-3 mt-5">
+
+            Filler & Gas
+
+        </MudText>
+
+        <MudGrid>
+
+            <MudItem xs="12" md="6">
+
+                <MudTextField @bind-Value="Model.FillerMaterial"
+                              Label="Filler Material"
+                              Immediate="true" />
+
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+
+                <MudTextField @bind-Value="Model.GasType"
+                              Label="Gas Type"
+                              Immediate="true" />
+
+            </MudItem>
+
+        </MudGrid>
+
+
+        @* =====================================================
+           REVISION / APPROVAL
+           ===================================================== *@
+
+        @if (!_isNew)
+        {
+            <MudText Typo="Typo.h6"
+                     Class="mb-3 mt-5">
+
+                Document Control
+
+            </MudText>
+
+            <MudGrid>
+
+                <MudItem xs="12" md="4">
+
+                    <MudNumericField T="int"
+                                     @bind-Value="Model.Revision"
+                                     Label="Revision"
+                                     Disabled="true" />
+
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+
+                    <MudCheckBox @bind-Value="Model.IsApproved"
+                                 Label="Approved"
+                                 Disabled="true" />
+
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+
+                    <MudCheckBox @bind-Value="Model.IsLocked"
+                                 Label="Locked"
+                                 Disabled="true" />
+
+                </MudItem>
+
+            </MudGrid>
+        }
 
     </DialogContent>
+
 
     <DialogActions>
 
         <MudButton Color="Color.Default"
                    OnClick="Cancel">
+
             Cancel
+
         </MudButton>
 
         <MudButton Color="Color.Primary"
                    Variant="Variant.Filled"
+                   Disabled="@(!CanSave)"
                    OnClick="Save">
+
             Save
+
         </MudButton>
 
     </DialogActions>
 
 </MudDialog>
 
-@code {
 
+@code
+{
     [CascadingParameter]
     public IMudDialogInstance MudDialog { get; set; } = default!;
 
@@ -56,13 +528,209 @@
 
     private bool _isNew => Model.Id == Guid.Empty;
 
-    void Save()
+    private List<Company> _availableCompanies = new();
+
+    private List<Pqr> _availablePqrs = new();
+
+    private Pqr? _selectedPqr;
+
+    private WpsComplianceResult? _compliance;
+
+    protected override async Task OnInitializedAsync()
     {
-        MudDialog.Close(DialogResult.Ok(Model));
+        _availableCompanies =
+            await WpsService.GetAccessibleCompaniesAsync();
+
+        if (Model.CompanyId.HasValue)
+        {
+            _availablePqrs =
+                await WpsService.GetAvailablePqrsAsync(Model.CompanyId);
+
+            if (Model.PqrId.HasValue)
+            {
+                _selectedPqr = _availablePqrs
+                    .FirstOrDefault(x => x.Id == Model.PqrId.Value);
+            }
+        }
+
+        if (_selectedPqr != null)
+        {
+            EvaluateCompliance();
+        }
     }
 
-    void Cancel()
+    private async Task OnCompanyChanged(Guid? companyId)
+    {
+        if (!_isNew)
+            return;
+
+        Model.CompanyId = companyId;
+
+        // Clear the previous company's qualification before reloading.
+        _selectedPqr = null;
+        Model.PqrId = null;
+        Model.LinkedPqrNumber = null;
+        _compliance = null;
+        _availablePqrs.Clear();
+
+        if (companyId.HasValue && companyId.Value != Guid.Empty)
+        {
+            _availablePqrs =
+                await WpsService.GetAvailablePqrsAsync(companyId);
+        }
+    }
+
+    private bool CanSave =>
+        Model.CompanyId.HasValue &&
+        Model.CompanyId.Value != Guid.Empty &&
+        !string.IsNullOrWhiteSpace(Model.WpsNumber) &&
+        _selectedPqr != null &&
+        _compliance?.IsCompliant == true &&
+        (!Model.IsLocked || Model.IsApproved);
+
+    private async Task OnPqrChanged(Pqr? pqr)
+    {
+        _selectedPqr = pqr;
+
+        if (pqr == null)
+        {
+            Model.PqrId = null;
+            _compliance = null;
+            return;
+        }
+
+        // Generate the complete WPS from the selected PQR.
+        var generated = await WpsService.GenerateFromPqrAsync(pqr);
+
+        // =====================================================
+        // LINK / IDENTIFICATION
+        // =====================================================
+
+        Model.PqrId = pqr.Id;
+        Model.LinkedPqrNumber = pqr.PqrNumber;
+        Model.WpsNumber = generated.WpsNumber;
+
+        // =====================================================
+        // MATERIAL / PROCESS
+        // =====================================================
+
+        Model.Process = generated.Process;
+        Model.MaterialGroup = generated.MaterialGroup;
+        Model.PNumber = generated.PNumber;
+        Model.FNumber = generated.FNumber;
+
+        // =====================================================
+        // POSITION / JOINT
+        // =====================================================
+
+        Model.Position = generated.Position;
+        Model.JointType = generated.JointType;
+        Model.JointDesign = generated.JointDesign;
+        Model.Backing = generated.Backing;
+        Model.BackingType = generated.BackingType;
+
+        // =====================================================
+        // THICKNESS / DIAMETER
+        // =====================================================
+
+        Model.ThicknessMin = generated.ThicknessMin;
+        Model.ThicknessMax = generated.ThicknessMax;
+        Model.Diameter = generated.Diameter;
+        Model.QualifiedThicknessRange =
+            generated.QualifiedThicknessRange;
+
+        // =====================================================
+        // FILLER / GAS
+        // =====================================================
+
+        Model.FillerMaterial = generated.FillerMaterial;
+        Model.GasType = generated.GasType;
+
+        // =====================================================
+        // ELECTRICAL VARIABLES
+        // =====================================================
+
+        Model.AmpsMin = generated.AmpsMin;
+        Model.AmpsMax = generated.AmpsMax;
+
+        Model.VoltsMin = generated.VoltsMin;
+        Model.VoltsMax = generated.VoltsMax;
+
+        Model.HeatInputMin = generated.HeatInputMin;
+        Model.HeatInputMax = generated.HeatInputMax;
+
+        // =====================================================
+        // PREHEAT / INTERPASS / PWHT
+        // =====================================================
+
+        Model.PreheatMin = generated.PreheatMin;
+        Model.PreheatMax = generated.PreheatMax;
+        Model.InterpassMax = generated.InterpassMax;
+        Model.PwhtRequired = generated.PwhtRequired;
+
+        // =====================================================
+        // ESSENTIAL VARIABLES
+        // =====================================================
+
+        Model.CurrentType = generated.CurrentType;
+        Model.Polarity = pqr.Polarity;
+        Model.Progression = generated.Progression;
+
+        // =====================================================
+        // DOCUMENT CONTROL
+        // =====================================================
+
+        Model.Revision = generated.Revision;
+        Model.IsApproved = generated.IsApproved;
+        Model.IsLocked = generated.IsLocked;
+
+        // =====================================================
+        // COMPLIANCE
+        // =====================================================
+
+        Model.IsCompliant = false;
+        Model.ValidationStatus = "";
+
+        EvaluateCompliance();
+    }
+    private void EvaluateCompliance()
+    {
+        if (_selectedPqr == null)
+        {
+            _compliance = null;
+            return;
+        }
+
+        _compliance =
+            WpsService.EvaluateCompliance(
+                Model,
+                _selectedPqr);
+
+        StateHasChanged();
+    }
+
+    private void Save()
+    {
+        if (!CanSave)
+            return;
+
+        Model.IsCompliant = true;
+        Model.ValidationStatus = "COMPLIANT";
+
+        if (Model.Id == Guid.Empty)
+            Model.Id = Guid.NewGuid();
+
+        MudDialog.Close(
+            DialogResult.Ok(Model));
+    }
+
+    private void Cancel()
     {
         MudDialog.Cancel();
     }
 }
+
+
+
+
+

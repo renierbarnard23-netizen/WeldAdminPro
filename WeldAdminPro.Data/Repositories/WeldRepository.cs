@@ -135,6 +135,7 @@ INSERT INTO Welds
     Diameter,
     JointType,
     WeldType,
+    WpsId,
     WpsNumber,
     WelderNumber,
 
@@ -179,6 +180,7 @@ VALUES
     $Diameter,
     $JointType,
     $WeldType,
+    $WpsId,
     $WpsNumber,
     $WelderNumber,
 
@@ -246,6 +248,12 @@ VALUES
             cmd.Parameters.AddWithValue(
                 "$WeldType",
                 weld.WeldType);
+
+            cmd.Parameters.AddWithValue(
+                "$WpsId",
+                weld.WpsId.HasValue
+                    ? weld.WpsId.Value.ToString()
+                    : DBNull.Value);
 
             cmd.Parameters.AddWithValue(
                 "$WpsNumber",
@@ -448,6 +456,16 @@ ORDER BY WeldNumber;";
                     WeldType =
                         reader["WeldType"]?.ToString() ?? "",
 
+                    WpsId =
+                        reader["WpsId"] == DBNull.Value ||
+                        string.IsNullOrWhiteSpace(reader["WpsId"]?.ToString())
+                            ? null
+                            : Guid.TryParse(
+                                reader["WpsId"]?.ToString(),
+                                out var wpsId)
+                                ? wpsId
+                                : null,
+
                     WpsNumber =
                         reader["WpsNumber"]?.ToString() ?? "",
 
@@ -602,6 +620,227 @@ ORDER BY WeldNumber;";
         // GET WELD BY ID
         // =====================================================
 
+        public async Task<Weld?> GetByIdAsync(
+            Guid weldId,
+            SqliteConnection connection,
+            SqliteTransaction transaction)
+        {
+
+                        if (connection == null)
+                throw new ArgumentNullException(nameof(connection));
+
+            if (transaction == null)
+                throw new ArgumentNullException(nameof(transaction));
+
+            var cmd = connection.CreateCommand();
+
+            cmd.Transaction = transaction;
+
+            cmd.CommandText = @"
+SELECT *
+FROM Welds
+WHERE Id = $WeldId
+LIMIT 1;";
+
+            cmd.Parameters.AddWithValue(
+                "$WeldId",
+                weldId.ToString());
+
+            using var reader =
+                await cmd.ExecuteReaderAsync();
+
+            if (!await reader.ReadAsync())
+            {
+                return null;
+            }
+
+            return new Weld
+            {
+                Id = Guid.Parse(
+                    reader["Id"].ToString()!),
+
+                ProjectId = Guid.Parse(
+                    reader["ProjectId"].ToString()!),
+
+                WeldNumber =
+                    reader["WeldNumber"]?.ToString() ?? "",
+
+                JointNumber =
+                    reader["JointNumber"]?.ToString() ?? "",
+
+                DrawingNumber =
+                    reader["DrawingNumber"]?.ToString() ?? "",
+
+                MaterialSpecification =
+                    reader["MaterialSpecification"]?.ToString() ?? "",
+
+                Diameter =
+                    reader["Diameter"] == DBNull.Value
+                        ? 0
+                        : Convert.ToDouble(
+                            reader["Diameter"]),
+
+                JointType =
+                    reader["JointType"]?.ToString() ?? "",
+
+                WeldType =
+                    reader["WeldType"]?.ToString() ?? "",
+
+                WpsId =
+                    reader["WpsId"] == DBNull.Value ||
+                    string.IsNullOrWhiteSpace(reader["WpsId"]?.ToString())
+                        ? null
+                        : Guid.TryParse(
+                            reader["WpsId"]?.ToString(),
+                            out var wpsId)
+                            ? wpsId
+                            : null,
+
+                WpsNumber =
+                    reader["WpsNumber"]?.ToString() ?? "",
+
+                WelderNumber =
+                    reader["WelderNumber"]?.ToString() ?? "",
+
+                MaterialHeat1 =
+                    reader["MaterialHeat1"]?.ToString() ?? "",
+
+                MaterialHeat2 =
+                    reader["MaterialHeat2"]?.ToString() ?? "",
+
+                Status =
+                    Enum.TryParse<WeldStatusType>(
+                        reader["Status"]?.ToString(),
+                        out var status)
+                            ? status
+                            : WeldStatusType.Pending,
+
+                WorkflowStatus =
+                    Enum.TryParse<WeldWorkflowStatus>(
+                        reader["WorkflowStatus"]?.ToString(),
+                        out var workflowStatus)
+                            ? workflowStatus
+                            : WeldWorkflowStatus.Draft,
+
+                NdtStatus =
+                    reader["NdtStatus"]?.ToString() ?? "",
+
+                RepairCount =
+                    reader["RepairCount"] == DBNull.Value
+                        ? 0
+                        : Convert.ToInt32(
+                            reader["RepairCount"]),
+
+                RepairCycle =
+                    reader["RepairCycle"] == DBNull.Value
+                        ? 0
+                        : Convert.ToInt32(
+                            reader["RepairCycle"]),
+
+                RequiresRepair =
+                    reader["RequiresRepair"] != DBNull.Value
+                    && Convert.ToInt32(
+                        reader["RequiresRepair"]) == 1,
+
+                LastNdtDate =
+                    reader["LastNdtDate"] == DBNull.Value
+                        ? null
+                        : DateTime.Parse(
+                            reader["LastNdtDate"].ToString()!),
+
+                LastNdtResult =
+                    reader["LastNdtResult"]?.ToString(),
+
+                CreatedDate =
+                    reader["CreatedDate"] == DBNull.Value
+                        ? DateTime.UtcNow
+                        : DateTime.Parse(
+                            reader["CreatedDate"].ToString()!),
+
+                RequiredNdt =
+                    HasColumn(reader, "RequiredNdt")
+                        ? reader["RequiredNdt"]?.ToString() ?? ""
+                        : "",
+
+                ReadinessScore =
+                    HasColumn(reader, "ReadinessScore")
+                    && reader["ReadinessScore"] != DBNull.Value
+                        ? Convert.ToInt32(
+                            reader["ReadinessScore"])
+                        : 0,
+
+                IsReady =
+                    HasColumn(reader, "IsReady")
+                    && reader["IsReady"] != DBNull.Value
+                    && Convert.ToInt32(
+                        reader["IsReady"]) == 1,
+
+                ReadinessSummary =
+                    reader["ReadinessSummary"]?.ToString() ?? "",
+
+                ReleaseReady =
+                    HasColumn(reader, "ReleaseReady")
+                    && reader["ReleaseReady"] != DBNull.Value
+                    && Convert.ToInt32(
+                        reader["ReleaseReady"]) == 1,
+
+                TurnoverReady =
+                    reader["TurnoverReady"] != DBNull.Value
+                    && Convert.ToInt32(
+                        reader["TurnoverReady"]) == 1,
+
+                BlockingCount =
+                    reader["BlockingCount"] == DBNull.Value
+                        ? 0
+                        : Convert.ToInt32(
+                            reader["BlockingCount"]),
+
+                ReleasedBy =
+                    reader["ReleasedBy"]?.ToString() ?? "",
+
+                ReleasedDate =
+                    reader["ReleasedDate"] == DBNull.Value
+                        ? null
+                        : DateTime.Parse(
+                            reader["ReleasedDate"].ToString()!),
+
+                IsReleased =
+                    reader["IsReleased"] != DBNull.Value
+                    && Convert.ToInt32(
+                        reader["IsReleased"]) == 1,
+
+                RequiredReleaseRole =
+                    reader["RequiredReleaseRole"] == DBNull.Value
+                        ? WeldReleaseRole.QA
+                        : (WeldReleaseRole)
+                            Convert.ToInt32(
+                                reader["RequiredReleaseRole"]),
+
+                Process =
+                    reader["Process"]?.ToString() ?? "",
+
+                MaterialGroup =
+                    reader["MaterialGroup"]?.ToString() ?? "",
+
+                Position =
+                    reader["Position"]?.ToString() ?? "",
+
+                Thickness =
+                    reader["Thickness"] == DBNull.Value
+                        ? 0
+                        : Convert.ToDouble(
+                            reader["Thickness"]),
+
+                IsValid =
+                    reader["IsValid"] != DBNull.Value
+                    && Convert.ToInt32(
+                        reader["IsValid"]) == 1,
+
+                ValidationMessage =
+                    reader["ValidationMessage"]?.ToString() ?? ""
+            };
+        
+        }
         public async Task<Weld?> GetByIdAsync(
             Guid weldId)
         {
@@ -914,6 +1153,16 @@ WHERE ProjectId = $ProjectId;";
                                 : Convert.ToDouble(
                             reader["Diameter"]),
 
+                        WpsId =
+                            reader["WpsId"] == DBNull.Value ||
+                            string.IsNullOrWhiteSpace(reader["WpsId"]?.ToString())
+                                ? null
+                                : Guid.TryParse(
+                                    reader["WpsId"]?.ToString(),
+                                    out var wpsId)
+                                    ? wpsId
+                                    : null,
+
                         WpsNumber =
                             reader["WpsNumber"]
                                 ?.ToString() ?? "",
@@ -1042,50 +1291,187 @@ WHERE ProjectId = $ProjectId;";
 
 
         // =====================================================
-        // UPDATE WELD
+        // EDITABLE WELD DATA
+        // =====================================================
+        //
+        // The generic repository update is intentionally limited to
+        // ordinary Weld master-data fields plus derived readiness.
+        // Workflow, NDT, repair and release state are persisted through
+        // their dedicated controlled methods below.
         // =====================================================
 
         public async Task UpdateAsync(Weld weld)
         {
-
-            var readiness =
-                _readinessEngine
-                    .Evaluate(weld);
-
-            weld.ReadinessScore =
-                readiness.ReadinessScore;
-
-            weld.IsReady =
-                readiness.IsReady;
-
-            weld.ReadinessSummary =
-                string.Join(
-                    Environment.NewLine,
-                    readiness.BlockingReasons);
+            if (weld == null)
+                throw new ArgumentNullException(nameof(weld));
 
             if (weld.Id == Guid.Empty)
-            {
-                throw new InvalidOperationException(
-                    "Weld Id cannot be empty.");
-            }
+                throw new InvalidOperationException("Weld Id cannot be empty.");
 
-            using var connection =
-                new SqliteConnection(_connectionString);
-
+            using var connection = new SqliteConnection(_connectionString);
             await connection.OpenAsync();
 
-            var cmd = connection.CreateCommand();
+            using var transaction = connection.BeginTransaction();
 
+            await UpdateEditableAsync(weld, connection, transaction);
+
+            transaction.Commit();
+        }
+
+        public async Task UpdateEditableAsync(
+            Weld weld,
+            SqliteConnection connection,
+            SqliteTransaction transaction)
+        {
+            if (weld == null)
+                throw new ArgumentNullException(nameof(weld));
+            if (connection == null)
+                throw new ArgumentNullException(nameof(connection));
+            if (transaction == null)
+                throw new ArgumentNullException(nameof(transaction));
+            if (weld.Id == Guid.Empty)
+                throw new InvalidOperationException("Weld Id cannot be empty.");
+
+            ApplyReadiness(weld);
+
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = transaction;
             cmd.CommandText = @"
 UPDATE Welds
 SET
     DrawingNumber = $DrawingNumber,
     JointNumber = $JointNumber,
-
-    Status = $Status,
     JointType = $JointType,
     WeldType = $WeldType,
+    ReadinessScore = $ReadinessScore,
+    IsReady = $IsReady,
+    ReadinessSummary = $ReadinessSummary
+WHERE Id = $Id;";
+
+            cmd.Parameters.AddWithValue("$DrawingNumber", weld.DrawingNumber ?? string.Empty);
+            cmd.Parameters.AddWithValue("$JointNumber", weld.JointNumber ?? string.Empty);
+            cmd.Parameters.AddWithValue("$JointType", weld.JointType ?? string.Empty);
+            cmd.Parameters.AddWithValue("$WeldType", weld.WeldType ?? string.Empty);
+            cmd.Parameters.AddWithValue("$ReadinessScore", weld.ReadinessScore);
+            cmd.Parameters.AddWithValue("$IsReady", weld.IsReady ? 1 : 0);
+            cmd.Parameters.AddWithValue("$ReadinessSummary", weld.ReadinessSummary ?? string.Empty);
+            cmd.Parameters.AddWithValue("$Id", weld.Id.ToString());
+
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // =====================================================
+        // GOVERNED WORKFLOW / RELEASE STATE
+        // =====================================================
+
+        public async Task UpdateWorkflowAsync(Weld weld)
+        {
+            if (weld == null)
+                throw new ArgumentNullException(nameof(weld));
+            if (weld.Id == Guid.Empty)
+                throw new InvalidOperationException("Weld Id cannot be empty.");
+
+            using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+            using var transaction = connection.BeginTransaction();
+
+            await UpdateWorkflowAsync(weld, connection, transaction);
+
+            transaction.Commit();
+        }
+
+        public async Task UpdateWorkflowAsync(
+            Weld weld,
+            SqliteConnection connection,
+            SqliteTransaction transaction)
+        {
+            if (weld == null)
+                throw new ArgumentNullException(nameof(weld));
+            if (connection == null)
+                throw new ArgumentNullException(nameof(connection));
+            if (transaction == null)
+                throw new ArgumentNullException(nameof(transaction));
+            if (weld.Id == Guid.Empty)
+                throw new InvalidOperationException("Weld Id cannot be empty.");
+
+            ApplyReadiness(weld);
+
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = @"
+UPDATE Welds
+SET
+    Status = $Status,
     WorkflowStatus = $WorkflowStatus,
+    ReadinessScore = $ReadinessScore,
+    IsReady = $IsReady,
+    ReadinessSummary = $ReadinessSummary,
+    ReleaseReady = $ReleaseReady,
+    ReleasedBy = $ReleasedBy,
+    ReleasedDate = $ReleasedDate,
+    IsReleased = $IsReleased
+WHERE Id = $Id;";
+
+            cmd.Parameters.AddWithValue("$Status", weld.Status.ToString());
+            cmd.Parameters.AddWithValue("$WorkflowStatus", weld.WorkflowStatus.ToString());
+            cmd.Parameters.AddWithValue("$ReadinessScore", weld.ReadinessScore);
+            cmd.Parameters.AddWithValue("$IsReady", weld.IsReady ? 1 : 0);
+            cmd.Parameters.AddWithValue("$ReadinessSummary", weld.ReadinessSummary ?? string.Empty);
+            cmd.Parameters.AddWithValue("$ReleaseReady", weld.ReleaseReady ? 1 : 0);
+            cmd.Parameters.AddWithValue(
+                "$ReleasedBy",
+                string.IsNullOrWhiteSpace(weld.ReleasedBy) ? DBNull.Value : weld.ReleasedBy);
+            cmd.Parameters.AddWithValue(
+                "$ReleasedDate",
+                weld.ReleasedDate.HasValue ? weld.ReleasedDate.Value.ToString("O") : DBNull.Value);
+            cmd.Parameters.AddWithValue("$IsReleased", weld.IsReleased ? 1 : 0);
+            cmd.Parameters.AddWithValue("$Id", weld.Id.ToString());
+
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // =====================================================
+        // GOVERNED NDT / QUALITY PROJECTION
+        // =====================================================
+
+        public async Task UpdateNdtProjectionAsync(Weld weld)
+        {
+            if (weld == null)
+                throw new ArgumentNullException(nameof(weld));
+            if (weld.Id == Guid.Empty)
+                throw new InvalidOperationException("Weld Id cannot be empty.");
+
+            using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+            using var transaction = connection.BeginTransaction();
+
+            await UpdateNdtProjectionAsync(weld, connection, transaction);
+
+            transaction.Commit();
+        }
+
+        public async Task UpdateNdtProjectionAsync(
+            Weld weld,
+            SqliteConnection connection,
+            SqliteTransaction transaction)
+        {
+            if (weld == null)
+                throw new ArgumentNullException(nameof(weld));
+            if (connection == null)
+                throw new ArgumentNullException(nameof(connection));
+            if (transaction == null)
+                throw new ArgumentNullException(nameof(transaction));
+            if (weld.Id == Guid.Empty)
+                throw new InvalidOperationException("Weld Id cannot be empty.");
+
+            ApplyReadiness(weld);
+
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = @"
+UPDATE Welds
+SET
+    Status = $Status,
     NdtStatus = $NdtStatus,
     RepairCount = $RepairCount,
     RepairCycle = $RepairCycle,
@@ -1093,88 +1479,42 @@ SET
     LastNdtDate = $LastNdtDate,
     LastNdtResult = $LastNdtResult,
     NdtPendingDate = $NdtPendingDate,
-
     ReadinessScore = $ReadinessScore,
     IsReady = $IsReady,
     ReadinessSummary = $ReadinessSummary
 WHERE Id = $Id;";
 
-            cmd.Parameters.AddWithValue(
-                "$DrawingNumber",
-                weld.DrawingNumber);
-
-            cmd.Parameters.AddWithValue(
-                "$JointNumber",
-                weld.JointNumber);
-
-            cmd.Parameters.AddWithValue(
-                "$Status",
-                weld.Status.ToString());
-
-            cmd.Parameters.AddWithValue(
-                "$JointType",
-                weld.JointType);
-
-            cmd.Parameters.AddWithValue(
-                "$WeldType",
-                weld.WeldType);
-
-            cmd.Parameters.AddWithValue(
-                "$WorkflowStatus",
-                weld.WorkflowStatus.ToString());
-
-            cmd.Parameters.AddWithValue(
-                "$NdtStatus",
-                weld.NdtStatus);
-
-            cmd.Parameters.AddWithValue(
-                "$RepairCount",
-                weld.RepairCount);
-
-            cmd.Parameters.AddWithValue(
-                "$RepairCycle",
-                weld.RepairCycle);
-
-            cmd.Parameters.AddWithValue(
-                "$RequiresRepair",
-                weld.RequiresRepair ? 1 : 0);
-
+            cmd.Parameters.AddWithValue("$Status", weld.Status.ToString());
+            cmd.Parameters.AddWithValue("$NdtStatus", weld.NdtStatus ?? string.Empty);
+            cmd.Parameters.AddWithValue("$RepairCount", weld.RepairCount);
+            cmd.Parameters.AddWithValue("$RepairCycle", weld.RepairCycle);
+            cmd.Parameters.AddWithValue("$RequiresRepair", weld.RequiresRepair ? 1 : 0);
             cmd.Parameters.AddWithValue(
                 "$LastNdtDate",
-                weld.LastNdtDate != null
-                    ? weld.LastNdtDate.Value.ToString("O")
-                    : DBNull.Value);
-
+                weld.LastNdtDate.HasValue ? weld.LastNdtDate.Value.ToString("O") : DBNull.Value);
             cmd.Parameters.AddWithValue(
                 "$LastNdtResult",
-                string.IsNullOrWhiteSpace(
-                    weld.LastNdtResult)
-                    ? DBNull.Value
-                    : weld.LastNdtResult);
-
+                string.IsNullOrWhiteSpace(weld.LastNdtResult) ? DBNull.Value : weld.LastNdtResult);
             cmd.Parameters.AddWithValue(
                 "$NdtPendingDate",
-                    weld.NdtPendingDate.HasValue
-                        ? weld.NdtPendingDate.Value.ToString("O")
-                        : DBNull.Value);
-
-            cmd.Parameters.AddWithValue(
-                "$Id",
-                weld.Id.ToString());
-
-            cmd.Parameters.AddWithValue(
-                "$ReadinessScore",
-                weld.ReadinessScore);
-
-            cmd.Parameters.AddWithValue(
-                "$IsReady",
-                weld.IsReady ? 1 : 0);
-
-            cmd.Parameters.AddWithValue(
-                "$ReadinessSummary",
-                weld.ReadinessSummary);
+                weld.NdtPendingDate.HasValue ? weld.NdtPendingDate.Value.ToString("O") : DBNull.Value);
+            cmd.Parameters.AddWithValue("$ReadinessScore", weld.ReadinessScore);
+            cmd.Parameters.AddWithValue("$IsReady", weld.IsReady ? 1 : 0);
+            cmd.Parameters.AddWithValue("$ReadinessSummary", weld.ReadinessSummary ?? string.Empty);
+            cmd.Parameters.AddWithValue("$Id", weld.Id.ToString());
 
             await cmd.ExecuteNonQueryAsync();
+        }
+
+        private void ApplyReadiness(Weld weld)
+        {
+            var readiness = _readinessEngine.Evaluate(weld);
+
+            weld.ReadinessScore = readiness.ReadinessScore;
+            weld.IsReady = readiness.IsReady;
+            weld.ReadinessSummary = string.Join(
+                Environment.NewLine,
+                readiness.BlockingReasons);
         }
 
         public async Task DeleteAsync(Guid weldId)
@@ -1323,3 +1663,4 @@ ON Welds(WelderNumber);";
             }
         }
     } }
+

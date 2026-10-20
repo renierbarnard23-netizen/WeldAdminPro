@@ -1,9 +1,5 @@
-@using MudBlazor
+﻿@using MudBlazor
 @using WeldAdminPro.Core.Quality.Models
-
-@{
-    var record = Records.LastOrDefault();
-}
 
 <MudPaper Class="pa-4">
 
@@ -11,50 +7,187 @@
         Traceability
     </MudText>
 
+    <MudText Typo="Typo.subtitle2" Class="mb-2">
+        Controlled Weld Information
+    </MudText>
+
+    <MudGrid>
+
+        <MudItem xs="5">
+            <b>WPS</b>
+        </MudItem>
+
+        <MudItem xs="7">
+            @(string.IsNullOrWhiteSpace(WpsNumber)
+                ? "Not Assigned"
+                : WpsNumber)
+        </MudItem>
+
+        <MudItem xs="5">
+            <b>Welder Qualification</b>
+        </MudItem>
+
+        <MudItem xs="7">
+            @(string.IsNullOrWhiteSpace(WelderQualification)
+                ? "Not Assigned"
+                : WelderQualification)
+        </MudItem>
+
+        <MudItem xs="5">
+            <b>NDT Status</b>
+        </MudItem>
+
+        <MudItem xs="7">
+            @(string.IsNullOrWhiteSpace(NdtStatus)
+                ? "Pending"
+                : NdtStatus)
+        </MudItem>
+
+        <MudItem xs="5">
+            <b>Weld Status</b>
+        </MudItem>
+
+        <MudItem xs="7">
+            @(string.IsNullOrWhiteSpace(WeldStatus)
+                ? "Pending"
+                : WeldStatus)
+        </MudItem>
+
+    </MudGrid>
+
+    <MudDivider Class="my-4" />
+
+    <MudText Typo="Typo.subtitle2" Class="mb-3">
+        Manual Traceability Records (@Records.Count)
+    </MudText>
+
     @if (!Records.Any())
     {
         <MudAlert Severity="Severity.Info">
-            No traceability information available.
+            No manual traceability records have been captured for this weld.
         </MudAlert>
     }
     else
     {
+        
+
+foreach (var record in Records)
+{
+
+
+    <MudPaper @key="record.Id"
+              Class="pa-3 mb-3"
+              Elevation="1">
+
+        <MudStack Row="true"
+                  AlignItems="AlignItems.Center"
+                  Justify="Justify.SpaceBetween"
+                  Class="mb-3">
+
+            <MudText Typo="Typo.subtitle1">
+                <b>Traceability Record @(Records.IndexOf(record) + 1)</b>
+            </MudText>
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.Edit"
+                       OnClick="@(() => EditRecordClicked(record))">
+
+                Edit
+
+            </MudButton>
+
+        </MudStack>
+
         <MudGrid>
 
-            <MudItem xs="5"><b>WPS</b></MudItem>
-            <MudItem xs="7">@record?.WpsNumber</MudItem>
+            <MudItem xs="5">
+                <b>WPS</b>
+            </MudItem>
 
-            <MudItem xs="5"><b>PQR</b></MudItem>
-            <MudItem xs="7">@record?.PqrNumber</MudItem>
+            <MudItem xs="7">
+                @(string.IsNullOrWhiteSpace(record.WpsNumber)
+                    ? "—"
+                    : record.WpsNumber)
+            </MudItem>
 
-            <MudItem xs="5"><b>Welder Qualification</b></MudItem>
-            <MudItem xs="7">@record?.WelderQualification</MudItem>
+            <MudItem xs="5">
+                <b>PQR</b>
+            </MudItem>
 
-            <MudItem xs="5"><b>Material Heat</b></MudItem>
-            <MudItem xs="7">@record?.MaterialHeatNumber</MudItem>
+            <MudItem xs="7">
+                @(string.IsNullOrWhiteSpace(record.PqrNumber)
+                    ? "—"
+                    : record.PqrNumber)
+            </MudItem>
 
-            <MudItem xs="5"><b>Consumable Batch</b></MudItem>
-            <MudItem xs="7">@record?.ConsumableBatch</MudItem>
+            <MudItem xs="5">
+                <b>Welder Qualification</b>
+            </MudItem>
 
-            <MudItem xs="5"><b>NDT Report</b></MudItem>
-            <MudItem xs="7">@record?.NdtReportNumber</MudItem>
+            <MudItem xs="7">
+                @(string.IsNullOrWhiteSpace(record.WelderQualification)
+                    ? "—"
+                    : record.WelderQualification)
+            </MudItem>
 
-            <MudItem xs="5"><b>Release Certificate</b></MudItem>
-            <MudItem xs="7">@record?.ReleaseCertificate</MudItem>
+            <MudItem xs="5">
+                <b>Material Heat</b>
+            </MudItem>
+
+            <MudItem xs="7">
+                @(string.IsNullOrWhiteSpace(record.MaterialHeatNumber)
+                    ? "—"
+                    : record.MaterialHeatNumber)
+            </MudItem>
+
+            <MudItem xs="5">
+                <b>Consumable Batch</b>
+            </MudItem>
+
+            <MudItem xs="7">
+                @(string.IsNullOrWhiteSpace(record.ConsumableBatch)
+                    ? "—"
+                    : record.ConsumableBatch)
+            </MudItem>
+
+            <MudItem xs="5">
+                <b>NDT Report</b>
+            </MudItem>
+
+            <MudItem xs="7">
+                @(string.IsNullOrWhiteSpace(record.NdtReportNumber)
+                    ? "—"
+                    : record.NdtReportNumber)
+            </MudItem>
+
+            <MudItem xs="5">
+                <b>Release Certificate</b>
+            </MudItem>
+
+            <MudItem xs="7">
+                @(string.IsNullOrWhiteSpace(record.ReleaseCertificate)
+                    ? "—"
+                    : record.ReleaseCertificate)
+            </MudItem>
 
         </MudGrid>
 
-        <MudDivider Class="my-3" />
-
-        <MudButton Variant="Variant.Outlined"
-                   Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Edit"
-                   OnClick="EditClicked">
-
-            Edit Traceability
-
-        </MudButton>
+    </MudPaper>
+}
     }
+
+    <MudDivider Class="my-3" />
+
+    <MudButton Variant="Variant.Outlined"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="EditClicked">
+
+        Add Traceability
+
+    </MudButton>
 
 </MudPaper>
 
@@ -64,10 +197,36 @@
     public List<WeldTraceabilityRecord> Records { get; set; } = new();
 
     [Parameter]
-    public EventCallback Edit { get; set; }
+    public string WeldNumber { get; set; } = string.Empty;
+
+    [Parameter]
+    public string WpsNumber { get; set; } = string.Empty;
+
+    [Parameter]
+    public string WelderQualification { get; set; } = string.Empty;
+
+    [Parameter]
+    public string NdtStatus { get; set; } = string.Empty;
+
+    [Parameter]
+    public string WeldStatus { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<Guid> Edit { get; set; }
 
     private async Task EditClicked()
     {
-        await Edit.InvokeAsync();
+        await Edit.InvokeAsync(Guid.Empty);
+    }
+
+    private async Task EditRecordClicked(
+        WeldTraceabilityRecord record)
+    {
+        if (record == null)
+            return;
+
+        await Edit.InvokeAsync(record.Id);
     }
 }
+
+

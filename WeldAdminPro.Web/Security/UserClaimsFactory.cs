@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 using WeldAdminPro.Core.Models;
 
@@ -33,7 +33,11 @@ public static class UserClaimsFactory
 
                     new Claim(
                         ClaimTypes.Role,
-                        user.RoleName)
+                        user.RoleName),
+
+                    new Claim(
+                        "WeldAdminPro:CompanyId",
+                        user.CompanyId?.ToString() ?? "")
                 },
                 CookieAuthenticationDefaults
                     .AuthenticationScheme);
@@ -41,3 +45,4 @@ public static class UserClaimsFactory
         return new ClaimsPrincipal(identity);
     }
 }
+

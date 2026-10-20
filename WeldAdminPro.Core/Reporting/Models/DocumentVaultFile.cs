@@ -1,4 +1,4 @@
-using PdfSharpCore.Pdf.IO;
+﻿using PdfSharpCore.Pdf.IO;
 using WeldAdminPro.Core.Reporting.Enums;
 
 namespace WeldAdminPro.Core.Reporting.Models
@@ -33,6 +33,13 @@ namespace WeldAdminPro.Core.Reporting.Models
 
         public Guid? ProjectId { get; set; }
 
+        /// <summary>
+        /// Company that owns this document when it is a company-level
+        /// Quality Master document rather than a project/weld document.
+        /// </summary>
+        public Guid? CompanyId { get; set; }
+
         public bool IsApproved { get; set; }
     }
 }
+

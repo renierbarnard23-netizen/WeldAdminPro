@@ -1,4 +1,4 @@
-@page "/administration/users"
+﻿@page "/administration/users"
 
 @using WeldAdminPro.Core.Security
 @using Microsoft.AspNetCore.Authorization
@@ -74,6 +74,15 @@
 
         </MudButton>
 
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Error"
+                   Disabled="_selectedUser is null"
+                   OnClick="ResetPassword">
+
+            Reset Password
+
+        </MudButton>
+
     </MudStack>
 
 </MudStack>
@@ -85,8 +94,54 @@
 }
 else
 {
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+
+        <MudGrid>
+
+            <MudItem xs="12" md="6">
+                <MudTextField T="string"
+                              Label="Search users"
+                              Placeholder="Username or full name"
+                              @bind-Value="_userSearchText"
+                              Immediate="true"
+                              Clearable="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudSelect T="Guid?"
+                           Label="Company"
+                           Clearable="true"
+                           @bind-Value="_selectedCompanyFilter">
+
+                    @foreach (var company in _companies)
+                    {
+                        <MudSelectItem T="Guid?"
+                                       Value="@company.Id">
+                            @company.CompanyName (@company.CompanyCode)
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="2">
+                <MudButton Variant="Variant.Outlined"
+                           FullWidth="true"
+                           Class="mt-2"
+                           OnClick="ClearUserFilters">
+
+                    Clear Filters
+
+                </MudButton>
+            </MudItem>
+
+        </MudGrid>
+
+    </MudPaper>
     <MudTable T="SystemUser"
-              Items="_users"
+              Items="FilteredUsers"
               Hover="true"
               Dense="true"
               Striped="true"
@@ -98,6 +153,7 @@ else
             <MudTh>Username</MudTh>
             <MudTh>Full Name</MudTh>
             <MudTh>Role</MudTh>
+            <MudTh>Company</MudTh>
             <MudTh>Active</MudTh>
 
         </HeaderContent>
@@ -107,6 +163,7 @@ else
             <MudTd>@context.Username</MudTd>
             <MudTd>@context.FullName</MudTd>
             <MudTd>@context.RoleName</MudTd>
+            <MudTd>@GetCompanyName(context.CompanyId)</MudTd>
             <MudTd>@(context.IsActive ? "Yes" : "No")</MudTd>
 
         </RowTemplate>
@@ -119,8 +176,44 @@ else
         <MudSpacer />
 
     <UserEditor User="_editingUser!"
-                Roles="_roles"
-                OnSave="SaveUser" />
+            Roles="_roles"
+            Companies="_companies"
+            AdditionalCompanyAccess="_additionalCompanyAccess"
+            OnGrantCompanyAccess="GrantCompanyAccess"
+            OnRevokeCompanyAccess="RevokeCompanyAccess"
+            OnSave="SaveUser" />
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_temporaryPassword))
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+
+            <MudAlert Severity="Severity.Warning">
+
+                <MudText Typo="Typo.subtitle1">
+                    Temporary password generated
+                </MudText>
+
+                <MudText Class="mt-2">
+                    Give this password to the user securely.
+                    It will not be shown again after leaving this page.
+                </MudText>
+
+                <MudText Typo="Typo.h6" Class="mt-3">
+                    @_temporaryPassword
+                </MudText>
+
+                <MudButton Variant="Variant.Outlined"
+                           Class="mt-3"
+                           OnClick="DismissTemporaryPassword">
+
+                    Dismiss
+
+                </MudButton>
+
+            </MudAlert>
+
+        </MudPaper>
     }
 
     @if (_showPasswordEditor)
@@ -170,13 +263,27 @@ else
     private IReadOnlyList<Role> _roles =
             Array.Empty<Role>();
 
+    private string _userSearchText = string.Empty;
+
+    private Guid? _selectedCompanyFilter;
+
+    private List<Company> _companies =
+            new();
+
     private bool _showPasswordEditor;
+    private string? _temporaryPassword;
+
 
     private string _newPassword = string.Empty;
 
     private string _confirmPassword = string.Empty;
 
     private bool _showEditor;
+
+    private IReadOnlyList<UserCompanyAccess> _additionalCompanyAccess =
+        Array.Empty<UserCompanyAccess>();
+
+    private bool _companyAccessBusy;
     private bool _isNewUser;
 
     protected override async Task OnInitializedAsync()
@@ -184,6 +291,13 @@ else
         _roles =
             (await RoleRepository.GetAllAsync())
             .ToList();
+
+        _companies =
+            AdministrationService
+                .GetCompanies()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.CompanyName)
+                .ToList();
 
         LoadUsers();
     }
@@ -195,7 +309,8 @@ else
 
         if (_isNewUser)
         {
-            AdministrationService.AddUser(_editingUser);
+            _temporaryPassword =
+                AdministrationService.AddUser(_editingUser);
         }
         else
         {
@@ -209,7 +324,7 @@ else
         StateHasChanged();
     }
 
-    private void EditUser()
+    private async Task EditUser()
     {
         if (_selectedUser is null)
             return;
@@ -224,13 +339,123 @@ else
             Email = _selectedUser.Email,
             RoleId = _selectedUser.RoleId,
             RoleName = _selectedUser.RoleName,
+            CompanyId = _selectedUser.CompanyId,
             IsActive = _selectedUser.IsActive,
             PasswordHash = _selectedUser.PasswordHash,
             CreatedDate = _selectedUser.CreatedDate,
             LastLoginDate = _selectedUser.LastLoginDate
         };
+        _additionalCompanyAccess =
+            await AdministrationService
+                .GetUserCompanyAccessAsync(_editingUser.Id);
 
         _showEditor = true;
+    }
+    private async Task GrantCompanyAccess(Guid companyId)
+    {
+        if (_editingUser is null || companyId == Guid.Empty || _companyAccessBusy)
+            return;
+
+        try
+        {
+            _companyAccessBusy = true;
+
+            await AdministrationService.GrantUserCompanyAccessAsync(
+                _editingUser.Id,
+                companyId);
+
+            _additionalCompanyAccess =
+                await AdministrationService
+                    .GetUserCompanyAccessAsync(_editingUser.Id);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(
+                $"Grant company access failed: {ex.Message}");
+        }
+        finally
+        {
+            _companyAccessBusy = false;
+        }
+    }
+
+    private async Task RevokeCompanyAccess(Guid accessId)
+    {
+        if (_editingUser is null || accessId == Guid.Empty || _companyAccessBusy)
+            return;
+
+        try
+        {
+            _companyAccessBusy = true;
+
+            await AdministrationService.RevokeUserCompanyAccessAsync(
+                _editingUser.Id,
+                accessId);
+
+            _additionalCompanyAccess =
+                await AdministrationService
+                    .GetUserCompanyAccessAsync(_editingUser.Id);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(
+                $"Revoke company access failed: {ex.Message}");
+        }
+        finally
+        {
+            _companyAccessBusy = false;
+        }
+    }
+
+
+    private IEnumerable<SystemUser> FilteredUsers
+    {
+        get
+        {
+            if (_users is null)
+                return Enumerable.Empty<SystemUser>();
+
+            IEnumerable<SystemUser> query = _users;
+
+            if (!string.IsNullOrWhiteSpace(_userSearchText))
+            {
+                var search = _userSearchText.Trim();
+
+                query = query.Where(user =>
+                    user.Username.Contains(
+                        search,
+                        StringComparison.OrdinalIgnoreCase)
+                    ||
+                    user.FullName.Contains(
+                        search,
+                        StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (_selectedCompanyFilter.HasValue)
+            {
+                query = query.Where(user =>
+                    user.CompanyId == _selectedCompanyFilter.Value);
+            }
+
+            return query;
+        }
+    }
+
+    private string GetCompanyName(Guid? companyId)
+    {
+        if (!companyId.HasValue)
+            return "Unassigned";
+
+        return _companies
+            .FirstOrDefault(x => x.Id == companyId.Value)
+            ?.CompanyName
+            ?? "Unknown";
+    }
+
+    private void ClearUserFilters()
+    {
+        _userSearchText = string.Empty;
+        _selectedCompanyFilter = null;
     }
 
     private void LoadUsers()
@@ -243,13 +468,19 @@ else
         _selectedUser = null;
         _editingUser = null;
 
-        _showEditor = false;
+        
+        _additionalCompanyAccess =
+            Array.Empty<UserCompanyAccess>();
+_showEditor = false;
         _isNewUser = false;
     }
 
     private void AddUser()
     {
-        var viewerRole =
+        _temporaryPassword = null;
+                _additionalCompanyAccess =
+            Array.Empty<UserCompanyAccess>();
+var viewerRole =
     _roles.FirstOrDefault(x =>
         string.Equals(
             x.Name,
@@ -305,11 +536,20 @@ else
         if (_selectedUser is null)
             return;
 
-        AdministrationService.ResetPassword(_selectedUser.Id);
+        _temporaryPassword =
+            AdministrationService.ResetPassword(
+                _selectedUser.Id);
 
         LoadUsers();
 
         CloseEditor();
+
+        StateHasChanged();
+    }
+
+    private void DismissTemporaryPassword()
+    {
+        _temporaryPassword = null;
 
         StateHasChanged();
     }
@@ -349,3 +589,4 @@ else
     }
     
 }
+

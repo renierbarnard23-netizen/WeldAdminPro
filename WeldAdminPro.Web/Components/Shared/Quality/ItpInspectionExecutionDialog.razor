@@ -1,0 +1,332 @@
+﻿@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Quality.Enums
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Data.Services.Quality
+@using WeldAdminPro.Web.Components.Shared.Quality
+
+@inject InspectionTestPlanInspectionExecutionApplicationService InspectionExecutionService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudDialog>
+    <DialogContent>
+
+        @if (Item != null)
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                <strong>ITP Inspection Item:</strong>
+                @Item.SequenceNumber - @Item.Activity
+            </MudAlert>
+
+            <MudSelect T="Guid?"
+                       Label="Weld"
+                       Variant="Variant.Outlined"
+                       @bind-Value="_selectedWeldId"
+                       Required="true">
+
+                <MudSelectItem T="Guid?" Value="@((Guid?)null)">
+                    Select Weld
+                </MudSelectItem>
+
+                @foreach (var weld in ProjectWelds.OrderBy(x => x.WeldNumber))
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)weld.Id)">
+                        @weld.WeldNumber
+                    </MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudDatePicker Label="Inspection Date"
+                           Variant="Variant.Outlined"
+                           Class="mt-4"
+                           @bind-Date="_inspectionDate" />
+
+            <MudTextField T="string"
+                          Label="Inspector"
+                          Variant="Variant.Outlined"
+                          Class="mt-4"
+                          @bind-Value="_inspectorName"
+                          Required="true" />
+
+            <MudTextField T="string"
+                          Label="Findings"
+                          Variant="Variant.Outlined"
+                          Class="mt-4"
+                          Lines="4"
+                          @bind-Value="_findings" />
+
+            <MudTextField T="string"
+                          Label="Remarks"
+                          Variant="Variant.Outlined"
+                          Class="mt-4"
+                          Lines="3"
+                          @bind-Value="_remarks" />
+
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">
+                Existing Inspection Executions
+            </MudText>
+
+            @if (_executions.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info">
+                    No inspection executions have been recorded for this ITP item.
+                </MudAlert>
+            }
+            else
+            {
+                <MudTable Items="_executions"
+                          Dense="true"
+                          Hover="true"
+                          Bordered="true">
+
+                    <HeaderContent>
+                        <MudTh>Weld</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Result</MudTh>
+                        <MudTh>Inspector</MudTh>
+                        <MudTh>Inspection Date</MudTh>
+                        <MudTh>Findings</MudTh>
+                        <MudTh>Actions</MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate>
+                        <MudTd DataLabel="Weld">
+                            @GetWeldNumber(context.WeldId)
+                        </MudTd>
+
+                        <MudTd DataLabel="Status">
+                            @context.Status
+                        </MudTd>
+
+                        <MudTd DataLabel="Result">
+                            @context.Result
+                        </MudTd>
+
+                        <MudTd DataLabel="Inspector">
+                            @context.InspectorName
+                        </MudTd>
+
+                        <MudTd DataLabel="Inspection Date">
+                            @(context.InspectionDate?.ToLocalTime().ToString("yyyy-MM-dd") ?? "-")
+                        </MudTd>
+
+                        <MudTd DataLabel="Findings">
+                            @context.Findings
+                        </MudTd>
+
+                        <MudTd DataLabel="Actions">
+                            @if (context.Status ==
+                                InspectionTestPlanInspectionExecutionStatus.Pending)
+                            {
+                                <MudStack Row="true" Spacing="1">
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Outlined"
+                                               Color="Color.Success"
+                                               OnClick="@(() => OpenDecisionDialogAsync(context))">
+                                        ACCEPT
+                                    </MudButton>
+
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Outlined"
+                                               Color="Color.Error"
+                                               OnClick="@(() => OpenDecisionDialogAsync(context))">
+                                        REJECT
+                                    </MudButton>
+
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Outlined"
+                                               Color="Color.Warning"
+                                               OnClick="@(() => OpenDecisionDialogAsync(context))">
+                                        CONDITIONAL
+                                    </MudButton>
+
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Text"
+                                               Color="Color.Error"
+                                               OnClick="@(() => CancelExecutionAsync(context.Id))">
+                                        CANCEL
+                                    </MudButton>
+                                </MudStack>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption">
+                                    @(context.CompletedBy ?? "-")
+                                </MudText>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+
+        }
+
+    </DialogContent>
+
+    <DialogActions>
+
+        <MudButton Variant="Variant.Text"
+                   OnClick="Cancel">
+            CLOSE
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(!CanCreate)"
+                   OnClick="CreateExecutionAsync">
+            CREATE INSPECTION
+        </MudButton>
+
+    </DialogActions>
+</MudDialog>
+
+@code
+{
+    [CascadingParameter]
+    public IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public InspectionTestPlanItem Item { get; set; } = new();
+
+    [Parameter]
+    public List<Weld> ProjectWelds { get; set; } = new();
+
+    private Guid? _selectedWeldId;
+    private DateTime? _inspectionDate = DateTime.Today;
+    private string _inspectorName = string.Empty;
+    private string _findings = string.Empty;
+    private string _remarks = string.Empty;
+
+    private List<InspectionTestPlanInspectionExecution> _executions = new();
+
+    private bool CanCreate =>
+        _selectedWeldId.HasValue &&
+        !string.IsNullOrWhiteSpace(_inspectorName);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _executions =
+            await InspectionExecutionService.GetByItemAsync(Item.Id);
+    }
+
+    private string GetWeldNumber(Guid weldId)
+    {
+        var weld = ProjectWelds.FirstOrDefault(x => x.Id == weldId);
+
+        return string.IsNullOrWhiteSpace(weld?.WeldNumber)
+            ? weldId.ToString()
+            : weld.WeldNumber;
+    }
+
+    private async Task CreateExecutionAsync()
+    {
+        if (!CanCreate)
+            return;
+
+        try
+        {
+            await InspectionExecutionService.CreateAsync(
+                Item.Id,
+                _selectedWeldId!.Value,
+                _inspectionDate,
+                _inspectorName.Trim(),
+                _findings.Trim(),
+                _remarks.Trim());
+
+            Snackbar.Add(
+                "Inspection execution created and is Pending.",
+                Severity.Success);
+
+            _executions =
+                await InspectionExecutionService.GetByItemAsync(Item.Id);
+
+            _selectedWeldId = null;
+            _inspectionDate = DateTime.Today;
+            _inspectorName = string.Empty;
+            _findings = string.Empty;
+            _remarks = string.Empty;
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task OpenDecisionDialogAsync(
+        InspectionTestPlanInspectionExecution execution)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                ["Execution"] = execution
+            };
+
+            var dialog = await DialogService.ShowAsync<ItpInspectionExecutionDecisionDialog>(
+                "Complete ITP Inspection Execution",
+                parameters);
+
+            var result = await dialog.Result;
+
+            if (result is null || result.Canceled)
+                return;
+
+            _executions =
+                await InspectionExecutionService.GetByItemAsync(Item.Id);
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task CancelExecutionAsync(Guid executionId)
+    {
+        try
+        {
+            var dialog = await DialogService.ShowAsync<ItpInspectionExecutionCancelDialog>(
+                "Cancel Inspection Execution");
+
+            var result = await dialog.Result;
+
+            if (result is null || result.Canceled)
+                return;
+
+            var reason = result.Data?.ToString();
+
+            if (string.IsNullOrWhiteSpace(reason))
+                return;
+
+            await InspectionExecutionService.CancelAsync(
+                executionId,
+                reason.Trim());
+
+            Snackbar.Add(
+                "Inspection execution cancelled.",
+                Severity.Success);
+
+            _executions =
+                await InspectionExecutionService.GetByItemAsync(Item.Id);
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}
+
+

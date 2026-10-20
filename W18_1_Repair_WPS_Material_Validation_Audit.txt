@@ -1,0 +1,145 @@
+============================================================
+W18.1 REPAIR WPS MATERIAL VALIDATION AUDIT
+Read-only source audit - no database access
+============================================================
+681:             new SqliteConnection(DatabasePath.GetConnectionString());
+682: 
+683:         await connection.OpenAsync();
+684: 
+685:         using var transaction =
+686:             connection.BeginTransaction(deferred: false);
+687: 
+688:         try
+689:         {
+690:             var weld = await _weldRepository.GetByIdAsync(
+691:                 repair.WeldId,
+692:                 connection,
+693:                 transaction);
+694: 
+695:             if (weld == null)
+696:             {
+697:                 transaction.Rollback();
+698:                 return (false, "The weld linked to this repair could not be found.");
+699:             }
+700: 
+701:             var project = _projectRepository.GetById(weld.ProjectId);
+702:             if (project == null)
+703:             {
+704:                 transaction.Rollback();
+705:                 return (false, "The project linked to this repair could not be found.");
+706:             }
+707: 
+708:             if (!project.WeldingSubcontractorCompanyId.HasValue ||
+709:                 project.WeldingSubcontractorCompanyId.Value == Guid.Empty)
+710:             {
+711:                 transaction.Rollback();
+712:                 return (false, "The project has no welding/fabrication subcontractor assigned, so a repair WPS cannot be selected.");
+713:             }
+714: 
+715:             var repairWps = _wpsRepository.GetById(
+716:                 repairWpsId.Value,
+717:                 connection,
+718:                 transaction);
+719: 
+720:             if (repairWps == null)
+721:             {
+722:                 transaction.Rollback();
+723:                 return (false, "The selected repair WPS revision could not be found.");
+724:             }
+725: 
+726:             if (!repairWps.CompanyId.HasValue ||
+727:                 repairWps.CompanyId.Value != project.WeldingSubcontractorCompanyId.Value)
+728:             {
+729:                 transaction.Rollback();
+730:                 return (false, "The selected repair WPS does not belong to the project's welding/fabrication subcontractor.");
+731:             }
+732: 
+733:             if (!repairWps.IsApproved)
+734:             {
+735:                 transaction.Rollback();
+736:                 return (false, $"Repair WPS '{repairWps.WpsNumber} Rev {repairWps.Revision}' is not approved and cannot be used for repair welding.");
+737:             }
+738: 
+739:             if (!repairWps.IsActive)
+740:             {
+741:                 transaction.Rollback();
+742:                 return (false, $"Repair WPS '{repairWps.WpsNumber} Rev {repairWps.Revision}' is not active and cannot be used for repair welding.");
+743:             }
+744: 
+745:             var weldMaterial = ComplianceNormalizer.NormalizeMaterialGroup(
+746:                 string.IsNullOrWhiteSpace(weld.MaterialGroup)
+747:                     ? weld.MaterialSpecification
+748:                     : weld.MaterialGroup);
+749:             var wpsMaterial = ComplianceNormalizer.NormalizeMaterialGroup(
+750:                 repairWps.MaterialGroup);
+751: 
+752:             if (string.IsNullOrWhiteSpace(weldMaterial) ||
+753:                 string.IsNullOrWhiteSpace(wpsMaterial) ||
+754:                 weldMaterial != wpsMaterial)
+755:             {
+756:                 transaction.Rollback();
+757:                 return (false, $"The selected repair WPS material group '{repairWps.MaterialGroup}' does not match the weld material group '{(string.IsNullOrWhiteSpace(weld.MaterialGroup) ? weld.MaterialSpecification : weld.MaterialGroup)}'.");
+758:             }
+759: 
+760:             if (weld.WorkflowStatus != WeldWorkflowStatus.RepairRequired)
+761:             {
+762:                 transaction.Rollback();
+763:                 return (false, $"Repair welding cannot start while weld '{weld.WeldNumber}' is in workflow status '{weld.WorkflowStatus}'.");
+764:             }
+765: 
+766:             if (!_workflowService.StartRepairWelding(
+767:                     repair,
+768:                     out var repairError))
+769:             {
+770:                 transaction.Rollback();
+771:                 return (false, repairError);
+772:             }
+773: 
+774:             if (!_weldWorkflowEngine.MarkUnderRepair(
+775:                     weld,
+776:                     out var weldError))
+777:             {
+778:                 transaction.Rollback();
+779:                 return (false, weldError);
+780:             }
+781: 
+782:             repair.RepairedByWelder = repairedByWelder.Trim();
+783:             repair.RepairWpsId = repairWps.Id;
+784:             repair.RepairWpsNumber = repairWps.WpsNumber.Trim();
+785: 
+786:             _repairRepository.Update(repair, connection, transaction);
+787: 
+788:             await _weldRepository.UpdateWorkflowAsync(
+789:                 weld,
+790:                 connection,
+791:                 transaction);
+792: 
+793:             transaction.Commit();
+794: 
+795:             return (true, string.Empty);
+796:         }
+797:         catch
+798:         {
+799:             try { transaction.Rollback(); } catch { }
+800:             throw;
+801:         }
+802:     }
+803: 
+804:     public async Task<(bool Success, string Error)>
+805:         SendForReinspectionAsync(
+806:         RepairRecord repair)
+807:     {
+808:         await EnsureRepairAccessAsync(
+809:             repair,
+810:             PermissionKeys.Quality.Repairs);
+811: 
+812:         if (repair == null)
+813:         {
+814:             return (
+815:                 false,
+816:                 "Repair record is required.");
+817:         }
+818: 
+819:         await using var connection =
+820:             new Microsoft.Data.Sqlite.SqliteConnection(
+821:                 DatabasePath.GetConnectionString());

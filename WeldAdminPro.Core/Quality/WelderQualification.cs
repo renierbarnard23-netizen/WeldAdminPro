@@ -1,8 +1,14 @@
-namespace WeldAdminPro.Core.Quality
+﻿namespace WeldAdminPro.Core.Quality
 {
     public class WelderQualification
     {
         public int Id { get; set; }
+
+        /// <summary>
+        /// Company that owns this welder qualification.
+        /// Ownership is enforced by the application service.
+        /// </summary>
+        public Guid? CompanyId { get; set; }
 
         public string WelderNumber { get; set; } = "";
 
@@ -35,5 +41,15 @@ namespace WeldAdminPro.Core.Quality
 
         public string ThicknessDisplay =>
             $"{ThicknessMin:N2} - {ThicknessMax:N2} mm";
+
+    // Renewal audit information
+    public string? LastRenewedByUserId { get; set; }
+
+    public string? LastRenewedByName { get; set; }
+
+    public DateTime? LastRenewedAt { get; set; }
+
+    public DateTime? PreviousExpiryDate { get; set; }
+
     }
 }

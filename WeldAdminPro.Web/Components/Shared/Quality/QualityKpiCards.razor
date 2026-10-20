@@ -1,4 +1,4 @@
-@using MudBlazor
+﻿@using MudBlazor
 @using WeldAdminPro.Core.Quality.Models
 @using WeldAdminPro.Web.Components.Shared.Production
 
@@ -8,74 +8,74 @@
 
         <MudItem xs="12" sm="6" md="4" lg="3">
             <EnterpriseKpiCard Title="Quality Compliance"
-                               Value="@($"{Snapshot.ComplianceScore}%")"
-                               Status="@Snapshot.ComplianceRating"
-                               ChipColor="@GetComplianceColor()"
-                               Icon="@Icons.Material.Filled.Verified"
-                               IconColor="@GetComplianceColor()" />
+                   Value="@(Snapshot.IsComplete ? $"{Snapshot.ComplianceScore}%" : "Restricted")"
+                   Status="@(Snapshot.IsComplete ? Snapshot.ComplianceRating : "Restricted")"
+                   ChipColor="@GetComplianceColor()"
+                   Icon="@Icons.Material.Filled.Verified"
+                   IconColor="@GetComplianceColor()" />
         </MudItem>
 
         <MudItem xs="12" sm="6" md="4" lg="3">
             <EnterpriseKpiCard Title="Active WPS"
-                               Value="@Snapshot.ActiveWps.ToString()"
-                               Status="@(Snapshot.ActiveWps > 0 ? "Approved" : "Missing")"
-                               ChipColor="Color.Primary"
-                               Icon="@Icons.Material.Filled.Description"
-                               IconColor="Color.Primary" />
+                   Value="@(Snapshot.ActiveWpsAvailable ? Snapshot.ActiveWps.ToString() : "Restricted")"
+                   Status="@(Snapshot.ActiveWpsAvailable ? (Snapshot.ActiveWps > 0 ? "Approved" : "Missing") : "Restricted")"
+                   ChipColor="Color.Primary"
+                   Icon="@Icons.Material.Filled.Description"
+                   IconColor="Color.Primary" />
         </MudItem>
 
         <MudItem xs="12" sm="6" md="4" lg="3">
             <EnterpriseKpiCard Title="Active PQR"
-                               Value="@Snapshot.ActivePqr.ToString()"
-                               Status="@(Snapshot.ActivePqr > 0 ? "Approved" : "Missing")"
-                               ChipColor="Color.Secondary"
-                               Icon="@Icons.Material.Filled.FactCheck"
-                               IconColor="Color.Secondary" />
+                   Value="@(Snapshot.ActivePqrAvailable ? Snapshot.ActivePqr.ToString() : "Restricted")"
+                   Status="@(Snapshot.ActivePqrAvailable ? (Snapshot.ActivePqr > 0 ? "Approved" : "Missing") : "Restricted")"
+                   ChipColor="Color.Secondary"
+                   Icon="@Icons.Material.Filled.FactCheck"
+                   IconColor="Color.Secondary" />
         </MudItem>
 
         <MudItem xs="12" sm="6" md="4" lg="3">
             <EnterpriseKpiCard Title="Qualified Welders"
-                               Value="@Snapshot.QualifiedWelders.ToString()"
-                               Status="@(Snapshot.QualifiedWelders > 0 ? "Certified" : "Not Certified")"
-                               ChipColor="Color.Success"
-                               Icon="@Icons.Material.Filled.Groups"
-                               IconColor="Color.Success" />
+                   Value="@(Snapshot.QualifiedWeldersAvailable ? Snapshot.QualifiedWelders.ToString() : "Restricted")"
+                   Status="@(Snapshot.QualifiedWeldersAvailable ? (Snapshot.QualifiedWelders > 0 ? "Certified" : "Not Certified") : "Restricted")"
+                   ChipColor="Color.Success"
+                   Icon="@Icons.Material.Filled.Groups"
+                   IconColor="Color.Success" />
         </MudItem>
 
         <MudItem xs="12" sm="6" md="4" lg="3">
             <EnterpriseKpiCard Title="Pending NDT"
-                               Value="@Snapshot.PendingNdt.ToString()"
-                               Status="@(Snapshot.PendingNdt > 0 ? "Awaiting" : "None")"
-                               ChipColor="Color.Warning"
-                               Icon="@Icons.Material.Filled.Search"
-                               IconColor="Color.Warning" />
+                   Value="@(Snapshot.PendingNdtAvailable ? Snapshot.PendingNdt.ToString() : "Restricted")"
+                   Status="@(Snapshot.PendingNdtAvailable ? (Snapshot.PendingNdt > 0 ? "Awaiting" : "None") : "Restricted")"
+                   ChipColor="Color.Warning"
+                   Icon="@Icons.Material.Filled.Search"
+                   IconColor="Color.Warning" />
         </MudItem>
 
         <MudItem xs="12" sm="6" md="4" lg="3">
             <EnterpriseKpiCard Title="Open Repairs"
-                               Value="@Snapshot.OpenRepairs.ToString()"
-                               Status="@(Snapshot.OpenRepairs > 0 ? "Outstanding" : "None")"
-                               ChipColor="Color.Error"
-                               Icon="@Icons.Material.Filled.Build"
-                               IconColor="Color.Error" />
+                   Value="@(Snapshot.OpenRepairsAvailable ? Snapshot.OpenRepairs.ToString() : "Restricted")"
+                   Status="@(Snapshot.OpenRepairsAvailable ? (Snapshot.OpenRepairs > 0 ? "Outstanding" : "None") : "Restricted")"
+                   ChipColor="Color.Error"
+                   Icon="@Icons.Material.Filled.Build"
+                   IconColor="Color.Error" />
         </MudItem>
 
         <MudItem xs="12" sm="6" md="4" lg="3">
             <EnterpriseKpiCard Title="Expiring"
-                               Value="@Snapshot.ExpiringQualifications.ToString()"
-                               Status="30 Days"
-                               ChipColor="Color.Warning"
-                               Icon="@Icons.Material.Filled.Schedule"
-                               IconColor="Color.Warning" />
+                   Value="@(Snapshot.ExpiringQualificationsAvailable ? Snapshot.ExpiringQualifications.ToString() : "Restricted")"
+                   Status="@(Snapshot.ExpiringQualificationsAvailable ? "30 Days" : "Restricted")"
+                   ChipColor="Color.Warning"
+                   Icon="@Icons.Material.Filled.Schedule"
+                   IconColor="Color.Warning" />
         </MudItem>
 
         <MudItem xs="12" sm="6" md="4" lg="3">
             <EnterpriseKpiCard Title="Missing Documents"
-                               Value="@Snapshot.MissingDocuments.ToString()"
-                               Status="Required"
-                               ChipColor="Color.Info"
-                               Icon="@Icons.Material.Filled.FolderOpen"
-                               IconColor="Color.Info" />
+                   Value="@(Snapshot.MissingDocumentsAvailable ? Snapshot.MissingDocuments.ToString() : "Restricted")"
+                   Status="@(Snapshot.MissingDocumentsAvailable ? "Required" : "Restricted")"
+                   ChipColor="Color.Info"
+                   Icon="@Icons.Material.Filled.FolderOpen"
+                   IconColor="Color.Info" />
         </MudItem>
 
     </MudGrid>

@@ -1,8 +1,14 @@
-namespace WeldAdminPro.Core.Quality
+﻿namespace WeldAdminPro.Core.Quality
 {
     public class Wps
     {
         public Guid Id { get; set; }
+
+/// <summary>
+/// Company that owns this WPS.
+/// Ownership is enforced by the application service.
+/// </summary>
+public Guid? CompanyId { get; set; }
 
         public string WpsNumber { get; set; } = "";
         public string Process { get; set; } = "";
@@ -100,20 +106,20 @@ namespace WeldAdminPro.Core.Quality
         public int Revision { get; set; }
         public bool IsActive { get; set; }
 
-        // 🔥 Compliance
+        // ðŸ”¥ Compliance
         public bool IsCompliant { get; set; }
         public string ValidationStatus { get; set; } = "";
 
-        // 🔥 Essential Variables
+        // ðŸ”¥ Essential Variables
         public string CurrentType { get; set; } = "";
         public string Polarity { get; set; } = "";
         public string Progression { get; set; } = "";
 
-        // 🔥 Visual Traceability
+        // ðŸ”¥ Visual Traceability
         public string JointDiagramPath { get; set; } = "";
         public string PassDiagramPath { get; set; } = "";
 
-        // 🔥 Audit
+        // ðŸ”¥ Audit
         public string QualifiedThicknessRange { get; set; } = "";
 
 

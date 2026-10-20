@@ -1,0 +1,776 @@
+﻿@page "/quality/customer-requirements/{ProjectId:guid}"
+
+@attribute [Authorize(Policy = "Permission:Quality.CustomerRequirements")]
+
+@using MudBlazor
+@using WeldAdminPro.Core.Models
+@using WeldAdminPro.Core.Quality.Models
+@using WeldAdminPro.Data.Services.Quality
+@using WeldAdminPro.Data.Services.Projects
+
+@inject CustomerQualityRequirementApplicationService RequirementService
+@inject ProjectApplicationService ProjectService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Customer Quality Requirements</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+
+    <MudStack Row="true"
+              Justify="Justify.SpaceBetween"
+              AlignItems="AlignItems.Center"
+              Class="mb-4">
+
+        <div>
+            <MudText Typo="Typo.h4">
+                Customer Quality Requirements
+            </MudText>
+
+            @if (_project is not null)
+            {
+                <MudText Typo="Typo.subtitle1">
+                    Job @_project.JobNumber -
+                    @_project.ProjectName
+                    @if (!string.IsNullOrWhiteSpace(_project.Client))
+                    {
+                        <text> | @_project.Client</text>
+                    }
+                </MudText>
+            }
+        </div>
+
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Default"
+                   StartIcon="@Icons.Material.Filled.ArrowBack"
+                   OnClick="BackToProjectSelection">
+
+            Back to Projects
+
+        </MudButton>
+
+    </MudStack>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true"
+                           Color="Color.Primary"
+                           Class="mb-4" />
+    }
+    else if (_project is null)
+    {
+        <MudAlert Severity="Severity.Error">
+            The selected project could not be found.
+        </MudAlert>
+    }
+    else
+    {
+        <MudPaper Class="pa-4 mb-4">
+
+            <MudText Typo="Typo.h6" GutterBottom="true">
+                Add Customer Quality Requirement
+            </MudText>
+
+            <MudGrid>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudTextField T="string"
+                                  Label="Requirement Number"
+                                  Variant="Variant.Outlined"
+                                  @bind-Value="_editing.RequirementNumber"
+                                  Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudTextField T="string"
+                                  Label="Category"
+                                  Variant="Variant.Outlined"
+                                  @bind-Value="_editing.Category"
+                                  Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudTextField T="string"
+                                  Label="Source Document"
+                                  Variant="Variant.Outlined"
+                                  @bind-Value="_editing.SourceDocument" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudTextField T="string"
+                                  Label="Source Clause"
+                                  Variant="Variant.Outlined"
+                                  @bind-Value="_editing.SourceClause" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudTextField T="string"
+                                  Label="Revision"
+                                  Variant="Variant.Outlined"
+                                  @bind-Value="_editing.Revision" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudTextField T="string"
+                                  Label="Status"
+                                  Variant="Variant.Outlined"
+                                  Value="@_editing.Status.ToString()"
+                                  ReadOnly="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCheckBox T="bool"
+                                 Label="Mandatory"
+                                 @bind-Value="_editing.Mandatory" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField T="string"
+                                  Label="Description"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  @bind-Value="_editing.Description"
+                                  Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  Label="Acceptance Criteria"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  @bind-Value="_editing.AcceptanceCriteria"
+                                  Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  Label="Verification Method"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  @bind-Value="_editing.VerificationMethod"
+                                  Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  Label="Responsible Party"
+                                  Variant="Variant.Outlined"
+                                  @bind-Value="_editing.ResponsibleParty"
+                                  Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  Label="Required Evidence"
+                                  Variant="Variant.Outlined"
+                                  Lines="2"
+                                  @bind-Value="_editing.RequiredEvidence" />
+                </MudItem>
+
+            </MudGrid>
+
+            <MudStack Row="true"
+                      Justify="Justify.FlexEnd"
+                      Class="mt-4">
+
+                @if (_editing.Id != Guid.Empty)
+                {
+                    <MudButton Variant="Variant.Outlined"
+                               OnClick="CancelEdit">
+
+                        Cancel
+
+                    </MudButton>
+                }
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Save"
+                           Disabled="_saving"
+                           OnClick="SaveRequirement">
+
+                    @if (_saving)
+                    {
+                        <MudProgressCircular Size="Size.Small"
+                                             Indeterminate="true" />
+                    }
+                    else
+                    {
+                        <span>@(_editing.Id == Guid.Empty ? "Add Requirement" : "Save Changes")</span>
+                    }
+
+                </MudButton>
+
+            </MudStack>
+
+        </MudPaper>
+
+        @if (_creatingRevision && _revisionSource is not null)
+        {
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+
+                <MudStack Row="true"
+                          Justify="Justify.SpaceBetween"
+                          AlignItems="AlignItems.Center"
+                          Class="mb-3">
+
+                    <MudText Typo="Typo.h6">
+                        Create Customer Quality Requirement Revision
+                    </MudText>
+
+                    <MudButton Variant="Variant.Text"
+                               OnClick="CancelRevision">
+
+                        Cancel
+
+                    </MudButton>
+
+                </MudStack>
+
+                <MudAlert Severity="Severity.Info" Class="mb-4">
+
+                    Creating a new controlled revision of
+                    <strong>@_revisionSource.RequirementNumber</strong>.
+                    Current revision:
+                    <strong>@_revisionSource.Revision</strong>.
+
+                    The current active revision will be superseded when the new revision is created.
+
+                </MudAlert>
+
+                <MudGrid>
+
+                    <MudItem xs="12" sm="6" md="4">
+
+                        <MudTextField T="string"
+                                      Label="New Revision"
+                                      Variant="Variant.Outlined"
+                                      @bind-Value="_newRevision"
+                                      Required="true" />
+
+                    </MudItem>
+
+                </MudGrid>
+
+                <MudStack Row="true"
+                          Justify="Justify.FlexEnd"
+                          Class="mt-4">
+
+                    <MudButton Variant="Variant.Outlined"
+                               OnClick="CancelRevision">
+
+                        Cancel
+
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.PostAdd"
+                               Disabled="_saving"
+                               OnClick="SaveRevision">
+
+                        @if (_saving)
+                        {
+                            <MudProgressCircular Size="Size.Small"
+                                                 Indeterminate="true" />
+                        }
+                        else
+                        {
+                            <span>Create Revision</span>
+                        }
+
+                    </MudButton>
+
+                </MudStack>
+
+            </MudPaper>
+        }
+        <MudPaper Class="pa-4">
+
+            <MudStack Row="true"
+                      Justify="Justify.SpaceBetween"
+                      AlignItems="AlignItems.Center"
+                      Class="mb-3">
+
+                <MudText Typo="Typo.h6">
+                    Project Requirements
+                </MudText>
+
+                <MudText Typo="Typo.body2">
+                    @_requirements.Count requirement(s)
+                </MudText>
+
+            </MudStack>
+
+            <MudTable Items="_requirements"
+                      Hover="true"
+                      Dense="true"
+                      Bordered="true"
+                      Striped="true">
+
+                <HeaderContent>
+
+                    <MudTh>Requirement</MudTh>
+                    <MudTh>Category</MudTh>
+                    <MudTh>Description</MudTh>
+                    <MudTh>Source</MudTh>
+                    <MudTh>Mandatory</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Responsible</MudTh>
+                    <MudTh>Actions</MudTh>
+
+                </HeaderContent>
+
+                <RowTemplate>
+
+                    <MudTd>
+                        <MudText Typo="Typo.body2">
+                            @context.RequirementNumber
+                        </MudText>
+                    </MudTd>
+
+                    <MudTd>
+                        @context.Category
+                    </MudTd>
+
+                    <MudTd>
+                        <MudText Typo="Typo.body2">
+                            @context.Description
+                        </MudText>
+                    </MudTd>
+
+                    <MudTd>
+                        @context.SourceDocument
+                        @if (!string.IsNullOrWhiteSpace(context.SourceClause))
+                        {
+                            <div>
+                                <MudText Typo="Typo.caption">
+                                    Clause: @context.SourceClause
+                                </MudText>
+                            </div>
+                        }
+                    </MudTd>
+
+                    <MudTd>
+                        @if (context.Mandatory)
+                        {
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Color="Color.Error">
+                                Yes
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string"
+                                     Size="Size.Small">
+                                No
+                            </MudChip>
+                        }
+                    </MudTd>
+
+                    <MudTd>
+                        <MudChip T="string"
+                                 Size="Size.Small">
+
+                            @context.Status
+
+                        </MudChip>
+                    </MudTd>
+
+                    <MudTd>
+                        @context.ResponsibleParty
+                    </MudTd>
+
+                    <MudTd>
+
+                        <MudStack Row="true" Spacing="1">
+
+                            @if (context.Status == CustomerQualityRequirementStatus.Draft)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               OnClick="@(() => BeginEdit(context))" />
+
+                                <MudIconButton Icon="@Icons.Material.Filled.CheckCircle"
+                                               Color="Color.Success"
+                                               Size="Size.Small"
+                                               OnClick="@(() => ApproveRequirement(context))" />
+
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               OnClick="@(() => DeleteRequirement(context))" />
+                            }
+                            else if (context.Status == CustomerQualityRequirementStatus.Active)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.PostAdd"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               OnClick="@(() => CreateRevision(context))" />
+                            }
+
+                        </MudStack>
+
+                    </MudTd>
+
+                </RowTemplate>
+
+                <NoRecordsContent>
+
+                    <MudText Class="pa-4">
+                        No customer quality requirements have been defined for this project.
+                    </MudText>
+
+                </NoRecordsContent>
+
+            </MudTable>
+
+        </MudPaper>
+    }
+
+</MudContainer>
+
+@code
+{
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    private Project? _project;
+
+    private List<CustomerQualityRequirement> _requirements = new();
+
+    private CustomerQualityRequirement _editing = new() { Id = Guid.Empty };
+
+    private bool _loading = true;
+
+    private bool _saving;
+
+    private bool _creatingRevision;
+
+    private CustomerQualityRequirement? _revisionSource;
+
+    private string _newRevision = string.Empty;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadProject();
+    }
+
+    private async Task LoadProject()
+    {
+        _loading = true;
+
+        try
+        {
+            _project = await ProjectService.GetProjectAsync(ProjectId);
+
+            if (_project is not null)
+            {
+                _requirements =
+                    (await RequirementService.GetByProjectAsync(ProjectId))
+                    .ToList();
+            }
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            Navigation.NavigateTo("/quality/customer-requirements");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to load customer quality requirements: {ex.Message}",
+                Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void BeginEdit(CustomerQualityRequirement requirement)
+    {
+        _editing = new CustomerQualityRequirement
+        {
+            Id = requirement.Id,
+            ProjectId = requirement.ProjectId,
+            RequirementNumber = requirement.RequirementNumber,
+            Category = requirement.Category,
+            Description = requirement.Description,
+            SourceDocument = requirement.SourceDocument,
+            SourceClause = requirement.SourceClause,
+            Revision = requirement.Revision,
+            Mandatory = requirement.Mandatory,
+            AcceptanceCriteria = requirement.AcceptanceCriteria,
+            VerificationMethod = requirement.VerificationMethod,
+            ResponsibleParty = requirement.ResponsibleParty,
+            RequiredEvidence = requirement.RequiredEvidence,
+            Status = requirement.Status,
+            CreatedOn = requirement.CreatedOn,
+            CreatedBy = requirement.CreatedBy,
+            ApprovedOn = requirement.ApprovedOn,
+            ApprovedBy = requirement.ApprovedBy,
+            EffectiveDate = requirement.EffectiveDate,
+            SupersededOn = requirement.SupersededOn,
+            PreviousRevisionId = requirement.PreviousRevisionId,
+            IsActive = requirement.IsActive
+        };
+    }
+
+    private void CancelEdit()
+    {
+        _editing = new CustomerQualityRequirement { Id = Guid.Empty };
+    }
+
+    private async Task SaveRequirement()
+    {
+        if (_project is null)
+        {
+            return;
+        }
+
+        _saving = true;
+
+        try
+        {
+            _editing.ProjectId = ProjectId;
+
+            if (_editing.Id == Guid.Empty)
+            {
+                await RequirementService.AddAsync(_editing);
+
+                Snackbar.Add(
+                    "Customer quality requirement added.",
+                    Severity.Success);
+            }
+            else
+            {
+                await RequirementService.UpdateAsync(_editing);
+
+                Snackbar.Add(
+                    "Customer quality requirement updated.",
+                    Severity.Success);
+            }
+
+            _editing = new CustomerQualityRequirement { Id = Guid.Empty };
+
+            _requirements =
+                (await RequirementService.GetByProjectAsync(ProjectId))
+                .ToList();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (ArgumentException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to save requirement: {ex.Message}",
+                Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void CreateRevision(
+        CustomerQualityRequirement requirement)
+    {
+        if (requirement.Status != CustomerQualityRequirementStatus.Active)
+        {
+            Snackbar.Add(
+                "Only active customer quality requirements can be revised.",
+                Severity.Warning);
+
+            return;
+        }
+
+        _revisionSource = requirement;
+        _newRevision = string.Empty;
+        _creatingRevision = true;
+    }
+
+    private void CancelRevision()
+    {
+        _creatingRevision = false;
+        _revisionSource = null;
+        _newRevision = string.Empty;
+    }
+
+    private async Task SaveRevision()
+    {
+        if (_revisionSource is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_newRevision))
+        {
+            Snackbar.Add(
+                "New revision is required.",
+                Severity.Warning);
+
+            return;
+        }
+
+        _saving = true;
+
+        try
+        {
+            await RequirementService.CreateRevisionAsync(
+                _revisionSource.Id,
+                _newRevision.Trim());
+
+            Snackbar.Add(
+                $"Customer quality requirement revision {_newRevision.Trim()} created.",
+                Severity.Success);
+
+            _creatingRevision = false;
+            _revisionSource = null;
+            _newRevision = string.Empty;
+
+            _editing = new CustomerQualityRequirement
+            {
+                Id = Guid.Empty
+            };
+
+            _requirements =
+                (await RequirementService.GetByProjectAsync(ProjectId))
+                .ToList();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (ArgumentException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Warning);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to create requirement revision: {ex.Message}",
+                Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+    private async Task ApproveRequirement(
+        CustomerQualityRequirement requirement)
+    {
+        if (requirement.Status != CustomerQualityRequirementStatus.Draft)
+        {
+            Snackbar.Add(
+                "Only draft customer quality requirements can be approved.",
+                Severity.Warning);
+
+            return;
+        }
+
+        _saving = true;
+
+        try
+        {
+            await RequirementService.ApproveAsync(requirement.Id);
+
+            _requirements =
+                (await RequirementService.GetByProjectAsync(ProjectId))
+                .ToList();
+
+            if (_editing.Id == requirement.Id)
+            {
+                _editing = new CustomerQualityRequirement
+                {
+                    Id = Guid.Empty
+                };
+            }
+
+            Snackbar.Add(
+                "Customer quality requirement approved and activated.",
+                Severity.Success);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (ArgumentException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Warning);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to approve requirement: {ex.Message}",
+                Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+    private async Task DeleteRequirement(
+        CustomerQualityRequirement requirement)
+    {
+        try
+        {
+            await RequirementService.DeleteAsync(requirement.Id);
+
+            _requirements =
+                (await RequirementService.GetByProjectAsync(ProjectId))
+                .ToList();
+
+            if (_editing.Id == requirement.Id)
+            {
+                _editing = new CustomerQualityRequirement { Id = Guid.Empty };
+            }
+
+            Snackbar.Add(
+                "Customer quality requirement deleted.",
+                Severity.Success);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Unable to delete requirement: {ex.Message}",
+                Severity.Error);
+        }
+    }
+
+    private void BackToProjectSelection()
+    {
+        Navigation.NavigateTo(
+            "/quality/customer-requirements");
+    }
+}
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,838 @@
+﻿
+  WeldAdminPro.Core\Quality\WeldNdtResult.cs:33:        public string Remarks { get; set; } = string.Empty;
+  WeldAdminPro.Core\Quality\WeldNdtResult.cs:34:
+  WeldAdminPro.Core\Quality\WeldNdtResult.cs:35:        public bool RequiresRepair { get; set; }
+  WeldAdminPro.Core\Quality\WeldNdtResult.cs:36:
+  WeldAdminPro.Core\Quality\WeldNdtResult.cs:37:        public int RepairCycle { get; set; }
+  WeldAdminPro.Core\Quality\WeldNdtResult.cs:38:
+  WeldAdminPro.Core\Quality\WeldNdtResult.cs:39:        public bool IsReinspection { get; set; }
+  WeldAdminPro.Core\Quality\WeldNdtResult.cs:40:
+  WeldAdminPro.Core\Quality\WeldNdtResult.cs:41:        // W18: one NDT examination may use multiple controlled 
+equipment items.
+  WeldAdminPro.Core\Quality\WeldNdtResult.cs:42:        // EquipmentId remains the primary/legacy equipment reference 
+for compatibility.
+  WeldAdminPro.Core\Quality\WeldNdtResult.cs:43:        public List<Guid> EquipmentIds { get; set; } = new();
+  WeldAdminPro.Core\Quality\WeldNdtResult.cs:44:
+> WeldAdminPro.Core\Quality\WeldNdtResult.cs:45:        public List<WeldNdtEquipmentUsage> EquipmentUsages { get; set; 
+} = new();
+  WeldAdminPro.Core\Quality\WeldNdtResult.cs:46:    }
+  WeldAdminPro.Core\Quality\WeldNdtResult.cs:47:}
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:1:using System;
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:2:
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:3:namespace WeldAdminPro.Core.Quality.Models
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:4:{
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:5:    /// <summary>
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:6:    /// Immutable traceability snapshot for equipment 
+used during one NDT examination.
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:7:    /// </summary>
+> WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:8:    public class WeldNdtEquipmentUsage
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:9:    {
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:10:        public Guid Id { get; set; }
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:11:        public Guid WeldNdtResultId { get; set; }
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:12:        public Guid EquipmentId { get; set; }
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:13:        public Guid? CalibrationRecordId { get; set; }
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:14:        public string EquipmentNumberSnapshot { get; 
+set; } = string.Empty;
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:15:        public string EquipmentSerialNumberSnapshot { 
+get; set; } = string.Empty;
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:16:        public string CalibrationCertificateSnapshot { 
+get; set; } = string.Empty;
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:17:    }
+  WeldAdminPro.Core\Quality\Models\WeldNdtEquipmentUsage.cs:18:}
+  WeldAdminPro.Data\DatabaseInitializer.cs:676:    FOREIGN KEY(EquipmentId) REFERENCES Equipment(Id)
+  WeldAdminPro.Data\DatabaseInitializer.cs:677:);
+  WeldAdminPro.Data\DatabaseInitializer.cs:678:CREATE UNIQUE INDEX IF NOT EXISTS 
+UX_EquipmentCalibrations_Company_Certificate ON EquipmentCalibrations(CompanyId, CertificateNumber);
+  WeldAdminPro.Data\DatabaseInitializer.cs:679:CREATE INDEX IF NOT EXISTS IX_EquipmentCalibrations_EquipmentId ON 
+EquipmentCalibrations(EquipmentId);
+  WeldAdminPro.Data\DatabaseInitializer.cs:680:CREATE INDEX IF NOT EXISTS IX_EquipmentCalibrations_ValidRange ON 
+EquipmentCalibrations(EquipmentId, IsActive, IsApproved, CalibrationDate, ExpiryDate);
+  WeldAdminPro.Data\DatabaseInitializer.cs:681:";
+  WeldAdminPro.Data\DatabaseInitializer.cs:682:            cmd.ExecuteNonQuery();
+  WeldAdminPro.Data\DatabaseInitializer.cs:683:
+  WeldAdminPro.Data\DatabaseInitializer.cs:684:            // =========================
+  WeldAdminPro.Data\DatabaseInitializer.cs:685:            // MULTIPLE NDT EQUIPMENT TRACEABILITY
+  WeldAdminPro.Data\DatabaseInitializer.cs:686:            // =========================
+  WeldAdminPro.Data\DatabaseInitializer.cs:687:            cmd.CommandText = @"
+> WeldAdminPro.Data\DatabaseInitializer.cs:688:CREATE TABLE IF NOT EXISTS WeldNdtEquipmentUsages
+  WeldAdminPro.Data\DatabaseInitializer.cs:689:(
+  WeldAdminPro.Data\DatabaseInitializer.cs:690:    Id TEXT PRIMARY KEY,
+  WeldAdminPro.Data\DatabaseInitializer.cs:691:    WeldNdtResultId TEXT NOT NULL,
+  WeldAdminPro.Data\DatabaseInitializer.cs:692:    EquipmentId TEXT NOT NULL,
+  WeldAdminPro.Data\DatabaseInitializer.cs:693:    CalibrationRecordId TEXT,
+  WeldAdminPro.Data\DatabaseInitializer.cs:694:    EquipmentNumberSnapshot TEXT NOT NULL,
+  WeldAdminPro.Data\DatabaseInitializer.cs:695:    EquipmentSerialNumberSnapshot TEXT,
+  WeldAdminPro.Data\DatabaseInitializer.cs:696:    CalibrationCertificateSnapshot TEXT,
+  WeldAdminPro.Data\DatabaseInitializer.cs:697:    FOREIGN KEY(WeldNdtResultId) REFERENCES WeldNdtResults(Id) ON 
+DELETE CASCADE,
+  WeldAdminPro.Data\DatabaseInitializer.cs:698:    FOREIGN KEY(EquipmentId) REFERENCES Equipment(Id)
+  WeldAdminPro.Data\DatabaseInitializer.cs:699:);
+> WeldAdminPro.Data\DatabaseInitializer.cs:700:CREATE UNIQUE INDEX IF NOT EXISTS 
+UX_WeldNdtEquipmentUsages_Result_Equipment ON WeldNdtEquipmentUsages(WeldNdtResultId, EquipmentId);
+> WeldAdminPro.Data\DatabaseInitializer.cs:701:CREATE INDEX IF NOT EXISTS IX_WeldNdtEquipmentUsages_Result ON 
+WeldNdtEquipmentUsages(WeldNdtResultId);
+> WeldAdminPro.Data\DatabaseInitializer.cs:702:CREATE INDEX IF NOT EXISTS IX_WeldNdtEquipmentUsages_Equipment ON 
+WeldNdtEquipmentUsages(EquipmentId);
+  WeldAdminPro.Data\DatabaseInitializer.cs:703:";
+  WeldAdminPro.Data\DatabaseInitializer.cs:704:            cmd.ExecuteNonQuery();
+  WeldAdminPro.Data\DatabaseInitializer.cs:705:
+  WeldAdminPro.Data\DatabaseInitializer.cs:706:            // =========================
+  WeldAdminPro.Data\DatabaseInitializer.cs:707:            // WELD TABLE
+  WeldAdminPro.Data\DatabaseInitializer.cs:708:            // =========================
+  WeldAdminPro.Data\DatabaseInitializer.cs:709:
+  WeldAdminPro.Data\DatabaseInitializer.cs:710:            cmd.CommandText = @"
+  WeldAdminPro.Data\DatabaseInitializer.cs:711:CREATE TABLE IF NOT EXISTS Welds
+  WeldAdminPro.Data\DatabaseInitializer.cs:712:(
+  WeldAdminPro.Data\DatabaseInitializer.cs:713:    Id TEXT PRIMARY KEY,
+  WeldAdminPro.Data\DatabaseInitializer.cs:714:    ProjectId TEXT NOT NULL,
+  WeldAdminPro.Data\DatabaseInitializer.cs:715:
+  WeldAdminPro.Data\DatabaseInitializer.cs:716:    WeldNumber TEXT,
+  WeldAdminPro.Data\DatabaseInitializer.cs:717:    DrawingNumber TEXT,
+  WeldAdminPro.Data\DatabaseInitializer.cs:718:    JointType TEXT,
+  WeldAdminPro.Data\DatabaseInitializer.cs:719:
+  WeldAdminPro.Data\DatabaseInitializer.cs:720:    WpsId TEXT,
+  WeldAdminPro.Data\DatabaseInitializer.cs:721:    WpsNumber TEXT,
+  WeldAdminPro.Data\DatabaseInitializer.cs:722:    WelderNumber TEXT,
+  WeldAdminPro.Data\DatabaseInitializer.cs:723:
+  WeldAdminPro.Data\DatabaseInitializer.cs:724:    Process TEXT,
+  WeldAdminPro.Data\DatabaseInitializer.cs:725:    MaterialGroup TEXT,
+  WeldAdminPro.Data\DatabaseInitializer.cs:726:    Position TEXT,
+  WeldAdminPro.Data\DatabaseInitializer.cs:727:    Thickness REAL,
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:90:                    RepairCycle =
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:91:                        Convert.ToInt32(
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:92:                            reader["RepairCycle"]),
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:93:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:94:                    IsReinspection =
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:95:                        Convert.ToBoolean(
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:96:                            reader["IsReinspection"])
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:97:                });
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:98:            }
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:99:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:100:            foreach (var ndt in list)
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:101:            {
+> WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:102:                ndt.EquipmentUsages = 
+GetEquipmentUsages(ndt.Id);
+> WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:103:                ndt.EquipmentIds = ndt.EquipmentUsages
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:104:                    .Select(x => x.EquipmentId)
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:105:                    .Distinct()
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:106:                    .ToList();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:107:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:108:                // Preserve compatibility for historical 
+records that only have
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:109:                // the W17 primary EquipmentId columns.
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:110:                if (ndt.EquipmentIds.Count == 0 && 
+ndt.EquipmentId.HasValue)
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:111:                    
+ndt.EquipmentIds.Add(ndt.EquipmentId.Value);
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:112:            }
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:113:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:114:            return list;
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:115:        }
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:116:
+> WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:117:        public List<WeldNdtEquipmentUsage> 
+GetEquipmentUsages(Guid ndtResultId)
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:118:        {
+> WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:119:            var list = new List<WeldNdtEquipmentUsage>();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:120:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:121:            using var connection = new 
+SqliteConnection(_connectionString);
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:122:            connection.Open();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:123:            using var command = connection.CreateCommand();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:124:            command.CommandText = @"
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:125:SELECT Id, WeldNdtResultId, EquipmentId, CalibrationRecordId,
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:126:       EquipmentNumberSnapshot, 
+EquipmentSerialNumberSnapshot, CalibrationCertificateSnapshot
+> WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:127:FROM WeldNdtEquipmentUsages
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:128:WHERE WeldNdtResultId = $NdtResultId
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:129:ORDER BY rowid;";
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:130:            command.Parameters.AddWithValue("$NdtResultId", 
+ndtResultId.ToString());
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:131:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:132:            using var reader = command.ExecuteReader();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:133:            while (reader.Read())
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:134:            {
+> WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:135:                list.Add(new WeldNdtEquipmentUsage
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:136:                {
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:137:                    Id = 
+Guid.Parse(reader["Id"].ToString()!),
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:138:                    WeldNdtResultId = 
+Guid.Parse(reader["WeldNdtResultId"].ToString()!),
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:139:                    EquipmentId = 
+Guid.Parse(reader["EquipmentId"].ToString()!),
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:140:                    CalibrationRecordId = 
+reader["CalibrationRecordId"] == DBNull.Value ? null : Guid.Parse(reader["CalibrationRecordId"].ToString()!),
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:141:                    EquipmentNumberSnapshot = 
+reader["EquipmentNumberSnapshot"]?.ToString() ?? "",
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:142:                    EquipmentSerialNumberSnapshot = 
+reader["EquipmentSerialNumberSnapshot"]?.ToString() ?? "",
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:143:                    CalibrationCertificateSnapshot = 
+reader["CalibrationCertificateSnapshot"]?.ToString() ?? ""
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:144:                });
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:145:            }
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:146:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:147:            return list;
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:148:        }
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:149:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:150:public List<WeldNdtResult> GetAll()
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:151:        {
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:152:            var list =
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:153:                new List<WeldNdtResult>();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:154:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:155:            using var connection =
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:156:                new SqliteConnection(
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:157:                    _connectionString);
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:158:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:159:            connection.Open();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:160:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:182:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:183:                        Result =
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:184:                            Enum.Parse<NdtResultType>(
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:185:                                reader["Result"]
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:186:                                    .ToString()!)
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:187:                    });
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:188:            }
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:189:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:190:            return list;
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:191:        }
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:192:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:193:
+> WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:194:        public void AttachLegacyEquipmentTraceability(
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:195:            Guid ndtResultId,
+> WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:196:            IReadOnlyCollection<WeldNdtEquipmentUsage> 
+usages)
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:197:        {
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:198:            if (ndtResultId == Guid.Empty)
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:199:                throw new ArgumentException("NDT result ID 
+cannot be empty.", nameof(ndtResultId));
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:200:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:201:            if (usages == null || usages.Count == 0)
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:202:                throw new ArgumentException("At least one 
+equipment usage is required.", nameof(usages));
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:203:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:204:            using var connection = new 
+SqliteConnection(_connectionString);
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:205:            connection.Open();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:206:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:207:            using var transaction = 
+connection.BeginTransaction();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:208:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:209:            using (var existingCommand = 
+connection.CreateCommand())
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:210:            {
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:211:                existingCommand.Transaction = transaction;
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:212:                existingCommand.CommandText = @"
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:213:SELECT COUNT(*)
+> WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:214:FROM WeldNdtEquipmentUsages
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:215:WHERE WeldNdtResultId = $ndtId;";
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:216:                
+existingCommand.Parameters.AddWithValue("$ndtId", ndtResultId.ToString());
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:217:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:218:                var existingCount = 
+Convert.ToInt32(existingCommand.ExecuteScalar());
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:219:                if (existingCount > 0)
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:220:                    throw new InvalidOperationException(
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:221:                        "This NDT result already has 
+equipment traceability recorded.");
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:222:            }
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:223:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:224:            var primaryUsage = usages.First();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:225:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:226:            using (var updateCommand = 
+connection.CreateCommand())
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:227:            {
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:228:                updateCommand.Transaction = transaction;
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:229:                updateCommand.CommandText = @"
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:230:UPDATE WeldNdtResults
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:231:SET EquipmentId = $equipmentId,
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:232:    CalibrationRecordId = $calibrationId,
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:233:    EquipmentNumberSnapshot = $equipmentSnapshot,
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:234:    EquipmentSerialNumberSnapshot = $serialSnapshot,
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:235:    CalibrationCertificateSnapshot = $calibrationSnapshot
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:236:WHERE Id = $ndtId
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:237:  AND EquipmentId IS NULL;";
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:238:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:239:                
+updateCommand.Parameters.AddWithValue("$ndtId", ndtResultId.ToString());
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:246:                if (updateCommand.ExecuteNonQuery() != 1)
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:247:                    throw new InvalidOperationException(
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:248:                        "The NDT result is no longer a 
+legacy record or could not be updated.");
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:249:            }
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:250:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:251:            foreach (var usage in usages)
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:252:            {
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:253:                var usageId = usage.Id == Guid.Empty ? 
+Guid.NewGuid() : usage.Id;
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:254:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:255:                using var usageCommand = 
+connection.CreateCommand();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:256:                usageCommand.Transaction = transaction;
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:257:                usageCommand.CommandText = @"
+> WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:258:INSERT INTO WeldNdtEquipmentUsages
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:259:(
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:260:    Id, WeldNdtResultId, EquipmentId, CalibrationRecordId,
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:261:    EquipmentNumberSnapshot, EquipmentSerialNumberSnapshot, 
+CalibrationCertificateSnapshot
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:262:)
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:263:VALUES
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:264:(
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:265:    $id, $ndtId, $equipmentId, $calibrationId,
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:266:    $equipmentSnapshot, $serialSnapshot, $calibrationSnapshot
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:267:);";
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:268:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:269:                usageCommand.Parameters.AddWithValue("$id", 
+usageId.ToString());
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:270:                
+usageCommand.Parameters.AddWithValue("$ndtId", ndtResultId.ToString());
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:271:                
+usageCommand.Parameters.AddWithValue("$equipmentId", usage.EquipmentId.ToString());
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:272:                
+usageCommand.Parameters.AddWithValue("$calibrationId", usage.CalibrationRecordId?.ToString() ?? (object)DBNull.Value);
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:273:                
+usageCommand.Parameters.AddWithValue("$equipmentSnapshot", usage.EquipmentNumberSnapshot ?? "");
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:274:                
+usageCommand.Parameters.AddWithValue("$serialSnapshot", usage.EquipmentSerialNumberSnapshot ?? "");
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:275:                
+usageCommand.Parameters.AddWithValue("$calibrationSnapshot", usage.CalibrationCertificateSnapshot ?? "");
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:276:                usageCommand.ExecuteNonQuery();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:277:            }
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:278:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:279:            transaction.Commit();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:280:        }
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:281:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:282:        public void Add(WeldNdtResult ndt)
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:283:        {
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:391:                ndt.RequiresRepair);
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:392:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:393:            cmd.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:394:                "$cycle",
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:395:                ndt.RepairCycle);
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:396:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:397:            cmd.Parameters.AddWithValue(
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:398:                "$reinspection",
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:399:                ndt.IsReinspection);
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:400:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:401:            cmd.ExecuteNonQuery();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:402:
+> WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:403:            foreach (var usage in ndt.EquipmentUsages ?? new 
+List<WeldNdtEquipmentUsage>())
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:404:            {
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:405:                if (usage.Id == Guid.Empty)
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:406:                    usage.Id = Guid.NewGuid();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:407:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:408:                usage.WeldNdtResultId = ndt.Id;
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:409:
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:410:                using var usageCommand = 
+connection.CreateCommand();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:411:                usageCommand.CommandText = @"
+> WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:412:INSERT INTO WeldNdtEquipmentUsages
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:413:(
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:414:    Id, WeldNdtResultId, EquipmentId, CalibrationRecordId,
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:415:    EquipmentNumberSnapshot, EquipmentSerialNumberSnapshot, 
+CalibrationCertificateSnapshot
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:416:)
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:417:VALUES
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:418:(
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:419:    $id, $ndtId, $equipmentId, $calibrationId,
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:420:    $equipmentSnapshot, $serialSnapshot, $calibrationSnapshot
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:421:);";
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:422:                usageCommand.Parameters.AddWithValue("$id", 
+usage.Id.ToString());
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:423:                
+usageCommand.Parameters.AddWithValue("$ndtId", usage.WeldNdtResultId.ToString());
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:424:                
+usageCommand.Parameters.AddWithValue("$equipmentId", usage.EquipmentId.ToString());
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:425:                
+usageCommand.Parameters.AddWithValue("$calibrationId", usage.CalibrationRecordId?.ToString() ?? (object)DBNull.Value);
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:426:                
+usageCommand.Parameters.AddWithValue("$equipmentSnapshot", usage.EquipmentNumberSnapshot ?? "");
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:427:                
+usageCommand.Parameters.AddWithValue("$serialSnapshot", usage.EquipmentSerialNumberSnapshot ?? "");
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:428:                
+usageCommand.Parameters.AddWithValue("$calibrationSnapshot", usage.CalibrationCertificateSnapshot ?? "");
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:429:                usageCommand.ExecuteNonQuery();
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:430:            }
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:431:        }
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:432:    }
+  WeldAdminPro.Data\Repositories\WeldNdtRepository.cs:433:}
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2443:CREATE INDEX IF NOT EXISTS 
+IX_WeldNdtResults_CalibrationRecordId ON WeldNdtResults(CalibrationRecordId);
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2444:");
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2445:
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2446:            RecordVersion(connection, 27, "1.27.0", "NDT 
+equipment and calibration traceability");
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2447:        }
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2448:
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2449:        // =====================================
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2450:        // VERSION 28 - MULTIPLE NDT EQUIPMENT 
+TRACEABILITY
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2451:        // =====================================
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2452:        private void ApplyVersion28(SqliteConnection 
+connection)
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2453:        {
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2454:            connection.Execute(@"
+> WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2455:CREATE TABLE IF NOT EXISTS WeldNdtEquipmentUsages
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2456:(
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2457:    Id TEXT PRIMARY KEY,
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2458:    WeldNdtResultId TEXT NOT NULL,
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2459:    EquipmentId TEXT NOT NULL,
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2460:    CalibrationRecordId TEXT,
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2461:    EquipmentNumberSnapshot TEXT NOT NULL,
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2462:    EquipmentSerialNumberSnapshot TEXT,
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2463:    CalibrationCertificateSnapshot TEXT,
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2464:    FOREIGN KEY(WeldNdtResultId) REFERENCES 
+WeldNdtResults(Id) ON DELETE CASCADE,
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2465:    FOREIGN KEY(EquipmentId) REFERENCES Equipment(Id)
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2466:);
+> WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2467:CREATE UNIQUE INDEX IF NOT EXISTS 
+UX_WeldNdtEquipmentUsages_Result_Equipment ON WeldNdtEquipmentUsages(WeldNdtResultId, EquipmentId);
+> WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2468:CREATE INDEX IF NOT EXISTS 
+IX_WeldNdtEquipmentUsages_Result ON WeldNdtEquipmentUsages(WeldNdtResultId);
+> WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2469:CREATE INDEX IF NOT EXISTS 
+IX_WeldNdtEquipmentUsages_Equipment ON WeldNdtEquipmentUsages(EquipmentId);
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2470:");
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2471:
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2472:            RecordVersion(
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2473:                connection,
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2474:                28,
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2475:                "1.28.0",
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2476:                "Multiple NDT equipment traceability");
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2477:        }
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2478:
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2479:private void TryAddColumn(
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2480:            SqliteConnection connection,
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2481:            string table,
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2482:            string column,
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2483:            string definition)
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2484:        {
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2485:            var exists =
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2486:                connection.Query(
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2487:                    $"PRAGMA table_info({table})")
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2488:                .Any(x =>
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2489:                    x.name.ToString() == column);
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2490:
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2491:            if (!exists)
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2492:            {
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2493:                connection.Execute(
+  WeldAdminPro.Data\Services\DatabaseMigrationService.cs:2494:                    $"ALTER TABLE {table} ADD COLUMN 
+{column} {definition}");
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:188:                if (document == null ||
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:189:                    document.CompanyId != 
+equipment.CompanyId ||
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:190:                    document.Category != 
+WeldAdminPro.Core.Reporting.Enums.DocumentCategoryType.CalibrationCertificate ||
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:191:                    !document.IsApproved)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:192:                {
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:193:                    return null;
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:194:                }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:195:            }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:196:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:197:            return calibration;
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:198:        }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:199:
+> WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:200:        public async Task<bool> 
+IsNdtCalibrationCompliantAsync(
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:201:            Guid projectId,
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:202:            IEnumerable<WeldNdtResult> 
+ndtResults)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:203:        {
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:204:            var project = await 
+RequireProjectAccessAsync(projectId);
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:205:            var companyId = 
+ResolveWorkingCompany(project);
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:206:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:207:            var results = ndtResults?.ToList() 
+?? new List<WeldNdtResult>();
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:208:            if (results.Count == 0)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:209:                return true;
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:210:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:211:            foreach (var ndt in results)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:212:            {
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:213:                var equipmentIds = 
+(ndt.EquipmentIds ?? new List<Guid>())
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:214:                    .Where(x => x != 
+Guid.Empty)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:215:                    .Distinct()
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:216:                    .ToList();
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:217:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:218:                if (equipmentIds.Count == 0 &&
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:219:                    ndt.EquipmentId.HasValue &&
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:220:                    ndt.EquipmentId.Value != 
+Guid.Empty)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:221:                {
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:222:                    
+equipmentIds.Add(ndt.EquipmentId.Value);
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:223:                }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:224:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:225:                if (equipmentIds.Count == 0)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:226:                    return false;
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:227:
+> WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:228:                var usageByEquipment = 
+(ndt.EquipmentUsages ?? new List<WeldNdtEquipmentUsage>())
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:229:                    .ToDictionary(x => 
+x.EquipmentId, x => x);
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:230:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:231:                foreach (var equipmentId in 
+equipmentIds)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:232:                {
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:233:                    var equipment = 
+_equipmentRepository.GetById(equipmentId);
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:234:                    if (equipment == null || 
+equipment.CompanyId != companyId || !equipment.IsActive)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:235:                        return false;
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:236:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:237:                    if 
+(!equipment.CalibrationRequired)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:238:                        continue;
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:239:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:240:                    var calibration = await 
+GetValidCalibrationAsync(
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:241:                        equipment.Id,
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:242:                        ndt.InspectionDate);
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:243:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:244:                    if (calibration == null)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:245:                        return false;
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:246:
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:247:                    if 
+(usageByEquipment.TryGetValue(equipment.Id, out var usage) &&
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:248:                        
+usage.CalibrationRecordId.HasValue &&
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:249:                        
+usage.CalibrationRecordId.Value != calibration.Id)
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:250:                    {
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:251:                        return false;
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:252:                    }
+  WeldAdminPro.Data\Services\Quality\EquipmentApplicationService.cs:253:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:293:            if 
+(string.IsNullOrWhiteSpace(reviewRemarks))
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:294:                throw new 
+InvalidOperationException(
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:295:                    "Review remarks are 
+required for legacy NDT traceability review.");
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:296:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:297:            var ndt = _ndtRepository
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:298:                .GetByWeld(weld.Id)
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:299:                .FirstOrDefault(x => x.Id 
+== ndtResultId);
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:300:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:301:            if (ndt == null)
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:302:                throw new 
+InvalidOperationException(
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:303:                    "The selected NDT 
+result could not be found for this weld.");
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:304:
+> WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:305:            if (ndt.EquipmentUsages.Any() 
+|| ndt.EquipmentId.HasValue)
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:306:                throw new 
+InvalidOperationException(
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:307:                    "This NDT result 
+already has equipment traceability and does not require legacy conversion.");
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:308:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:309:            var selectedIds = equipmentIds
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:310:                .Where(x => x != Guid.Empty)
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:311:                .Distinct()
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:312:                .ToList();
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:313:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:314:            var equipmentOptions = await 
+_equipmentApplicationService
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:315:                
+.GetForProjectAsync(weld.ProjectId);
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:316:
+> WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:317:            var usages = new 
+List<WeldNdtEquipmentUsage>();
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:318:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:319:            foreach (var equipmentId in 
+selectedIds)
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:320:            {
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:321:                var equipment = 
+equipmentOptions.FirstOrDefault(x => x.Id == equipmentId);
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:322:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:323:                if (equipment == null)
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:324:                    throw new 
+InvalidOperationException(
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:325:                        "One or more 
+selected equipment items are not active or are not available to this project.");
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:326:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:327:                var validCalibration = 
+await _equipmentApplicationService
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:328:                    
+.GetValidCalibrationAsync(equipment.Id, ndt.InspectionDate);
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:329:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:330:                Guid? calibrationRecordId = 
+null;
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:331:                var calibrationCertificate 
+= "NOT REQUIRED";
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:332:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:333:                if 
+(equipment.CalibrationRequired)
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:334:                {
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:335:                    if (validCalibration == 
+null)
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:336:                    {
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:337:                        throw new 
+InvalidOperationException(
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:338:                            $"Equipment 
+'{equipment.EquipmentNumber}' has no approved calibration valid on {ndt.InspectionDate:yyyy-MM-dd}. The legacy NDT 
+cannot be converted until valid evidence is available.");
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:339:                    }
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:340:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:341:                    calibrationRecordId = 
+validCalibration.Id;
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:342:                    calibrationCertificate 
+= validCalibration.CertificateNumber;
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:343:                }
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:344:
+> WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:345:                usages.Add(new 
+WeldNdtEquipmentUsage
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:346:                {
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:347:                    Id = Guid.NewGuid(),
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:348:                    WeldNdtResultId = 
+ndt.Id,
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:349:                    EquipmentId = 
+equipment.Id,
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:350:                    CalibrationRecordId = 
+calibrationRecordId,
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:351:                    EquipmentNumberSnapshot 
+= equipment.EquipmentNumber,
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:352:                    
+EquipmentSerialNumberSnapshot = equipment.SerialNumber,
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:353:                    
+CalibrationCertificateSnapshot = calibrationCertificate
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:354:                });
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:355:            }
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:356:
+> WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:357:            
+_ndtRepository.AttachLegacyEquipmentTraceability(ndt.Id, usages);
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:358:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:359:            _historyRepository.Add(
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:360:                new WeldHistoryEntry
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:361:                {
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:362:                    Id = Guid.NewGuid(),
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:363:                    WeldId = weld.Id,
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:364:                    EventDate = 
+DateTime.UtcNow,
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:365:                    EventType = "NDT 
+Traceability Review",
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:366:                    Description =
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:367:                        $"Legacy NDT 
+traceability reviewed for {ndt.NdtMethod} inspection dated {ndt.InspectionDate:yyyy-MM-dd}. Equipment linked: 
+{string.Join(", ", usages.Select(x => x.EquipmentNumberSnapshot))}.",
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:368:                    UserName = 
+_currentUser.Username,
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:369:                    StatusSnapshot = 
+weld.WorkflowStatus.ToString()
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:370:                });
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:371:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:372:            var details =
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:373:                $"Legacy NDT traceability 
+reviewed for weld '{weld.WeldNumber}', NDT '{ndt.ReportNumber}' ({ndt.Id}), inspection date 
+{ndt.InspectionDate:yyyy-MM-dd}. " +
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:374:                $"Equipment: 
+{string.Join(", ", usages.Select(x => x.EquipmentNumberSnapshot))}. " +
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:375:                $"Remarks: 
+{reviewRemarks?.Trim() ?? string.Empty}";
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:376:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:377:            _auditService.Log(
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:378:                "Legacy NDT Traceability 
+Reviewed",
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:379:                "Quality.WeldRegister",
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:380:                details);
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:381:        }
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:382:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:811:            var calibrationDocuments =
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:812:                
+_documentVaultRepository.GetByWeld(
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:813:                    weld.Id);
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:814:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:815:            // W17: calibration compliance 
+is now derived from the
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:816:            // actual equipment recorded 
+against NDT results.
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:817:            // Legacy welds without 
+equipment retain the previous
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:818:            // approved 
+calibration-certificate fallback so existing
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:819:            // records remain reviewable 
+while new NDT captures are
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:820:            // required to carry equipment 
+traceability.
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:821:            var 
+hasEquipmentCalibrationCompliance =
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:822:                await 
+_equipmentApplicationService
+> WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:823:                    
+.IsNdtCalibrationCompliantAsync(
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:824:                        weld.ProjectId,
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:825:                        ndtResults);
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:826:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:827:            var 
+hasLegacyCalibrationDocument =
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:828:                calibrationDocuments.Any(x 
+=>
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:829:                    x.Category ==
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:830:                        
+DocumentCategoryType.CalibrationCertificate &&
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:831:                    x.IsApproved);
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:832:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:833:            // W18.1-H2:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:834:            // When NDT records exist, 
+calibration compliance MUST come
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:835:            // from the controlled NDT 
+equipment traceability model.
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:836:            //
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:837:            // Legacy weld-level 
+calibration certificates may still support
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:838:            // welds that have NO NDT 
+records at all. However, once an NDT
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:839:            // record exists, an unreviewed 
+legacy NDT record must not bypass
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:840:            // equipment/calibration 
+validation through the old certificate
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:841:            // fallback.
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:842:            var hasCalibrationCompliance =
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:843:                ndtResults.Count == 0
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:844:                    ? 
+hasLegacyCalibrationDocument
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:845:                    : 
+hasEquipmentCalibrationCompliance;
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:846:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:847:            var wps =
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:848:                string.IsNullOrWhiteSpace(
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1077:            }
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1078:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1079:            if (selectedEquipmentIds.Count 
+== 0)
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1080:            {
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1081:                throw new 
+InvalidOperationException(
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1082:                    "At least one NDT 
+equipment item must be selected before the result can be captured.");
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1083:            }
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1084:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1085:            var equipmentOptions =
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1086:                await 
+_equipmentApplicationService
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1087:                    
+.GetForProjectAsync(weld.ProjectId);
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1088:
+> WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1089:            var equipmentUsages = new 
+List<WeldNdtEquipmentUsage>();
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1090:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1091:            foreach (var equipmentId in 
+selectedEquipmentIds)
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1092:            {
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1093:                var equipment =
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1094:                    
+equipmentOptions.FirstOrDefault(x => x.Id == equipmentId);
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1095:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1096:                if (equipment == null)
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1097:                {
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1098:                    throw new 
+InvalidOperationException(
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1099:                        "One or more 
+selected NDT equipment items are not active or are not available to this project.");
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1100:                }
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1101:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1102:                var validCalibration =
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1103:                    await 
+_equipmentApplicationService
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1104:                        
+.GetValidCalibrationAsync(
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1105:                            equipment.Id,
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1106:                            
+result.InspectionDate);
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1107:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1108:                Guid? calibrationRecordId 
+= null;
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1109:                var calibrationCertificate 
+= "NOT REQUIRED";
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1110:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1111:                if 
+(equipment.CalibrationRequired)
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1112:                {
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1113:                    if (validCalibration 
+== null)
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1114:                    {
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1115:                        throw new 
+InvalidOperationException(
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1116:                            $"Equipment 
+'{equipment.EquipmentNumber}' has no approved calibration valid on {result.InspectionDate:yyyy-MM-dd}.");
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1117:                    }
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1118:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1119:                    calibrationRecordId = 
+validCalibration.Id;
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1120:                    calibrationCertificate 
+= validCalibration.CertificateNumber;
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1121:                }
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1122:
+> WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1123:                equipmentUsages.Add(
+> WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1124:                    new 
+WeldNdtEquipmentUsage
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1125:                    {
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1126:                        Id = 
+Guid.NewGuid(),
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1127:                        WeldNdtResultId = 
+result.Id,
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1128:                        EquipmentId = 
+equipment.Id,
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1129:                        
+CalibrationRecordId = calibrationRecordId,
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1130:                        
+EquipmentNumberSnapshot = equipment.EquipmentNumber,
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1131:                        
+EquipmentSerialNumberSnapshot = equipment.SerialNumber,
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1132:                        
+CalibrationCertificateSnapshot = calibrationCertificate
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1133:                    });
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1134:            }
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1135:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1136:            result.EquipmentIds = 
+selectedEquipmentIds;
+> WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1137:            result.EquipmentUsages = 
+equipmentUsages;
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1138:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1139:            // Keep the first item in the 
+original W17 fields for compatibility
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1140:            // with existing reports and 
+integrations.
+> WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1141:            var primaryUsage = 
+equipmentUsages[0];
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1142:            result.EquipmentId = 
+primaryUsage.EquipmentId;
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1143:            result.CalibrationRecordId = 
+primaryUsage.CalibrationRecordId;
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1144:            result.EquipmentNumberSnapshot 
+= primaryUsage.EquipmentNumberSnapshot;
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1145:            
+result.EquipmentSerialNumberSnapshot = primaryUsage.EquipmentSerialNumberSnapshot;
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1146:            
+result.CalibrationCertificateSnapshot = primaryUsage.CalibrationCertificateSnapshot;
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1147:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1148:            // 
+==========================================
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1149:            // DATABASE-DERIVED NDT 
+LIFECYCLE EVIDENCE
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1150:            // 
+==========================================
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1151:            //
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1152:            // Repair and reinspection 
+metadata are
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1153:            // derived from persisted 
+quality evidence.
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1154:            //
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1155:            // The UI cannot decide:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1156:            //
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1157:            // - RequiresRepair
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1158:            // - IsReinspection
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1159:            // - RepairCycle
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1160:            //
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1161:            // Repair history is the 
+authority for the
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1162:            // repair cycle.
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1163:            // 
+==========================================
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1164:
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1165:            var existingNdtResults =
+  WeldAdminPro.Data\Services\Quality\WeldRegisterApplicationService.cs:1166:                _ndtRepository.GetByWeld(
+
+

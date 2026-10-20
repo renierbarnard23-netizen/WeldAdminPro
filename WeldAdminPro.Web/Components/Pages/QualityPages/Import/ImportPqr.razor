@@ -1,4 +1,4 @@
-@page "/quality/import/pqr"
+﻿@page "/quality/import/pqr"
 
 @attribute [Authorize(Policy = "Permission:Quality.PQR")]
 @using Microsoft.AspNetCore.Components.Forms
@@ -116,7 +116,7 @@
         PqrService.CalculateQualification(result.Pqr);
 
         // Save the imported PQR
-        PqrService.Save(result.Pqr);
+        await PqrService.SaveAsync(result.Pqr);
 
         Status = "PQR Imported Successfully";
 

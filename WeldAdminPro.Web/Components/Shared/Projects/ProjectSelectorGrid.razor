@@ -1,4 +1,4 @@
-@using MudBlazor
+﻿@using MudBlazor
 @using WeldAdminPro.Core.Models
 
 <MudPaper Class="pa-4">
@@ -52,7 +52,7 @@
                            Size="Size.Small"
                            OnClick="@(() => OpenProject.InvokeAsync(context))">
 
-                    Open Weld Register
+                    @OpenButtonText
 
                 </MudButton>
 
@@ -72,6 +72,9 @@
 
     [Parameter]
     public EventCallback<Project> OpenProject { get; set; }
+
+    [Parameter]
+    public string OpenButtonText { get; set; } = "Open Project";
 
     private string _search = "";
 

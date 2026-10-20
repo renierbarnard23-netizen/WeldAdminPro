@@ -1,3 +1,4 @@
+@inject WeldAdminPro.Data.Repositories.WpsRepository WpsRepository
 @using MudBlazor
 @using WeldAdminPro.Core.Models
 
@@ -41,7 +42,7 @@
 
             <MudItem xs="6">
                 <b>WPS</b><br />
-                @Weld.WpsNumber
+                @GetWpsDisplayLabel(Weld)
             </MudItem>
 
             <MudItem xs="6">
@@ -76,6 +77,24 @@
 
 @code
 {
+    private string GetWpsDisplayLabel(Weld weld)
+    {
+        if (weld == null)
+        {
+            return string.Empty;
+        }
+
+        if (!weld.WpsId.HasValue)
+        {
+            return weld.WpsNumber;
+        }
+
+        var wps = WpsRepository.GetById(weld.WpsId.Value);
+
+        return wps == null
+            ? weld.WpsNumber
+            : $"{wps.WpsNumber} - Rev {wps.Revision}";
+    }
     [Parameter]
     public Weld? Weld { get; set; }
 }

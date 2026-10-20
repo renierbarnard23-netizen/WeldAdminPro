@@ -1,0 +1,604 @@
+using System;
+using System.Linq;
+using System.Diagnostics;
+using System.IO;
+using System.Collections.Generic;
+using WeldAdminPro.Core.Models;
+using WeldAdminPro.Core.Security;
+using WeldAdminPro.Core.Security.Abstractions;
+using WeldAdminPro.Core.Guards;
+using WeldAdminPro.Core.Quality;
+using WeldAdminPro.Data.Repositories;
+using WeldAdminPro.Data.Services;
+
+namespace WeldAdminPro.Data.Services.Projects
+{
+    public class ProjectApplicationService
+    {
+        private readonly ICurrentUserContext _currentUser;
+        private readonly IProjectAccessAuthorizationService _projectAccessAuthorization;
+        private readonly ProjectRepository _projectRepository;
+        private readonly ProjectDocumentRepository _documentRepository;
+        private readonly ProjectStockUsageRepository _stockRepository;
+        private readonly ProjectMaterialService _materialService;
+        private readonly ProjectDocumentFileRepository _fileRepository;
+        private readonly IPermissionAuthorizationService _permissionAuthorization;
+        public async Task<List<ProjectDocumentFile>> GetDocumentFiles(Guid documentId)
+        {
+            var documents = _documentRepository.GetAll();
+
+            var document = documents.FirstOrDefault(
+                d => d.Id == documentId);
+
+            if (document == null)
+                throw new UnauthorizedAccessException(
+                    "The requested document does not exist or is not accessible.");
+
+            var project = _projectRepository.GetById(
+                document.ProjectId);
+
+            await EnsureProjectAccessAsync(project);
+
+            return _fileRepository.GetByDocument(documentId);
+        }
+
+        public ProjectApplicationService(
+            ICurrentUserContext currentUser,
+            IProjectAccessAuthorizationService projectAccessAuthorization,
+            IPermissionAuthorizationService permissionAuthorization)
+        {
+            _currentUser = currentUser
+                ?? throw new ArgumentNullException(nameof(currentUser));
+            _projectAccessAuthorization = projectAccessAuthorization
+                ?? throw new ArgumentNullException(nameof(projectAccessAuthorization));
+
+            _permissionAuthorization = permissionAuthorization
+                ?? throw new ArgumentNullException(nameof(permissionAuthorization));
+
+            _projectRepository = new ProjectRepository();
+            _documentRepository = new ProjectDocumentRepository();
+            _stockRepository = new ProjectStockUsageRepository();
+            _materialService = new ProjectMaterialService();
+
+            _fileRepository = new ProjectDocumentFileRepository();
+        }
+
+        // =============================
+        // Projects
+        // =============================
+
+        public async Task<List<Project>> GetProjectsAsync()
+        {
+            var projects =
+                _projectRepository.GetAll().ToList();
+
+            if (!_currentUser.IsAuthenticated)
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+
+            var userId = _currentUser.UserId;
+
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new UnauthorizedAccessException(
+                    "A valid user identity is required.");
+
+            var accessibleProjects = new List<Project>();
+
+            foreach (var project in projects)
+            {
+                if (await _projectAccessAuthorization
+                    .CanAccessProjectAsync(userId, project))
+                {
+                    accessibleProjects.Add(project);
+                }
+            }
+
+            return accessibleProjects;
+        }
+
+        public async Task<Project?> GetProjectAsync(Guid id)
+        {
+            var project =
+                _projectRepository.GetById(id);
+
+            if (project == null)
+                return null;
+
+            if (!_currentUser.IsAuthenticated)
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+
+            var userId = _currentUser.UserId;
+
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new UnauthorizedAccessException(
+                    "A valid user identity is required.");
+
+            var hasAccess =
+                await _projectAccessAuthorization
+                    .CanAccessProjectAsync(userId, project);
+
+            if (!hasAccess)
+                throw new UnauthorizedAccessException(
+                    "The requested project does not exist or is not accessible.");
+
+            return project;
+        }
+        
+        public async Task SaveProjectAsync(Project project)
+        {
+            Console.WriteLine("SaveProjectAsync called");
+
+            if (project == null)
+                throw new ArgumentNullException(nameof(project));
+
+            if (!_currentUser.IsAuthenticated ||
+                string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+            }
+
+            ValidateProject(project);
+            ProjectCompletionGuard.ValidateBeforeSave(project);
+
+            var permissionKey =
+                project.Id == Guid.Empty
+                    ? PermissionKeys.Projects.Create
+                    : PermissionKeys.Projects.Edit;
+
+            var hasPermission =
+                await _permissionAuthorization.HasPermissionAsync(
+                    _currentUser.UserId,
+                    _currentUser.Role,
+                    permissionKey);
+
+            if (!hasPermission)
+            {
+                throw new UnauthorizedAccessException(
+                    $"You do not have permission to perform '{permissionKey}'.");
+            }
+
+            if (project.Id == Guid.Empty)
+            {
+                Console.WriteLine("Calling CreateProject");
+                CreateProject(project);
+                return;
+            }
+
+            var existing =
+                _projectRepository.GetById(project.Id);
+
+            if (existing == null)
+                throw new InvalidOperationException(
+                    "The project could not be found.");
+
+            var hasProjectAccess =
+                await _projectAccessAuthorization.CanAccessProjectAsync(
+                    _currentUser.UserId,
+                    existing);
+
+            if (!hasProjectAccess)
+            {
+                throw new UnauthorizedAccessException(
+                    "The requested project is not accessible.");
+            }
+
+            Console.WriteLine("Calling UpdateProject");
+            UpdateProject(project, existing);
+        }
+
+        public async Task DeleteProjectAsync(Guid id)
+        {
+            Console.WriteLine("DeleteProjectAsync called");
+
+            if (!_currentUser.IsAuthenticated ||
+                string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+            }
+
+            var project = _projectRepository.GetById(id);
+
+            if (project == null)
+                return;
+
+            var hasPermission =
+                await _permissionAuthorization.HasPermissionAsync(
+                    _currentUser.UserId,
+                    _currentUser.Role,
+                    PermissionKeys.Projects.Delete);
+
+            if (!hasPermission)
+            {
+                throw new UnauthorizedAccessException(
+                    $"You do not have permission to perform '{PermissionKeys.Projects.Delete}'.");
+            }
+
+            var hasProjectAccess =
+                await _projectAccessAuthorization.CanAccessProjectAsync(
+                    _currentUser.UserId,
+                    project);
+
+            if (!hasProjectAccess)
+            {
+                throw new UnauthorizedAccessException(
+                    "The requested project is not accessible.");
+            }
+
+            _projectRepository.Delete(id);
+        }
+
+        private void CreateProject(Project project)
+        {
+
+            if (!_currentUser.CompanyId.HasValue ||
+                _currentUser.CompanyId.Value == Guid.Empty)
+            {
+                throw new InvalidOperationException(
+                    "The current user is not assigned to a company. " +
+                    "A project cannot be created without a company.");
+            }
+
+            project.CompanyId = _currentUser.CompanyId.Value;
+            Console.WriteLine("CreateProject entered");
+
+            project.CreatedOn = DateTime.Now;
+            project.LastModifiedOn = DateTime.Now;
+
+            project.Status = ProjectStatus.Active;
+            project.IsInvoiced = false;
+            project.IsArchived = false;
+
+            Console.WriteLine("Calling repository.Add");
+
+            _projectRepository.Add(project);
+
+            Console.WriteLine("Returned from repository.Add");
+
+            InitializeProject(project);
+        }
+
+        private void UpdateProject(Project project, Project existing)
+        {
+
+            // Project ownership is controlled by the existing project.
+            // The editor cannot move a project between companies.
+            project.CompanyId = existing.CompanyId;
+
+            project.LastModifiedOn = DateTime.Now;
+
+            ApplyInvoiceRules(project);
+
+            _projectRepository.Update(project);
+        }
+
+        private void InitializeProject(Project project)
+        {
+            new ProjectDocumentService()
+                .InitializeProjectDocuments(project.Id);
+        }
+
+        private bool IsAdministrator()
+        {
+            return string.Equals(
+                _currentUser.Role,
+                "Administrator",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void RequireCompanyContext()
+        {
+            if (!_currentUser.IsAuthenticated)
+            {
+                throw new UnauthorizedAccessException(
+                    "The current user is not authenticated.");
+            }
+
+            if (!_currentUser.CompanyId.HasValue ||
+                _currentUser.CompanyId.Value == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException(
+                    "The current user is not assigned to a company.");
+            }
+        }
+        private async Task EnsureProjectAccessAsync(Project? project)
+        {
+            if (project == null)
+                throw new UnauthorizedAccessException(
+                    "The requested project does not exist or is not accessible.");
+
+            if (!_currentUser.IsAuthenticated ||
+                string.IsNullOrWhiteSpace(_currentUser.UserId))
+            {
+                throw new UnauthorizedAccessException(
+                    "Authentication is required.");
+            }
+
+            var hasAccess =
+                await _projectAccessAuthorization.CanAccessProjectAsync(
+                    _currentUser.UserId,
+                    project);
+
+            if (!hasAccess)
+            {
+                throw new UnauthorizedAccessException(
+                    "You do not have access to this project.");
+            }
+        }
+
+        private void ValidateProject(Project project)
+        {
+            if (string.IsNullOrWhiteSpace(project.ProjectName))
+                throw new InvalidOperationException("Project name is required.");
+
+            if (string.IsNullOrWhiteSpace(project.Client))
+                throw new InvalidOperationException("Client is required.");
+
+            ValidateCompletion(project);
+        }
+
+        private void ValidateCompletion(Project project)
+        {
+            if (project.Status == ProjectStatus.Completed)
+            {
+                // Future:
+                // Verify compliance
+                // Verify outstanding documents
+                // Verify repairs completed
+            }
+        }
+
+        private void ApplyInvoiceRules(Project project)
+{
+    if (project.IsInvoiced)
+    {
+        if (string.IsNullOrWhiteSpace(project.InvoiceNumber))
+        {
+            throw new InvalidOperationException(
+                "Invoice number is required when a project is marked as invoiced.");
+        }
+
+        project.Status = ProjectStatus.Completed;
+
+        if (!project.CompletedOn.HasValue)
+            project.CompletedOn = DateTime.UtcNow;
+    }
+}
+
+
+        // =============================
+        // Stock
+        // =============================
+
+        public async Task<List<ProjectStockUsage>> GetStockUsage(Guid projectId)
+        {
+        var project = _projectRepository.GetById(projectId);
+
+        await EnsureProjectAccessAsync(project);
+            return _stockRepository.GetByProjectId(projectId);
+        }
+        public async Task<List<ProjectStockSummary>> GetStockSummary(Guid projectId)
+        {
+        var project = _projectRepository.GetById(projectId);
+
+        await EnsureProjectAccessAsync(project);
+            return _stockRepository.GetProjectStockSummary(projectId);
+        }
+
+        // =============================
+        // Documents
+        // =============================
+
+        public async Task<List<ProjectDocument>> GetDocuments(Guid projectId)
+        {
+        var project = _projectRepository.GetById(projectId);
+
+        await EnsureProjectAccessAsync(project);
+            return _documentRepository.GetByProject(projectId);
+        }
+
+        public async Task RegisterDocumentFile(
+            ProjectDocument document,
+            string storedFilePath)
+        {
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
+
+            if (string.IsNullOrWhiteSpace(storedFilePath))
+                throw new ArgumentException(
+                    "Stored file path is required.",
+                    nameof(storedFilePath));
+
+            var project = _projectRepository.GetById(document.ProjectId);
+            await EnsureProjectAccessAsync(project);
+
+            document.FilePath = storedFilePath;
+            document.IsUploaded = true;
+            document.UploadedDate = DateTime.UtcNow;
+            document.LastModifiedOn = DateTime.UtcNow;
+
+
+            if (document.AllowMultiple)
+            {
+                var file = new ProjectDocumentFile
+                {
+                    ProjectDocumentId = document.Id,
+                    FilePath = storedFilePath,
+                    FileName = Path.GetFileName(storedFilePath),
+                    UploadedOn = DateTime.UtcNow,
+                    IsApproved = false
+                };
+
+                _fileRepository.Add(file);
+            }
+            _documentRepository.Update(document);
+        }
+
+        public async Task<bool> ToggleDocumentApproval(ProjectDocument document)
+        {
+            if (document == null)
+                return false;
+
+            var project = _projectRepository.GetById(document.ProjectId);
+            await EnsureProjectAccessAsync(project);
+
+            document.IsApproved = !document.IsApproved;
+            document.LastModifiedOn = DateTime.UtcNow;
+
+            _documentRepository.Update(document);
+
+            return document.IsApproved;
+        }
+
+        public async Task<bool> OpenDocument(ProjectDocument document)
+        {
+            if (document == null)
+                return false;
+
+            var project = _projectRepository.GetById(document.ProjectId);
+            await EnsureProjectAccessAsync(project);
+
+            try
+            {
+                // Multi-file document
+                if (document.AllowMultiple)
+                {
+                    var files = _fileRepository.GetByDocument(document.Id);
+
+                    if (files.Count == 0)
+                        return false;
+
+                    foreach (var file in files)
+                    {
+                        if (File.Exists(file.FilePath))
+                        {
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = file.FilePath,
+                                UseShellExecute = true
+                            });
+                        }
+                    }
+
+                    return true;
+                }
+
+                // Single-file document
+                if (string.IsNullOrWhiteSpace(document.FilePath))
+                    return false;
+
+                if (!File.Exists(document.FilePath))
+                    return false;
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = document.FilePath,
+                    UseShellExecute = true
+                });
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        // =============================
+        // Material Summary
+        // =============================
+
+        public async Task<List<ProjectStockSummary>> GetMaterialSummary(Guid projectId)
+        {
+        var project = _projectRepository.GetById(projectId);
+
+        await EnsureProjectAccessAsync(project);
+            return _stockRepository.GetProjectStockSummary(projectId);
+        }
+
+        public async Task UpdateDocument(ProjectDocument document)
+        {
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
+
+            var project = _projectRepository.GetById(document.ProjectId);
+            await EnsureProjectAccessAsync(project);
+
+            _documentRepository.Update(document);
+        }
+
+        public async Task AddDocument(ProjectDocument document)
+        {
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
+
+            var project = _projectRepository.GetById(document.ProjectId);
+            await EnsureProjectAccessAsync(project);
+
+            _documentRepository.Add(document);
+        }
+
+        // =============================
+        // MATERIAL MANAGEMENT
+        // =============================
+
+        public List<StockItem> GetStockItems()
+        {
+            return _materialService
+                .GetStockItems()
+                .ToList();
+        }
+
+        public async Task IssueMaterial(
+            Project project,
+            StockItem item,
+            decimal quantity,
+            string issuedBy)
+        {
+            await EnsureProjectAccessAsync(project);
+            _materialService.IssueMaterial(
+                project,
+                item,
+                quantity,
+                issuedBy);
+        }
+
+        public async Task ReturnMaterial(
+            Project project,
+            StockItem item,
+            decimal quantity,
+            decimal unitCost,
+            string issuedBy)
+        {
+            await EnsureProjectAccessAsync(project);
+            _materialService.ReturnMaterial(
+                project,
+                item,
+                quantity,
+                unitCost,
+                issuedBy);
+        }
+
+        public async Task<List<ReturnableItemDto>> GetReturnableItems(Guid projectId)
+        {
+        var project = _projectRepository.GetById(projectId);
+
+        await EnsureProjectAccessAsync(project);
+            return _materialService
+                .GetReturnableItems(projectId)
+                .ToList();
+        }
+
+        public async Task<List<StockTransaction>> GetProjectTransactions(Guid projectId)
+        {
+        var project = _projectRepository.GetById(projectId);
+
+        await EnsureProjectAccessAsync(project);
+            return _materialService
+                .GetProjectTransactions(projectId)
+                .ToList();
+        }
+    }
+}

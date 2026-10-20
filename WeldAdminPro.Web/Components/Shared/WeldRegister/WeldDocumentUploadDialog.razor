@@ -1,0 +1,158 @@
+﻿@using MudBlazor
+@using Microsoft.AspNetCore.Components.Forms
+@using WeldAdminPro.Core.Reporting.Enums
+@using WeldAdminPro.Web.Services.Reporting
+
+@inject DocumentVaultApplicationService DocumentService
+
+<CascadingValue Value="MudDialog">
+
+    <MudDialog>
+
+        <DialogContent>
+
+            <MudStack Spacing="3">
+
+                <MudSelect T="DocumentCategoryType"
+                           Label="Document Category"
+                           Variant="Variant.Outlined"
+                           @bind-Value="_category">
+
+                    <MudSelectItem Value="DocumentCategoryType.CalibrationCertificate">
+                        Calibration Certificate
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="DocumentCategoryType.MaterialCertificate">
+                        Material Certificate
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="DocumentCategoryType.NDT">
+                        NDT
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="DocumentCategoryType.InspectionReport">
+                        Inspection Report
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="DocumentCategoryType.Other">
+                        Other
+                    </MudSelectItem>
+
+                </MudSelect>
+
+                <MudTextField T="string"
+                              Label="Document Number"
+                              Variant="Variant.Outlined"
+                              @bind-Value="_documentNumber" />
+
+                <MudTextField T="string"
+                              Label="Revision"
+                              Variant="Variant.Outlined"
+                              @bind-Value="_revision" />
+
+                <MudTextField T="string"
+                              Label="Title"
+                              Variant="Variant.Outlined"
+                              @bind-Value="_title" />
+
+                <MudTextField T="string"
+                              Label="Description"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              @bind-Value="_description" />
+
+                <InputFile OnChange="FileSelected" />
+
+                @if (_selectedFile != null)
+                {
+                    <MudAlert Severity="Severity.Info">
+                        Selected: @_selectedFile.Name
+                    </MudAlert>
+                }
+
+            </MudStack>
+
+        </DialogContent>
+
+        <DialogActions>
+
+            <MudButton Variant="Variant.Text"
+                       OnClick="Cancel">
+                Cancel
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="@(!CanSave)"
+                       OnClick="Save">
+                Upload
+            </MudButton>
+
+        </DialogActions>
+
+    </MudDialog>
+
+</CascadingValue>
+
+@code
+{
+    [Parameter]
+    public Guid WeldId { get; set; }
+
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private IBrowserFile? _selectedFile;
+
+    private DocumentCategoryType _category =
+        DocumentCategoryType.CalibrationCertificate;
+
+    private string _documentNumber = string.Empty;
+    private string _revision = string.Empty;
+    private string _title = string.Empty;
+    private string _description = string.Empty;
+
+    private bool CanSave =>
+        WeldId != Guid.Empty &&
+        ProjectId != Guid.Empty &&
+        _selectedFile != null;
+
+    private void FileSelected(
+        InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+    }
+
+    private async Task Save()
+    {
+        if (!CanSave || _selectedFile == null)
+            return;
+
+        await using var stream =
+            _selectedFile.OpenReadStream(
+                1024 * 1024 * 100);
+
+        await DocumentService.UploadWeldDocumentAsync(
+            WeldId,
+            ProjectId,
+            _selectedFile.Name,
+            _category,
+            stream,
+            _title,
+            _description,
+            _documentNumber,
+            _revision);
+
+        MudDialog.Close(
+            DialogResult.Ok(true));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}
+

@@ -1,6 +1,11 @@
-@using MudBlazor
+﻿@using MudBlazor
 @using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Core.Security
+@using WeldAdminPro.Web.Components.Security
 @using WeldAdminPro.Web.Components.Shared
+@using WeldAdminPro.Data.Repositories
+
+@inject CompanyRepository CompanyRepository
 
 <MudTable Items="@Items"
           Hover="true"
@@ -15,9 +20,11 @@
         <MudTh>Rev</MudTh>
         <MudTh>Process</MudTh>
         <MudTh>Material</MudTh>
+	<MudTh>Owning Company</MudTh>
         <MudTh>Thickness</MudTh>
         <MudTh>PQR</MudTh>
         <MudTh>Status</MudTh>
+        <MudTh>Approval</MudTh>
         <MudTh>Compliance</MudTh>
         <MudTh>Actions</MudTh>
 
@@ -40,6 +47,10 @@
         <MudTd DataLabel="Material">
             @context.MaterialGroup
         </MudTd>
+
+ 	<MudTd DataLabel="Owning Company">
+    		@GetCompanyName(context.CompanyId)
+	</MudTd>
 
         <MudTd DataLabel="Thickness">
             @($"{context.ThicknessMin} - {context.ThicknessMax} mm")
@@ -67,6 +78,28 @@
             }
 
         </MudTd>
+
+        <MudTd DataLabel="Approval">
+
+            @if (context.IsApproved)
+            {
+                <StatusBadge Text="Approved"
+                             BadgeCss="bg-success" />
+
+                @if (!string.IsNullOrWhiteSpace(context.ApprovedBy))
+                {
+                    <div class="small text-muted mt-1">
+                        @context.ApprovedBy
+                    </div>
+                }
+            }
+            else
+            {
+                <StatusBadge Text="Pending"
+                             BadgeCss="bg-warning text-dark" />
+            }
+
+        </MudTd>
         
         <MudTd DataLabel="Compliance">
 
@@ -89,6 +122,18 @@
                            Size="Size.Small"
                            Color="Color.Info"
                            OnClick="@(() => OnView.InvokeAsync(context))" />
+
+            @if (!context.IsApproved)
+            {
+                <PermissionView Permission="@PermissionKeys.Quality.WpsApproval">
+                    <MudTooltip Text="Approve WPS">
+                        <MudIconButton Icon="@Icons.Material.Filled.CheckCircle"
+                                       Size="Size.Small"
+                                       Color="Color.Success"
+                                       OnClick="@(() => OnApprove.InvokeAsync(context))" />
+                    </MudTooltip>
+                </PermissionView>
+            }
 
             <MudIconButton Icon="@Icons.Material.Filled.Edit"
                            Size="Size.Small"
@@ -120,4 +165,23 @@
 
     [Parameter]
     public EventCallback<Wps> OnDelete { get; set; }
+
+    [Parameter]
+    public EventCallback<Wps> OnApprove { get; set; }
+
+	private string GetCompanyName(Guid? companyId)
+{
+    if (!companyId.HasValue || companyId.Value == Guid.Empty)
+    {
+        return "Company not recorded";
+    }
+
+    var company = CompanyRepository.GetById(companyId.Value);
+
+    return string.IsNullOrWhiteSpace(company?.CompanyName)
+        ? "Company not recorded"
+        : company.CompanyName.Trim();
 }
+}
+
+

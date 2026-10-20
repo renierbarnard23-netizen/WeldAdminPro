@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.Sqlite;
+using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -10,11 +10,30 @@ namespace WeldAdminPro.Data.Repositories
 	{
 		private readonly string _connectionString;
 
-		public ProjectRepository()
-		{
-			_connectionString = $"Data Source={DatabasePath.Get()}";
-			EnsureTables();
-		}
+            public ProjectRepository()
+                : this(DatabasePath.Get())
+            {
+            }
+
+            public ProjectRepository(string databasePath)
+            {
+                if (string.IsNullOrWhiteSpace(databasePath))
+                    throw new ArgumentException(
+                        "Database path is required.",
+                        nameof(databasePath));
+
+                var fullDatabasePath =
+                    System.IO.Path.GetFullPath(databasePath);
+
+                var directory =
+                    System.IO.Path.GetDirectoryName(fullDatabasePath);
+
+                if (!string.IsNullOrWhiteSpace(directory))
+                    System.IO.Directory.CreateDirectory(directory);
+
+                _connectionString = $"Data Source={fullDatabasePath}";
+                EnsureTables();
+            }
 
 		private void EnsureTables()
 		{
@@ -138,13 +157,13 @@ INSERT INTO Projects (
 	Amount, Budget, QuoteNumber, OrderNumber, Material, AssignedTo,
 	IsInvoiced, InvoiceNumber, StartDate, EndDate,
 	Status, CreatedOn, ActualCost, CommittedCost, CompletedOn,
-	LastModifiedOn, IsArchived
+   LastModifiedOn, IsArchived, CompanyId, WeldingSubcontractorCompanyId
 ) VALUES (
 	@Id, @JobNumber, @ProjectName, @Client, @ClientRepresentative,
 	@Amount, @Budget, @QuoteNumber, @OrderNumber, @Material, @AssignedTo,
 	@IsInvoiced, @InvoiceNumber, @StartDate, @EndDate,
 	@Status, @CreatedOn, @ActualCost, @CommittedCost, @CompletedOn,
-	@LastModifiedOn, @IsArchived
+   @LastModifiedOn, @IsArchived, @CompanyId, @WeldingSubcontractorCompanyId
 );";
             BindParameters(cmd, project);
 
@@ -196,7 +215,9 @@ UPDATE Projects SET
 	CommittedCost = @CommittedCost,
 	CompletedOn = @CompletedOn,
 	LastModifiedOn = @LastModifiedOn,
-	IsArchived = @IsArchived
+   IsArchived = @IsArchived,
+   CompanyId = @CompanyId,
+   WeldingSubcontractorCompanyId = @WeldingSubcontractorCompanyId
 WHERE Id = @Id;";
 
 			BindParameters(cmd, project);
@@ -231,7 +252,9 @@ UPDATE Projects SET
     CommittedCost = @CommittedCost,
     CompletedOn = @CompletedOn,
     LastModifiedOn = @LastModifiedOn,
-    IsArchived = @IsArchived
+    IsArchived = @IsArchived,
+    CompanyId = @CompanyId,
+    WeldingSubcontractorCompanyId = @WeldingSubcontractorCompanyId
 WHERE Id = @Id;";
 
 			BindParameters(cmd, project);
@@ -370,6 +393,10 @@ DO UPDATE SET Value = excluded.Value;";
 			cmd.Parameters.AddWithValue("@LastModifiedOn",
 				p.LastModifiedOn.HasValue ? p.LastModifiedOn.Value.ToString("O") : DBNull.Value);
 			cmd.Parameters.AddWithValue("@IsArchived", p.IsArchived ? 1 : 0);
+                    cmd.Parameters.AddWithValue("@CompanyId",
+                            p.CompanyId.HasValue ? p.CompanyId.Value.ToString() : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@WeldingSubcontractorCompanyId",
+                            p.WeldingSubcontractorCompanyId.HasValue ? p.WeldingSubcontractorCompanyId.Value.ToString() : DBNull.Value);
 		}
 
 		private static Project Map(IDataRecord r)
@@ -392,6 +419,12 @@ DO UPDATE SET Value = excluded.Value;";
 			return new Project
 			{
 				Id = Guid.Parse(r["Id"].ToString()!),
+                            CompanyId = r["CompanyId"] == DBNull.Value
+                                    ? null
+                                    : Guid.Parse(r["CompanyId"].ToString()!),
+                            WeldingSubcontractorCompanyId = r["WeldingSubcontractorCompanyId"] == DBNull.Value
+                                    ? null
+                                    : Guid.Parse(r["WeldingSubcontractorCompanyId"].ToString()!),
 				JobNumber = GetInt("JobNumber"),
 				ProjectName = GetString("ProjectName"),
 				Client = GetString("Client"),

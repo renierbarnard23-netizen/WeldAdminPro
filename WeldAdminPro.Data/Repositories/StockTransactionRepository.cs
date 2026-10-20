@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using WeldAdminPro.Core.Models;
 
 namespace WeldAdminPro.Data.Repositories
@@ -15,43 +15,6 @@ namespace WeldAdminPro.Data.Repositories
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
-            Console.WriteLine("Database = " + connection.DataSource);
-
-            var check = connection.CreateCommand();
-            check.CommandText = @"
-SELECT COUNT(*)
-FROM StockItems
-WHERE Id = $id;";
-
-            check.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
-
-            Console.WriteLine("Stock Item Exists = " + check.ExecuteScalar());
-
-            var check2 = connection.CreateCommand();
-            check2.CommandText = @"
-SELECT Id
-FROM StockItems
-WHERE Id = $id;";
-
-            check2.Parameters.AddWithValue("$id", tx.StockItemId.ToString());
-
-            Console.WriteLine("Returned Id = " + (check2.ExecuteScalar() ?? "NULL"));
-
-            var dump = connection.CreateCommand();
-            dump.CommandText = @"
-SELECT Id
-FROM StockItems;";
-
-            using var reader = dump.ExecuteReader();
-
-            Console.WriteLine("===== STOCK IDS IN DATABASE =====");
-
-            while (reader.Read())
-            {
-                Console.WriteLine("[" + reader.GetString(0) + "]");
-            }
-
-            Console.WriteLine("=================================");
 
             var cmd = connection.CreateCommand();
             cmd.CommandText = @"
@@ -75,17 +38,6 @@ VALUES
             cmd.Parameters.AddWithValue("$ref", tx.Reference ?? "");
             cmd.Parameters.AddWithValue("$balance", tx.BalanceAfter);
 
-            Console.WriteLine("===== SQLITE PARAMETERS =====");
-            Console.WriteLine($"Id          : {tx.Id}");
-            Console.WriteLine($"StockItemId : {tx.StockItemId}");
-            Console.WriteLine($"ProjectId   : {(tx.ProjectId.HasValue ? tx.ProjectId.ToString() : "NULL")}");
-            Console.WriteLine($"Date        : {tx.TransactionDate:o}");
-            Console.WriteLine($"Quantity    : {tx.Quantity}");
-            Console.WriteLine($"Type        : {tx.Type}");
-            Console.WriteLine($"UnitCost    : {tx.UnitCost}");
-            Console.WriteLine($"Reference   : {tx.Reference}");
-            Console.WriteLine($"Balance     : {tx.BalanceAfter}");
-            Console.WriteLine("=============================");
 
             cmd.ExecuteNonQuery();
         }
@@ -264,7 +216,7 @@ WHERE Id = $id;";
                 // Already added
                 ProjectName = reader.IsDBNull(9) ? null : reader.GetString(9),
 
-                // 🔥 ADD THESE
+                // ðŸ”¥ ADD THESE
                 ItemCode = reader.IsDBNull(10) ? "" : reader.GetString(10),
                 ItemDescription = reader.IsDBNull(11) ? "" : reader.GetString(11)
             };

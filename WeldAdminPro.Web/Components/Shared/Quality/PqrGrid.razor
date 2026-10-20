@@ -1,4 +1,8 @@
-@using WeldAdminPro.Core.Quality
+﻿@using WeldAdminPro.Core.Quality
+@using WeldAdminPro.Data.Repositories
+@using WeldAdminPro.Core.Security
+@using WeldAdminPro.Web.Components.Security
+@inject CompanyRepository CompanyRepository
 
 <MudTable Items="@Items"
           Hover="true"
@@ -10,6 +14,7 @@
         <MudTh>PQR</MudTh>
         <MudTh>Process</MudTh>
         <MudTh>Material</MudTh>
+        <MudTh>Owning Company</MudTh>
         <MudTh>P No.</MudTh>
         <MudTh>F No.</MudTh>
         <MudTh>Joint</MudTh>
@@ -26,7 +31,11 @@
 
         <MudTd>@context.Process</MudTd>
 
-        <MudTd>@context.MaterialGroup</MudTd>
+        <MudTd>@context.BaseMaterial1</MudTd>
+
+        <MudTd DataLabel="Owning Company">
+            @GetCompanyName(context.CompanyId)
+        </MudTd>
 
         <MudTd>@context.PNumber</MudTd>
 
@@ -59,6 +68,21 @@
 
         <MudTd Class="text-end">
 
+            @if (!context.IsApproved)
+            {
+                <PermissionView Permission="@PermissionKeys.Quality.WpsApproval">
+                    <MudIconButton Icon="@Icons.Material.Filled.CheckCircle"
+                                   Color="Color.Success"
+                                   OnClick="@(() => OnApprove.InvokeAsync(context))" />
+                </PermissionView>
+            }
+
+
+            <MudIconButton Icon="@Icons.Material.Filled.PictureAsPdf"
+                           Color="Color.Primary"
+
+                           OnClick="@(() => OnPrint.InvokeAsync(context))" />
+
             <MudIconButton Icon="@Icons.Material.Filled.Edit"
                            OnClick="@(() => OnEdit.InvokeAsync(context))" />
 
@@ -83,4 +107,24 @@
     [Parameter]
     public EventCallback<Pqr> OnDelete { get; set; }
 
+    [Parameter]
+    public EventCallback<Pqr> OnPrint { get; set; }
+
+    [Parameter]
+    public EventCallback<Pqr> OnApprove { get; set; }
+
+    private string GetCompanyName(Guid? companyId)
+    {
+        if (!companyId.HasValue || companyId.Value == Guid.Empty)
+        {
+            return "Company not recorded";
+        }
+
+        var company = CompanyRepository.GetById(companyId.Value);
+
+        return string.IsNullOrWhiteSpace(company?.CompanyName)
+            ? "Company not recorded"
+            : company.CompanyName.Trim();
+    }
 }
+
